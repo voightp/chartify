@@ -1,0 +1,23 @@
+
+QToolButton {
+    background-color: white;
+    color: black;
+    border: 2px solid #555555;
+    color: black;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    transition-duration: 0.4s;
+    cursor: pointer;
+  }
+
+  QToolButton:disabled {
+background-color: #555555;
+
+  }
+
+  QToolButton:hover {
+    background-color: #555555;
+    color: white;
+  }
