@@ -88,7 +88,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.units_tools_group = QGroupBox("Units", self.outputs_tools_wgt)
         self.energy_units_c_box = QComboBox()
-        self.pwoer_units_c_box = QComboBox()
+        self.power_units_c_box = QComboBox()
         self.si_radio_btn = QRadioButton("SI")
         self.ip_radio_btn = QRadioButton("IP")
         self.set_up_units_tools()
@@ -526,11 +526,11 @@ class MainWindow(QtWidgets.QMainWindow):
         power_units_layout.setContentsMargins(*margins)
         power_units_wgt.setLayout(power_units_layout)
         l2 = QLabel("Power Units")
-        self.pwoer_units_c_box.addItems(
+        self.power_units_c_box.addItems(
             ["W", "kW", "MW", "Btu/h", "kBtu/h", "MBtu/h"])
-        self.pwoer_units_c_box.setCurrentIndex(0)
+        self.power_units_c_box.setCurrentIndex(0)
         power_units_layout.addWidget(l2)
-        power_units_layout.addWidget(self.pwoer_units_c_box)
+        power_units_layout.addWidget(self.power_units_c_box)
 
         # ~~~~ Units system set up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         units_system_wgt = QWidget()
