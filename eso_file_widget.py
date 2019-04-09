@@ -9,11 +9,11 @@ from PySide2.QtWidgets import QWidget, QTabWidget, QTreeView, QSplitter, QHBoxLa
     QGridLayout, QToolButton, QSizePolicy, QLayout, QLabel, QGroupBox, QRadioButton, QToolBar, \
     QMenuBar, QAction, \
     QFileDialog, QDialog, QProgressBar, QFormLayout, QAbstractItemView, QSlider, QSpacerItem, \
-    QSizePolicy, \
-    QLineEdit, QComboBox, QMdiArea, QHeaderView, QTableView, QApplication, QScrollArea
+    QSizePolicy, QLineEdit, QComboBox, QMdiArea, QHeaderView, QTableView, QApplication, QScrollArea
 from PySide2.QtCore import QSize, Qt, QThreadPool, QThread, QObject, Signal, \
     QSortFilterProxyModel, QModelIndex, QItemSelectionModel, QRegExp, QUrl, QAbstractItemModel, \
-    QItemSelection, QTimer, QItemSelectionRange, QSignalBlocker
+    QItemSelection, QTimer, QItemSelectionRange, QSignalBlocker, QMimeData, QMimeType, QByteArray
+from PySide2.QtGui import QDrag, QPixmap
 import pickle
 
 from PySide2.QtGui import QStandardItemModel, QStandardItem, QFont
@@ -31,12 +31,12 @@ class GuiEsoFile(QTreeView):
         self.setAlternatingRowColors(False)
         self.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.setUniformRowHeights(True)
-        self.setWordWrap(True)  # not working at the moment
+        self.setWordWrap(False)  # not working at the moment
         self.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.setDefaultDropAction(Qt.CopyAction)
-        self.setDragEnabled(True)
+        self.setDragEnabled(False)
         self.setSortingEnabled(True)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
 
@@ -265,10 +265,20 @@ class GuiEsoFile(QTreeView):
             "Units": header.sectionSize(units_ix)
         }
 
-    def handle_drag_attempt(self):
+    def handle_drag_attempt(self, index):
         """ Handle pressing the view item or items. """
         # update selection
         self.handle_selection_change()
+
+        mimeData = QMimeData()
+        mimeData.setText("HELLO FROM MAIN APP")
+
+        pixmap = QPixmap(QSize(100,100))
+        self.render(pixmap)
+        drag = QDrag(self)
+        drag.setMimeData(mimeData)
+        drag.setPixmap(pixmap)
+        drag.exec_(Qt.CopyAction)
 
         # create a drag object with pixmap
 
@@ -371,6 +381,10 @@ class MyModel(QStandardItemModel):
         super().__init__()
         self.populate_data(eso_file_mirror, tree_arrange_key, interval_request)
         self.setSortRole(Qt.AscendingOrder)
+
+    def mimeTypes(self):
+        # TODO Double check if this is working
+        return "application/json"
 
     @staticmethod
     def _get_identifiers(tree_arrange_key):

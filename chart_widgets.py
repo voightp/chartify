@@ -12,7 +12,6 @@ from concurrent.futures import ProcessPoolExecutor
 from functools import partial
 
 
-
 class ChartWidget(QFrame):
     def __init__(self, parent_widget, main_app):
         super().__init__(parent_widget)
