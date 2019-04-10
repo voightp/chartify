@@ -2,7 +2,6 @@ import dash
 import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Output, Input, State
-from constants import RP
 import sys
 from PySide2 import QtCore, QtGui, QtWidgets
 from PySide2.QtWidgets import QWidget, QTabWidget, QTreeView, QSplitter, QHBoxLayout, QVBoxLayout, \
@@ -265,7 +264,7 @@ class GuiEsoFile(QTreeView):
             "Units": header.sectionSize(units_ix)
         }
 
-    def handle_drag_attempt(self, index):
+    def handle_drag_attempt(self):
         """ Handle pressing the view item or items. """
         # update selection
         self.handle_selection_change()
@@ -273,7 +272,7 @@ class GuiEsoFile(QTreeView):
         mimeData = QMimeData()
         mimeData.setText("HELLO FROM MAIN APP")
 
-        pixmap = QPixmap(QSize(100,100))
+        pixmap = QPixmap(QSize(100, 100))
         self.render(pixmap)
         drag = QDrag(self)
         drag.setMimeData(mimeData)
@@ -377,7 +376,7 @@ class GuiEsoFile(QTreeView):
 
 
 class MyModel(QStandardItemModel):
-    def __init__(self, eso_file_mirror, tree_arrange_key=None, interval_request=RP):
+    def __init__(self, eso_file_mirror, tree_arrange_key=None, interval_request=None):
         super().__init__()
         self.populate_data(eso_file_mirror, tree_arrange_key, interval_request)
         self.setSortRole(Qt.AscendingOrder)

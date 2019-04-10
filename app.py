@@ -11,7 +11,6 @@ from PySide2.QtCore import QSize, Qt, QThreadPool, QThread, QObject, Signal, \
     QItemSelectionModel, QRegExp, QUrl, QTimer, QFile
 
 from PySide2.QtGui import QKeySequence
-
 from eso_file_header import EsoFileHeader
 
 from PySide2.QtGui import QStandardItemModel, QStandardItem, QFont
@@ -20,14 +19,12 @@ import pandas as pd
 from functools import partial
 import traceback
 import sys
+import os
 
+projects = os.path.dirname(os.path.dirname(__file__))
+sys.path.append(os.path.join(projects, "eso_reader"))
 
-
-# sys.path.append(r'C:\Users\vojtechp1\PycharmProjects\eso_reader')
-sys.path.append(r'C:\Users\vojte\Desktop\Python\eso_reader')
-sys.path.append(r'C:\Users\vojte\Desktop\Python\dash_app')
-
-from main_dash import start_dash
+# from main_dash import start_dash
 from constants import TS, D, H, M, A, RP
 from eso_file import EsoFile, load_eso_file, get_results
 from monitor import DefaultMonitor
@@ -53,9 +50,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setGeometry(50, 50, 800, 600)
         self.setWindowTitle("EsoPie")
         self.setFont = globalFont
-        with open("styles/app_style.css", "r") as file:
-            cont = file.read()
-        self.setStyleSheet(cont)
+        # TODO CSS not used at the moment
+        # with open("styles/app_style.css", "r") as file:
+        #     cont = file.read()
+        # self.setStyleSheet(cont)
 
         # ~~~~ Main Window widgets ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.central_layout = QHBoxLayout()
@@ -320,7 +318,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.main_chart_widget.setMinimumWidth(800)
 
     def set_up_tab_wgt(self):
-        """ Set up appereance and behaviour of the tab widget. """
+        """ Set up appearance and behaviour of the tab widget. """
         # ~~~~ Tab widget set up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.tab_wgt.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
         self.tab_wgt.setContentsMargins(3, 3, 3, 3)
