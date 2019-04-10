@@ -271,16 +271,12 @@ class GuiEsoFile(QTreeView):
 
         mimeData = QMimeData()
         mimeData.setText("HELLO FROM MAIN APP")
-
-        pixmap = QPixmap(QSize(100, 100))
-        self.render(pixmap)
+        pixmap = QPixmap("./icons/line-chart.png")
         drag = QDrag(self)
         drag.setMimeData(mimeData)
         drag.setPixmap(pixmap)
         drag.exec_(Qt.CopyAction)
-
         # create a drag object with pixmap
-
         print("HANDLE DRAG")
 
     def handle_selection_change(self):
