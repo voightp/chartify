@@ -9,6 +9,7 @@ from PySide2.QtWidgets import QWidget, QTabWidget, QTreeView, QSplitter, QHBoxLa
 from PySide2.QtCore import QSize, Qt, QThreadPool, QThread, QObject, Signal, \
     QSortFilterProxyModel, QModelIndex, \
     QItemSelectionModel, QRegExp, QUrl, QTimer, QFile
+from PySide2.QtWebEngineWidgets import QWebEnginePage, QWebEngineView
 
 from PySide2.QtGui import QKeySequence
 from eso_file_header import EsoFileHeader
@@ -27,7 +28,7 @@ projects = os.path.dirname(os.path.dirname(__file__))
 sys.path.append(os.path.join(projects, "eso_reader"))
 sys.path.append(os.path.join(projects, "dash_app"))
 
-from main_dash import start_dash
+# from main_dash import start_dash
 from constants import TS, D, H, M, A, RP
 from eso_file import EsoFile, load_eso_file, get_results
 from mini_classes import Variable
@@ -36,7 +37,7 @@ from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 from queue import Queue
 from multiprocessing import Manager, cpu_count, Pipe, Process
 from eso_file_widget import GuiEsoFile
-from chart_widgets import ChartWidget, MyWebView
+from chart_widgets import MyWebView
 from random import randint
 from threads import PipeEcho, MonitorThread, EsoFileWatcher, GuiMonitor
 
@@ -184,18 +185,19 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # ~~~~ Dash app ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         app_conn, dash_conn = Pipe()
-        self.dsh = Process(target=start_dash, args=(dash_conn, self.database))
-        self.dsh.start()
+        # self.dsh = Process(target=start_dash, args=(dash_conn, self.database))
+        # self.dsh.start()
         self.app_conn = app_conn
 
         # ~~~~ Monitoring threads ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.monitors = []
-        self.pipe_watcher_thread = PipeEcho(self.app_conn)
+        # TODO
+        # self.pipe_watcher_thread = PipeEcho(self.app_conn)
         self.watcher_thread = EsoFileWatcher(self.file_queue)
         self.monitor_thread = MonitorThread(self.progress_queue)
         self.pool = self.create_pool()
         self.create_thread_actions()
-        self.pipe_watcher_thread.start()
+        # self.pipe_watcher_thread.start()
         self.watcher_thread.start()
         self.monitor_thread.start()
 
@@ -214,7 +216,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.file_menu.addAction(self.loadFilesFromFolderAct)
         self.file_menu.addAction(self.closeAllTabsAct)
 
-        self.chart_area = MyWebView(self.main_chart_widget)
+        self.chart_area = QWebEngineView(self)
+        # self.chart_area.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.chart_area.setAcceptDrops(True)
+
+        self.url = "http://127.0.0.1:8050/"
+        self.chart_area.load(self.url)
         self.main_chart_layout.addWidget(self.chart_area)
 
     @property
@@ -851,7 +858,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.monitor_thread.progress_bar_updated.connect(self.update_bar_progress)
         self.monitor_thread.preprocess_finished.connect(self.set_progress_bar_max)
         self.monitor_thread.finished.connect(self.file_loaded)
-        self.pipe_watcher_thread.output_requested.connect(self.send_output)
+        # TODO
+        # self.pipe_watcher_thread.output_requested.connect(self.send_output)
 
     def populate_current_selection(self, outputs):
         self.save_xlsx_btn.setEnabled(True)
