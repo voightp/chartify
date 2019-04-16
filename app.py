@@ -183,21 +183,12 @@ class MainWindow(QtWidgets.QMainWindow):
         # ~~~~ Database ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.database = self.manager.dict()
 
-        # ~~~~ Dash app ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        app_conn, dash_conn = Pipe()
-        # self.dsh = Process(target=start_dash, args=(dash_conn, self.database))
-        # self.dsh.start()
-        self.app_conn = app_conn
-
         # ~~~~ Monitoring threads ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.monitors = []
-        # TODO
-        # self.pipe_watcher_thread = PipeEcho(self.app_conn)
         self.watcher_thread = EsoFileWatcher(self.file_queue)
         self.monitor_thread = MonitorThread(self.progress_queue)
         self.pool = self.create_pool()
         self.create_thread_actions()
-        # self.pipe_watcher_thread.start()
         self.watcher_thread.start()
         self.monitor_thread.start()
 
@@ -251,7 +242,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def closeEvent(self, event):
         """ Shutdown all background stuff. """
-        self.dsh.terminate()
+        # self.dsh.terminate()
         self.pipe_watcher_thread.terminate()
         self.watcher_thread.terminate()
         self.monitor_thread.terminate()
@@ -858,8 +849,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.monitor_thread.progress_bar_updated.connect(self.update_bar_progress)
         self.monitor_thread.preprocess_finished.connect(self.set_progress_bar_max)
         self.monitor_thread.finished.connect(self.file_loaded)
-        # TODO
-        # self.pipe_watcher_thread.output_requested.connect(self.send_output)
 
     def populate_current_selection(self, outputs):
         self.save_xlsx_btn.setEnabled(True)
