@@ -171,11 +171,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.monitors = []
         # TODO PASSING THE DATA TO DASH APP
         # self.pipe_watcher_thread = PipeEcho(self.app_conn)
+
         self.watcher_thread = EsoFileWatcher(self.file_queue)
         self.monitor_thread = MonitorThread(self.progress_queue)
         self.pool = self.create_pool()
         self.create_thread_actions()
-        # self.pipe_watcher_thread.start()
         self.watcher_thread.start()
         self.monitor_thread.start()
 
@@ -742,8 +742,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.monitor_thread.progress_bar_updated.connect(self.update_bar_progress)
         self.monitor_thread.preprocess_finished.connect(self.set_progress_bar_max)
         self.monitor_thread.finished.connect(self.file_loaded)
+<<<<<<< HEAD
         # TODO CONNECT DATA FLOW TO DASH
         # self.pipe_watcher_thread.output_requested.connect(self.send_output)
+=======
+>>>>>>> 46666d1d23003761ec0404423df673ab099e3b6c
 
     def populate_current_selection(self, outputs):
         self.save_xlsx_btn.setEnabled(True)

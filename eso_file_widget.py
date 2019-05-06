@@ -45,7 +45,6 @@ class GuiEsoFile(QTreeView):
 
         self.expanded.connect(self.handle_expanded)
         self.collapsed.connect(self.handle_collapsed)
-        self.clicked.connect(self.handle_selection_change)
         self.pressed.connect(self.handle_drag_attempt)
 
         self._interval = None
@@ -292,7 +291,7 @@ class GuiEsoFile(QTreeView):
             self.main_app.clear_current_selection()
             return
 
-        # handle a case in which expanded parent note is clicked
+        # handle a case in which expanded parent node is clicked
         # note that desired behaviour is to select all the children
         # unless any of the children is included in the multi selection
         for index in proxy_rows:
