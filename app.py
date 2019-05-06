@@ -28,7 +28,6 @@ projects = os.path.dirname(os.path.dirname(__file__))
 sys.path.append(os.path.join(projects, "eso_reader"))
 sys.path.append(os.path.join(projects, "dash_app"))
 
-# from main_dash import start_dash
 from constants import TS, D, H, M, A, RP
 from eso_file import EsoFile, load_eso_file, get_results
 from mini_classes import Variable
@@ -44,6 +43,12 @@ from threads import PipeEcho, MonitorThread, EsoFileWatcher, GuiMonitor
 globalFont = QFont("Calibri")
 smallFont = QFont("Calibri", 8)
 
+TOOLBAR_WIDTH = 200
+BTN_DIM = (60, 60)
+WIDE_BTN_DIM = (120, 60)
+SMALL_BTN_DIM = (30, 30)
+BTN_GAP = 12
+
 
 # noinspection PyPep8Naming,PyUnresolvedReferences
 class MainWindow(QtWidgets.QMainWindow):
@@ -55,9 +60,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setWindowTitle("EsoPie")
         self.setFont = globalFont
         # TODO CSS not used at the moment
-        # with open("styles/app_style.css", "r") as file:
-        #     cont = file.read()
-        # self.setStyleSheet(cont)
+        with open("styles/app_style.css", "r") as file:
+            cont = file.read()
+        self.setStyleSheet(cont)
 
         # ~~~~ Main Window widgets ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.central_layout = QHBoxLayout()
@@ -122,39 +127,17 @@ class MainWindow(QtWidgets.QMainWindow):
         self.right_main_wgt.setLayout(self.right_main_layout)
         self.central_splitter.addWidget(self.right_main_wgt)
 
-        # ~~~~ Right hand Tools widget ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # ~~~~ Right hand Tools widget ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.chart_tools_layout = QVBoxLayout()
         self.chart_tools_wgt = QWidget(self.right_main_wgt)
         self.chart_tools_wgt.setLayout(self.chart_tools_layout)
         # self.right_main_layout.addWidget(self.chart_tools_wgt, Qt.AlignTop)
 
-        # ~~~~ Right hand Tools Items ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.chart_settings_btn_layout = QVBoxLayout()
-        self.chart_settings_btn_group = QGroupBox("Chart Tools")
-        self.chart_settings_btn_group.setLayout(self.chart_settings_btn_layout)
-        self.chart_tools_layout.addWidget(self.chart_settings_btn_group, Qt.AlignTop)
-        self.add_chart_btn = QToolButton()
-        self.save_xlsx_btn = QToolButton()
-        self.show_legend_btn = QToolButton()
-        self.show_range_slider_btn = QToolButton()
-        self.set_up_chart_settings_tools()
-
-        self.chart_traces_btns_layout = QVBoxLayout()
-        self.chart_traces_btns_group = QGroupBox("Traces")
-        self.chart_traces_btns_group.setLayout(self.chart_traces_btns_layout)
-        self.chart_tools_layout.addWidget(self.chart_traces_btns_group, Qt.AlignTop)
-        self.trace_buttons = {}
-        self.set_up_char_traces_tools()
-
-        # ~~~~ Right hand Chart Scroll Area ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.right_main_scroll_area = QScrollArea()
-        self.right_main_scroll_area.setWidgetResizable(True)
-        self.right_main_layout.addWidget(self.right_main_scroll_area)
-
-        self.main_chart_widget = QWidget(self.right_main_scroll_area)
-        self.main_chart_layout = QGridLayout()
+        # ~~~~ Right hand Chart Area ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.main_chart_widget = QWidget(self.right_main_wgt)
+        self.main_chart_layout = QHBoxLayout()
         self.main_chart_widget.setLayout(self.main_chart_layout)
-        self.right_main_scroll_area.setWidget(self.main_chart_widget)
+        self.right_main_layout.addWidget(self.main_chart_widget)
 
         # ~~~~ Set up main widgets and layouts ~~~~~~~~~~~~~~~~~~~~~~~~~
         self.set_up_base_ui()
@@ -167,6 +150,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.current_view_settings = {"widths": None,
                                       "order": None,
                                       "expanded": set()}
+
         self.current_selection = None
         self.treeAutoExpand = True
         self.allEsoFilesResults = False
@@ -183,15 +167,9 @@ class MainWindow(QtWidgets.QMainWindow):
         # ~~~~ Database ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.database = self.manager.dict()
 
-        # ~~~~ Dash app ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        app_conn, dash_conn = Pipe()
-        # self.dsh = Process(target=start_dash, args=(dash_conn, self.database))
-        # self.dsh.start()
-        self.app_conn = app_conn
-
         # ~~~~ Monitoring threads ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.monitors = []
-        # TODO
+        # TODO PASSING THE DATA TO DASH APP
         # self.pipe_watcher_thread = PipeEcho(self.app_conn)
         self.watcher_thread = EsoFileWatcher(self.file_queue)
         self.monitor_thread = MonitorThread(self.progress_queue)
@@ -217,21 +195,18 @@ class MainWindow(QtWidgets.QMainWindow):
         self.file_menu.addAction(self.closeAllTabsAct)
 
         self.chart_area = QWebEngineView(self)
+        self.main_chart_layout.addWidget(self.chart_area)
         # self.chart_area.setContextMenuPolicy(Qt.CustomContextMenu)
         self.chart_area.setAcceptDrops(True)
 
-        self.url = "http://127.0.0.1:8050/"
+        self.url = "http://127.0.0.1:8080/"
         self.chart_area.load(self.url)
-        self.main_chart_layout.addWidget(self.chart_area)
 
     @property
     def chart_settings(self):
         return dict(
-            type=self.current_trace_type(),
             intervals=self.selected_intervals(),
             all_eso_files=self.all_eso_files_btn.isChecked(),
-            show_legend=self.show_legend_btn.isChecked(),
-            show_range_slider=self.show_range_slider_btn.isChecked(),
             eso_file_widgets=self.all_eso_files,
             current_eso_file_widget=self.current_eso_file
         )
@@ -251,8 +226,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def closeEvent(self, event):
         """ Shutdown all background stuff. """
-        self.dsh.terminate()
-        self.pipe_watcher_thread.terminate()
         self.watcher_thread.terminate()
         self.monitor_thread.terminate()
         self.pool.shutdown(wait=False)
@@ -260,7 +233,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def clear_current_selection(self):
         print("Current selection cleared!")
-        self.save_xlsx_btn.setEnabled(False)
         self.current_selection = None
 
     def keyPressEvent(self, event):
@@ -269,6 +241,9 @@ class MainWindow(QtWidgets.QMainWindow):
             if self.tab_widget_not_empty():
                 self.current_eso_file.clear_selection()
             self.clear_current_selection()
+
+        elif event.key() == Qt.Key_Delete:
+            pass
 
     def tab_widget_not_empty(self):
         """ Check if there's at least one loaded file. """
@@ -290,10 +265,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def set_up_base_ui(self):
         """ Set up appearance of main widgets. """
-        # ~~~~ Main left side ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.central_layout.setSpacing(0)
         self.central_layout.setContentsMargins(0, 0, 0, 0)
 
+        # ~~~~ Main left side ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         leftSideSizePolicy = QtWidgets.QSizePolicy()
         leftSideSizePolicy.setHorizontalStretch(0)
         self.left_main_wgt.setSizePolicy(leftSideSizePolicy)
@@ -316,16 +291,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.right_main_wgt.setSizePolicy(rightSideSizePolicy)
         self.right_main_layout.setSpacing(0)
         self.right_main_layout.setContentsMargins(0, 0, 0, 0)
-        self.right_main_scroll_area.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
-        self.chart_tools_wgt.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
-        self.chart_tools_wgt.setFixedWidth(90)
-        self.chart_tools_layout.setContentsMargins(0, 0, 0, 0)
-        self.chart_tools_layout.setSpacing(0)
-        self.chart_tools_layout.setAlignment(Qt.AlignTop)
-
-        self.main_chart_widget.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
-        self.main_chart_widget.setMinimumWidth(800)
+        self.main_chart_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.main_chart_layout.setContentsMargins(0, 0, 0, 0)
+        self.main_chart_widget.setMinimumWidth(400)
 
     def set_up_tab_wgt(self):
         """ Set up appearance and behaviour of the tab widget. """
@@ -341,9 +310,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def set_up_interval_btns(self):
         """ Create interval buttons and a parent container. """
         # ~~~~ Widget to hold interval buttons ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.interval_btns_group.setSizePolicy(QSizePolicy.Minimum,
-                                               QSizePolicy.Fixed)
-        self.interval_btns_group.setFixedHeight(200)
+        self.interval_btns_group.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
         interval_btns_layout = QGridLayout()
         interval_btns_layout.setSpacing(6)
         interval_btns_layout.setContentsMargins(6, 6, 6, 6)
@@ -356,7 +323,6 @@ class MainWindow(QtWidgets.QMainWindow):
             const, text = key
             btn = QToolButton()
             btn.setEnabled(False)
-            btn.setMinimumSize(QSize(36, 36))
             btn.setText(text)
             btn.setCheckable(True)
             btn.setAutoExclusive(self.exclusive_intervals)
@@ -365,87 +331,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # ~~~~ Generate include / exclude all files button ~~~~~~~~~~~~~~~
         self.all_eso_files_btn.setEnabled(False)
-        self.all_eso_files_btn.setMinimumSize(QSize(78, 36))
-        self.all_eso_files_btn.setText("All files")
+        self.all_eso_files_btn.setText("All")
         self.all_eso_files_btn.setCheckable(True)
         interval_btns_layout.addWidget(self.all_eso_files_btn, 3, 0, 1, 2)
-
-    def set_up_chart_settings_tools(self):
-        """ Create chart settings buttons and a parent container. """
-        # ~~~~ Widget to hold chart buttons ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.chart_settings_btn_group.setSizePolicy(QSizePolicy.Minimum,
-                                                    QSizePolicy.Fixed)
-        self.chart_settings_btn_group.setFixedHeight(120)
-        self.chart_settings_btn_layout.setContentsMargins(6, 6, 6, 6)
-        self.chart_settings_btn_layout.setSpacing(6)
-
-        btn_wgt = QWidget()
-        btn_layout = QGridLayout()
-        btn_layout.setSpacing(6)
-        btn_layout.setContentsMargins(0, 0, 0, 0)
-        btn_wgt.setLayout(btn_layout)
-        self.chart_settings_btn_layout.addWidget(btn_wgt)
-
-        # ~~~~ Create chart buttons ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.save_xlsx_btn.setText("xlsx")
-        self.save_xlsx_btn.setMinimumSize(QSize(36, 36))
-        self.save_xlsx_btn.setEnabled(False)
-        btn_layout.addWidget(self.save_xlsx_btn, 0, 0)
-
-        self.add_chart_btn.setText("Add")
-        self.add_chart_btn.setMinimumSize(QSize(36, 36))
-        btn_layout.addWidget(self.add_chart_btn, 0, 1)
-
-        self.show_legend_btn.setText("Leg")
-        self.show_legend_btn.setMinimumSize(QSize(36, 36))
-        self.show_legend_btn.setCheckable(True)
-        btn_layout.addWidget(self.show_legend_btn, 1, 0)
-
-        self.show_range_slider_btn.setText("Rng")
-        self.show_range_slider_btn.setMinimumSize(QSize(36, 36))
-        self.show_range_slider_btn.setCheckable(True)
-        btn_layout.addWidget(self.show_range_slider_btn, 1, 1)
-
-    def set_up_char_traces_tools(self):
-        """ Create 'trace' settings buttons and a parent container. """
-        # ~~~~ Widget to hold chart buttons ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.chart_traces_btns_group.setSizePolicy(QSizePolicy.Minimum,
-                                                   QSizePolicy.Fixed)
-        self.chart_traces_btns_group.setFixedHeight(120)
-        self.chart_traces_btns_layout.setContentsMargins(6, 6, 6, 6)
-        self.chart_traces_btns_layout.setSpacing(6)
-
-        btn_wgt = QWidget()
-        btn_layout = QGridLayout()
-        btn_layout.setSpacing(6)
-        btn_layout.setContentsMargins(0, 0, 0, 0)
-        btn_wgt.setLayout(btn_layout)
-        self.chart_traces_btns_layout.addWidget(btn_wgt)
-
-        line_trace_btn = QToolButton(btn_wgt)
-        line_trace_btn.setText("Line")
-        line_trace_btn.setMinimumSize(QSize(36, 36))
-        line_trace_btn.setCheckable(True)
-        line_trace_btn.setChecked(True)
-        line_trace_btn.setAutoExclusive(True)
-        self.trace_buttons["line"] = line_trace_btn
-        btn_layout.addWidget(self.trace_buttons["line"], 0, 0)
-
-        bar_trace_btn = QToolButton(btn_wgt)
-        bar_trace_btn.setText("Bar")
-        bar_trace_btn.setMinimumSize(QSize(36, 36))
-        bar_trace_btn.setCheckable(True)
-        bar_trace_btn.setAutoExclusive(True)
-        self.trace_buttons["bar"] = bar_trace_btn
-        btn_layout.addWidget(self.trace_buttons["bar"], 0, 1)
-
-        bub_trace_btn = QToolButton(btn_wgt)
-        bub_trace_btn.setText("Bub")
-        bub_trace_btn.setMinimumSize(QSize(36, 36))
-        bub_trace_btn.setCheckable(True)
-        bub_trace_btn.setAutoExclusive(True)
-        self.trace_buttons["bubble"] = bub_trace_btn
-        btn_layout.addWidget(self.trace_buttons["bubble"], 1, 1)
 
     def set_up_view_tools(self):
         """ Create tools, settings and search line for the view. """
@@ -468,15 +356,15 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # ~~~~ Create tree view buttons ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.collapse_all_btn.setText("Collapse")
-        self.collapse_all_btn.setMinimumSize(QSize(52, 36))
+        self.collapse_all_btn.setMinimumSize(QSize(*SMALL_BTN_DIM))
         btnLayout.addWidget(self.collapse_all_btn)
         self.expand_all_btn.setText("Expand")
-        self.expand_all_btn.setMinimumSize(QSize(52, 36))
+        self.expand_all_btn.setMinimumSize(QSize(*SMALL_BTN_DIM))
         btnLayout.addWidget(self.expand_all_btn)
 
         # ~~~~ Create tree search line edit ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.filter_line_edit.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-        self.filter_line_edit.setFixedWidth(80)
+        self.filter_line_edit.setFixedWidth(120)
 
         # ~~~~ Widget to hold sorting slider and text hints ~~~~~~~~~~~~~~~
         self.tree_arrange_combo_box.addItems(["None", "Key", "Variable", "Units"])
@@ -508,7 +396,6 @@ class MainWindow(QtWidgets.QMainWindow):
         # ~~~~ Widget to hold units settings ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.units_tools_group.setSizePolicy(QSizePolicy.Minimum,
                                              QSizePolicy.Fixed)
-        self.units_tools_group.setFixedHeight(200)
         units_tools_layout = QGridLayout()
         units_tools_layout.setSpacing(6)
         units_tools_layout.setContentsMargins(6, 6, 6, 6)
@@ -721,9 +608,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.tab_wgt.tabCloseRequested.connect(self.remove_eso_file)
         self.tab_wgt.currentChanged.connect(self.tab_changed)
 
-        # ~~~~ Chart actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.save_xlsx_btn.clicked.connect(self.saveCurrentSelectionToXlsx)
-
     def update_sort_order(self, new_index, new_order):
         """ Store current column vertical sorting. """
         self.current_view_settings["order"] = (new_index, new_order)
@@ -848,7 +732,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         msg = {"ids": ids,
                "vars": variables}
-        self.app_conn.send(msg)
+        # self.app_conn.send(msg)
 
     def create_thread_actions(self):
         """ Create actions related to background threads. """
@@ -858,7 +742,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.monitor_thread.progress_bar_updated.connect(self.update_bar_progress)
         self.monitor_thread.preprocess_finished.connect(self.set_progress_bar_max)
         self.monitor_thread.finished.connect(self.file_loaded)
-        # TODO
+        # TODO CONNECT DATA FLOW TO DASH
         # self.pipe_watcher_thread.output_requested.connect(self.send_output)
 
     def populate_current_selection(self, outputs):
