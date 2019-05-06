@@ -742,11 +742,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.monitor_thread.progress_bar_updated.connect(self.update_bar_progress)
         self.monitor_thread.preprocess_finished.connect(self.set_progress_bar_max)
         self.monitor_thread.finished.connect(self.file_loaded)
-<<<<<<< HEAD
-        # TODO CONNECT DATA FLOW TO DASH
-        # self.pipe_watcher_thread.output_requested.connect(self.send_output)
-=======
->>>>>>> 46666d1d23003761ec0404423df673ab099e3b6c
 
     def populate_current_selection(self, outputs):
         self.save_xlsx_btn.setEnabled(True)
