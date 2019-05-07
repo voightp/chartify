@@ -5,7 +5,7 @@ from PySide2.QtWidgets import QWidget, QTabWidget, QTreeView, QSplitter, QHBoxLa
     QFileDialog, \
     QDialog, QProgressBar, QFormLayout, QAbstractItemView, QSlider, QSpacerItem, QSizePolicy, \
     QLineEdit, QComboBox, \
-    QMdiArea, QHeaderView, QTableView, QApplication, QScrollArea, QStatusBar
+    QMdiArea, QHeaderView, QTableView, QApplication, QScrollArea, QStatusBar, QMenu
 from PySide2.QtCore import QSize, Qt, QThreadPool, QThread, QObject, Signal, \
     QSortFilterProxyModel, QModelIndex, \
     QItemSelectionModel, QRegExp, QUrl, QTimer, QFile
@@ -60,9 +60,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setWindowTitle("EsoPie")
         self.setFont = globalFont
         # TODO CSS not used at the moment
-        with open("styles/app_style.css", "r") as file:
-            cont = file.read()
-        self.setStyleSheet(cont)
+        self.load_css()
 
         # ~~~~ Main Window widgets ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.central_layout = QHBoxLayout()
@@ -89,17 +87,16 @@ class MainWindow(QtWidgets.QMainWindow):
         self.exclusive_intervals = True
         self.interval_btns = {}
         self.interval_btns_group = QGroupBox("Intervals")
-        self.all_eso_files_btn = QToolButton()
         self.set_up_interval_btns()
         self.outputs_tools_layout.addWidget(self.interval_btns_group, Qt.AlignTop)
 
-        self.units_tools_group = QGroupBox("Units", self.outputs_tools_wgt)
-        self.energy_units_c_box = QComboBox()
-        self.power_units_c_box = QComboBox()
-        self.si_radio_btn = QRadioButton("SI")
-        self.ip_radio_btn = QRadioButton("IP")
-        self.set_up_units_tools()
-        self.outputs_tools_layout.addWidget(self.units_tools_group, Qt.AlignTop)
+        self.settings_group = QGroupBox("Settings", self.outputs_tools_wgt)
+        self.all_eso_files_btn = QToolButton()
+        self.energy_units_btn = QToolButton()
+        self.power_units_btn = QToolButton()
+        self.units_system_btn = QToolButton()
+        self.set_up_settings()
+        self.outputs_tools_layout.addWidget(self.settings_group, Qt.AlignTop)
 
         # ~~~~ Left hand Tree View widget  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.view_layout = QVBoxLayout()
@@ -131,7 +128,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.chart_tools_layout = QVBoxLayout()
         self.chart_tools_wgt = QWidget(self.right_main_wgt)
         self.chart_tools_wgt.setLayout(self.chart_tools_layout)
-        # self.right_main_layout.addWidget(self.chart_tools_wgt, Qt.AlignTop)
 
         # ~~~~ Right hand Chart Area ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.main_chart_widget = QWidget(self.right_main_wgt)
@@ -188,7 +184,11 @@ class MainWindow(QtWidgets.QMainWindow):
         # ~~~~ Menus ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.create_menu_actions()
         self.file_menu = self.menuBar().addMenu("&File")
-        self.show_menu = self.menuBar().addMenu("&Show")
+        # TODO reload css button (temporary)
+        css = QAction("CSS", self)
+        css.triggered.connect(self.load_css)
+
+        self.show_menu = self.menuBar().addAction(css)
         self.help_menu = self.menuBar().addMenu("&Help")
         self.file_menu.addAction(self.loadEsoFileAct)
         self.file_menu.addAction(self.loadFilesFromFolderAct)
@@ -223,6 +223,11 @@ class MainWindow(QtWidgets.QMainWindow):
         count = tab_widget.count()
         widgets = [tab_widget.widget(i) for i in range(count)]
         return widgets
+
+    def load_css(self):
+        with open("styles/app_style.css", "r") as file:
+            cont = file.read()
+        self.setStyleSheet(cont)
 
     def closeEvent(self, event):
         """ Shutdown all background stuff. """
@@ -276,7 +281,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.left_main_layout.setContentsMargins(0, 0, 0, 0)
 
         self.outputs_tools_wgt.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
-        self.outputs_tools_wgt.setFixedWidth(90)
         self.outputs_tools_layout.setContentsMargins(0, 0, 0, 0)
         self.outputs_tools_layout.setSpacing(0)
         self.outputs_tools_layout.setAlignment(Qt.AlignTop)
@@ -300,7 +304,7 @@ class MainWindow(QtWidgets.QMainWindow):
         """ Set up appearance and behaviour of the tab widget. """
         # ~~~~ Tab widget set up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.tab_wgt.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
-        self.tab_wgt.setContentsMargins(3, 3, 3, 3)
+        self.tab_wgt.setContentsMargins(0, 0, 0, 0)
         self.tab_wgt.setMinimumWidth(400)
         self.tab_wgt.setTabPosition(QTabWidget.North)
         self.tab_wgt.setUsesScrollButtons(True)
@@ -311,15 +315,14 @@ class MainWindow(QtWidgets.QMainWindow):
         """ Create interval buttons and a parent container. """
         # ~~~~ Widget to hold interval buttons ~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.interval_btns_group.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
-        interval_btns_layout = QGridLayout()
+        interval_btns_layout = QVBoxLayout()
         interval_btns_layout.setSpacing(6)
         interval_btns_layout.setContentsMargins(6, 6, 6, 6)
         self.interval_btns_group.setLayout(interval_btns_layout)
 
         # ~~~~ Generate interval buttons ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        ixs = [(i, j) for i in range(3) for j in range(2)]
         keys = [(TS, "TS"), (H, "H"), (D, "D"), (M, "M"), (A, "A"), (RP, "RP")]
-        for key, ix in zip(keys, ixs):
+        for key in keys:
             const, text = key
             btn = QToolButton()
             btn.setEnabled(False)
@@ -327,13 +330,7 @@ class MainWindow(QtWidgets.QMainWindow):
             btn.setCheckable(True)
             btn.setAutoExclusive(self.exclusive_intervals)
             self.interval_btns[const] = btn
-            interval_btns_layout.addWidget(self.interval_btns[const], *ix)
-
-        # ~~~~ Generate include / exclude all files button ~~~~~~~~~~~~~~~
-        self.all_eso_files_btn.setEnabled(False)
-        self.all_eso_files_btn.setText("All")
-        self.all_eso_files_btn.setCheckable(True)
-        interval_btns_layout.addWidget(self.all_eso_files_btn, 3, 0, 1, 2)
+            interval_btns_layout.addWidget(self.interval_btns[const])
 
     def set_up_view_tools(self):
         """ Create tools, settings and search line for the view. """
@@ -356,10 +353,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # ~~~~ Create tree view buttons ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.collapse_all_btn.setText("Collapse")
-        self.collapse_all_btn.setMinimumSize(QSize(*SMALL_BTN_DIM))
-        btnLayout.addWidget(self.collapse_all_btn)
         self.expand_all_btn.setText("Expand")
-        self.expand_all_btn.setMinimumSize(QSize(*SMALL_BTN_DIM))
+        btnLayout.addWidget(self.collapse_all_btn)
         btnLayout.addWidget(self.expand_all_btn)
 
         # ~~~~ Create tree search line edit ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -387,61 +382,51 @@ class MainWindow(QtWidgets.QMainWindow):
         # ~~~~ Add treeTools widget to main left layout ~~~~~~~~~~~~~~~~~~~~~
         # self.treeViewLayout.addWidget(self.treeViewToolsGroup)
 
-    def set_up_units_tools(self):
-        """ Create units combo boxes and a parent container. """
-        # ~~~~ Set margins and spacing for all child widgets ~~~~~~~~~~~~~~~~
-        margins = (3, 3, 3, 3)
-        spacing = 6
-
+    def set_up_settings(self):
+        """ Create Settings menus and buttons. """
         # ~~~~ Widget to hold units settings ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.units_tools_group.setSizePolicy(QSizePolicy.Minimum,
-                                             QSizePolicy.Fixed)
-        units_tools_layout = QGridLayout()
-        units_tools_layout.setSpacing(6)
-        units_tools_layout.setContentsMargins(6, 6, 6, 6)
-        self.units_tools_group.setLayout(units_tools_layout)
+        self.settings_group.setSizePolicy(QSizePolicy.Minimum,
+                                          QSizePolicy.Fixed)
+        settings_layout = QVBoxLayout()
+        settings_layout.setSpacing(6)
+        settings_layout.setContentsMargins(6, 6, 6, 6)
+        self.settings_group.setLayout(settings_layout)
+
+        # ~~~~ Generate include / exclude all files button ~~~~~~~~~~~~~~~~~~
+        self.all_eso_files_btn.setEnabled(False)
+        self.all_eso_files_btn.setText("All")
+        self.all_eso_files_btn.setCheckable(True)
+        settings_layout.addWidget(self.all_eso_files_btn)
 
         # ~~~~ Energy units set up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        energy_units_wgt = QWidget()
-        energy_units_layout = QVBoxLayout()
-        energy_units_layout.setSpacing(spacing)
-        energy_units_layout.setContentsMargins(*margins)
-        energy_units_wgt.setLayout(energy_units_layout)
-        l1 = QLabel("Energy Units")
-        self.energy_units_c_box.addItems(
-            ["Wh", "kWh", "MWh", "J", "kJ", "GJ", "Btu", "kBtu", "MBtu"])
-        self.energy_units_c_box.setCurrentIndex(3)
-        energy_units_layout.addWidget(l1)
-        energy_units_layout.addWidget(self.energy_units_c_box)
+        settings_layout.addWidget(QLabel("Energy"))
+        energy_units_menu = QMenu(self)
+        self.energy_units_btn.setMenu(energy_units_menu)
+        actions = [QAction(text, self) for text in ["Wh", "kWh", "MWh", "J", "kJ", "GJ", "Btu", "kBtu", "MBtu"]]
+        energy_units_menu.addActions(actions)
+        self.energy_units_btn.setPopupMode(QToolButton.InstantPopup)
+        self.energy_units_btn.setDefaultAction(actions[3])
+        settings_layout.addWidget(self.energy_units_btn)
 
         # ~~~~ Power units set up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        power_units_wgt = QWidget()
-        power_units_layout = QVBoxLayout()
-        power_units_layout.setSpacing(spacing)
-        power_units_layout.setContentsMargins(*margins)
-        power_units_wgt.setLayout(power_units_layout)
-        l2 = QLabel("Power Units")
-        self.power_units_c_box.addItems(
-            ["W", "kW", "MW", "Btu/h", "kBtu/h", "MBtu/h"])
-        self.power_units_c_box.setCurrentIndex(0)
-        power_units_layout.addWidget(l2)
-        power_units_layout.addWidget(self.power_units_c_box)
+        settings_layout.addWidget(QLabel("Power"))
+        power_units_menu = QMenu(self)
+        self.power_units_btn.setMenu(power_units_menu)
+        actions = [QAction(text, self) for text in ["W", "kW", "MW", "Btu/h", "kBtu/h", "MBtu/h"]]
+        power_units_menu.addActions(actions)
+        self.power_units_btn.setPopupMode(QToolButton.InstantPopup)
+        self.power_units_btn.setDefaultAction(actions[3])
+        settings_layout.addWidget(self.power_units_btn)
 
         # ~~~~ Units system set up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        units_system_wgt = QWidget()
-        units_system_layout = QGridLayout()
-        units_system_wgt.setLayout(units_system_layout)
-        units_system_layout.setSpacing(spacing)
-        units_system_layout.setContentsMargins(*margins)
-        l3 = QLabel("Units system")
-        units_system_layout.addWidget(l3, 0, 0, 1, 2)
-        units_system_layout.addWidget(self.ip_radio_btn, 1, 0, 1, 1)
-        units_system_layout.addWidget(self.si_radio_btn, 1, 1, 1, 1)
-
-        # ~~~~ Add child widgets to units layout ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        units_tools_layout.addWidget(energy_units_wgt, 0, 0)
-        units_tools_layout.addWidget(power_units_wgt, 1, 0)
-        units_tools_layout.addWidget(units_system_wgt, 2, 0)
+        settings_layout.addWidget(QLabel("System"))
+        units_system_menu = QMenu(self)
+        self.units_system_btn.setMenu(units_system_menu)
+        actions = [QAction(text, self) for text in ["IP", "SI"]]
+        units_system_menu.addActions(actions)
+        self.units_system_btn.setPopupMode(QToolButton.InstantPopup)
+        self.units_system_btn.setDefaultAction(actions[1])
+        settings_layout.addWidget(self.units_system_btn)
 
     def get_tree_arrange_key(self):
         """ Get current view arrange key from the interface. """
@@ -744,7 +729,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.monitor_thread.finished.connect(self.file_loaded)
 
     def populate_current_selection(self, outputs):
-        self.save_xlsx_btn.setEnabled(True)
         self.current_selection = outputs
         for item in outputs:
             print("{} : {} : [{}]".format(*item))
