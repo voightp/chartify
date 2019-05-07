@@ -11,7 +11,7 @@ from PySide2.QtCore import QSize, Qt, QThreadPool, QThread, QObject, Signal, \
     QItemSelectionModel, QRegExp, QUrl, QTimer, QFile
 from PySide2.QtWebEngineWidgets import QWebEnginePage, QWebEngineView
 
-from PySide2.QtGui import QKeySequence
+from PySide2.QtGui import QKeySequence, QIcon, QPixmap
 from eso_file_header import EsoFileHeader
 
 from progress_widget import MyStatusBar
@@ -58,9 +58,6 @@ class MainWindow(QtWidgets.QMainWindow):
         # ~~~~ Main Window setup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.setGeometry(50, 50, 800, 600)
         self.setWindowTitle("EsoPie")
-        self.setFont = globalFont
-        # TODO CSS not used at the moment
-        self.load_css()
 
         # ~~~~ Main Window widgets ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.central_layout = QHBoxLayout()
@@ -114,7 +111,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.collapse_all_btn = QToolButton()
         self.expand_all_btn = QToolButton()
         self.filter_line_edit = QLineEdit()
-        self.tree_arrange_combo_box = QComboBox()
+        self.view_arrange_btn = QToolButton()
         self.set_up_view_tools()
         self.view_layout.addWidget(self.view_tools_wgt)
 
@@ -134,9 +131,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.main_chart_layout = QHBoxLayout()
         self.main_chart_widget.setLayout(self.main_chart_layout)
         self.right_main_layout.addWidget(self.main_chart_widget)
-
-        # ~~~~ Set up main widgets and layouts ~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.set_up_base_ui()
 
         # ~~~~ Actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.create_ui_actions()
@@ -202,6 +196,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.url = "http://127.0.0.1:8080/"
         self.chart_area.load(self.url)
 
+        # ~~~~ Set up main widgets and layouts ~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.load_icons()
+        self.set_up_base_ui()
+        self.load_css()
+
     @property
     def chart_settings(self):
         return dict(
@@ -223,6 +222,9 @@ class MainWindow(QtWidgets.QMainWindow):
         count = tab_widget.count()
         widgets = [tab_widget.widget(i) for i in range(count)]
         return widgets
+
+    def default_settings(self):
+        pass
 
     def load_css(self):
         with open("styles/app_style.css", "r") as file:
@@ -300,6 +302,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.main_chart_layout.setContentsMargins(0, 0, 0, 0)
         self.main_chart_widget.setMinimumWidth(400)
 
+    def load_icons(self):
+        self.expand_all_btn.setIcon(QPixmap("./icons/unfold_more_icon.svg"))
+        self.collapse_all_btn.setIcon(QPixmap("./icons/unfold_less_icon.svg"))
+
     def set_up_tab_wgt(self):
         """ Set up appearance and behaviour of the tab widget. """
         # ~~~~ Tab widget set up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -315,14 +321,15 @@ class MainWindow(QtWidgets.QMainWindow):
         """ Create interval buttons and a parent container. """
         # ~~~~ Widget to hold interval buttons ~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.interval_btns_group.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
-        interval_btns_layout = QVBoxLayout()
-        interval_btns_layout.setSpacing(6)
-        interval_btns_layout.setContentsMargins(6, 6, 6, 6)
+        interval_btns_layout = QGridLayout()
+        interval_btns_layout.setSpacing(0)
+        interval_btns_layout.setContentsMargins(0, 0, 0, 0)
         self.interval_btns_group.setLayout(interval_btns_layout)
 
         # ~~~~ Generate interval buttons ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         keys = [(TS, "TS"), (H, "H"), (D, "D"), (M, "M"), (A, "A"), (RP, "RP")]
-        for key in keys:
+        ixs = [(x, y) for x in range(len(keys) // 2) for y in range(2)]
+        for key, ix in zip(keys, ixs):
             const, text = key
             btn = QToolButton()
             btn.setEnabled(False)
@@ -330,30 +337,25 @@ class MainWindow(QtWidgets.QMainWindow):
             btn.setCheckable(True)
             btn.setAutoExclusive(self.exclusive_intervals)
             self.interval_btns[const] = btn
-            interval_btns_layout.addWidget(self.interval_btns[const])
+            interval_btns_layout.addWidget(self.interval_btns[const], *ix)
 
     def set_up_view_tools(self):
         """ Create tools, settings and search line for the view. """
         # ~~~~ Widget to hold tree view tools ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.view_tools_wgt.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
-        self.view_tools_wgt.setFixedHeight(50)
-        treeViewToolsLayout = QHBoxLayout()
-        treeViewToolsLayout.setSpacing(12)
-        treeViewToolsLayout.setContentsMargins(6, 6, 6, 6)
-        self.view_tools_wgt.setLayout(treeViewToolsLayout)
+        view_tools_layout = QHBoxLayout()
+        view_tools_layout.setSpacing(0)
+        view_tools_layout.setContentsMargins(0, 0, 0, 0)
+        self.view_tools_wgt.setLayout(view_tools_layout)
 
         # ~~~~ Widget to hold tree view buttons ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         btnWidget = QWidget()
         btnLayout = QHBoxLayout()
-        btnWidget.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-        btnWidget.setFixedWidth(110)
-        btnLayout.setSpacing(6)
+        btnLayout.setSpacing(0)
         btnLayout.setContentsMargins(0, 0, 0, 0)
         btnWidget.setLayout(btnLayout)
 
-        # ~~~~ Create tree view buttons ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.collapse_all_btn.setText("Collapse")
-        self.expand_all_btn.setText("Expand")
+        # ~~~~ Add view buttons ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         btnLayout.addWidget(self.collapse_all_btn)
         btnLayout.addWidget(self.expand_all_btn)
 
@@ -361,10 +363,28 @@ class MainWindow(QtWidgets.QMainWindow):
         self.filter_line_edit.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         self.filter_line_edit.setFixedWidth(120)
 
-        # ~~~~ Widget to hold sorting slider and text hints ~~~~~~~~~~~~~~~
-        self.tree_arrange_combo_box.addItems(["None", "Key", "Variable", "Units"])
-        self.tree_arrange_combo_box.setCurrentIndex(2)
-        self.tree_arrange_combo_box.setFixedWidth(100)
+        # ~~~~ Sorting set up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        arrange_menu = QMenu(self)
+        self.view_arrange_btn.setMenu(arrange_menu)
+        self.view_arrange_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
+        act0 = QAction("None", self)
+        act0.setData(None)
+        act0.setIcon(QPixmap("./icons/view_arrange_icon_list.svg"))
+        act1 = QAction("Key", self)
+        act1.setData("key")
+        act1.setIcon(QPixmap("./icons/view_arrange_icon_key.svg"))
+        act2 = QAction("Variable", self)
+        act2.setData("var")
+        act2.setIcon(QPixmap("./icons/view_arrange_icon_var.svg"))
+        act3 = QAction("Units", self)
+        act3.setData("units")
+        act3.setIcon(QPixmap("./icons/view_arrange_icon_units.svg"))
+
+        arrange_menu.addActions([act0, act1, act2, act3])
+        self.view_arrange_btn.setPopupMode(QToolButton.InstantPopup)
+        self.view_arrange_btn.setDefaultAction(act2)
+        self.view_arrange_btn.menu().setActiveAction(act2)
+        btnLayout.addWidget(self.view_arrange_btn)
 
         spacer = QSpacerItem(20, 40, QSizePolicy.Expanding, QSizePolicy.Minimum)
 
@@ -374,10 +394,9 @@ class MainWindow(QtWidgets.QMainWindow):
             self.collapse_all_btn.setEnabled(False)
 
         # ~~~~ Add child widgets to treeTools layout ~~~~~~~~~~~~~~~~~~~~~~~~
-        treeViewToolsLayout.addWidget(self.tree_arrange_combo_box)
-        treeViewToolsLayout.addWidget(self.filter_line_edit)
-        treeViewToolsLayout.addItem(spacer)
-        treeViewToolsLayout.addWidget(btnWidget)
+        view_tools_layout.addWidget(self.filter_line_edit)
+        view_tools_layout.addItem(spacer)
+        view_tools_layout.addWidget(btnWidget)
 
         # ~~~~ Add treeTools widget to main left layout ~~~~~~~~~~~~~~~~~~~~~
         # self.treeViewLayout.addWidget(self.treeViewToolsGroup)
@@ -402,7 +421,8 @@ class MainWindow(QtWidgets.QMainWindow):
         settings_layout.addWidget(QLabel("Energy"))
         energy_units_menu = QMenu(self)
         self.energy_units_btn.setMenu(energy_units_menu)
-        actions = [QAction(text, self) for text in ["Wh", "kWh", "MWh", "J", "kJ", "GJ", "Btu", "kBtu", "MBtu"]]
+        units = ["Wh", "kWh", "MWh", "J", "kJ", "GJ", "Btu", "kBtu", "MBtu"]
+        actions = [QAction(text, self) for text in units]
         energy_units_menu.addActions(actions)
         self.energy_units_btn.setPopupMode(QToolButton.InstantPopup)
         self.energy_units_btn.setDefaultAction(actions[3])
@@ -412,7 +432,8 @@ class MainWindow(QtWidgets.QMainWindow):
         settings_layout.addWidget(QLabel("Power"))
         power_units_menu = QMenu(self)
         self.power_units_btn.setMenu(power_units_menu)
-        actions = [QAction(text, self) for text in ["W", "kW", "MW", "Btu/h", "kBtu/h", "MBtu/h"]]
+        units = ["W", "kW", "MW", "Btu/h", "kBtu/h", "MBtu/h"]
+        actions = [QAction(text, self) for text in units]
         power_units_menu.addActions(actions)
         self.power_units_btn.setPopupMode(QToolButton.InstantPopup)
         self.power_units_btn.setDefaultAction(actions[3])
@@ -430,8 +451,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def get_tree_arrange_key(self):
         """ Get current view arrange key from the interface. """
-        dct = {0: None, 1: "key", 2: "var", 3: "units"}
-        return dct[self.tree_arrange_combo_box.currentIndex()]
+        return self.view_arrange_btn.defaultAction().data()
 
     def handle_col_ex_btns(self, tree_arrange_key):
         """ Enable / disable 'collapse all' / 'expand all' buttons. """
@@ -472,8 +492,14 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.tab_widget_not_empty():
             self.update_view()
 
-    def tree_arrange_key_changed(self):
+    def view_arrange_key_changed(self, act):
         """ Update view when view type is changed. """
+        current_act = self.get_tree_arrange_key()
+        changed = current_act != act.data()
+
+        if changed:
+            self.view_arrange_btn.setDefaultAction(act)
+
         if self.tab_widget_not_empty():
             self.update_view()
 
@@ -582,7 +608,7 @@ class MainWindow(QtWidgets.QMainWindow):
         _ = [btn.clicked.connect(self.interval_changed) for btn in self.interval_btns.values()]
 
         # ~~~~ Tree View Actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.tree_arrange_combo_box.currentIndexChanged.connect(self.tree_arrange_key_changed)
+        self.view_arrange_btn.menu().triggered.connect(self.view_arrange_key_changed)
         self.expand_all_btn.clicked.connect(self.expand_all)
         self.collapse_all_btn.clicked.connect(self.collapse_all)
 
@@ -722,7 +748,8 @@ class MainWindow(QtWidgets.QMainWindow):
     def create_thread_actions(self):
         """ Create actions related to background threads. """
         self.watcher_thread.loaded.connect(self.add_eso_file)
-        self.monitor_thread.started.connect(self.start_loading_file)
+        self.monitor_thread.initialized.connect(self.start_loading_file)
+        self.monitor_thread.started.connect(self.update_progress_text)
         self.monitor_thread.progress_text_updated.connect(self.update_progress_text)
         self.monitor_thread.progress_bar_updated.connect(self.update_bar_progress)
         self.monitor_thread.preprocess_finished.connect(self.set_progress_bar_max)
@@ -741,16 +768,6 @@ class MainWindow(QtWidgets.QMainWindow):
                     self.esoFileWidgets]
         esoFiles.sort(key=lambda x: x.file_name)
         return get_results(esoFiles, requestList)
-
-    def saveCurrentSelectionToXlsx(self):
-        path, filter = QFileDialog.getSaveFileName(self, "Save grid", "",
-                                                   "*.xlsx")
-        if path:
-            if self.allEsoFilesResults:
-                df = self.multipleFileResults(self.current_selection)
-            else:
-                df = self.singleFileResults(self.current_selection)
-            df.to_excel(path)
 
     def wait_for_results(self, monitor, future):
         """ Put loaded file into the queue and clean up the pool. """

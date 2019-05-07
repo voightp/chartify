@@ -11,6 +11,7 @@ class MonitorThread(QThread):
     finished = Signal(int)
     preprocess_finished = Signal(int, int)
     started = Signal(int, str)
+    initialized = Signal(int, str)
     failed = Signal(int, str)
 
     def __init__(self, progress_queue):
@@ -21,6 +22,10 @@ class MonitorThread(QThread):
         while True:
             monitor, identifier, message = self.progress_queue.get()
             mon_id, mon_name = monitor.id, monitor.name
+
+            def send_initialized():
+                self.initialized.emit(mon_id, mon_name)
+                self.progress_text_updated.emit(mon_id, message)
 
             def send_started():
                 self.started.emit(mon_id, mon_name)
@@ -46,6 +51,7 @@ class MonitorThread(QThread):
                 self.progress_text_updated.emit(mon_id, "FAILED")
 
             switch = {
+                "init": send_initialized,
                 -1: failed,
                 0: send_started,
                 1: preprocessing_finished,
@@ -97,9 +103,10 @@ class PipeEcho(QThread):
 
 class GuiMonitor(DefaultMonitor):
     def __init__(self, path, id, queue):
+        super().__init__(path)
         self.queue = queue
         self.id = id
-        super().__init__(path)
+        self.send_message("init", "Waiting")
 
     def calculate_steps(self):
         chunk_size = 10000
