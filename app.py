@@ -247,16 +247,18 @@ class MainWindow(QtWidgets.QMainWindow):
     def keyPressEvent(self, event):
         """ Manage keyboard events. """
         if event.key() == Qt.Key_Escape:
-            if self.tab_widget_not_empty():
+
+            if not self.tab_widget_empty():
                 self.current_eso_file.clear_selection()
+
             self.clear_current_selection()
 
         elif event.key() == Qt.Key_Delete:
             pass
 
-    def tab_widget_not_empty(self):
+    def tab_widget_empty(self):
         """ Check if there's at least one loaded file. """
-        return self.tab_wgt.count() > 0
+        return self.tab_wgt.count() <= 0
 
     def all_eso_files_requested(self):
         """ Check if results from all eso files are requested. """
@@ -427,6 +429,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.energy_units_btn.setMenu(energy_units_menu)
         units = ["Wh", "kWh", "MWh", "J", "kJ", "GJ", "Btu", "kBtu", "MBtu"]
         actions = [QAction(text, self) for text in units]
+        _ = [act.setData(act.text()) for act in actions]
         energy_units_menu.addActions(actions)
         self.energy_units_btn.setPopupMode(QToolButton.InstantPopup)
         self.energy_units_btn.setDefaultAction(actions[3])
@@ -438,6 +441,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.power_units_btn.setMenu(power_units_menu)
         units = ["W", "kW", "MW", "Btu/h", "kBtu/h", "MBtu/h"]
         actions = [QAction(text, self) for text in units]
+        _ = [act.setData(act.text()) for act in actions]
         power_units_menu.addActions(actions)
         self.power_units_btn.setPopupMode(QToolButton.InstantPopup)
         self.power_units_btn.setDefaultAction(actions[3])
@@ -448,6 +452,7 @@ class MainWindow(QtWidgets.QMainWindow):
         units_system_menu = QMenu(self)
         self.units_system_btn.setMenu(units_system_menu)
         actions = [QAction(text, self) for text in ["IP", "SI"]]
+        _ = [act.setData(act.text()) for act in actions]
         units_system_menu.addActions(actions)
         self.units_system_btn.setPopupMode(QToolButton.InstantPopup)
         self.units_system_btn.setDefaultAction(actions[1])
@@ -469,6 +474,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def update_view(self, is_fresh=False):
         """ Create a new model when the tab or the interval has changed. """
+        # do not update when there isn't any file available
+        if self.tab_widget_empty():
+            return
+
         # retrieve required inputs from the interface
         tree_arrange_key = self.get_tree_arrange_key()
         intervals = self.selected_intervals()
@@ -493,18 +502,54 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def interval_changed(self):
         """ Update view when an interval is changed. """
-        if self.tab_widget_not_empty():
+        self.update_view()
+
+    def get_units_system(self):
+        """ Get currently set energy units. """
+        return self.units_system_btn.defaultAction().data()
+
+    def units_system_changed(self, act):
+        """ Update view when energy units are changed. """
+        current_units_system = self.get_units_system()
+        changed = current_units_system != act.data()
+
+        if changed:
+            self.units_system_btn.setDefaultAction(act)
+            self.update_view()
+
+    def get_power_units(self):
+        """ Get currently set energy units. """
+        return self.power_units_btn.defaultAction().data()
+
+    def power_units_changed(self, act):
+        """ Update view when energy units are changed. """
+        current_units = self.get_power_units()
+        changed = current_units != act.data()
+
+        if changed:
+            self.power_units_btn.setDefaultAction(act)
+            self.update_view()
+
+    def get_energy_units(self):
+        """ Get currently set energy units. """
+        return self.energy_units_btn.defaultAction().data()
+
+    def energy_units_changed(self, act):
+        """ Update view when energy units are changed. """
+        current_units = self.get_energy_units()
+        changed = current_units != act.data()
+
+        if changed:
+            self.energy_units_btn.setDefaultAction(act)
             self.update_view()
 
     def view_arrange_key_changed(self, act):
         """ Update view when view type is changed. """
-        current_act = self.get_tree_arrange_key()
-        changed = current_act != act.data()
+        current_key = self.get_tree_arrange_key()
+        changed = current_key != act.data()
 
         if changed:
             self.view_arrange_btn.setDefaultAction(act)
-
-        if self.tab_widget_not_empty():
             self.update_view()
 
     def expand_all(self):
@@ -521,7 +566,7 @@ class MainWindow(QtWidgets.QMainWindow):
         """ Apply a filter when the filter text is edited. """
         filter_string = self.filter_line_edit.text()
         print("Filtering: {}".format(filter_string))
-        if self.tab_widget_not_empty():
+        if not self.tab_widget_empty():
             self.current_eso_file.filter_view(filter_string)
 
     def text_edited(self):
@@ -602,7 +647,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def tab_changed(self, index):
         """ Update view when tabChanged event is fired. """
         print("Tab changed {}".format(index))
-        if self.tab_widget_not_empty():
+        if not self.tab_widget_empty():
             self.update_view(is_fresh=True)
             self.update_interval_buttons_state()
 
@@ -613,6 +658,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # ~~~~ Tree View Actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.view_arrange_btn.menu().triggered.connect(self.view_arrange_key_changed)
+        self.energy_units_btn.menu().triggered.connect(self.energy_units_changed)
+        self.power_units_btn.menu().triggered.connect(self.power_units_changed)
+        self.units_system_btn.menu().triggered.connect(self.units_system_changed)
         self.expand_all_btn.clicked.connect(self.expand_all)
         self.collapse_all_btn.clicked.connect(self.collapse_all)
 
