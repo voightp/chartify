@@ -9,7 +9,7 @@ from PySide2.QtWidgets import QWidget, QTabWidget, QTreeView, QSplitter, QHBoxLa
 from PySide2.QtCore import QSize, Qt, QThreadPool, QThread, QObject, Signal, \
     QSortFilterProxyModel, QModelIndex, \
     QItemSelectionModel, QRegExp, QUrl, QTimer, QFile
-from PySide2.QtWebEngineWidgets import QWebEnginePage, QWebEngineView
+from PySide2.QtWebEngineWidgets import QWebEnginePage, QWebEngineView, QWebEngineSettings
 
 from PySide2.QtGui import QKeySequence, QIcon, QPixmap
 from eso_file_header import EsoFileHeader
@@ -19,6 +19,7 @@ from progress_widget import MyStatusBar
 from PySide2.QtGui import QStandardItemModel, QStandardItem, QFont
 import numpy
 import pandas as pd
+from modern_window import ModernWindow
 from functools import partial
 import traceback
 import sys
@@ -57,7 +58,7 @@ class MainWindow(QtWidgets.QMainWindow):
         super(MainWindow, self).__init__()
         # ~~~~ Main Window setup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.setGeometry(50, 50, 800, 600)
-        self.setWindowTitle("EsoPie")
+        self.setWindowTitle("Eso Pie")
 
         # ~~~~ Main Window widgets ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.central_layout = QHBoxLayout()
@@ -189,6 +190,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.file_menu.addAction(self.closeAllTabsAct)
 
         self.chart_area = QWebEngineView(self)
+        self.chart_area.settings().setAttribute(QWebEngineSettings.JavascriptCanAccessClipboard, True)
         self.main_chart_layout.addWidget(self.chart_area)
         # self.chart_area.setContextMenuPolicy(Qt.CustomContextMenu)
         self.chart_area.setAcceptDrops(True)
@@ -257,6 +259,7 @@ class MainWindow(QtWidgets.QMainWindow):
         return self.tab_wgt.count() > 0
 
     def all_eso_files_requested(self):
+        """ Check if results from all eso files are requested. """
         btn = self.all_eso_files_btn
         return btn.isChecked() and btn.isEnabled()
 
@@ -287,6 +290,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.outputs_tools_layout.setSpacing(0)
         self.outputs_tools_layout.setAlignment(Qt.AlignTop)
 
+        self.tab_wgt.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
+        self.tab_wgt.setContentsMargins(0, 0, 0, 0)
+        self.tab_wgt.setMinimumWidth(400)
+        self.tab_wgt.setTabPosition(QTabWidget.North)
+
         self.view_wgt.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Expanding)
         self.view_layout.setContentsMargins(0, 0, 0, 0)
         self.view_layout.setSpacing(0)
@@ -309,10 +317,6 @@ class MainWindow(QtWidgets.QMainWindow):
     def set_up_tab_wgt(self):
         """ Set up appearance and behaviour of the tab widget. """
         # ~~~~ Tab widget set up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.tab_wgt.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
-        self.tab_wgt.setContentsMargins(0, 0, 0, 0)
-        self.tab_wgt.setMinimumWidth(400)
-        self.tab_wgt.setTabPosition(QTabWidget.North)
         self.tab_wgt.setUsesScrollButtons(True)
         self.tab_wgt.setTabsClosable(True)
         self.tab_wgt.setMovable(True)
@@ -367,23 +371,23 @@ class MainWindow(QtWidgets.QMainWindow):
         arrange_menu = QMenu(self)
         self.view_arrange_btn.setMenu(arrange_menu)
         self.view_arrange_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
-        act0 = QAction("None", self)
-        act0.setData(None)
-        act0.setIcon(QPixmap("./icons/view_arrange_icon_list.svg"))
-        act1 = QAction("Key", self)
-        act1.setData("key")
-        act1.setIcon(QPixmap("./icons/view_arrange_icon_key.svg"))
-        act2 = QAction("Variable", self)
-        act2.setData("var")
-        act2.setIcon(QPixmap("./icons/view_arrange_icon_var.svg"))
-        act3 = QAction("Units", self)
-        act3.setData("units")
-        act3.setIcon(QPixmap("./icons/view_arrange_icon_units.svg"))
+        act_0 = QAction("None", self)
+        act_0.setData(None)
+        act_0.setIcon(QPixmap("./icons/view_arrange_icon_list.svg"))
+        act_1 = QAction("Key", self)
+        act_1.setData("key")
+        act_1.setIcon(QPixmap("./icons/view_arrange_icon_key.svg"))
+        act_2 = QAction("Variable", self)
+        act_2.setData("var")
+        act_2.setIcon(QPixmap("./icons/view_arrange_icon_var.svg"))
+        act_3 = QAction("Units", self)
+        act_3.setData("units")
+        act_3.setIcon(QPixmap("./icons/view_arrange_icon_units.svg"))
 
-        arrange_menu.addActions([act0, act1, act2, act3])
+        arrange_menu.addActions([act_0, act_1, act_2, act_3])
         self.view_arrange_btn.setPopupMode(QToolButton.InstantPopup)
-        self.view_arrange_btn.setDefaultAction(act2)
-        self.view_arrange_btn.menu().setActiveAction(act2)
+        self.view_arrange_btn.setDefaultAction(act_2)
+        self.view_arrange_btn.menu().setActiveAction(act_2)
         btnLayout.addWidget(self.view_arrange_btn)
 
         spacer = QSpacerItem(20, 40, QSizePolicy.Expanding, QSizePolicy.Minimum)
@@ -845,10 +849,16 @@ class MainWindow(QtWidgets.QMainWindow):
 
 if __name__ == "__main__":
     database = Manager().dict()
-    app = QApplication(sys.argv)
+    sys_argv = sys.argv
+    app = QApplication()
+    # app.setStyle("Fusion")
     mainWindow = MainWindow()
     availableGeometry = app.desktop().availableGeometry(mainWindow)
     mainWindow.resize(availableGeometry.width() * 4 // 5,
                       availableGeometry.height() * 4 // 5)
     mainWindow.show()
+    # Frameless window test
+    #     mw = ModernWindow(mainWindow)
+    #     mw.show()
+
     sys.exit(app.exec_())
