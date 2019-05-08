@@ -13,6 +13,11 @@ QToolButton {
     cursor: pointer;
   }
 
+  #smallButton {
+    width: 25;
+    height: 20;
+  }
+
   QToolButton:disabled {
     opacity: 0.5;
   }

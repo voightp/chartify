@@ -411,7 +411,7 @@ class MyModel(QStandardItemModel):
     def populate_data(self, eso_file_mirror, tree_arrange_key, interval_request):
         """ Feed the model with output variables. """
         root = self.invisibleRootItem()
-        header_dict = eso_file_mirror.header_view(tree_arrange_key=tree_arrange_key,
+        header_dict = eso_file_mirror.header_view(view_arrange_key=tree_arrange_key,
                                                   interval_request=interval_request)
 
         if not tree_arrange_key:
