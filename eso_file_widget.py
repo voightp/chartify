@@ -263,10 +263,22 @@ class GuiEsoFile(QTreeView):
             "Units": header.sectionSize(units_ix)
         }
 
+    def fetch_request(self):
+        """ Get currently requested outputs. """
+        file_ids, variables = self.main_app.current_request()
+        return file_ids, variables
+
     def handle_drag_attempt(self):
         """ Handle pressing the view item or items. """
         # update selection
         self.handle_selection_change()
+        file_ids, variables = self.fetch_request()
+
+        if not variables:
+            return
+
+        print("HANDLING DRAG!\n{}".format(file_ids))
+        print(variables)
 
         mimeData = QMimeData()
         mimeData.setText("HELLO FROM MAIN APP")
@@ -276,7 +288,6 @@ class GuiEsoFile(QTreeView):
         drag.setPixmap(pixmap)
         drag.exec_(Qt.CopyAction)
         # create a drag object with pixmap
-        print("HANDLE DRAG")
 
     def handle_selection_change(self):
         """ Extract output information from the current selection. """
@@ -320,6 +331,7 @@ class GuiEsoFile(QTreeView):
 
         if outputs:
             self.main_app.populate_current_selection(outputs)
+
         else:
             self.main_app.clear_current_selection()
 
