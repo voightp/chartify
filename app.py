@@ -61,24 +61,21 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setWindowTitle("Eso Pie")
 
         # ~~~~ Main Window widgets ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.central_layout = QHBoxLayout()
         self.central_wgt = QWidget(self)
-        self.central_wgt.setLayout(self.central_layout)
+        self.central_layout = QHBoxLayout(self.central_wgt)
         self.setCentralWidget(self.central_wgt)
         self.central_splitter = QSplitter(self.central_wgt)
         self.central_splitter.setOrientation(Qt.Horizontal)
         self.central_layout.addWidget(self.central_splitter)
 
         # ~~~~ Left hand area ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.left_main_layout = QHBoxLayout()
         self.left_main_wgt = QWidget(self.central_splitter)
-        self.left_main_wgt.setLayout(self.left_main_layout)
+        self.left_main_layout = QHBoxLayout(self.left_main_wgt)
         self.central_splitter.addWidget(self.left_main_wgt)
 
         # ~~~~ Left hand Tools Widget ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.outputs_tools_layout = QVBoxLayout()
         self.outputs_tools_wgt = QWidget(self.left_main_wgt)
-        self.outputs_tools_wgt.setLayout(self.outputs_tools_layout)
+        self.outputs_tools_layout = QVBoxLayout(self.outputs_tools_wgt)
         self.left_main_layout.addWidget(self.outputs_tools_wgt)
 
         # ~~~~ Left hand Tools Items ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -88,6 +85,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.intervals_group = QGroupBox("Intervals", self.outputs_tools_wgt)
         self.set_up_interval_btns()
         self.outputs_tools_layout.addWidget(self.intervals_group, Qt.AlignTop)
+
+        spacer = QSpacerItem(20, 20, QSizePolicy.Minimum, QSizePolicy.Expanding)
+        self.outputs_tools_layout.addSpacerItem(spacer)
 
         self.settings_group = QGroupBox("Settings", self.outputs_tools_wgt)
         self.all_eso_files_btn = QToolButton(self.settings_group)
@@ -182,7 +182,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.file_menu = self.menuBar().addMenu("&File")
         # TODO reload css button (temporary)
         css = QAction("CSS", self)
-        css.triggered.connect(self.load_css)
+        css.triggered.connect(self.toggle_css)
 
         self.show_menu = self.menuBar().addAction(css)
         self.help_menu = self.menuBar().addMenu("&Help")
@@ -191,8 +191,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.file_menu.addAction(self.closeAllTabsAct)
 
         self.chart_area = QWebEngineView(self)
-        self.chart_area.settings().setAttribute(QWebEngineSettings.JavascriptCanAccessClipboard,
-                                                True)
+        self.chart_area.settings().setAttribute(QWebEngineSettings.JavascriptCanAccessClipboard, True)
         self.main_chart_layout.addWidget(self.chart_area)
         # self.chart_area.setContextMenuPolicy(Qt.CustomContextMenu)
         self.chart_area.setAcceptDrops(True)
@@ -203,7 +202,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # ~~~~ Set up main widgets and layouts ~~~~~~~~~~~~~~~~~~~~~~~~~
         self.load_icons()
         self.set_up_base_ui()
-        self.load_css()
+        self.toggle_css()
         self.refresh_toolbar()
 
     @property
@@ -222,9 +221,13 @@ class MainWindow(QtWidgets.QMainWindow):
     def default_settings(self):
         pass
 
-    def load_css(self):
-        with open("styles/app_style.css", "r") as file:
-            cont = file.read()
+    def toggle_css(self):
+        """ Turn the CSS on and off. """
+        if self.styleSheet():
+            cont = ""
+        else:
+            with open("styles/app_style.css", "r") as file:
+                cont = file.read()
         self.setStyleSheet(cont)
 
     def closeEvent(self, event):
@@ -241,7 +244,6 @@ class MainWindow(QtWidgets.QMainWindow):
     def keyPressEvent(self, event):
         """ Manage keyboard events. """
         if event.key() == Qt.Key_Escape:
-
             if not self.tab_widget_empty():
                 self.current_eso_file.clear_selection()
 
@@ -286,6 +288,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.outputs_tools_layout.setSpacing(0)
         self.outputs_tools_layout.setAlignment(Qt.AlignTop)
 
+        self.intervals_group.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+        self.settings_group.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+
         self.tab_wgt.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
         self.tab_wgt.setContentsMargins(0, 0, 0, 0)
         self.tab_wgt.setMinimumWidth(400)
@@ -328,14 +333,11 @@ class MainWindow(QtWidgets.QMainWindow):
 
     @staticmethod
     def remove_children(layout):
-        """ Remove all children of the given layout. """
+        """ Remove all children of the interface. """
         for _ in range(layout.count()):
             wgt = layout.itemAt(0).widget()
+            wgt.setParent(None)
             wgt.hide()
-            layout.removeWidget(wgt)
-
-    def refresh_toolbar(self):
-        self.render_interval_buttons()
 
     def render_interval_buttons(self):
         """ Place interval buttons on interval widget. """
@@ -345,31 +347,34 @@ class MainWindow(QtWidgets.QMainWindow):
         if layout.count() > 0:
             self.remove_children(layout)
 
+        # generate indexes for given number of columns
+        n_cols = self.toolbar_columns
+
         # render only enabled buttons
         btns = [btn for btn in self.interval_btns.values() if btn.isEnabled()]
+        n_rows = (len(btns) if len(btns) % 2 == 0 else len(btns) + 1) // n_cols
 
-        # generate indexes for given number of columns
-        N = self.toolbar_columns
-        ixs = [(x, y) for x in range(len(btns) // N) for y in range(N)]
+        ixs = [(x, y) for x in range(n_rows) for y in range(n_cols)]
 
         for btn, ix in zip(btns, ixs):
-            btn.show()
             layout.addWidget(btn, *ix)
+            btn.show()
+
+    def refresh_toolbar(self):
+        self.render_interval_buttons()
 
     def set_up_interval_btns(self):
         """ Create interval buttons and a parent container. """
-        # ~~~~ Widget to hold interval buttons ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.intervals_group.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
-        interval_btns_layout = QGridLayout()
+        # ~~~~ Layout to hold interval buttons ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        interval_btns_layout = QGridLayout(self.intervals_group)
         interval_btns_layout.setSpacing(0)
         interval_btns_layout.setContentsMargins(0, 0, 0, 0)
-        self.intervals_group.setLayout(interval_btns_layout)
 
         # ~~~~ Generate interval buttons ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         keys = [(TS, "TS"), (H, "H"), (D, "D"), (M, "M"), (A, "A"), (RP, "RP")]
         for key in keys:
             const, text = key
-            btn = QToolButton(objectName="intervalButton", parent=self.intervals_group)
+            btn = QToolButton(objectName="intervalButton")
             btn.setEnabled(False)
             btn.setText(text)
             btn.setCheckable(True)
@@ -379,12 +384,9 @@ class MainWindow(QtWidgets.QMainWindow):
     def set_up_settings(self):
         """ Create Settings menus and buttons. """
         # ~~~~ Widget to hold units settings ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.settings_group.setSizePolicy(QSizePolicy.Minimum,
-                                          QSizePolicy.Fixed)
-        settings_layout = QVBoxLayout()
+        settings_layout = QVBoxLayout(self.settings_group)
         settings_layout.setSpacing(0)
         settings_layout.setContentsMargins(0, 0, 0, 0)
-        self.settings_group.setLayout(settings_layout)
 
         # ~~~~ Generate include / exclude all files button ~~~~~~~~~~~~~~~~~~
         self.all_eso_files_btn.setEnabled(False)
@@ -778,9 +780,12 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def add_file_to_db(self, file_id, eso_file):
         """ Add processed eso file to the database. """
-        print("Adding file: '{}' with id '{}' into database.".format(eso_file.file_name, file_id))
-        self.database[file_id] = eso_file
-        database[file_id] = eso_file
+        try:
+            print("Adding file: '{}' with id '{}' into database.".format(eso_file.file_name, file_id))
+            self.database[file_id] = eso_file
+
+        except BrokenPipeError:
+            print("Application has been closed - catching broken pipe!")
 
     def add_eso_file(self, eso_file):
         """ Add eso file into 'tab' widget. """
@@ -804,8 +809,22 @@ class MainWindow(QtWidgets.QMainWindow):
         """ Return current file id or ids for all files based on 'all files btn' state. """
         if self.all_eso_files_requested():
             return self.all_files_ids()
+
         file_id = self.current_eso_file_id()
         return [file_id]
+
+    def current_request(self):
+        """ Get a currently selected output variables information. """
+        outputs = self.current_selection
+        ids = self.get_files_ids()
+        variables = None
+
+        # add an interval information into the request
+        # create 'request items' using 'Variable' namedtuple
+        if outputs:
+            variables = self.generate_variables(outputs)
+
+        return ids, variables
 
     def generate_variables(self, outputs):
         """ Create an output request using required 'Variable' class. """
@@ -815,19 +834,6 @@ class MainWindow(QtWidgets.QMainWindow):
                 req = Variable(interval, *item)
                 request_lst.append(req)
         return request_lst
-
-    def send_output(self):
-        """ Send an output request with model information to the 'dash' part of the app. """
-        outputs = self.current_selection
-        ids = self.get_files_ids()
-
-        # add an interval information into the request
-        # create 'request items' using 'Variable' namedtuple
-        variables = self.generate_variables(outputs)
-
-        msg = {"ids": ids,
-               "vars": variables}
-        # self.app_conn.send(msg)
 
     def create_thread_actions(self):
         """ Create actions related to background threads. """
@@ -840,9 +846,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.monitor_thread.finished.connect(self.file_loaded)
 
     def populate_current_selection(self, outputs):
+        """ Store current selection in main app. """
         self.current_selection = outputs
-        for item in outputs:
-            print("{} : {} : [{}]".format(*item))
 
     def singleFileResults(self, requestList):
         return get_results(self.currentEsoFileWidget.esoFile, requestList)
@@ -861,9 +866,11 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.file_queue.put(esoFile)
             else:
                 monitor.processing_failed("Processing failed!")
+
         except Exception as e:
             monitor.processing_failed("Processing failed!")
             traceback.print_exc()
+
         finally:
             self.pool_shutdown()
 
