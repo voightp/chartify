@@ -53,6 +53,7 @@ BTN_GAP = 12
 
 # noinspection PyPep8Naming,PyUnresolvedReferences
 class MainWindow(QtWidgets.QMainWindow):
+    resized = Signal()
 
     def __init__(self):
         super(MainWindow, self).__init__()
@@ -191,7 +192,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.file_menu.addAction(self.closeAllTabsAct)
 
         self.chart_area = QWebEngineView(self)
-        self.chart_area.settings().setAttribute(QWebEngineSettings.JavascriptCanAccessClipboard, True)
+        self.chart_area.settings().setAttribute(QWebEngineSettings.JavascriptCanAccessClipboard,
+                                                True)
         self.main_chart_layout.addWidget(self.chart_area)
         # self.chart_area.setContextMenuPolicy(Qt.CustomContextMenu)
         self.chart_area.setAcceptDrops(True)
@@ -236,6 +238,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.monitor_thread.terminate()
         self.pool.shutdown(wait=False)
         self.manager.shutdown()
+
+    def resizeEvent(self, event):
+        self.resized.emit()
+        return super().resizeEvent(event)
 
     def clear_current_selection(self):
         print("Current selection cleared!")
@@ -336,13 +342,11 @@ class MainWindow(QtWidgets.QMainWindow):
         """ Remove all children of the interface. """
         for _ in range(layout.count()):
             wgt = layout.itemAt(0).widget()
-            wgt.setParent(None)
+            layout.removeWidget(wgt)
             wgt.hide()
 
-    def render_interval_buttons(self):
+    def render_interval_buttons(self, layout, btns):
         """ Place interval buttons on interval widget. """
-        layout = self.intervals_group.layout()
-
         # clean up the previous state
         if layout.count() > 0:
             self.remove_children(layout)
@@ -351,9 +355,7 @@ class MainWindow(QtWidgets.QMainWindow):
         n_cols = self.toolbar_columns
 
         # render only enabled buttons
-        btns = [btn for btn in self.interval_btns.values() if btn.isEnabled()]
         n_rows = (len(btns) if len(btns) % 2 == 0 else len(btns) + 1) // n_cols
-
         ixs = [(x, y) for x in range(n_rows) for y in range(n_cols)]
 
         for btn, ix in zip(btns, ixs):
@@ -361,7 +363,10 @@ class MainWindow(QtWidgets.QMainWindow):
             btn.show()
 
     def refresh_toolbar(self):
-        self.render_interval_buttons()
+        print("Refreshing toolbar!")
+        layout = self.intervals_group.layout()
+        btns = [btn for btn in self.interval_btns.values() if btn.isEnabled()]
+        self.render_interval_buttons(layout, btns)
 
     def set_up_interval_btns(self):
         """ Create interval buttons and a parent container. """
@@ -374,12 +379,14 @@ class MainWindow(QtWidgets.QMainWindow):
         keys = [(TS, "TS"), (H, "H"), (D, "D"), (M, "M"), (A, "A"), (RP, "RP")]
         for key in keys:
             const, text = key
-            btn = QToolButton(objectName="intervalButton")
+            btn = QToolButton(self.intervals_group, objectName="intervalButton")
             btn.setEnabled(False)
             btn.setText(text)
             btn.setCheckable(True)
             btn.setAutoExclusive(self.exclusive_intervals)
             self.interval_btns[const] = btn
+
+        self.render_interval_buttons(interval_btns_layout, self.interval_btns.values())
 
     def set_up_settings(self):
         """ Create Settings menus and buttons. """
@@ -526,6 +533,13 @@ class MainWindow(QtWidgets.QMainWindow):
         # collapse and expand all buttons are not relevant for plain view
         self.handle_col_ex_btns(view_arrange_key)
 
+    def update_layout(self):
+        """ Update window layout accordingly to window size. """
+        new_cols = 1 if self.height() > 600 else 2
+        if new_cols != self.toolbar_columns:
+            self.toolbar_columns = new_cols
+            self.refresh_toolbar()
+
     def interval_changed(self):
         """ Update view when an interval is changed. """
         self.update_view()
@@ -604,6 +618,17 @@ class MainWindow(QtWidgets.QMainWindow):
         index = self.tab_wgt.currentIndex()
         self.delete_eso_file_content(index)
 
+        if self.tab_wgt.count() == 0:
+            # there aren't any widgets available
+            self.disable_interval_btns()
+
+        if self.tab_wgt.count() <= 1:
+            # only one file is available
+            self.all_eso_files_btn.setEnabled(False)
+
+        # update toolbar
+        self.refresh_toolbar()
+
     def disable_interval_btns(self):
         """ Disable all interval buttons. """
         for btn in self.interval_btns.values():
@@ -630,17 +655,6 @@ class MainWindow(QtWidgets.QMainWindow):
         # delete the widget and remove the tab
         widget.deleteLater()
         self.tab_wgt.removeTab(tab_index)
-
-        if self.tab_wgt.count() == 0:
-            # there aren't any widgets available
-            self.disable_interval_btns()
-
-        if self.tab_wgt.count() <= 1:
-            # only one file is available
-            self.all_eso_files_btn.setEnabled(False)
-
-        # update toolbar
-        self.refresh_toolbar()
 
     def _available_intervals(self):
         """ Get available intervals for the current eso file. """
@@ -679,13 +693,13 @@ class MainWindow(QtWidgets.QMainWindow):
         if not self.tab_widget_empty():
             self.update_view(is_fresh=True)
             self.update_interval_buttons_state()
-
-        # update toolbar layout to respond to
-        # changing of the widget
-        self.refresh_toolbar()
+            self.refresh_toolbar()
 
     def create_ui_actions(self):
         """ Create actions which depend on user actions """
+        # ~~~~ Resize window ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.resized.connect(self.update_layout)
+
         # ~~~~ Interval buttons actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         _ = [btn.clicked.connect(self.interval_changed) for btn in self.interval_btns.values()]
 
@@ -781,7 +795,8 @@ class MainWindow(QtWidgets.QMainWindow):
     def add_file_to_db(self, file_id, eso_file):
         """ Add processed eso file to the database. """
         try:
-            print("Adding file: '{}' with id '{}' into database.".format(eso_file.file_name, file_id))
+            print(
+                "Adding file: '{}' with id '{}' into database.".format(eso_file.file_name, file_id))
             self.database[file_id] = eso_file
 
         except BrokenPipeError:
@@ -932,6 +947,10 @@ class MainWindow(QtWidgets.QMainWindow):
     def closeAllTabs(self):
         for _ in range(self.tab_wgt.count()):
             self.delete_eso_file_content(0)
+
+        self.disable_interval_btns()
+        self.all_eso_files_btn.setEnabled(False)
+        self.refresh_toolbar()
 
 
 if __name__ == "__main__":
