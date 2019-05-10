@@ -25,3 +25,21 @@ QToolButton {
   QToolButton:hover {
     background-color: rgba(0,0,0,0.08);
   }
+
+TitledButton {
+    border-radius: 5px;
+}
+
+TitledButton QToolButton {
+    border-radius: 5px;
+    border: 1px solid black;
+}
+
+TitledButton QToolButton:hover {
+    border-radius: 5px;
+    border: 1px solid red;
+}
+
+TitledButton QLabel {
+    font-size: 9px;
+}

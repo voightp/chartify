@@ -20,6 +20,7 @@ from PySide2.QtGui import QStandardItemModel, QStandardItem, QFont
 import numpy
 import pandas as pd
 from modern_window import ModernWindow
+from buttons import TitledButton
 from functools import partial
 import traceback
 import sys
@@ -91,10 +92,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.outputs_tools_layout.addSpacerItem(spacer)
 
         self.settings_group = QGroupBox("Settings", self.outputs_tools_wgt)
-        self.all_eso_files_btn = QToolButton(self.settings_group)
-        self.energy_units_btn = QToolButton(self.settings_group)
-        self.power_units_btn = QToolButton(self.settings_group)
-        self.units_system_btn = QToolButton(self.settings_group)
         self.set_up_settings()
         self.outputs_tools_layout.addWidget(self.settings_group, Qt.AlignBottom)
 
@@ -366,7 +363,7 @@ class MainWindow(QtWidgets.QMainWindow):
         print("Refreshing toolbar!")
         layout = self.intervals_group.layout()
         btns = [btn for btn in self.interval_btns.values() if btn.isEnabled()]
-        self.render_interval_buttons(layout, btns)
+        # self.render_interval_buttons(layout, btns)
 
     def set_up_interval_btns(self):
         """ Create interval buttons and a parent container. """
@@ -396,44 +393,34 @@ class MainWindow(QtWidgets.QMainWindow):
         settings_layout.setContentsMargins(0, 0, 0, 0)
 
         # ~~~~ Generate include / exclude all files button ~~~~~~~~~~~~~~~~~~
+        self.all_eso_files_btn = QToolButton(self.settings_group)
         self.all_eso_files_btn.setEnabled(False)
         self.all_eso_files_btn.setText("All")
         self.all_eso_files_btn.setCheckable(True)
         settings_layout.addWidget(self.all_eso_files_btn)
 
         # ~~~~ Energy units set up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        settings_layout.addWidget(QLabel("Energy"))
         energy_units_menu = QMenu(self)
-        self.energy_units_btn.setMenu(energy_units_menu)
-        units = ["Wh", "kWh", "MWh", "J", "kJ", "GJ", "Btu", "kBtu", "MBtu"]
-        actions = [QAction(text, self) for text in units]
-        _ = [act.setData(act.text()) for act in actions]
-        energy_units_menu.addActions(actions)
-        self.energy_units_btn.setPopupMode(QToolButton.InstantPopup)
-        self.energy_units_btn.setDefaultAction(actions[3])
+        items = ["Wh", "kWh", "MWh", "J", "kJ", "GJ", "Btu", "kBtu", "MBtu"]
+        self.energy_units_btn = TitledButton(self.settings_group, fill_space=True,
+                                             title="energy", menu=energy_units_menu,
+                                             items=items, data=items, default_action_index=1)
         settings_layout.addWidget(self.energy_units_btn)
 
         # ~~~~ Power units set up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        settings_layout.addWidget(QLabel("Power"))
         power_units_menu = QMenu(self)
-        self.power_units_btn.setMenu(power_units_menu)
-        units = ["W", "kW", "MW", "Btu/h", "kBtu/h", "MBtu/h"]
-        actions = [QAction(text, self) for text in units]
-        _ = [act.setData(act.text()) for act in actions]
-        power_units_menu.addActions(actions)
-        self.power_units_btn.setPopupMode(QToolButton.InstantPopup)
-        self.power_units_btn.setDefaultAction(actions[3])
+        items = ["W", "kW", "MW", "Btu/h", "kBtu/h", "MBtu/h"]
+        self.power_units_btn = TitledButton(self.settings_group, fill_space=True,
+                                             title="power", menu=power_units_menu,
+                                             items=items, data=items, default_action_index=3)
         settings_layout.addWidget(self.power_units_btn)
 
         # ~~~~ Units system set up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        settings_layout.addWidget(QLabel("System"))
         units_system_menu = QMenu(self)
-        self.units_system_btn.setMenu(units_system_menu)
-        actions = [QAction(text, self) for text in ["IP", "SI"]]
-        _ = [act.setData(act.text()) for act in actions]
-        units_system_menu.addActions(actions)
-        self.units_system_btn.setPopupMode(QToolButton.InstantPopup)
-        self.units_system_btn.setDefaultAction(actions[1])
+        items = ["IP", "SI"]
+        self.units_system_btn = TitledButton(self.settings_group, fill_space=True,
+                                             title="system", menu=units_system_menu,
+                                             items=items, data=items, default_action_index=0)
         settings_layout.addWidget(self.units_system_btn)
 
     def set_up_view_tools(self):
@@ -959,9 +946,9 @@ if __name__ == "__main__":
     app = QApplication()
     # app.setStyle("Fusion")
     mainWindow = MainWindow()
-    availableGeometry = app.desktop().availableGeometry(mainWindow)
-    mainWindow.resize(availableGeometry.width() * 4 // 5,
-                      availableGeometry.height() * 4 // 5)
+    # availableGeometry = app.desktop().availableGeometry(mainWindow)
+    # mainWindow.resize(availableGeometry.width() * 4 // 5,
+    #                   availableGeometry.height() * 4 // 5)
     mainWindow.show()
     # Frameless window test
     #     mw = ModernWindow(mainWindow)
