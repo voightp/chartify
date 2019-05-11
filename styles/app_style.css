@@ -3,7 +3,7 @@
 QToolButton {
     width: 50px;
     height: 40px;
-    border: 1px solid black;
+    border: 1px solid blue;
     border-radius: 5px;
     background-color: transparent;
     text-align: center;
@@ -11,18 +11,23 @@ QToolButton {
     display: inline-block;
     font-size: 16px;
     cursor: pointer;
+    margin: 2px;
   }
 
-  #smallButton {
+#smallButton {
     width: 25;
     height: 20;
   }
 
-  QToolButton:disabled {
+QToolButton:disabled {
     opacity: 0.5;
+    border-color: rgba(0, 0, 0, 0.26);
+    box-shadow: none;
+    background-color: rgba(0, 0, 0, 0.12);
+    box-shadow: none;
   }
 
-  QToolButton:hover {
+QToolButton:hover {
     background-color: rgba(0,0,0,0.08);
   }
 
@@ -40,6 +45,6 @@ TitledButton QToolButton:hover {
     border: 1px solid red;
 }
 
-TitledButton QLabel {
+QLabel#buttonTitle {
     font-size: 9px;
 }
