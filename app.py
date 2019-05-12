@@ -226,6 +226,7 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             with open("styles/app_style.css", "r") as file:
                 cont = file.read()
+
         self.setStyleSheet(cont)
 
     def closeEvent(self, event):
@@ -339,29 +340,59 @@ class MainWindow(QtWidgets.QMainWindow):
         """ Define an app layout when there isn't any file loaded. """
         self.disable_interval_btns()
         self.all_eso_files_btn.setEnabled(False)
+        self.populate_intervals_group()
+        self.populate_options_group()
+        self.populate_settings_group()
+
+    def hide_disabled(self, wgts):
+        """ Hide disabled widgets from the interface. """
+        enabled, disabled = self.filter_disabled(wgts)
+        self.hide_widgets(disabled)
+
+        return enabled
+
+    @staticmethod
+    def filter_disabled(wgts):
+        """Take a list and split it to 'enabled', 'disabled' sub-lists. """
+        enabled = []
+        disabled = []
+
+        for wgt in wgts:
+            if wgt.isEnabled():
+                enabled.append(wgt)
+            else:
+                disabled.append(wgt)
+
+        return enabled, disabled
+
+    @staticmethod
+    def hide_widgets(wgts):
+        """ Hide given widgets. """
+        for wgt in wgts:
+            wgt.hide()
+
+    @staticmethod
+    def show_widgets(wgts):
+        """ Display given widgets. """
+        for wgt in wgts:
+            wgt.show()
+
+    @staticmethod
+    def remove_children(layout):
+        """ Remove all children of the interface. """
+        for _ in range(layout.count()):
+            wgt = layout.itemAt(0).widget()
+            layout.removeWidget(wgt)
 
     @staticmethod
     def populate_grid_layout(layout, wgts, n_cols):
         """ Place given widgets on a specified layout with 'n' columns. """
-
-        def remove_children(layout):
-            """ Remove all children of the interface. """
-            for _ in range(layout.count()):
-                wgt = layout.itemAt(0).widget()
-                layout.removeWidget(wgt)
-                wgt.hide()
-
-        # clean up the previous state
-        if layout.count() > 0:
-            remove_children(layout)
-
         # render only enabled buttons
         n_rows = (len(wgts) if len(wgts) % 2 == 0 else len(wgts) + 1) // n_cols
         ixs = [(x, y) for x in range(n_rows) for y in range(n_cols)]
 
         for btn, ix in zip(wgts, ixs):
             layout.addWidget(btn, *ix)
-            btn.show()
 
         if layout.count() == 0:
             layout.parentWidget().hide()
@@ -375,8 +406,11 @@ class MainWindow(QtWidgets.QMainWindow):
         interval_btns = [btn for btn in self.interval_btns.values()]
         n_cols = self.n_toolbar_cols
 
+        self.remove_children(layout)
+
         if HIDE_DISABLED:
-            interval_btns = list(filter(lambda x: x.isEnabled(), interval_btns))
+            interval_btns = self.hide_disabled(interval_btns)
+            self.show_widgets(interval_btns)
 
         self.populate_grid_layout(layout, interval_btns, n_cols)
 
@@ -393,9 +427,16 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def populate_options_group(self):
         """ Populate options group layout. """
+        layout = self.options_group.layout()
         options_btns = [self.all_eso_files_btn]
 
-        self.populate_grid_layout(self.options_group.layout(),
+        self.remove_children(layout)
+
+        if HIDE_DISABLED:
+            options_btns = self.hide_disabled(options_btns)
+            self.show_widgets(options_btns)
+
+        self.populate_grid_layout(layout,
                                   options_btns,
                                   self.n_toolbar_cols)
 
@@ -405,15 +446,13 @@ class MainWindow(QtWidgets.QMainWindow):
         interval_btns_layout = QGridLayout(self.intervals_group)
         interval_btns_layout.setSpacing(0)
         interval_btns_layout.setContentsMargins(0, 0, 0, 0)
+        interval_btns_layout.setAlignment(Qt.AlignLeft)
 
         # ~~~~ Generate interval buttons ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         ids = {TS: "TS", H: "H", D: "D", M: "M", A: "A", RP: "RP"}
         p = self.intervals_group
         self.interval_btns = {k: IntervalButton(v, parent=p) for k, v in ids.items()}
-
-        self.populate_grid_layout(interval_btns_layout,
-                                  self.interval_btns.values(),
-                                  self.n_toolbar_cols)
+        self.populate_intervals_group()
 
     def set_up_options(self):
         """ Create all files button. """
@@ -466,12 +505,7 @@ class MainWindow(QtWidgets.QMainWindow):
                                              items=items, data=data, def_act_ix=2)
         self.view_arrange_btn.setToolButtonStyle(Qt.ToolButtonTextOnly)
 
-        self.populate_grid_layout(settings_layout,
-                                  [self.energy_units_btn.container,
-                                   self.power_units_btn.container,
-                                   self.units_system_btn.container,
-                                   self.view_arrange_btn.container],
-                                  self.n_toolbar_cols)
+        self.populate_settings_group()
 
     def set_up_view_tools(self):
         """ Create tools, settings and search line for the view. """
@@ -551,6 +585,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if new_cols != self.n_toolbar_cols:
             self.n_toolbar_cols = new_cols
             self.populate_intervals_group()
+            self.populate_options_group()
             self.populate_settings_group()
 
     def interval_changed(self):
@@ -639,6 +674,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.tab_wgt.count() <= 1:
             # only one file is available
             self.all_eso_files_btn.setEnabled(False)
+            self.populate_options_group()
 
     def disable_interval_btns(self):
         """ Disable all interval buttons. """
@@ -758,29 +794,30 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def start_loading_file(self, monitor_id, monitor_name):
         """ Add a progress bar on the interface. """
-        self.status_bar.add_progress_bar(monitor_id, monitor_name)
+        self.status_bar.start_loading(monitor_id, monitor_name)
 
     def update_progress_text(self, monitor_id, text):
         """ Update text info for a given monitor. """
-        self.status_bar.progressBars[monitor_id].setText(text)
+        pass
+        # self.status_bar.progressBars[monitor_id].setText(text)
 
     def set_progress_bar_max(self, monitor_id, max_value):
         """ Set maximum progress value for a given monitor. """
-        self.status_bar.progressBars[monitor_id].setRange(1, max_value)
+        self.status_bar.set_max_value(monitor_id, max_value)
 
     def update_bar_progress(self, monitor_id, value):
         """ Update progress value for a given monitor. """
-        self.status_bar.progressBars[monitor_id].setValue(value)
+        self.status_bar.update_progress(monitor_id, value)
 
-    def delete_monitor(self, monitor_id):
+    def _delete_monitor(self, monitor_id):
         monitors = self.monitors
         mon = next(monitor for monitor in monitors if monitor.id == monitor_id)
         monitors.remove(mon)
 
     def file_loaded(self, monitor_id):
         """ Remove a progress bar when the file is loaded. """
-        self.status_bar.remove_progress_bar(monitor_id)
-        self.delete_monitor(monitor_id)
+        self.status_bar.file_loaded(monitor_id)
+        self._delete_monitor(monitor_id)
 
     @staticmethod
     def create_pool():
@@ -810,8 +847,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def add_file_to_db(self, file_id, eso_file):
         """ Add processed eso file to the database. """
         try:
-            print(
-                "Adding file: '{}' with id '{}' into database.".format(eso_file.file_name, file_id))
+            print("Adding file: '{}', id '{}' into database.".format(eso_file.file_name, file_id))
             self.database[file_id] = eso_file
 
         except BrokenPipeError:
@@ -834,6 +870,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # enable all eso file results btn if it's suitable
         if self.tab_wgt.count() > 1:
             self.all_eso_files_btn.setEnabled(True)
+            self.populate_options_group()
 
     def get_files_ids(self):
         """ Return current file id or ids for all files based on 'all files btn' state. """
@@ -915,10 +952,10 @@ class MainWindow(QtWidgets.QMainWindow):
     def _load_eso_file(self, eso_file_paths):
         """ Start eso file processing. """
         monitor_ids = [monitor.id for monitor in self.monitors]
+        queue = self.progress_queue
         for path in eso_file_paths:
             # create a monitor to report progress on the ui
             monitor_id = self.generate_id(monitor_ids)
-            queue = self.progress_queue
             monitor = GuiMonitor(path, monitor_id, queue)
             self.monitors.append(monitor)
 
@@ -927,39 +964,38 @@ class MainWindow(QtWidgets.QMainWindow):
             future.add_done_callback(partial(self.wait_for_results, monitor))
             self.futures.append(future)
 
-    def openFiles(self):
-        filePaths, filterExt = QFileDialog.getOpenFileNames(self,
-                                                            "Load Eso File", "",
-                                                            "*.eso")
-        if filePaths:
-            self._load_eso_file(filePaths)
+    def load_files(self):
+        file_pths, _ = QFileDialog.getOpenFileNames(self, "Load Eso File", "", "*.eso")
+        if file_pths:
+            self._load_eso_file(file_pths)
 
-    def openFolder(self):
-        dirPath = QFileDialog.getExistingDirectory(self,
-                                                   "Open folder (includes subfolders).")
+    def open_folder(self):
+        dirPath = QFileDialog.getExistingDirectory(self, "Open folder (includes subfolders).")
         if dirPath:
             paths = misc_os.list_files(dirPath, 3, ext="eso")
             self._load_eso_file(paths)
 
     # noinspection PyAttributeOutsideInit
     def create_menu_actions(self):
+        """ Create top toolbar menu actions. """
         # ~~~~ Menu actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.loadEsoFileAct = QAction("&Load Eso Files", self)
         self.loadEsoFileAct.setShortcut(QKeySequence("Ctrl+L"))
-        self.loadEsoFileAct.triggered.connect(self.openFiles)
+        self.loadEsoFileAct.triggered.connect(self.load_files)
         self.loadEsoFileAct.setStatusTip("Select Eso file to load")
 
         self.loadFilesFromFolderAct = QAction("&Load Eso Files from folder", self)
         self.loadFilesFromFolderAct.setShortcut(QKeySequence("Ctrl+Alt+L"))
-        self.loadFilesFromFolderAct.triggered.connect(self.openFolder)
+        self.loadFilesFromFolderAct.triggered.connect(self.open_folder)
         self.loadFilesFromFolderAct.setStatusTip("Select folder to load eso files.")
 
         self.closeAllTabsAct = QAction("Close all eso files.", self)
         self.closeAllTabsAct.setShortcut(QKeySequence("Ctrl+Alt+C"))
-        self.closeAllTabsAct.triggered.connect(self.closeAllTabs)
+        self.closeAllTabsAct.triggered.connect(self.close_all_tabs)
         self.closeAllTabsAct.setStatusTip("Close all open tabs.")
 
-    def closeAllTabs(self):
+    def close_all_tabs(self):
+        """ Delete all the content. """
         for _ in range(self.tab_wgt.count()):
             self.delete_eso_file_content(0)
 

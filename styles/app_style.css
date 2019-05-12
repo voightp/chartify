@@ -48,3 +48,9 @@ TitledButton QToolButton:hover {
 QLabel#buttonTitle {
     font-size: 9px;
 }
+
+QProgressBar {
+    height: 10px;
+    border: none;
+    background: transparent;
+}
