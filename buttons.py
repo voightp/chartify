@@ -5,13 +5,14 @@ from PySide2.QtCore import QSize, Qt
 import sys
 
 
-class TitledButton(QToolButton):
+class TitledButton(QFrame):
     """
     A custom button to include a top left title label.
 
     Menu and its actions can be added via kwargs.
-    Note that when adding this component layout, it's
-    needed to add btn.container for a correct behaviour.
+    Note that when extending QToolButton behaviour,
+    it's required to ad wrapping functions to pass
+    arguments to child self.button attributes.
 
     Parameters:
     -----------
@@ -37,15 +38,17 @@ class TitledButton(QToolButton):
 
     def __init__(self, parent, fill_space=True, title="",
                  menu=None, items=None, def_act_ix=0, data=None):
-        self.container = QFrame(parent)
-        self.container.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+        super().__init__(parent)
+        self.button = QToolButton(self)
+        self.button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+        self.setObjectName("buttonFrame")
 
-        layout = QVBoxLayout(self.container)
+        layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
-        label = QLabel(title, self.container, objectName="buttonTitle")
-        super().__init__(self.container)
+        label = QLabel(title, self, objectName="buttonTitle")
 
         if fill_space:
             self.title = label
@@ -55,18 +58,30 @@ class TitledButton(QToolButton):
         else:
             layout.addWidget(label)
 
-        layout.addWidget(self)
+        layout.addWidget(self.button)
 
         if menu and items:
-            self.setMenu(menu)
+            self.button.setMenu(menu)
             actions = [QAction(text, parent) for text in items]
 
             if data:
                 _ = [act.setData(d) for act, d in zip(actions, data)]
 
             menu.addActions(actions)
-            self.setPopupMode(QToolButton.InstantPopup)
-            self.setDefaultAction(actions[def_act_ix])
+            self.button.setPopupMode(QToolButton.InstantPopup)
+            self.button.setDefaultAction(actions[def_act_ix])
+
+    def setToolButtonStyle(self, style):
+        self.button.setToolButtonStyle(style)
+
+    def menu(self):
+        return self.button.menu()
+
+    def setDefaultAction(self, act):
+        self.button.setDefaultAction(act)
+
+    def defaultAction(self):
+        return self.button.defaultAction()
 
 
 class IntervalButton(QToolButton):
@@ -84,11 +99,10 @@ class IntervalButton(QToolButton):
         Kwargs passed to 'super' QtoolButton class.
 
     """
+
     def __init__(self, title, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setEnabled(False)
         self.setText(title)
         self.setCheckable(True)
         self.setAutoExclusive(True)
-
-

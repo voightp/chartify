@@ -63,7 +63,7 @@ QToolButton:disabled {
     box-shadow: none;
   }
 
-QToolButton:hover {
+QToolButton:hover:!checked {
     background-color: rgba(0,0,0,0.08);
   }
 
@@ -72,26 +72,29 @@ TitledButton {
 }
 
 TitledButton QToolButton {
-    border-radius: 5px;
-    border: 1px solid black;
 }
 
 TitledButton QToolButton:hover {
-    border-radius: 5px;
-    border: 1px solid red;
+}
+
+#buttonFrame {
+    background: transparent;
 }
 
 QLabel#buttonTitle {
     font-size: 9px;
+    background: transparent;
 }
 
 QProgressBar {
-    height: 5px;
-    border: none;
-    background: transparent;
+    border: 2px solid grey;
+    border-radius: 5px;
+}
 
-QProgressBar:indeterminate {
-    background-color: red;
+QProgressBar::chunk {
+    background-color: #05B8CC;
+    width: 1px;
+}
 
 QMenu {
     background-color: white;

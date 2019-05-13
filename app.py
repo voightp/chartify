@@ -419,14 +419,15 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def populate_settings_group(self):
         """ Populate settings group layout. """
-        settings_btns = [self.energy_units_btn.container,
-                         self.power_units_btn.container,
-                         self.units_system_btn.container,
-                         self.view_arrange_btn.container]
+        layout = self.settings_group.layout()
+        n_cols = self.n_toolbar_cols
 
-        self.populate_grid_layout(self.settings_group.layout(),
-                                  settings_btns,
-                                  self.n_toolbar_cols)
+        settings_btns = [self.energy_units_btn,
+                         self.power_units_btn,
+                         self.units_system_btn,
+                         self.view_arrange_btn]
+
+        self.populate_grid_layout(layout, settings_btns, n_cols)
 
     def populate_options_group(self):
         """ Populate options group layout. """
@@ -671,9 +672,8 @@ class MainWindow(QtWidgets.QMainWindow):
         """ Delay firing a text edited event. """
         self.timer.start(200)
 
-    def remove_eso_file(self):
+    def remove_eso_file(self, index):
         """ Delete current eso file. """
-        index = self.tab_wgt.currentIndex()
         self.delete_eso_file_content(index)
 
         if self.tab_wgt.count() <= 1:

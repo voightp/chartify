@@ -40,7 +40,7 @@ class ProgressWidget(QWidget):
         self.progress_bar = QProgressBar()
         self.progress_bar.setTextVisible(False)
         self.progress_bar.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        self.progress_bar.setFixedHeight(2)
+        self.progress_bar.setFixedHeight(10)
 
         self.name = QLabel(name)
         layout.addWidget(self.name)
