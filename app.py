@@ -19,7 +19,6 @@ from progress_widget import MyStatusBar
 from PySide2.QtGui import QStandardItemModel, QStandardItem, QFont
 import numpy
 import pandas as pd
-from modern_window import ModernWindow
 from buttons import TitledButton, IntervalButton
 from functools import partial
 import traceback
@@ -73,28 +72,28 @@ class MainWindow(QtWidgets.QMainWindow):
         self.central_splitter.addWidget(self.left_main_wgt)
 
         # ~~~~ Left hand Tools Widget ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.outputs_tools_wgt = QWidget(self.left_main_wgt)
-        self.outputs_tools_layout = QVBoxLayout(self.outputs_tools_wgt)
-        self.left_main_layout.addWidget(self.outputs_tools_wgt)
+        self.toolbar_wgt = QWidget(self.left_main_wgt)
+        self.toolbar_layout = QVBoxLayout(self.toolbar_wgt)
+        self.left_main_layout.addWidget(self.toolbar_wgt)
 
         # ~~~~ Left hand Tools Items ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.n_toolbar_cols = 2 if self.height() < HEIGHT_THRESHOLD else 1
         self.interval_btns = {}
-        self.intervals_group = QGroupBox("Intervals", self.outputs_tools_wgt)
+        self.intervals_group = QGroupBox("Intervals", self.toolbar_wgt)
         self.set_up_interval_btns()
-        self.outputs_tools_layout.addWidget(self.intervals_group)
+        self.toolbar_layout.addWidget(self.intervals_group)
 
-        self.options_group = QGroupBox("Options", self.outputs_tools_wgt)
+        self.options_group = QGroupBox("Options", self.toolbar_wgt)
         self.all_eso_files_btn = QToolButton(self.options_group)
         self.set_up_options()
-        self.outputs_tools_layout.addWidget(self.options_group)
+        self.toolbar_layout.addWidget(self.options_group)
 
         spacer = QSpacerItem(10, 10, QSizePolicy.Minimum, QSizePolicy.Expanding)
-        self.outputs_tools_layout.addSpacerItem(spacer)
+        self.toolbar_layout.addSpacerItem(spacer)
 
-        self.settings_group = QGroupBox("Settings", self.outputs_tools_wgt)
+        self.settings_group = QGroupBox("Settings", self.toolbar_wgt)
         self.set_up_settings()
-        self.outputs_tools_layout.addWidget(self.settings_group)
+        self.toolbar_layout.addWidget(self.settings_group)
 
         # ~~~~ Left hand Tree View widget  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.view_layout = QVBoxLayout()
@@ -111,7 +110,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.view_tools_wgt = QWidget(self.view_wgt)
         self.collapse_all_btn = QToolButton(self.view_tools_wgt, objectName="smallButton")
         self.expand_all_btn = QToolButton(self.view_tools_wgt, objectName="smallButton")
-        self.filter_line_edit = QLineEdit(self.view_tools_wgt, objectName="filterLine")
+        self.filter_line_edit = QLineEdit(self.view_tools_wgt)
         self.set_up_view_tools()
         self.view_layout.addWidget(self.view_tools_wgt)
 
@@ -182,8 +181,11 @@ class MainWindow(QtWidgets.QMainWindow):
         css = QAction("CSS", self)
         css.triggered.connect(self.toggle_css)
 
+        no_css = QAction("NO CSS", self)
+        no_css.triggered.connect(self.turn_off_css)
+
         self.show_menu = self.menuBar().addAction(css)
-        self.help_menu = self.menuBar().addMenu("&Help")
+        self.help_menu = self.menuBar().addAction(no_css)
         self.file_menu.addAction(self.loadEsoFileAct)
         self.file_menu.addAction(self.loadFilesFromFolderAct)
         self.file_menu.addAction(self.closeAllTabsAct)
@@ -219,13 +221,14 @@ class MainWindow(QtWidgets.QMainWindow):
     def default_settings(self):
         pass
 
+    def turn_off_css(self):
+        """ Turn the CSS on and off. """
+        self.setStyleSheet("")
+
     def toggle_css(self):
         """ Turn the CSS on and off. """
-        if self.styleSheet():
-            cont = ""
-        else:
-            with open("styles/app_style.css", "r") as file:
-                cont = file.read()
+        with open("styles/app_style.css", "r") as file:
+            cont = file.read()
 
         self.setStyleSheet(cont)
 
@@ -286,10 +289,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.left_main_layout.setSpacing(0)
         self.left_main_layout.setContentsMargins(0, 0, 0, 0)
 
-        self.outputs_tools_wgt.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
-        self.outputs_tools_layout.setContentsMargins(0, 0, 0, 0)
-        self.outputs_tools_layout.setSpacing(0)
-        self.outputs_tools_layout.setAlignment(Qt.AlignTop)
+        self.toolbar_wgt.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
+        self.toolbar_layout.setContentsMargins(0, 0, 0, 0)
+        self.toolbar_layout.setSpacing(0)
+        self.toolbar_layout.setAlignment(Qt.AlignTop)
 
         self.intervals_group.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
         self.settings_group.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
@@ -460,6 +463,7 @@ class MainWindow(QtWidgets.QMainWindow):
         options_layout = QGridLayout(self.options_group)
         options_layout.setSpacing(0)
         options_layout.setContentsMargins(0, 0, 0, 0)
+        options_layout.setAlignment(Qt.AlignLeft)
 
         # ~~~~ Generate include / exclude all files button ~~~~~~~~~~~~~~~~~
         self.all_eso_files_btn.setEnabled(False)
@@ -474,6 +478,7 @@ class MainWindow(QtWidgets.QMainWindow):
         settings_layout = QGridLayout(self.settings_group)
         settings_layout.setSpacing(0)
         settings_layout.setContentsMargins(0, 0, 0, 0)
+        settings_layout.setAlignment(Qt.AlignLeft)
 
         # ~~~~ Energy units set up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         energy_units_menu = QMenu(self)
@@ -933,6 +938,10 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.file_queue.put(esoFile)
             else:
                 monitor.processing_failed("Processing failed!")
+
+        except BrokenPipeError:
+            print("The application is being closed - catching broken pipe.")
+            pass
 
         except Exception as e:
             monitor.processing_failed("Processing failed!")

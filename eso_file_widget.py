@@ -185,7 +185,7 @@ class GuiEsoFile(QTreeView):
         column_labels_dct = {"key": "Key", "var": "Variable", "units": "Units"}
         labels = list(column_labels_dct.values())
 
-        if tree_arrange_key:
+        if tree_arrange_key != "raw":
             # switch labels to reflect the arrange key input
             parent_label = column_labels_dct.pop(tree_arrange_key)
             labels.remove(parent_label)
@@ -426,7 +426,7 @@ class MyModel(QStandardItemModel):
         header_dict = eso_file_mirror.header_view(view_arrange_key=tree_arrange_key,
                                                   interval_request=interval_request)
 
-        if not tree_arrange_key:
+        if tree_arrange_key == "raw":
             # tree like structure is not being used
             # all the variable info is stored as header keys
             self._append_rows(header_dict.keys(), root)

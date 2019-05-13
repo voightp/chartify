@@ -1,18 +1,54 @@
+* {
+    color: rgb(33, 150, 243);
+}
 
+QFrame {
+    background-color: white;
+}
+
+QToolBar {
+    background-color: white;
+}
+
+QSplitter::handle {
+    background-color: rgba(33, 150, 243, 0.5);
+}
+
+QGroupBox {
+    border:none;
+    margin: 0px 0px 0px 0px;
+    background-color: yellow;
+    border: 2px solid gray;
+}
+
+QGroupBox::title {
+    subcontrol-origin: margin;
+    subcontrol-position: top left;
+    padding: 0px 0px;
+    background-color: yellow;
+    border-top: 2px solid gray;
+    border-left: 2px solid gray;
+    right: 0px;
+    top: 0px;
+}
 
 QToolButton {
     width: 50px;
     height: 40px;
-    border: 1px solid blue;
+    border: 2px solid rgba(33, 150, 243, 0.5);
     border-radius: 5px;
     background-color: transparent;
-    text-align: center;
     text-decoration: none;
     display: inline-block;
-    font-size: 16px;
+    font-size: 12px;
     cursor: pointer;
     margin: 2px;
   }
+
+QToolButton:checked {
+    color: white;
+    background-color: rgba(33, 150, 243, 1);
+}
 
 #smallButton {
     width: 25;
@@ -50,9 +86,12 @@ QLabel#buttonTitle {
 }
 
 QProgressBar {
-    height: 10px;
+    height: 5px;
     border: none;
     background: transparent;
+
+QProgressBar:indeterminate {
+    background-color: red;
 
 QMenu {
     background-color: white;
