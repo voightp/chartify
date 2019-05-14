@@ -95,8 +95,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.set_up_settings()
         self.toolbar_layout.addWidget(self.settings_group)
 
-        # ~~~~ Left hand Tree View widget  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.view_wgt = QWidget(self.left_main_wgt)
+        # ~~~~ Left hand View widget  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.view_wgt = QFrame(self.left_main_wgt, objectName="viewWidget")
         self.view_layout = QVBoxLayout(self.view_wgt)
         self.left_main_layout.addWidget(self.view_wgt)
 

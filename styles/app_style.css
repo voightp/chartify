@@ -4,17 +4,23 @@
 }
 
 QFrame {
-    background-color: white;
+    background-color: rgb(255,255,255);
     border-radius: 0px;
 }
 
+QFrame#viewWidget {
+   background-color: rgba(255, 255, 255, 0.5);
+   margin: 10px;
+}
+
 QFrame#toolbar {
-    background: white;
     border-right: 1px solid grey;
+    background-color: rgba(33, 150, 243, 0.5);
 }
 
 QStatusBar {
     background: white;
+    border-radius: 0px;
 }
 
 QSplitter::handle {
@@ -42,7 +48,7 @@ QToolButton {
     width: 50px;
     height: 40px;
     border: 2px solid rgba(33, 150, 243, 1);
-    background-color: transparent;
+    background-color: white;
     color: rgb(33, 150, 243);
     font-size: 12px;
     margin: 2px;
@@ -123,50 +129,62 @@ QTabBar QToolButton:disabled {
 }
 
 QTabWidget::tab-bar {
-    top: 14px;
-    left: 6px;
+    top: 2px;
+    left: 4px;
 }
 
 QTabWidget::pane { /* The tab widget frame */
-    background: yellow;
-    margin: 14px 6px 6px 6px;
-    padding: 4px;
-    border: 2px solid yellow;
+    margin: 0px 0px 0px 0px;
+    padding: 0px;
+    left: 4px;
+    border: 2px solid rgba(240,85,74,1);
 }
 
 /* Style the tab using the tab sub-control. Note that
     it reads QTabBar _not_ QTabWidget */
 QTabBar::tab {
-    background: rgb(238,238,238);
-    border: 1px solid rgb(221,221,221);
+    border: 0px solid rgb(221,221,221);
     border-bottom-color: rgb(221,221,221); /* same as the pane color */
     border-top-left-radius: 0px;
     border-top-right-radius: 0px;
-    padding: 5px;
-}
-
-QTabBar::tab:selected, QTabBar::tab:hover {
-    background: rgb(240,85,74);
-    color: rgb(255,255,255);
+    padding: 10px;
 }
 
 QTabBar::tab:!selected {
-    margin-top: 2px; /* make non-selected tabs look smaller */
+    background: rgba(240,85,74,1);
+    margin-top: 0px; /* 2 make non-selected tabs look smaller */
+/*    border-left: 1px solid white;
+    border-right: 1px solid white;*/
+    color: rgba(255,255,255);
+}
+
+QTabBar::tab:selected {
+    background: rgb(255,255,255);
+    color: rgb(0,0,0);
+    border-top: 2px solid rgba(240,85,74,1);
+}
+
+QTabBar::tab:hover {
+    background: rgba(240,85,74,0.15);
+    color: rgb(0,0,0);
+    border-top: 2px solid rgba(240,85,74,1);
 }
 
 /* make use of negative margins for overlapping tabs */
 QTabBar::tab:selected {
     /* expand/overlap to the left and right by 4px */
-    margin-left: -0px;
-    margin-right: -0px;
+    margin-left: -4px;
+    margin-right: -4px;
 }
 
 QTabBar::tab:first:selected {
     margin-left: 0; /* the first selected tab has nothing to overlap with on the left */
+    border-left: 2px solid rgba(240,85,74,1);
 }
 
 QTabBar::tab:last:selected {
     margin-right: 0; /* the last selected tab has nothing to overlap with on the right */
+    border-right: 2px solid rgba(240,85,74,1);
 }
 
 QTabBar::tab:only-one {
@@ -174,10 +192,11 @@ QTabBar::tab:only-one {
 }
 
 QHeaderView::section {
-    background-color: rgba(240,85,74,1);
-    color: white;
-    padding-left: 4px;
-    border: 1px solid rgb(221,221,221);
+    background-color: rgba(255,255,255,0.5);
+    padding-left: 5px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    border: 0px solid rgb(221,221,221);
 }
 
 QHeaderView::section:checked
