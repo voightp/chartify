@@ -1,13 +1,20 @@
 * {
-    color: rgb(33, 150, 243);
+    color: rgb(50, 50, 50);
+    border-radius: 5px;
 }
 
 QFrame {
     background-color: white;
+    border-radius: 0px;
 }
 
-QToolBar {
-    background-color: white;
+QFrame#toolbar {
+    background: white;
+    border-right: 1px solid grey;
+}
+
+QStatusBar {
+    background: white;
 }
 
 QSplitter::handle {
@@ -16,69 +23,74 @@ QSplitter::handle {
 
 QGroupBox {
     border:none;
-    margin: 0px 0px 0px 0px;
-    background-color: yellow;
-    border: 2px solid gray;
+    margin: 12px 0px 0px 0px;
+    border-radius: 0px;
+}
+
+QGroupBox#viewTools {
+    border:none;
+    margin: 0px 10px 0px 10px;
 }
 
 QGroupBox::title {
     subcontrol-origin: margin;
     subcontrol-position: top left;
-    padding: 0px 0px;
-    background-color: yellow;
-    border-top: 2px solid gray;
-    border-left: 2px solid gray;
-    right: 0px;
-    top: 0px;
+    left: 2px;
 }
 
 QToolButton {
     width: 50px;
     height: 40px;
-    border: 2px solid rgba(33, 150, 243, 0.5);
-    border-radius: 5px;
+    border: 2px solid rgba(33, 150, 243, 1);
     background-color: transparent;
-    text-decoration: none;
-    display: inline-block;
+    color: rgb(33, 150, 243);
     font-size: 12px;
-    cursor: pointer;
     margin: 2px;
-  }
+}
 
 QToolButton:checked {
     color: white;
     background-color: rgba(33, 150, 243, 1);
 }
 
-#smallButton {
-    width: 25;
-    height: 20;
+QToolButton:hover:checked {
+    background-color: rgba(33, 150, 243, 1);
   }
 
 QToolButton:disabled {
     opacity: 0.5;
     border-color: rgba(0, 0, 0, 0.26);
-    box-shadow: none;
     background-color: rgba(0, 0, 0, 0.12);
-    box-shadow: none;
   }
 
-QToolButton:hover:!checked {
+QToolButton:hover {
     background-color: rgba(0,0,0,0.08);
   }
 
+QToolButton#smallButton {
+    width: 25;
+    height: 20;
+    margin: 0px;
+  }
+
+QLineEdit {
+    margin: 0px;
+ }
+
+QFrame#buttonFrame {
+    background: transparent;
+}
+
 TitledButton {
-    border-radius: 5px;
+
 }
 
 TitledButton QToolButton {
+
 }
 
 TitledButton QToolButton:hover {
-}
 
-#buttonFrame {
-    background: transparent;
 }
 
 QLabel#buttonTitle {
@@ -87,8 +99,7 @@ QLabel#buttonTitle {
 }
 
 QProgressBar {
-    border: 2px solid grey;
-    border-radius: 5px;
+    height: 2px;
 }
 
 QProgressBar::chunk {
@@ -96,40 +107,116 @@ QProgressBar::chunk {
     width: 1px;
 }
 
-QMenu {
+QTabBar QToolButton {
+    border-radius: 0px;
+    background: white;
+}
+
+QTabBar QToolButton:hover {
+    border-radius: 0px;
     background-color: white;
-    margin: 2px; /* some spacing around the menu */
 }
 
-QMenu::item {
-    padding: 2px 25px 2px 20px;
-    border: 1px solid transparent; /* reserve space for selection border */
+QTabBar QToolButton:disabled {
+    border-radius: 0px;
+    background: white;
 }
 
-QMenu::item:selected {
-    border-color: darkblue;
-    background: rgba(100, 100, 100, 150);
+QTabWidget::tab-bar {
+    top: 14px;
+    left: 6px;
 }
 
-QMenu::icon:checked { /* appearance of a 'checked' icon */
-    background: gray;
-    border: 1px inset gray;
-    position: absolute;
-    top: 1px;
-    right: 1px;
-    bottom: 1px;
-    left: 1px;
+QTabWidget::pane { /* The tab widget frame */
+    background: yellow;
+    margin: 14px 6px 6px 6px;
+    padding: 4px;
+    border: 2px solid yellow;
 }
 
-QMenu::separator {
-    height: 2px;
-    background: lightblue;
-    margin-left: 10px;
-    margin-right: 5px;
+/* Style the tab using the tab sub-control. Note that
+    it reads QTabBar _not_ QTabWidget */
+QTabBar::tab {
+    background: rgb(238,238,238);
+    border: 1px solid rgb(221,221,221);
+    border-bottom-color: rgb(221,221,221); /* same as the pane color */
+    border-top-left-radius: 0px;
+    border-top-right-radius: 0px;
+    padding: 5px;
 }
 
-QMenu::indicator {
-    width: 13px;
-    height: 13px;
+QTabBar::tab:selected, QTabBar::tab:hover {
+    background: rgb(240,85,74);
+    color: rgb(255,255,255);
+}
 
+QTabBar::tab:!selected {
+    margin-top: 2px; /* make non-selected tabs look smaller */
+}
+
+/* make use of negative margins for overlapping tabs */
+QTabBar::tab:selected {
+    /* expand/overlap to the left and right by 4px */
+    margin-left: -0px;
+    margin-right: -0px;
+}
+
+QTabBar::tab:first:selected {
+    margin-left: 0; /* the first selected tab has nothing to overlap with on the left */
+}
+
+QTabBar::tab:last:selected {
+    margin-right: 0; /* the last selected tab has nothing to overlap with on the right */
+}
+
+QTabBar::tab:only-one {
+    margin: 0; /* if there is only one tab, we don't want overlapping margins */
+}
+
+QHeaderView::section {
+    background-color: rgba(240,85,74,1);
+    color: white;
+    padding-left: 4px;
+    border: 1px solid rgb(221,221,221);
+}
+
+QHeaderView::section:checked
+{
+    background-color: red;
+}
+
+/* style the sort indicator */
+QHeaderView::down-arrow {
+    image: url(down_arrow.png);
+}
+
+QHeaderView::up-arrow {
+    image: url(up_arrow.png);
+}
+
+QTreeView {
+    show-decoration-selected: 0;
+}
+
+QTreeView::item {
+    border: 1px solid #d9d9d9;
+    border-top-color: transparent;
+    border-bottom-color: transparent;
+}
+
+QTreeView::item:hover {
+    background: rgba(33, 150, 243, 0.3);
+    border: 1px solid #bfcde4;
+}
+
+QTreeView::item:selected {
+    border: 1px solid rgba(33, 150, 243, 1);
+}
+
+QTreeView::item:selected:active{
+    background: rgba(33, 150, 243, 1);
+}
+
+QTreeView::item:selected:!active {
+    background: rgba(33, 150, 243, 0.8);
 }

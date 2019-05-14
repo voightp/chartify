@@ -5,7 +5,7 @@ from PySide2.QtWidgets import QWidget, QTabWidget, QTreeView, QSplitter, QHBoxLa
     QFileDialog, \
     QDialog, QProgressBar, QFormLayout, QAbstractItemView, QSlider, QSpacerItem, QSizePolicy, \
     QLineEdit, QComboBox, \
-    QMdiArea, QHeaderView, QTableView, QApplication, QScrollArea, QStatusBar, QMenu
+    QMdiArea, QHeaderView, QTableView, QApplication, QScrollArea, QStatusBar, QMenu, QFrame
 from PySide2.QtCore import QSize, Qt, QThreadPool, QThread, QObject, Signal, \
     QSortFilterProxyModel, QModelIndex, \
     QItemSelectionModel, QRegExp, QUrl, QTimer, QFile
@@ -72,7 +72,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.central_splitter.addWidget(self.left_main_wgt)
 
         # ~~~~ Left hand Tools Widget ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.toolbar_wgt = QWidget(self.left_main_wgt)
+        self.toolbar_wgt = QFrame(self.left_main_wgt, objectName="toolbar")
         self.toolbar_layout = QVBoxLayout(self.toolbar_wgt)
         self.left_main_layout.addWidget(self.toolbar_wgt)
 
@@ -88,7 +88,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.set_up_options()
         self.toolbar_layout.addWidget(self.options_group)
 
-        spacer = QSpacerItem(10, 10, QSizePolicy.Minimum, QSizePolicy.Expanding)
+        spacer = QSpacerItem(1, 1, QSizePolicy.Minimum, QSizePolicy.Expanding)
         self.toolbar_layout.addSpacerItem(spacer)
 
         self.settings_group = QGroupBox("Settings", self.toolbar_wgt)
@@ -96,9 +96,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.toolbar_layout.addWidget(self.settings_group)
 
         # ~~~~ Left hand Tree View widget  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.view_layout = QVBoxLayout()
         self.view_wgt = QWidget(self.left_main_wgt)
-        self.view_wgt.setLayout(self.view_layout)
+        self.view_layout = QVBoxLayout(self.view_wgt)
         self.left_main_layout.addWidget(self.view_wgt)
 
         # ~~~~ Left hand Tab widget  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -107,7 +106,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.view_layout.addWidget(self.tab_wgt)
 
         # ~~~~ Left hand Tab Tools  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.view_tools_wgt = QWidget(self.view_wgt)
+        self.view_tools_wgt = QGroupBox(self.view_wgt, objectName="viewTools")
         self.collapse_all_btn = QToolButton(self.view_tools_wgt, objectName="smallButton")
         self.expand_all_btn = QToolButton(self.view_tools_wgt, objectName="smallButton")
         self.filter_line_edit = QLineEdit(self.view_tools_wgt)
@@ -116,19 +115,12 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # ~~~~ Right hand area ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.right_main_wgt = QWidget(self.central_splitter)
-        self.right_main_layout = QHBoxLayout()
-        self.right_main_wgt.setLayout(self.right_main_layout)
+        self.right_main_layout = QHBoxLayout(self.right_main_wgt)
         self.central_splitter.addWidget(self.right_main_wgt)
-
-        # ~~~~ Right hand Tools widget ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.chart_tools_layout = QVBoxLayout()
-        self.chart_tools_wgt = QWidget(self.right_main_wgt)
-        self.chart_tools_wgt.setLayout(self.chart_tools_layout)
 
         # ~~~~ Right hand Chart Area ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.main_chart_widget = QWidget(self.right_main_wgt)
-        self.main_chart_layout = QHBoxLayout()
-        self.main_chart_widget.setLayout(self.main_chart_layout)
+        self.main_chart_layout = QHBoxLayout(self.main_chart_widget)
         self.right_main_layout.addWidget(self.main_chart_widget)
 
         # ~~~~ Actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -298,7 +290,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.settings_group.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
 
         self.tab_wgt.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
-        self.tab_wgt.setContentsMargins(0, 0, 0, 0)
         self.tab_wgt.setMinimumWidth(400)
         self.tab_wgt.setTabPosition(QTabWidget.North)
 
@@ -516,17 +507,15 @@ class MainWindow(QtWidgets.QMainWindow):
     def set_up_view_tools(self):
         """ Create tools, settings and search line for the view. """
         # ~~~~ Widget to hold tree view tools ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        view_tools_layout = QHBoxLayout()
+        view_tools_layout = QHBoxLayout(self.view_tools_wgt)
         view_tools_layout.setSpacing(0)
         view_tools_layout.setContentsMargins(0, 0, 0, 0)
-        self.view_tools_wgt.setLayout(view_tools_layout)
 
         # ~~~~ Widget to hold tree view buttons ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        btnWidget = QWidget()
-        btnLayout = QHBoxLayout()
+        btnWidget = QWidget(self.view_tools_wgt)
+        btnLayout = QHBoxLayout(btnWidget)
         btnLayout.setSpacing(0)
         btnLayout.setContentsMargins(0, 0, 0, 0)
-        btnWidget.setLayout(btnLayout)
 
         # ~~~~ Add view buttons ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         btnLayout.addWidget(self.collapse_all_btn)
@@ -534,9 +523,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # ~~~~ Create tree search line edit ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.filter_line_edit.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-        self.filter_line_edit.setFixedWidth(120)
+        self.filter_line_edit.setFixedWidth(160)
 
-        spacer = QSpacerItem(20, 40, QSizePolicy.Expanding, QSizePolicy.Minimum)
+        spacer = QSpacerItem(1, 1, QSizePolicy.Expanding, QSizePolicy.Minimum)
 
         # ~~~~ Add child widgets to treeTools layout ~~~~~~~~~~~~~~~~~~~~~~~~
         view_tools_layout.addWidget(self.filter_line_edit)
