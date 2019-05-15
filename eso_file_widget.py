@@ -407,10 +407,10 @@ class MyModel(QStandardItemModel):
             item_row[0].setData(row, Qt.UserRole)  # First item in row holds all the information
             parent.appendRow(item_row)
 
-    def _append_tree_rows(self, data_lst, parent, identifiers, plain=False):
+    def _append_tree_rows(self, data_lst, parent, identifiers, flat=False):
         """ Add plain rows for tree like view. """
         for row in data_lst:
-            if not plain:
+            if not flat:
                 item_0 = QStandardItem(None)
             else:
                 item_0 = QStandardItem(output_piece(row, identifiers[0]))
@@ -437,12 +437,12 @@ class MyModel(QStandardItemModel):
                 if len(variables) == 1:
                     # there is only one variable in the container
                     # insert the data as a simple row
-                    self._append_tree_rows(variables, root, identifiers, plain=True)
+                    self._append_tree_rows(variables, root, identifiers, flat=True)
                 else:
                     parent = QStandardItem(key)
                     parent.setDragEnabled(False)
                     root.appendRow(parent)
-                    self._append_tree_rows(variables, parent, identifiers, plain=False)
+                    self._append_tree_rows(variables, parent, identifiers, flat=False)
 
 
 class MyFilterModel(QSortFilterProxyModel):
