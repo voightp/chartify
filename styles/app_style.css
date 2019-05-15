@@ -5,19 +5,25 @@ light blue: rgba(33, 150, 243, 0.5)
 */
 
 * {
+    font-family: Roboto, sans-serif;
     color: rgba(140,140,140,1);
     border-radius: 5px;
 }
 
 QFrame {
-    background-color: rgb(255,255,255);
+    background-color: white;
     border-radius: 0px;
 }
 
 QFrame#viewWidget {
-   background-color: rgba(192,192,211,1);
+   background-color: rgba(189, 189, 200, 0.8);
+  /* background-color: rgba(120, 144, 156, 0.8);*/
    margin: 0px;
    padding: 2px;
+}
+
+QSplitter::handle {
+    background-color: rgba(189, 189, 189, 1);
 }
 
 QFrame#toolbar {
@@ -28,10 +34,6 @@ QFrame#toolbar {
 QStatusBar {
     background: white;
     border-radius: 0px;
-}
-
-QSplitter::handle {
-    background-color: rgba(192,192,211,1);
 }
 
 QGroupBox {
@@ -54,20 +56,21 @@ QGroupBox::title {
 QToolButton {
     width: 50px;
     height: 40px;
-    border: 1px solid rgba(192,192,211,1);
+    border: 1px solid rgba(140,140,140,0.5);
     background-color: white;
-    color: rgba(192,192,211,1);
+    color: rgba(140,140,140,1);
     font-size: 12px;
     margin: 2px;
 }
 
 QToolButton:checked {
     color: white;
-    background-color: rgba(192,192,211,1);
+  /*  background-color: rgba(41,182,246,1);*/
+    background-color: rgba(255,87,34,0.7);
 }
 
 QToolButton:hover:checked {
-   background-color: rgba(192,192,211,1);
+   background-color: rgba(255,87,34,0.7);
   }
 
 QToolButton:disabled {
@@ -115,16 +118,16 @@ TitledButton QToolButton:hover {
 
 QLabel#buttonTitle {
     font-size: 9px;
-    color: rgba(192,192,211,1);
+    color: rgba(112,112,112,1);
     background: transparent;
 }
 
 QProgressBar {
-    height: 2px;
+
 }
 
 QProgressBar::chunk {
-    background-color: #05B8CC;
+    background-color: #90cc00;
     width: 1px;
 }
 
@@ -179,7 +182,7 @@ QTabBar::tab:!selected {
 
 QTabBar::tab:selected {
     background: rgb(255,255,255);
-    color: rgba(0,0,0);
+    color: rgba(140,140,140);
     margin-left: 0px;
     margin-right: 0px;
 }
@@ -211,16 +214,19 @@ QTabBar::tab:only-one {
 }
 
 QHeaderView::section {
-    background-color: rgba(255,255,255,0.5);
-    padding-left: 5px;
+    background-color: white;
+    margin-left: 3px;
+    margin-right: 3px;
     padding-top: 5px;
     padding-bottom: 5px;
     border: 0px solid rgb(221,221,221);
+    border-bottom: 1px solid rgb(255,87,34);
+    border-right: 0px solid rgb(255,87,34);
 }
 
 QHeaderView::section:checked
 {
-    background-color: red;
+
 }
 
 /* style the sort indicator */
@@ -237,25 +243,27 @@ QTreeView {
 }
 
 QTreeView::item {
-    border: 1px solid #d9d9d9;
+    border: 1px solid rgba(189,189,189);
     border-top-color: transparent;
-    border-bottom-color: yellow;
+    border-bottom-color: transparent;
+    border-left-color: transparent;
 }
 
 QTreeView::item:hover {
-    background: rgba(33, 150, 243, 0.3);
-    border: 1px solid #bfcde4;
+    background: rgba(255,87,34,0.3);
 }
 
 QTreeView::item:selected {
-    border: 1px solid rgba(33, 150, 243, 1);
+    color: white;
+    background: rgba(255,87,34,0.7);
 }
 
 QTreeView::item:selected:active{
-    background: rgba(33, 150, 243, 1);
+    background: rgba(255,87,34,0.7);
 }
 
 QTreeView::item:selected:!active {
-    background: rgba(33, 150, 243, 0.8);
+    background: rgba(255,87,34,0.7);
+    border-right: transparent;
 }
 

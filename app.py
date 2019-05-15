@@ -11,7 +11,7 @@ from PySide2.QtCore import QSize, Qt, QThreadPool, QThread, QObject, Signal, \
     QItemSelectionModel, QRegExp, QUrl, QTimer, QFile
 from PySide2.QtWebEngineWidgets import QWebEnginePage, QWebEngineView, QWebEngineSettings
 
-from PySide2.QtGui import QKeySequence, QIcon, QPixmap
+from PySide2.QtGui import QKeySequence, QIcon, QPixmap, QFontDatabase
 from eso_file_header import EsoFileHeader
 
 from progress_widget import MyStatusBar
@@ -46,6 +46,7 @@ smallFont = QFont("Calibri", 8)
 
 HEIGHT_THRESHOLD = 650
 HIDE_DISABLED = True
+QFontDatabase.addApplicationFont("/resources/Roboto-regular.ttf")
 
 
 # noinspection PyPep8Naming,PyUnresolvedReferences
@@ -444,7 +445,7 @@ class MainWindow(QtWidgets.QMainWindow):
         interval_btns_layout.setAlignment(Qt.AlignLeft)
 
         # ~~~~ Generate interval buttons ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        ids = {TS: "TS", H: "H", D: "D", M: "M", A: "A", RP: "RP"}
+        ids = {TS: "Timestep", H: "Hourly", D: "Daily", M: "Monthly", A: "Annual", RP: "Runperiod"}
         p = self.intervals_group
         self.interval_btns = {k: IntervalButton(v, parent=p) for k, v in ids.items()}
         self.populate_intervals_group()

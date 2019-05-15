@@ -38,6 +38,7 @@ class GuiEsoFile(QTreeView):
         self.setDragEnabled(False)
         self.setSortingEnabled(True)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.setFocusPolicy(Qt.NoFocus)
 
         self.main_app = main_app
         self.eso_file_header = eso_file_header
@@ -495,7 +496,7 @@ class MyFilterModel(QSortFilterProxyModel):
         """ Check if output variables are available in a new model. """
         selection = QItemSelection()
 
-        if not tree_arrange_key:
+        if tree_arrange_key == "raw":
             # there isn't any preferred sorting applied so the first column is 'key'
             tree_arrange_key = "key"
 
