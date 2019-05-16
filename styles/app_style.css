@@ -5,9 +5,10 @@ light blue: rgba(33, 150, 243, 0.5)
 */
 
 * {
-    font-family: Roboto, sans-serif;
-    color: rgba(140,140,140,1);
-    border-radius: 5px;
+    font-family: "Roboto";
+    font-size: 13px;
+    color: rgb(112, 112, 112);
+    border-radius: 2px;
 }
 
 QFrame {
@@ -23,7 +24,7 @@ QFrame#viewWidget {
 }
 
 QSplitter::handle {
-    background-color: rgba(189, 189, 189, 1);
+    background-color: rgba(189, 189, 200, 0.8);
 }
 
 QFrame#toolbar {
@@ -71,17 +72,17 @@ QToolButton:checked {
 
 QToolButton:hover:checked {
    background-color: rgba(255,87,34,0.7);
-  }
+}
 
 QToolButton:disabled {
     opacity: 0.5;
     border-color: rgba(0, 0, 0, 0.26);
     background-color: rgba(0, 0, 0, 0.12);
-  }
+}
 
 QToolButton:hover {
     background-color: rgba(192,192,211,0.2);
-  }
+}
 
 QToolButton#smallButton {
     width: 25;
@@ -219,13 +220,13 @@ QHeaderView::section {
     margin-right: 3px;
     padding-top: 5px;
     padding-bottom: 5px;
+    margin-bottom: 5px;
     border: 0px solid rgb(221,221,221);
     border-bottom: 1px solid rgb(255,87,34);
     border-right: 0px solid rgb(255,87,34);
 }
 
-QHeaderView::section:checked
-{
+QHeaderView::section:checked {
 
 }
 
@@ -267,3 +268,39 @@ QTreeView::item:selected:!active {
     border-right: transparent;
 }
 
+QScrollBar:vertical {
+    background: transparent;
+    width: 10px;
+    margin: 2px;
+}
+
+ QScrollBar::up-arrow:vertical, QScrollBar::down-arrow:vertical {
+     border: 0px solid grey;
+     width: 0px;
+     height: 0px;
+     background: transparent;
+ }
+
+QScrollBar::handle {
+   background-color: rgba(255,87,34,0.7);
+}
+
+ QScrollBar::add-line:vertical {
+     border: 0px solid grey;
+     background-color: rgba(189, 189, 200, 0.8);
+     height: 10px;
+ }
+
+   QScrollBar::add-line:vertical:pressed {
+     background: rgba(255,87,34,0.7);
+ }
+
+ QScrollBar::sub-line:vertical {
+     border: 0px solid grey;
+     background-color: rgba(189, 189, 200, 0.8);
+     height: 10px;
+ }
+
+  QScrollBar::sub-line:vertical:pressed {
+     background: rgba(255,87,34,0.7);
+ }

@@ -46,7 +46,6 @@ smallFont = QFont("Calibri", 8)
 
 HEIGHT_THRESHOLD = 650
 HIDE_DISABLED = True
-QFontDatabase.addApplicationFont("/resources/Roboto-regular.ttf")
 
 
 # noinspection PyPep8Naming,PyUnresolvedReferences
@@ -1001,18 +1000,26 @@ class MainWindow(QtWidgets.QMainWindow):
         self.set_initial_layout()
 
 
+def install_fonts(pth, db):
+    files = os.listdir(pth)
+    for file in files:
+        p = os.path.join(pth, file)
+        db.addApplicationFont(p)
+
+
 if __name__ == "__main__":
     database = Manager().dict()
     sys_argv = sys.argv
     app = QApplication()
+    db = QFontDatabase()
+    install_fonts("./resources", db)
+
+    db.addApplicationFont("./resources/Roboto-Regular.ttf")
+
     # app.setStyle("Fusion")
     mainWindow = MainWindow()
     # availableGeometry = app.desktop().availableGeometry(mainWindow)
     # mainWindow.resize(availableGeometry.width() * 4 // 5,
     #                   availableGeometry.height() * 4 // 5)
     mainWindow.show()
-    # Frameless window test
-    #     mw = ModernWindow(mainWindow)
-    #     mw.show()
-
     sys.exit(app.exec_())
