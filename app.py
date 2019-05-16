@@ -593,10 +593,12 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def units_system_changed(self, act):
         """ Update view when energy units are changed. """
-        current_units_system = self.get_units_system()
-        changed = current_units_system != act.data()
+        current_act = self.units_system_btn.defaultAction()
+        changed = current_act != act.data()
+        m = act.parentWidget()
 
         if changed:
+            current_act.setChecked(False)
             self.units_system_btn.setDefaultAction(act)
             self.update_view()
 
@@ -606,10 +608,11 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def power_units_changed(self, act):
         """ Update view when energy units are changed. """
-        current_units = self.get_power_units()
-        changed = current_units != act.data()
+        current_act = self.power_units_btn.defaultAction()
+        changed = current_act != act.data()
 
         if changed:
+            current_act.setChecked(False)
             self.power_units_btn.setDefaultAction(act)
             self.update_view()
 
@@ -619,19 +622,21 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def energy_units_changed(self, act):
         """ Update view when energy units are changed. """
-        current_units = self.get_energy_units()
-        changed = current_units != act.data()
+        current_act = self.energy_units_btn.defaultAction()
+        changed = current_act != act
 
         if changed:
+            current_act.setChecked(False)
             self.energy_units_btn.setDefaultAction(act)
             self.update_view()
 
     def view_arrange_key_changed(self, act):
         """ Update view when view type is changed. """
-        current_key = self.get_view_arrange_key()
-        changed = current_key != act.data()
+        current_act = self.view_arrange_btn.defaultAction()
+        changed = current_act != act
 
         if changed:
+            current_act.setChecked(False)
             self.view_arrange_btn.setDefaultAction(act)
             self.update_view()
 

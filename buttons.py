@@ -61,13 +61,15 @@ class TitledButton(QFrame):
         layout.addWidget(self.button)
 
         if menu and items:
-            self.button.setMenu(menu)
-            actions = [QAction(text, parent) for text in items]
+            actions = [QAction(text, menu, checkable=True) for text in items]
+            actions[def_act_ix].setChecked(True)
 
             if data:
                 _ = [act.setData(d) for act, d in zip(actions, data)]
 
             menu.addActions(actions)
+
+            self.button.setMenu(menu)
             self.button.setPopupMode(QToolButton.InstantPopup)
             self.button.setDefaultAction(actions[def_act_ix])
 
