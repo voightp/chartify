@@ -591,59 +591,51 @@ class MainWindow(QtWidgets.QMainWindow):
         """ Get currently set units system. """
         return self.units_system_btn.defaultAction().data()
 
-    def units_system_changed(self, act):
-        """ Update view when energy units are changed. """
-        current_act = self.units_system_btn.defaultAction()
-        changed = current_act != act.data()
-        m = act.parentWidget()
-
-        if changed:
-            current_act.setChecked(False)
-            self.units_system_btn.setDefaultAction(act)
-            self.update_view()
-
     def get_power_units(self):
         """ Get currently set power units. """
         return self.power_units_btn.defaultAction().data()
-
-    def power_units_changed(self, act):
-        """ Update view when energy units are changed. """
-        current_act = self.power_units_btn.defaultAction()
-        changed = current_act != act.data()
-
-        if changed:
-            current_act.setChecked(False)
-            self.power_units_btn.setDefaultAction(act)
-            self.update_view()
 
     def get_energy_units(self):
         """ Get currently set energy units. """
         return self.energy_units_btn.defaultAction().data()
 
+    def _update_btn_menu(self, act, btn):
+        """ Handle changing actions on a 'Titled' button. """
+        current_act = btn.defaultAction()
+        changed = current_act != act
+
+        if changed:
+            current_act.setChecked(False)
+            btn.setDefaultAction(act)
+            self.update_view()
+
+        else:
+            current_act.setChecked(True)
+
+    def units_system_changed(self, act):
+        """ Update view when energy units are changed. """
+        btn = self.units_system_btn
+        self._update_btn_menu(act, btn)
+
+    def power_units_changed(self, act):
+        """ Update view when energy units are changed. """
+        btn = self.power_units_btn
+        self._update_btn_menu(act, btn)
+
     def energy_units_changed(self, act):
         """ Update view when energy units are changed. """
-        current_act = self.energy_units_btn.defaultAction()
-        changed = current_act != act
+        btn = self.energy_units_btn
+        self._update_btn_menu(act, btn)
 
-        if changed:
-            current_act.setChecked(False)
-            self.energy_units_btn.setDefaultAction(act)
-            self.update_view()
-
-    def view_arrange_key_changed(self, act):
+    def view_key_changed(self, act):
         """ Update view when view type is changed. """
-        current_act = self.view_arrange_btn.defaultAction()
-        changed = current_act != act
-
-        if changed:
-            current_act.setChecked(False)
-            self.view_arrange_btn.setDefaultAction(act)
-            self.update_view()
+        btn = self.view_arrange_btn
+        self._update_btn_menu(act, btn)
 
         # ~~~~ Disable expand / collapse all buttons ~~~~~~~~~~~~~~~~~~~~~~~~
-        if self.get_view_arrange_key() == "raw":
-            self.expand_all_btn.setEnabled(False)
-            self.collapse_all_btn.setEnabled(False)
+        disable = self.get_view_arrange_key() == "raw"
+        self.expand_all_btn.setEnabled(enable)
+        self.collapse_all_btn.setEnabled(enable)
 
     def expand_all(self):
         """ Expand all tree view items. """
@@ -754,7 +746,7 @@ class MainWindow(QtWidgets.QMainWindow):
         _ = [btn.clicked.connect(self.interval_changed) for btn in self.interval_btns.values()]
 
         # ~~~~ Tree View Actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.view_arrange_btn.menu().triggered.connect(self.view_arrange_key_changed)
+        self.view_arrange_btn.menu().triggered.connect(self.view_key_changed)
         self.energy_units_btn.menu().triggered.connect(self.energy_units_changed)
         self.power_units_btn.menu().triggered.connect(self.power_units_changed)
         self.units_system_btn.menu().triggered.connect(self.units_system_changed)

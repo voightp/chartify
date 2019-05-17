@@ -1,7 +1,5 @@
 /* colors:
 light blue: rgba(33, 150, 243, 0.5)
-
-
 */
 
 * {
@@ -119,7 +117,7 @@ TitledButton QToolButton:hover {
 
 QLabel#buttonTitle {
     font-size: 9px;
-    color: rgba(112,112,112,1);
+    color: white;
     background: transparent;
 }
 
