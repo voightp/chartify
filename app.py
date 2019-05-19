@@ -13,6 +13,7 @@ from PySide2.QtWebEngineWidgets import QWebEnginePage, QWebEngineView, QWebEngin
 
 from PySide2.QtGui import QKeySequence, QIcon, QPixmap, QFontDatabase
 from eso_file_header import EsoFileHeader
+from icons import Pixmap
 
 from progress_widget import MyStatusBar
 
@@ -56,7 +57,7 @@ class MainWindow(QtWidgets.QMainWindow):
         super(MainWindow, self).__init__()
         # ~~~~ Main Window setup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.setGeometry(50, 50, 800, 600)
-        self.setWindowTitle("Eso Pie")
+        self.setWindowTitle("eso pie")
 
         # ~~~~ Main Window widgets ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.central_wgt = QWidget(self)
@@ -109,6 +110,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.view_tools_wgt = QGroupBox(self.view_wgt, objectName="viewTools")
         self.collapse_all_btn = QToolButton(self.view_tools_wgt, objectName="smallButton")
         self.expand_all_btn = QToolButton(self.view_tools_wgt, objectName="smallButton")
+        self.filter_icon = QLabel(self.view_tools_wgt)
         self.filter_line_edit = QLineEdit(self.view_tools_wgt)
         self.set_up_view_tools()
         self.view_layout.addWidget(self.view_tools_wgt)
@@ -311,17 +313,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.main_chart_widget.setMinimumWidth(400)
 
     def load_icons(self):
-        self.expand_all_btn.setIcon(QPixmap("./icons/unfold_more_icon.svg"))
-        self.collapse_all_btn.setIcon(QPixmap("./icons/unfold_less_icon.svg"))
+        self.setWindowIcon(QIcon("./icons/twotone_pie_chart.png"))
+        self.filter_icon.setPixmap(Pixmap("./icons/filter_list.png", r=255, g=255, b=255))
+        self.expand_all_btn.setIcon(Pixmap("./icons/unfold_more.png", r=255))
+        self.collapse_all_btn.setIcon(Pixmap("./icons/unfold_less.png", b=255))
 
-        icons = {
-            "raw": QPixmap("./icons/view_arrange_icon_list.svg"),
-            "key": QPixmap("./icons/view_arrange_icon_key.svg"),
-            "var": QPixmap("./icons/view_arrange_icon_var.svg"),
-            "units": QPixmap("./icons/view_arrange_icon_units.svg")
-        }
-        acts = self.view_arrange_btn.menu().actions()
-        _ = [act.setIcon(icons[act.data()]) for act in acts]
+
 
     def set_up_tab_wgt(self):
         """ Set up appearance and behaviour of the tab widget. """
@@ -416,7 +413,7 @@ class MainWindow(QtWidgets.QMainWindow):
         settings_btns = [self.energy_units_btn,
                          self.power_units_btn,
                          self.units_system_btn,
-                         self.view_arrange_btn]
+                         self.group_by_btn]
 
         self.populate_grid_layout(layout, settings_btns, n_cols)
 
@@ -488,19 +485,18 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # ~~~~ Units system set up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         units_system_menu = QMenu(self)
-        items = ["IP", "SI"]
+        items = ["SI", "IP"]
         self.units_system_btn = TitledButton(self.settings_group, fill_space=True,
                                              title="system", menu=units_system_menu,
                                              items=items, data=items, def_act_ix=0)
 
         # ~~~~ Sorting set up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        arrange_menu = QMenu(self)
+        group_by = QMenu(self)
         items = ["None", "Key", "Variable", "Units"]
         data = ["raw", "key", "var", "units"]
-        self.view_arrange_btn = TitledButton(self.settings_group, fill_space=True,
-                                             title="view", menu=arrange_menu,
-                                             items=items, data=data, def_act_ix=2)
-        self.view_arrange_btn.setToolButtonStyle(Qt.ToolButtonTextOnly)
+        self.group_by_btn = TitledButton(self.settings_group, fill_space=True,
+                                         title="group by", menu=group_by,
+                                         items=items, data=data, def_act_ix=2)
 
         self.populate_settings_group()
 
@@ -528,13 +524,14 @@ class MainWindow(QtWidgets.QMainWindow):
         spacer = QSpacerItem(1, 1, QSizePolicy.Expanding, QSizePolicy.Minimum)
 
         # ~~~~ Add child widgets to treeTools layout ~~~~~~~~~~~~~~~~~~~~~~~~
+        view_tools_layout.addWidget(self.filter_icon)
         view_tools_layout.addWidget(self.filter_line_edit)
         view_tools_layout.addItem(spacer)
         view_tools_layout.addWidget(btnWidget)
 
     def get_view_arrange_key(self):
         """ Get current view arrange key from the interface. """
-        return self.view_arrange_btn.defaultAction().data()
+        return self.group_by_btn.defaultAction().data()
 
     def handle_col_ex_btns(self, view_arrange_key):
         """ Enable / disable 'collapse all' / 'expand all' buttons. """
@@ -629,13 +626,13 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def view_key_changed(self, act):
         """ Update view when view type is changed. """
-        btn = self.view_arrange_btn
+        btn = self.group_by_btn
         self._update_btn_menu(act, btn)
 
         # ~~~~ Disable expand / collapse all buttons ~~~~~~~~~~~~~~~~~~~~~~~~
         disable = self.get_view_arrange_key() == "raw"
-        self.expand_all_btn.setEnabled(enable)
-        self.collapse_all_btn.setEnabled(enable)
+        self.expand_all_btn.setEnabled(disable)
+        self.collapse_all_btn.setEnabled(disable)
 
     def expand_all(self):
         """ Expand all tree view items. """
@@ -746,7 +743,7 @@ class MainWindow(QtWidgets.QMainWindow):
         _ = [btn.clicked.connect(self.interval_changed) for btn in self.interval_btns.values()]
 
         # ~~~~ Tree View Actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.view_arrange_btn.menu().triggered.connect(self.view_key_changed)
+        self.group_by_btn.menu().triggered.connect(self.view_key_changed)
         self.energy_units_btn.menu().triggered.connect(self.energy_units_changed)
         self.power_units_btn.menu().triggered.connect(self.power_units_changed)
         self.units_system_btn.menu().triggered.connect(self.units_system_changed)

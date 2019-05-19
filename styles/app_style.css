@@ -95,7 +95,7 @@ QToolButton#smallButton:hover {
   }
 
 QLineEdit {
-    margin: 0px;
+    margin: 0px 0px 0px 5px;
     border-radius: 0px;
  }
 
@@ -113,6 +113,10 @@ TitledButton QToolButton {
 
 TitledButton QToolButton:hover {
 
+}
+
+QLabel {
+    background: transparent;
 }
 
 QLabel#buttonTitle {
@@ -213,7 +217,7 @@ QTabBar::tab:only-one {
 }
 
 QHeaderView::section {
-    background-color: white;
+    background-color: transparent;
     margin-left: 3px;
     margin-right: 3px;
     padding-top: 5px;
@@ -230,11 +234,14 @@ QHeaderView::section:checked {
 
 /* style the sort indicator */
 QHeaderView::down-arrow {
-    image: url(down_arrow.png);
+   /* image: url(icons/expand_more.png);*/
+
+
 }
 
 QHeaderView::up-arrow {
-    image: url(up_arrow.png);
+   /* image: url(icons/expand_less.png);*/
+
 }
 
 QTreeView {
@@ -301,4 +308,12 @@ QScrollBar::handle {
 
   QScrollBar::sub-line:vertical:pressed {
      background: rgba(255,87,34,0.7);
+ }
+
+ QMenu::item {
+    background: white;
+ }
+
+ QMenu::item:hover {
+    background:
  }

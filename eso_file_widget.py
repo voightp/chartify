@@ -283,7 +283,7 @@ class GuiEsoFile(QTreeView):
 
         mimeData = QMimeData()
         mimeData.setText("HELLO FROM MAIN APP")
-        pixmap = QPixmap("./icons/line-chart.png")
+        pixmap = QPixmap("./icons/input.png")
         drag = QDrag(self)
         drag.setMimeData(mimeData)
         drag.setPixmap(pixmap)
