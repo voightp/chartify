@@ -49,7 +49,7 @@ class GuiEsoFile(QTreeView):
         self.pressed.connect(self.handle_drag_attempt)
 
         self._interval = None
-        self._tree_arrange = None
+        self._group_by = None
 
     @property
     def file_id(self):
@@ -69,9 +69,9 @@ class GuiEsoFile(QTreeView):
         """ Hold a value of the last interval settings. """
         self._interval = current_interval
 
-    def _store_tree_arrange(self, current_tree_arrange):
+    def _store_group_by_key(self, current_key):
         """ Hold a value of the last interval settings. """
-        self._tree_arrange = current_tree_arrange
+        self._group_by = current_key
 
     def expand_all(self):
         """ Expand all nested nodes. """
@@ -93,13 +93,13 @@ class GuiEsoFile(QTreeView):
         """ Set first column sort order to be 'ascending'. """
         self.sortByColumn(0, Qt.AscendingOrder)
 
-    def create_view_model(self, eso_file_mirror, tree_arrange_key,
+    def create_view_model(self, eso_file_mirror, group_by_key,
                           interval_request, is_fresh=False):
         """
         Create a model and set up its appearance.
         """
         model = MyModel(eso_file_mirror,
-                        tree_arrange_key=tree_arrange_key,
+                        group_by_key=group_by_key,
                         interval_request=interval_request)
 
         proxy_model = MyFilterModel()
@@ -107,8 +107,8 @@ class GuiEsoFile(QTreeView):
         self.setModel(proxy_model)
 
         # define view appearance and behaviour
-        self._set_header_labels(tree_arrange_key)
-        self._set_resize_behaviour(tree_arrange_key)
+        self._set_header_labels(group_by_key)
+        self._set_resize_behaviour(group_by_key)
         self._set_first_col_spanned()
         self._set_ascending_order()
 
@@ -130,14 +130,14 @@ class GuiEsoFile(QTreeView):
                 if data in expanded_set:
                     self.expand(ix)
 
-    def _update_selection(self, current_selection, tree_arrange_key):
+    def _update_selection(self, current_selection, group_by_key):
         """ Select previously selected items when the model changes. """
         # Clear the container
         self.main_app.clear_current_selection()
 
         # Find matching items and return selection
         proxy_selection = self.model().find_match(current_selection,
-                                                  tree_arrange_key=tree_arrange_key)
+                                                  group_by_key=group_by_key)
         # Select items on the new model
         self.select_items(proxy_selection)
 
@@ -145,7 +145,7 @@ class GuiEsoFile(QTreeView):
         proxy_indexes = proxy_selection.indexes()
         self.update_app_outputs(proxy_indexes)
 
-    def update_view_model(self, tree_arrange_key, interval_request, current_view_settings,
+    def update_view_model(self, group_by_key, interval_request, current_view_settings,
                           current_selection=None, is_fresh=False):
         """
         Set the model and define behaviour of the tree view.
@@ -156,9 +156,9 @@ class GuiEsoFile(QTreeView):
         sort_order = current_view_settings["order"]
         expanded_items = current_view_settings["expanded"]
 
-        if tree_arrange_key != self._tree_arrange or interval_request != self._interval:
+        if group_by_key != self._group_by or interval_request != self._interval:
             # Only update the model if the settings have been changed
-            self.create_view_model(eso_file_mirror, tree_arrange_key,
+            self.create_view_model(eso_file_mirror, group_by_key,
                                    interval_request, is_fresh=is_fresh)
 
         if column_width_dct:
@@ -168,7 +168,7 @@ class GuiEsoFile(QTreeView):
         # currently selected list of items stored in main app
         self.clear_selection()
         if current_selection:
-            self._update_selection(current_selection, tree_arrange_key)
+            self._update_selection(current_selection, group_by_key)
 
         if expanded_items:
             self._expand_items(expanded_items)
@@ -177,29 +177,29 @@ class GuiEsoFile(QTreeView):
             self._update_sort_order(*sort_order)
 
         # Store current sorting key and interval
-        self._store_tree_arrange(tree_arrange_key)
+        self._store_group_by_key(group_by_key)
         self._store_interval(interval_request)
 
-    def _set_header_labels(self, tree_arrange_key):
+    def _set_header_labels(self, group_by_key):
         """ Assign header labels. """
         model = self.model().sourceModel()
         column_labels_dct = {"key": "Key", "var": "Variable", "units": "Units"}
         labels = list(column_labels_dct.values())
 
-        if tree_arrange_key != "raw":
+        if group_by_key != "raw":
             # switch labels to reflect the arrange key input
-            parent_label = column_labels_dct.pop(tree_arrange_key)
+            parent_label = column_labels_dct.pop(group_by_key)
             labels.remove(parent_label)
             labels.insert(0, parent_label)
 
         model.setHorizontalHeaderLabels(labels)
 
-    def _set_resize_behaviour(self, tree_arrange_key):
+    def _set_resize_behaviour(self, group_by_key):
         """ Define resizing behaviour. """
         header = self.header()
         units_ix = 2
 
-        if tree_arrange_key == "units":
+        if group_by_key == "units":
             # Units index is always '2', unless
             # it's used as an arrange key
             units_ix = 0
@@ -384,9 +384,9 @@ class GuiEsoFile(QTreeView):
 
 
 class MyModel(QStandardItemModel):
-    def __init__(self, eso_file_mirror, tree_arrange_key=None, interval_request=None):
+    def __init__(self, eso_file_mirror, group_by_key=None, interval_request=None):
         super().__init__()
-        self.populate_data(eso_file_mirror, tree_arrange_key, interval_request)
+        self.populate_data(eso_file_mirror, group_by_key, interval_request)
         self.setSortRole(Qt.AscendingOrder)
 
     def mimeTypes(self):
@@ -394,21 +394,23 @@ class MyModel(QStandardItemModel):
         return "application/json"
 
     @staticmethod
-    def _get_identifiers(tree_arrange_key):
+    def _get_identifiers(group_by_key):
         """ Rearrange variable order. . """
         identifiers = ["key", "var", "units"]
-        identifiers.remove(tree_arrange_key)
-        identifiers.insert(0, tree_arrange_key)
+        identifiers.remove(group_by_key)
+        identifiers.insert(0, group_by_key)
         return identifiers
 
-    def _append_rows(self, data_lst, parent):
+    @staticmethod
+    def _append_rows(data_lst, parent):
         """ Add plain rows to the model. """
         for row in data_lst:
             item_row = [QStandardItem(item) for item in row]
             item_row[0].setData(row, Qt.UserRole)  # First item in row holds all the information
             parent.appendRow(item_row)
 
-    def _append_tree_rows(self, data_lst, parent, identifiers, flat=False):
+    @staticmethod
+    def _append_tree_rows(data_lst, parent, identifiers, flat=False):
         """ Add plain rows for tree like view. """
         for row in data_lst:
             if not flat:
@@ -421,19 +423,19 @@ class MyModel(QStandardItemModel):
             item_2 = QStandardItem(output_piece(row, identifiers[2]))
             parent.appendRow([item_0, item_1, item_2])
 
-    def populate_data(self, eso_file_mirror, tree_arrange_key, interval_request):
+    def populate_data(self, eso_file_mirror, group_by_key, interval_request):
         """ Feed the model with output variables. """
         root = self.invisibleRootItem()
-        header_dict = eso_file_mirror.header_view(view_arrange_key=tree_arrange_key,
+        header_dict = eso_file_mirror.header_view(group_by_key=group_by_key,
                                                   interval_request=interval_request)
 
-        if tree_arrange_key == "raw":
+        if group_by_key == "raw":
             # tree like structure is not being used
             # all the variable info is stored as header keys
             self._append_rows(header_dict.keys(), root)
 
         else:
-            identifiers = self._get_identifiers(tree_arrange_key)
+            identifiers = self._get_identifiers(group_by_key)
             for key, variables in header_dict.items():
                 if len(variables) == 1:
                     # there is only one variable in the container
@@ -492,18 +494,18 @@ class MyFilterModel(QSortFilterProxyModel):
         pattern = filter.pattern().strip()
         return pattern.lower() in str_row.lower()
 
-    def find_match(self, current_selection, tree_arrange_key=None):
+    def find_match(self, current_selection, group_by_key=None):
         """ Check if output variables are available in a new model. """
         selection = QItemSelection()
 
-        if tree_arrange_key == "raw":
+        if group_by_key == "raw":
             # there isn't any preferred sorting applied so the first column is 'key'
-            tree_arrange_key = "key"
+            group_by_key = "key"
 
         # create a list which holds parent parts of currently selected items
         # if the part of variable does not match, than the variable (or any children)
         # will not be selected
-        quick_check = [output_piece(var, tree_arrange_key) for var in current_selection]
+        quick_check = [output_piece(var, group_by_key) for var in current_selection]
 
         num_rows = self.rowCount()
         for i in range(num_rows):

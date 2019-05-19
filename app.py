@@ -178,8 +178,12 @@ class MainWindow(QtWidgets.QMainWindow):
         no_css = QAction("NO CSS", self)
         no_css.triggered.connect(self.turn_off_css)
 
+        mirror = QAction("Mirror", self)
+        mirror.triggered.connect(self.mirror)
+
         self.show_menu = self.menuBar().addAction(css)
         self.help_menu = self.menuBar().addAction(no_css)
+        self.mirror_menu = self.menuBar().addAction(mirror)
         self.file_menu.addAction(self.loadEsoFileAct)
         self.file_menu.addAction(self.loadFilesFromFolderAct)
         self.file_menu.addAction(self.closeAllTabsAct)
@@ -214,6 +218,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def default_settings(self):
         pass
+
+    def mirror(self):
+        """ Mirror the layout. """
+        self.central_splitter.insertWidget(0, self.central_splitter.widget(1))
 
     def turn_off_css(self):
         """ Turn the CSS on and off. """
@@ -313,12 +321,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.main_chart_widget.setMinimumWidth(400)
 
     def load_icons(self):
-        self.setWindowIcon(QIcon("./icons/twotone_pie_chart.png"))
+        self.setWindowIcon(QPixmap("./icons/twotone_pie_chart.png"))
         self.filter_icon.setPixmap(Pixmap("./icons/filter_list.png", r=255, g=255, b=255))
         self.expand_all_btn.setIcon(Pixmap("./icons/unfold_more.png", r=255))
         self.collapse_all_btn.setIcon(Pixmap("./icons/unfold_less.png", b=255))
-
-
 
     def set_up_tab_wgt(self):
         """ Set up appearance and behaviour of the tab widget. """
@@ -518,6 +524,7 @@ class MainWindow(QtWidgets.QMainWindow):
         btnLayout.addWidget(self.expand_all_btn)
 
         # ~~~~ Create tree search line edit ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.filter_line_edit.setPlaceholderText("filter...")
         self.filter_line_edit.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         self.filter_line_edit.setFixedWidth(160)
 
@@ -529,13 +536,13 @@ class MainWindow(QtWidgets.QMainWindow):
         view_tools_layout.addItem(spacer)
         view_tools_layout.addWidget(btnWidget)
 
-    def get_view_arrange_key(self):
+    def get_group_by_key(self):
         """ Get current view arrange key from the interface. """
         return self.group_by_btn.defaultAction().data()
 
-    def handle_col_ex_btns(self, view_arrange_key):
+    def handle_col_ex_btns(self, group_by_key):
         """ Enable / disable 'collapse all' / 'expand all' buttons. """
-        if view_arrange_key == "raw":
+        if group_by_key == "raw":
             self.collapse_all_btn.setEnabled(False)
             self.expand_all_btn.setEnabled(False)
 
@@ -550,14 +557,14 @@ class MainWindow(QtWidgets.QMainWindow):
             return
 
         # retrieve required inputs from the interface
-        view_arrange_key = self.get_view_arrange_key()
+        group_by_key = self.get_group_by_key()
         intervals = self.selected_intervals()
         current_eso_file_widget = self.current_eso_file
         current_selection = self.current_selection
         current_view_settings = self.current_view_settings
 
         # update the current widget
-        current_eso_file_widget.update_view_model(view_arrange_key,
+        current_eso_file_widget.update_view_model(group_by_key,
                                                   intervals,
                                                   current_view_settings,
                                                   is_fresh=is_fresh,
@@ -569,7 +576,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # based on the current view, enable or disable tree buttons
         # collapse and expand all buttons are not relevant for plain view
-        self.handle_col_ex_btns(view_arrange_key)
+        self.handle_col_ex_btns(group_by_key)
 
     def update_layout(self):
         """ Update window layout accordingly to window size. """
@@ -630,9 +637,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self._update_btn_menu(act, btn)
 
         # ~~~~ Disable expand / collapse all buttons ~~~~~~~~~~~~~~~~~~~~~~~~
-        disable = self.get_view_arrange_key() == "raw"
-        self.expand_all_btn.setEnabled(disable)
-        self.collapse_all_btn.setEnabled(disable)
+        key = act.data()
+        self.handle_col_ex_btns(key)
 
     def expand_all(self):
         """ Expand all tree view items. """

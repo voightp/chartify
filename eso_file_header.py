@@ -27,19 +27,19 @@ class EsoFileHeader:
         """ Return a list of available intervals. """
         return self._header_dct.keys()
 
-    def header_view(self, view_arrange_key="raw", interval_request=None):
+    def header_view(self, group_by_key="raw", interval_request=None):
         """ Create tree with categorized values. """
         dct = self._filtered_header_no_ids(request=interval_request)
 
-        if view_arrange_key == "raw":
+        if group_by_key == "raw":
             return dct
 
         else:
             idnt = ["key", "var", "units"]
-            idnt.remove(view_arrange_key)
+            idnt.remove(group_by_key)
             vis_dct = defaultdict(list)
             for data in dct:
-                key = data.__getattribute__(view_arrange_key)
+                key = data.__getattribute__(group_by_key)
                 vis_dct[key].append(data)
             return vis_dct
 
