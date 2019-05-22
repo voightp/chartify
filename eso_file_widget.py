@@ -183,7 +183,7 @@ class GuiEsoFile(QTreeView):
     def _set_header_labels(self, group_by_key):
         """ Assign header labels. """
         model = self.model().sourceModel()
-        column_labels_dct = {"key": "Key", "var": "Variable", "units": "Units"}
+        column_labels_dct = {"key": "Key", "variable": "Variable", "units": "Units"}
         labels = list(column_labels_dct.values())
 
         if group_by_key != "raw":
@@ -396,7 +396,7 @@ class MyModel(QStandardItemModel):
     @staticmethod
     def _get_identifiers(group_by_key):
         """ Rearrange variable order. . """
-        identifiers = ["key", "var", "units"]
+        identifiers = ["key", "variable", "units"]
         identifiers.remove(group_by_key)
         identifiers.insert(0, group_by_key)
         return identifiers

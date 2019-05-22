@@ -499,7 +499,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # ~~~~ Sorting set up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         group_by = QMenu(self)
         items = ["None", "Key", "Variable", "Units"]
-        data = ["raw", "key", "var", "units"]
+        data = ["raw", "key", "variable", "units"]
         self.group_by_btn = TitledButton(self.settings_group, fill_space=True,
                                          title="group by", menu=group_by,
                                          items=items, data=data, def_act_ix=2)
