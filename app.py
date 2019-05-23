@@ -25,6 +25,7 @@ from functools import partial
 import traceback
 import sys
 import os
+import ctypes
 
 projects = os.path.dirname(os.path.dirname(__file__))
 sys.path.append(os.path.join(projects, "eso_reader"))
@@ -318,6 +319,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.main_chart_widget.setMinimumWidth(400)
 
     def load_icons(self):
+        myappid = 'foo'  # arbitrary string
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)  # this sets toolbar icon on win 7
+
         self.setWindowIcon(QPixmap("./icons/twotone_pie_chart.png"))
         self.filter_icon.setPixmap(Pixmap("./icons/filter_list.png", r=255, g=255, b=255))
         self.expand_all_btn.setIcon(Pixmap("./icons/unfold_more.png", r=255))
@@ -495,7 +499,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # ~~~~ Sorting set up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         group_by = QMenu(self)
-        items = ["None", "Key", "Variable", "Units"]
+        items = ["-", "Key", "Variable", "Units"]
         data = ["raw", "key", "variable", "units"]
         self.group_by_btn = TitledButton(self.settings_group, fill_space=True,
                                          title="group by", menu=group_by,
