@@ -42,9 +42,6 @@ from chart_widgets import MyWebView
 from random import randint
 from threads import PipeEcho, MonitorThread, EsoFileWatcher, GuiMonitor
 
-globalFont = QFont("Calibri")
-smallFont = QFont("Calibri", 8)
-
 HEIGHT_THRESHOLD = 650
 HIDE_DISABLED = True
 
