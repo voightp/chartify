@@ -324,8 +324,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.setWindowIcon(QPixmap("./icons/twotone_pie_chart.png"))
         self.filter_icon.setPixmap(Pixmap("./icons/filter_list.png", r=255, g=255, b=255))
-        self.expand_all_btn.setIcon(Pixmap("./icons/unfold_more.png", r=255))
-        self.collapse_all_btn.setIcon(Pixmap("./icons/unfold_less.png", b=255))
+        self.expand_all_btn.setIcon(Pixmap("./icons/unfold_more.png"))
+        self.collapse_all_btn.setIcon(Pixmap("./icons/unfold_less.png"))
 
     def set_up_tab_wgt(self):
         """ Set up appearance and behaviour of the tab widget. """
