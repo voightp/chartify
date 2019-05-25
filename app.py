@@ -24,6 +24,7 @@ import traceback
 import sys
 import os
 import ctypes
+import loky
 
 projects = os.path.dirname(os.path.dirname(__file__))
 sys.path.append(os.path.join(projects, "eso_reader"))
@@ -127,7 +128,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.create_ui_actions()
 
         # ~~~~ Eso files ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.futures = []
         self.current_view_settings = {"widths": None,
                                       "order": None,
                                       "expanded": set()}
@@ -234,7 +234,6 @@ class MainWindow(QtWidgets.QMainWindow):
         summary.print_(sum1)
         print("DB size", asizeof.asizeof(self.database))
         print("Executor size", asizeof.asizeof(self.pool))
-        print("Futures size", asizeof.asizeof(self.futures))
         print("Monitor thread", asizeof.asizeof(self.monitor_thread))
         print("Watcher thread", asizeof.asizeof(self.watcher_thread))
 
@@ -257,7 +256,6 @@ class MainWindow(QtWidgets.QMainWindow):
         """ Shutdown all the background stuff. """
         self.watcher_thread.terminate()
         self.monitor_thread.terminate()
-        self.pool.shutdown(wait=False)
         self.manager.shutdown()
 
     def resizeEvent(self, event):
@@ -702,6 +700,7 @@ class MainWindow(QtWidgets.QMainWindow):
         try:
             print("Deleting file: '{}' from database.".format(self.database[file_id].file_path))
             del self.database[file_id]
+
         except KeyError:
             print("Cannot delete the eso file: id '{}',\n"
                   "File was not found in database.".format(file_id))
@@ -839,14 +838,7 @@ class MainWindow(QtWidgets.QMainWindow):
         """ Create a new proccess pool. """
         n_cores = cpu_count()
         workers = (n_cores - 1) if n_cores > 1 else 1
-        return ProcessPoolExecutor(max_workers=workers)
-
-    def pool_shutdown(self):
-        """ Shutdown the pool if all the futures are done. """
-        if all(map(lambda x: x.done(), self.futures)):
-            self.futures.clear()
-            self.pool.shutdown(wait=False)
-            self.pool = self.create_pool()
+        return loky.get_reusable_executor(max_workers=workers)
 
     def current_eso_file_id(self):
         """ Return an id of the currently selected file. """
@@ -956,9 +948,6 @@ class MainWindow(QtWidgets.QMainWindow):
             monitor.processing_failed("Processing failed!")
             traceback.print_exc()
 
-        finally:
-            self.pool_shutdown()
-
     @staticmethod
     def generate_id(ids_lst, max_id=99999):
         """ Create a unique id. """
@@ -981,7 +970,6 @@ class MainWindow(QtWidgets.QMainWindow):
             # create a new process to load eso file
             future = self.pool.submit(load_eso_file, path, monitor=monitor)
             future.add_done_callback(partial(self.wait_for_results, monitor, file_queue))
-            self.futures.append(future)
 
     def load_files(self):
         file_pths, _ = QFileDialog.getOpenFileNames(self, "Load Eso File", "", "*.eso")
