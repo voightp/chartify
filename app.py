@@ -254,9 +254,22 @@ class MainWindow(QtWidgets.QMainWindow):
         self.resized.emit()
         return super().resizeEvent(event)
 
+    def populate_current_selection(self, outputs):
+        """ Store current selection in main app. """
+        self.selected = outputs
+
+        # enable export xlsx function
+        self.export_xlsx_btn.setEnabled(True)
+        self.populate_options_group()
+
     def clear_current_selection(self):
-        print("Current selection cleared!")
+        """ Handle behaviour when no variables are selected. """
         self.selected = None
+
+        # disable export xlsx as there are no
+        # variables to be exported
+        self.export_xlsx_btn.setEnabled(False)
+        self.populate_options_group()
 
     def keyPressEvent(self, event):
         """ Manage keyboard events. """
@@ -267,7 +280,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.clear_current_selection()
 
         elif event.key() == Qt.Key_Delete:
-            pass
+            return
 
     def tab_widget_empty(self):
         """ Check if there's at least one loaded file. """
@@ -852,8 +865,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def add_eso_file(self, id, eso_file):
         """ Add eso file into 'tab' widget. """
         # add the file on the ui
-        header_dct = eso_file.header_dct
-        eso_file_header = EsoFileHeader(header_dct)
+        eso_file_header = EsoFileHeader(eso_file.header_dct)
         eso_file_widget = GuiEsoFile(self, id, eso_file_header)
         self.tab_wgt.addTab(eso_file_widget, eso_file.file_name)
 
@@ -879,6 +891,15 @@ class MainWindow(QtWidgets.QMainWindow):
         file_id = self.current_eso_file_id()
         return [file_id]
 
+    def generate_variables(self, outputs):
+        """ Create an output request using required 'Variable' class. """
+        request_lst = []
+        for interval in self.selected_intervals():
+            for item in outputs:
+                req = Variable(interval, *item)
+                request_lst.append(req)
+        return request_lst
+
     def current_request(self):
         """ Get a currently selected output variables information. """
         outputs = self.selected
@@ -892,15 +913,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
         return ids, variables
 
-    def generate_variables(self, outputs):
-        """ Create an output request using required 'Variable' class. """
-        request_lst = []
-        for interval in self.selected_intervals():
-            for item in outputs:
-                req = Variable(interval, *item)
-                request_lst.append(req)
-        return request_lst
-
     def create_thread_actions(self):
         """ Create actions related to background threads. """
         self.watcher_thread.loaded.connect(self.add_eso_file)
@@ -911,49 +923,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.monitor_thread.preprocess_finished.connect(self.set_progress_bar_max)
         self.monitor_thread.finished.connect(self.file_loaded)
 
-    def populate_current_selection(self, outputs):
-        """ Store current selection in main app. """
-        self.selected = outputs
-
-    def singleFileResults(self, requestList):
-        return get_results(self.currentEsoFileWidget.esoFile, requestList)
-
-    def multipleFileResults(self, requestList):
-        esoFiles = [esoFileWidget.esoFile for esoFileWidget in
-                    self.esoFileWidgets]
-        esoFiles.sort(key=lambda x: x.file_name)
-        return get_results(esoFiles, requestList)
-
-    def wait_for_results(self, id, monitor, queue, future):
-        """ Put loaded file into the queue and clean up the pool. """
-        try:
-            eso_file = future.result()
-
-            if eso_file:
-                queue.put((id, eso_file))
-
-            else:
-                monitor.processing_failed("Processing failed!")
-
-        except BrokenPipeError:
-            print("The application is being closed - catching broken pipe.")
-
-        except Exception as e:
-            monitor.processing_failed("Processing failed!")
-            traceback.print_exc()
-
-    @staticmethod
-    def generate_ids(used_ids, n=1, max_id=99999):
-        """ Create a list with unique ids. """
-        ids = []
-        while True:
-            id = randint(1, max_id)
-            if id not in used_ids and id not in ids:
-                ids.append(id)
-                if len(ids) == n:
-                    break
-        return ids
-
     def _load_eso_files(self, eso_file_paths):
         """ Start eso file processing. """
         progress_queue = self.progress_queue
@@ -961,7 +930,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         used_ids = self.database.keys()
         n = len(eso_file_paths)
-        ids = self.generate_ids(used_ids, n=n)
+        ids = generate_ids(used_ids, n=n)
 
         for path in eso_file_paths:
             # create a monitor to report progress on the ui
@@ -970,7 +939,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
             # create a new process to load eso file
             future = self.pool.submit(load_eso_file, path, monitor=monitor)
-            future.add_done_callback(partial(self.wait_for_results, id, monitor, file_queue))
+            future.add_done_callback(partial(wait_for_results, id, monitor, file_queue))
 
     def load_files(self):
         """ Select eso files from explorer and start processing. """
@@ -984,6 +953,19 @@ class MainWindow(QtWidgets.QMainWindow):
         if dirPath:
             file_pths = misc_os.list_files(dirPath, 3, ext="eso")
             self._load_eso_files(file_pths)
+
+    def results_df(self, request):
+        """ Get output valies for given variables. """
+        eso_files = self.eso
+
+    def single_file_results(self, request):
+        return get_results(self.currentEsoFileWidget.esoFile, request)
+
+    def multiple_files_results(self, requestList):
+        esoFiles = [esoFileWidget.esoFile for esoFileWidget in
+                    self.esoFileWidgets]
+        esoFiles.sort(key=lambda x: x.file_name)
+        return get_results(esoFiles, requestList)
 
     def export_xlsx(self):
         pass
@@ -1013,6 +995,37 @@ class MainWindow(QtWidgets.QMainWindow):
             self.delete_eso_file_content(0)
 
         self.set_initial_layout()
+
+
+def generate_ids(used_ids, n=1, max_id=99999):
+    """ Create a list with unique ids. """
+    ids = []
+    while True:
+        id = randint(1, max_id)
+        if id not in used_ids and id not in ids:
+            ids.append(id)
+            if len(ids) == n:
+                break
+    return ids
+
+
+def wait_for_results(id, monitor, queue, future):
+    """ Put loaded file into the queue and clean up the pool. """
+    try:
+        eso_file = future.result()
+
+        if eso_file:
+            queue.put((id, eso_file))
+
+        else:
+            monitor.processing_failed("Processing failed!")
+
+    except BrokenPipeError:
+        print("The application is being closed - catching broken pipe.")
+
+    except Exception as e:
+        monitor.processing_failed("Processing failed!")
+        traceback.print_exc()
 
 
 def install_fonts(pth, db):
