@@ -10,11 +10,9 @@ from PySide2.QtCore import QSize, Qt, QThreadPool, QThread, QObject, Signal, \
     QSortFilterProxyModel, QModelIndex, \
     QItemSelectionModel, QRegExp, QUrl, QTimer, QFile
 from PySide2.QtWebEngineWidgets import QWebEnginePage, QWebEngineView, QWebEngineSettings
-
 from PySide2.QtGui import QKeySequence, QIcon, QPixmap, QFontDatabase
 from eso_file_header import EsoFileHeader
 from icons import Pixmap
-
 from progress_widget import MyStatusBar
 
 from PySide2.QtGui import QStandardItemModel, QStandardItem, QFont
@@ -45,6 +43,8 @@ from threads import PipeEcho, MonitorThread, EsoFileWatcher, GuiMonitor
 
 HEIGHT_THRESHOLD = 650
 HIDE_DISABLED = True
+
+from pympler import asizeof
 
 
 # noinspection PyPep8Naming,PyUnresolvedReferences
@@ -146,13 +146,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.progress_queue = self.manager.Queue()
 
         # ~~~~ Database ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.database = self.manager.dict()
+        # self.database = self.manager.dict() TODO simple dict might be sufficient
+        self.database = {}
 
         # ~~~~ Monitoring threads ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.monitors = []
         # TODO PASSING THE DATA TO DASH APP
-        # self.pipe_watcher_thread = PipeEcho(self.app_conn)
-
         self.watcher_thread = EsoFileWatcher(self.file_queue)
         self.monitor_thread = MonitorThread(self.progress_queue)
         self.pool = self.create_pool()
@@ -178,6 +177,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
         mirror = QAction("Mirror", self)
         mirror.triggered.connect(self.mirror)
+
+        memory = QAction("Memory", self)
+        memory.triggered.connect(self.report_sizes)  # TODO REMOVE THIS
+        self.memory_menu = self.menuBar().addAction(memory)  # TODO REMOVE THIS
 
         self.show_menu = self.menuBar().addAction(css)
         self.help_menu = self.menuBar().addAction(no_css)
@@ -216,6 +219,24 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def default_settings(self):
         pass
+
+    # TODO debug to find memory leaks
+    def report_sizes(self):
+        from pympler import asizeof
+        from pympler import summary
+        from pympler import muppy
+        import threading
+        import multiprocessing
+        print("Active threads", threading.active_count())
+        print("Active processes", multiprocessing.active_children())
+        all_objects = muppy.get_objects()
+        sum1 = summary.summarize(all_objects)
+        summary.print_(sum1)
+        print("DB size", asizeof.asizeof(self.database))
+        print("Executor size", asizeof.asizeof(self.pool))
+        print("Futures size", asizeof.asizeof(self.futures))
+        print("Monitor thread", asizeof.asizeof(self.monitor_thread))
+        print("Watcher thread", asizeof.asizeof(self.watcher_thread))
 
     def mirror(self):
         """ Mirror the layout. """
@@ -679,9 +700,8 @@ class MainWindow(QtWidgets.QMainWindow):
     def delete_file_from_db(self, file_id):
         """ Delete the eso file from the database. """
         try:
-            file = self.database[file_id]
-            print("Deleting file: '{}' from database.".format(file.file_path))
-            del file
+            print("Deleting file: '{}' from database.".format(self.database[file_id].file_path))
+            del self.database[file_id]
         except KeyError:
             print("Cannot delete the eso file: id '{}',\n"
                   "File was not found in database.".format(file_id))
@@ -824,8 +844,8 @@ class MainWindow(QtWidgets.QMainWindow):
     def pool_shutdown(self):
         """ Shutdown the pool if all the futures are done. """
         if all(map(lambda x: x.done(), self.futures)):
-            self.pool.shutdown(wait=False)
             self.futures.clear()
+            self.pool.shutdown(wait=False)
             self.pool = self.create_pool()
 
     def current_eso_file_id(self):
@@ -920,18 +940,17 @@ class MainWindow(QtWidgets.QMainWindow):
         esoFiles.sort(key=lambda x: x.file_name)
         return get_results(esoFiles, requestList)
 
-    def wait_for_results(self, monitor, future):
+    def wait_for_results(self, monitor, queue, future):
         """ Put loaded file into the queue and clean up the pool. """
         try:
-            esoFile = future.result()
-            if esoFile:
-                self.file_queue.put(esoFile)
+            eso_file = future.result()
+            if eso_file:
+                queue.put(eso_file)
             else:
                 monitor.processing_failed("Processing failed!")
 
         except BrokenPipeError:
             print("The application is being closed - catching broken pipe.")
-            pass
 
         except Exception as e:
             monitor.processing_failed("Processing failed!")
@@ -952,6 +971,7 @@ class MainWindow(QtWidgets.QMainWindow):
         """ Start eso file processing. """
         monitor_ids = [monitor.id for monitor in self.monitors]
         queue = self.progress_queue
+        file_queue = self.file_queue
         for path in eso_file_paths:
             # create a monitor to report progress on the ui
             monitor_id = self.generate_id(monitor_ids)
@@ -960,7 +980,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
             # create a new process to load eso file
             future = self.pool.submit(load_eso_file, path, monitor=monitor)
-            future.add_done_callback(partial(self.wait_for_results, monitor))
+            future.add_done_callback(partial(self.wait_for_results, monitor, file_queue))
             self.futures.append(future)
 
     def load_files(self):
@@ -1009,15 +1029,12 @@ def install_fonts(pth, db):
 
 
 if __name__ == "__main__":
-    database = Manager().dict()
     sys_argv = sys.argv
     app = QApplication()
     db = QFontDatabase()
     install_fonts("./resources", db)
 
     db.addApplicationFont("./resources/Roboto-Regular.ttf")
-
-    # app.setStyle("Fusion")
     mainWindow = MainWindow()
     # availableGeometry = app.desktop().availableGeometry(mainWindow)
     # mainWindow.resize(availableGeometry.width() * 4 // 5,

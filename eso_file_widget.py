@@ -1,7 +1,3 @@
-import dash
-import dash_core_components as dcc
-import dash_html_components as html
-from dash.dependencies import Output, Input, State
 import sys
 from PySide2 import QtCore, QtGui, QtWidgets
 from PySide2.QtWidgets import QWidget, QTabWidget, QTreeView, QSplitter, QHBoxLayout, QVBoxLayout, \
