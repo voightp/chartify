@@ -38,8 +38,6 @@ from threads import PipeEcho, MonitorThread, EsoFileWatcher, GuiMonitor
 HEIGHT_THRESHOLD = 650
 HIDE_DISABLED = True
 
-from pympler import asizeof
-
 
 # noinspection PyPep8Naming,PyUnresolvedReferences
 class MainWindow(QtWidgets.QMainWindow):
@@ -125,6 +123,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.current_view_settings = {"widths": None,
                                       "order": None,
                                       "expanded": set()}
+
+        self.default_energy_dct = {TS: False, H: False, D: True,
+                                   M: True, A: True, RP: True}
 
         self.selected = None
 
@@ -274,6 +275,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def keyPressEvent(self, event):
         """ Manage keyboard events. """
         if event.key() == Qt.Key_Escape:
+
             if not self.tab_widget_empty():
                 self.current_eso_file.clear_selection()
 
@@ -900,6 +902,13 @@ class MainWindow(QtWidgets.QMainWindow):
                 request_lst.append(req)
         return request_lst
 
+    def current_units_settings(self):
+        """ Get currently selected units settings. """
+        units_system = self.units_system_btn.defaultAction().data()
+        power = self.power_units_btn.defaultAction().data()
+        energy = self.energy_units_btn.defaultAction().data()
+        return units_system, power, energy
+
     def current_request(self):
         """ Get a currently selected output variables information. """
         outputs = self.selected
@@ -912,16 +921,6 @@ class MainWindow(QtWidgets.QMainWindow):
             variables = self.generate_variables(outputs)
 
         return ids, variables
-
-    def create_thread_actions(self):
-        """ Create actions related to background threads. """
-        self.watcher_thread.loaded.connect(self.add_eso_file)
-        self.monitor_thread.initialized.connect(self.start_loading_file)
-        self.monitor_thread.started.connect(self.update_progress_text)
-        self.monitor_thread.progress_text_updated.connect(self.update_progress_text)
-        self.monitor_thread.progress_bar_updated.connect(self.update_bar_progress)
-        self.monitor_thread.preprocess_finished.connect(self.set_progress_bar_max)
-        self.monitor_thread.finished.connect(self.file_loaded)
 
     def _load_eso_files(self, eso_file_paths):
         """ Start eso file processing. """
@@ -951,12 +950,21 @@ class MainWindow(QtWidgets.QMainWindow):
         """ Select folder containing eso files and start processing.  """
         dirPath = QFileDialog.getExistingDirectory(self, "Open folder (includes subfolders).")
         if dirPath:
-            file_pths = misc_os.list_files(dirPath, 3, ext="eso")
+            file_pths = misc_os.list_files(dirPath, 2, ext="eso")
             self._load_eso_files(file_pths)
 
-    def results_df(self, request):
+    def results_df(self):
         """ Get output valies for given variables. """
-        eso_files = self.eso
+        ids, variables = self.current_request()
+        units_system, power, energy = self.current_units_settings()
+        energy_rate_dct = self.default_energy_dct
+
+        files = [v for k, v in self.database.items() if k in ids]
+        df = get_results(files, variables, rate_units=power,
+                         energy_units=energy, add_file_name="column",
+                         energy_rate_dct=energy_rate_dct)
+
+        return df
 
     def single_file_results(self, request):
         return get_results(self.currentEsoFileWidget.esoFile, request)
@@ -968,7 +976,19 @@ class MainWindow(QtWidgets.QMainWindow):
         return get_results(esoFiles, requestList)
 
     def export_xlsx(self):
-        pass
+        """ Export selected variables data to xlsx. """
+        df = self.results_df()
+        df.to_excel("C:/users/vojte/desktop/test.xlsx")
+
+    def create_thread_actions(self):
+        """ Create actions related to background threads. """
+        self.watcher_thread.loaded.connect(self.add_eso_file)
+        self.monitor_thread.initialized.connect(self.start_loading_file)
+        self.monitor_thread.started.connect(self.update_progress_text)
+        self.monitor_thread.progress_text_updated.connect(self.update_progress_text)
+        self.monitor_thread.progress_bar_updated.connect(self.update_bar_progress)
+        self.monitor_thread.preprocess_finished.connect(self.set_progress_bar_max)
+        self.monitor_thread.finished.connect(self.file_loaded)
 
     # noinspection PyAttributeOutsideInit
     def create_menu_actions(self):
