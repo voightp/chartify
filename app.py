@@ -78,6 +78,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.options_group = QGroupBox("Options", self.toolbar_wgt)
         self.all_eso_files_btn = QToolButton(self.options_group)
+        self.export_xlsx_btn = QToolButton(self.options_group)
         self.set_up_options()
         self.toolbar_layout.addWidget(self.options_group)
 
@@ -125,9 +126,7 @@ class MainWindow(QtWidgets.QMainWindow):
                                       "order": None,
                                       "expanded": set()}
 
-        self.current_selection = None
-        self.treeAutoExpand = True
-        self.allEsoFilesResults = False
+        self.selected = None
 
         # ~~~~ Status bar ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.status_bar = MyStatusBar(self)
@@ -258,7 +257,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def clear_current_selection(self):
         print("Current selection cleared!")
-        self.current_selection = None
+        self.selected = None
 
     def keyPressEvent(self, event):
         """ Manage keyboard events. """
@@ -440,7 +439,8 @@ class MainWindow(QtWidgets.QMainWindow):
     def populate_options_group(self):
         """ Populate options group layout. """
         layout = self.options_group.layout()
-        options_btns = [self.all_eso_files_btn]
+        options_btns = [self.all_eso_files_btn,
+                        self.export_xlsx_btn]
 
         self.remove_children(layout)
 
@@ -478,6 +478,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.all_eso_files_btn.setEnabled(False)
         self.all_eso_files_btn.setText("All")
         self.all_eso_files_btn.setCheckable(True)
+
+        # ~~~~ Generate export xlsx button ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.export_xlsx_btn.setEnabled(False)
+        self.export_xlsx_btn.setText("Save xlsx")
+        self.export_xlsx_btn.setCheckable(False)
 
         self.populate_options_group()
 
@@ -574,7 +579,7 @@ class MainWindow(QtWidgets.QMainWindow):
         group_by_key = self.get_group_by_key()
         intervals = self.selected_intervals()
         current_eso_file_widget = self.current_eso_file
-        current_selection = self.current_selection
+        current_selection = self.selected
         current_view_settings = self.current_view_settings
 
         # update the current widget
@@ -762,6 +767,9 @@ class MainWindow(QtWidgets.QMainWindow):
         # ~~~~ Interval buttons actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         _ = [btn.clicked.connect(self.interval_changed) for btn in self.interval_btns.values()]
 
+        # ~~~~ Options buttons actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.export_xlsx_btn.clicked.connect(self.export_xlsx)
+
         # ~~~~ Tree View Actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.group_by_btn.menu().triggered.connect(self.view_key_changed)
         self.energy_units_btn.menu().triggered.connect(self.energy_units_changed)
@@ -883,7 +891,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def current_request(self):
         """ Get a currently selected output variables information. """
-        outputs = self.current_selection
+        outputs = self.selected
         ids = self.get_files_ids()
         variables = None
 
@@ -915,7 +923,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def populate_current_selection(self, outputs):
         """ Store current selection in main app. """
-        self.current_selection = outputs
+        self.selected = outputs
 
     def singleFileResults(self, requestList):
         return get_results(self.currentEsoFileWidget.esoFile, requestList)
@@ -953,12 +961,12 @@ class MainWindow(QtWidgets.QMainWindow):
     def _load_eso_file(self, eso_file_paths):
         """ Start eso file processing. """
         monitor_ids = [monitor.id for monitor in self.monitors]
-        queue = self.progress_queue
+        progress_queue = self.progress_queue
         file_queue = self.file_queue
         for path in eso_file_paths:
             # create a monitor to report progress on the ui
             monitor_id = self.generate_id(monitor_ids)
-            monitor = GuiMonitor(path, monitor_id, queue)
+            monitor = GuiMonitor(path, monitor_id, progress_queue)
             self.monitors.append(monitor)
 
             # create a new process to load eso file
@@ -966,15 +974,17 @@ class MainWindow(QtWidgets.QMainWindow):
             future.add_done_callback(partial(self.wait_for_results, monitor, file_queue))
 
     def load_files(self):
+        """ Select eso files from explorer and start processing. """
         file_pths, _ = QFileDialog.getOpenFileNames(self, "Load Eso File", "", "*.eso")
         if file_pths:
             self._load_eso_file(file_pths)
 
     def open_folder(self):
+        """ Select folder containing eso files and start processing.  """
         dirPath = QFileDialog.getExistingDirectory(self, "Open folder (includes subfolders).")
         if dirPath:
-            paths = misc_os.list_files(dirPath, 3, ext="eso")
-            self._load_eso_file(paths)
+            file_pths = misc_os.list_files(dirPath, 3, ext="eso")
+            self._load_eso_file(file_pths)
 
     # noinspection PyAttributeOutsideInit
     def create_menu_actions(self):
