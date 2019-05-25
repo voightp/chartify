@@ -15,9 +15,6 @@ from eso_file_header import EsoFileHeader
 from icons import Pixmap
 from progress_widget import MyStatusBar
 
-from PySide2.QtGui import QStandardItemModel, QStandardItem, QFont
-import numpy
-import pandas as pd
 from buttons import TitledButton, IntervalButton
 from functools import partial
 import traceback
@@ -26,14 +23,10 @@ import os
 import ctypes
 import loky
 
-projects = os.path.dirname(os.path.dirname(__file__))
-sys.path.append(os.path.join(projects, "eso_reader"))
-sys.path.append(os.path.join(projects, "dash_app"))
-
-from constants import TS, D, H, M, A, RP
-from eso_file import EsoFile, load_eso_file, get_results
-from mini_classes import Variable
-import misc_os as misc_os
+from eso_reader.constants import TS, D, H, M, A, RP
+from eso_reader.eso_file import EsoFile, load_eso_file, get_results
+from eso_reader.mini_classes import Variable
+import eso_reader.misc_os as misc_os
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 from queue import Queue
 from multiprocessing import Manager, cpu_count, Pipe, Process
@@ -259,6 +252,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.manager.shutdown()
 
     def resizeEvent(self, event):
+        """ Handle window behaviour when on resize. """
         self.resized.emit()
         return super().resizeEvent(event)
 

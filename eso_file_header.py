@@ -2,12 +2,8 @@ from collections import defaultdict
 import os
 import sys
 
-projects = os.path.dirname(os.path.dirname(__file__))
-sys.path.append(os.path.join(projects, "eso_reader"))
-sys.path.append(os.path.join(projects, "dash_app"))
-
-from constants import TS, D, H, M, A, RP
-from mini_classes import HeaderVariable
+from eso_reader.constants import TS, D, H, M, A, RP
+from eso_reader.mini_classes import HeaderVariable
 
 
 class EsoFileHeader:

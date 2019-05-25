@@ -1,7 +1,7 @@
 from PySide2.QtCore import QThread, Signal
 
-from monitor import DefaultMonitor
-from eso_file import EsoFile
+from eso_reader.monitor import DefaultMonitor
+from eso_reader.eso_file import EsoFile
 
 
 # noinspection PyUnresolvedReferences
