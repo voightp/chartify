@@ -20,7 +20,7 @@ def output_piece(variable, identifier):
 
 
 class GuiEsoFile(QTreeView):
-    def __init__(self, main_app, eso_file_header, file_id):
+    def __init__(self, main_app, file_id, eso_file_header):
         super().__init__()
         self.setRootIsDecorated(True)
         self.setAlternatingRowColors(False)

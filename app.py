@@ -142,7 +142,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.database = {}
 
         # ~~~~ Monitoring threads ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.monitors = []
         # TODO PASSING THE DATA TO DASH APP
         self.watcher_thread = EsoFileWatcher(self.file_queue)
         self.monitor_thread = MonitorThread(self.progress_queue)
@@ -825,15 +824,9 @@ class MainWindow(QtWidgets.QMainWindow):
         """ Update progress value for a given monitor. """
         self.status_bar.update_progress(monitor_id, value)
 
-    def _delete_monitor(self, monitor_id):
-        monitors = self.monitors
-        mon = next(monitor for monitor in monitors if monitor.id == monitor_id)
-        monitors.remove(mon)
-
     def file_loaded(self, monitor_id):
         """ Remove a progress bar when the file is loaded. """
         self.status_bar.file_loaded(monitor_id)
-        self._delete_monitor(monitor_id)
 
     @staticmethod
     def create_pool():
@@ -847,12 +840,6 @@ class MainWindow(QtWidgets.QMainWindow):
         current_file = self.current_eso_file
         return current_file.file_id
 
-    def all_files_ids(self):
-        """ Return ids of all loaded eso files. """
-        files = self.all_eso_files
-        ids = [file.file_id for file in files]
-        return ids
-
     def add_file_to_db(self, file_id, eso_file):
         """ Add processed eso file to the database. """
         try:
@@ -862,24 +849,27 @@ class MainWindow(QtWidgets.QMainWindow):
         except BrokenPipeError:
             print("Application has been closed - catching broken pipe!")
 
-    def add_eso_file(self, eso_file):
+    def add_eso_file(self, id, eso_file):
         """ Add eso file into 'tab' widget. """
-        all_ids = self.all_files_ids()
-        file_id = self.generate_id(all_ids)
-
         # add the file on the ui
         header_dct = eso_file.header_dct
         eso_file_header = EsoFileHeader(header_dct)
-        eso_file_widget = GuiEsoFile(self, eso_file_header, file_id)
+        eso_file_widget = GuiEsoFile(self, id, eso_file_header)
         self.tab_wgt.addTab(eso_file_widget, eso_file.file_name)
 
         # add the file into database
-        self.add_file_to_db(file_id, eso_file)
+        self.add_file_to_db(id, eso_file)
 
         # enable all eso file results btn if it's suitable
         if self.tab_wgt.count() > 1:
             self.all_eso_files_btn.setEnabled(True)
             self.populate_options_group()
+
+    def all_files_ids(self):
+        """ Return ids of all loaded eso files. """
+        files = self.all_eso_files
+        ids = [file.file_id for file in files]
+        return ids
 
     def get_files_ids(self):
         """ Return current file id or ids for all files based on 'all files btn' state. """
@@ -934,12 +924,14 @@ class MainWindow(QtWidgets.QMainWindow):
         esoFiles.sort(key=lambda x: x.file_name)
         return get_results(esoFiles, requestList)
 
-    def wait_for_results(self, monitor, queue, future):
+    def wait_for_results(self, id, monitor, queue, future):
         """ Put loaded file into the queue and clean up the pool. """
         try:
             eso_file = future.result()
+
             if eso_file:
-                queue.put(eso_file)
+                queue.put((id, eso_file))
+
             else:
                 monitor.processing_failed("Processing failed!")
 
@@ -951,40 +943,50 @@ class MainWindow(QtWidgets.QMainWindow):
             traceback.print_exc()
 
     @staticmethod
-    def generate_id(ids_lst, max_id=99999):
-        """ Create a unique id. """
+    def generate_ids(used_ids, n=1, max_id=99999):
+        """ Create a list with unique ids. """
+        ids = []
         while True:
             id = randint(1, max_id)
-            if id not in ids_lst:
-                return id
+            if id not in used_ids and id not in ids:
+                ids.append(id)
+                if len(ids) == n:
+                    break
+        return ids
 
-    def _load_eso_file(self, eso_file_paths):
+    def _load_eso_files(self, eso_file_paths):
         """ Start eso file processing. """
-        monitor_ids = [monitor.id for monitor in self.monitors]
         progress_queue = self.progress_queue
         file_queue = self.file_queue
+
+        used_ids = self.database.keys()
+        n = len(eso_file_paths)
+        ids = self.generate_ids(used_ids, n=n)
+
         for path in eso_file_paths:
             # create a monitor to report progress on the ui
-            monitor_id = self.generate_id(monitor_ids)
-            monitor = GuiMonitor(path, monitor_id, progress_queue)
-            self.monitors.append(monitor)
+            id = ids.pop(0)
+            monitor = GuiMonitor(path, id, progress_queue)
 
             # create a new process to load eso file
             future = self.pool.submit(load_eso_file, path, monitor=monitor)
-            future.add_done_callback(partial(self.wait_for_results, monitor, file_queue))
+            future.add_done_callback(partial(self.wait_for_results, id, monitor, file_queue))
 
     def load_files(self):
         """ Select eso files from explorer and start processing. """
         file_pths, _ = QFileDialog.getOpenFileNames(self, "Load Eso File", "", "*.eso")
         if file_pths:
-            self._load_eso_file(file_pths)
+            self._load_eso_files(file_pths)
 
     def open_folder(self):
         """ Select folder containing eso files and start processing.  """
         dirPath = QFileDialog.getExistingDirectory(self, "Open folder (includes subfolders).")
         if dirPath:
             file_pths = misc_os.list_files(dirPath, 3, ext="eso")
-            self._load_eso_file(file_pths)
+            self._load_eso_files(file_pths)
+
+    def export_xlsx(self):
+        pass
 
     # noinspection PyAttributeOutsideInit
     def create_menu_actions(self):

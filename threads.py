@@ -74,7 +74,7 @@ class MonitorThread(QThread):
 
 # noinspection PyUnresolvedReferences
 class EsoFileWatcher(QThread):
-    loaded = Signal(EsoFile)
+    loaded = Signal(int, EsoFile)
 
     def __init__(self, file_queue):
         super().__init__()
@@ -82,8 +82,8 @@ class EsoFileWatcher(QThread):
 
     def run(self):
         while True:
-            eso_file = self.file_queue.get()
-            self.loaded.emit(eso_file)
+            id, eso_file = self.file_queue.get()
+            self.loaded.emit(id, eso_file)
 
 
 class PipeEcho(QThread):
