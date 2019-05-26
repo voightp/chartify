@@ -273,6 +273,10 @@ QTreeView::item:selected:!active {
     border-right: transparent;
 }
 
+QTreeView::item:has-children {
+    background: rgba(189,189,189,0.1);
+}
+
 QScrollBar:vertical {
     background: transparent;
     width: 10px;
