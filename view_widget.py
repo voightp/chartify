@@ -39,13 +39,12 @@ class GuiEsoFile(QTreeView):
         self.main_app = main_app
         self.eso_file_header = eso_file_header
         self._file_id = file_id
+        self._interval = None
+        self._group_by = None
 
         self.expanded.connect(self.handle_expanded)
         self.collapsed.connect(self.handle_collapsed)
         self.pressed.connect(self.handle_drag_attempt)
-
-        self._interval = None
-        self._group_by = None
 
     @property
     def file_id(self):
@@ -89,12 +88,12 @@ class GuiEsoFile(QTreeView):
         """ Set first column sort order to be 'ascending'. """
         self.sortByColumn(0, Qt.AscendingOrder)
 
-    def create_view_model(self, eso_file_mirror, group_by_key,
+    def create_view_model(self, eso_file_header, group_by_key,
                           interval_request, is_fresh=False):
         """
         Create a model and set up its appearance.
         """
-        model = MyModel(eso_file_mirror,
+        model = MyModel(eso_file_header,
                         group_by_key=group_by_key,
                         interval_request=interval_request)
 
@@ -109,7 +108,7 @@ class GuiEsoFile(QTreeView):
         self._set_ascending_order()
 
         if is_fresh:
-            # create header actions only once
+            # create header actions (only once)
             self._create_header_actions()
 
     def _update_sort_order(self, index, order):
@@ -141,20 +140,20 @@ class GuiEsoFile(QTreeView):
         proxy_indexes = proxy_selection.indexes()
         self.update_app_outputs(proxy_indexes)
 
-    def update_view_model(self, group_by_key, interval_request, current_view_settings,
-                          current_selection=None, is_fresh=False):
+    def update_view_model(self, group_by_key, interval_request, view_settings,
+                          units_settings, select=None, is_fresh=False):
         """
         Set the model and define behaviour of the tree view.
         """
 
-        eso_file_mirror = self.eso_file_header
-        column_width_dct = current_view_settings["widths"]
-        sort_order = current_view_settings["order"]
-        expanded_items = current_view_settings["expanded"]
+        eso_file_header = self.eso_file_header
+        column_width_dct = view_settings["widths"]
+        sort_order = view_settings["order"]
+        expanded_items = view_settings["expanded"]
 
         if group_by_key != self._group_by or interval_request != self._interval:
             # Only update the model if the settings have been changed
-            self.create_view_model(eso_file_mirror, group_by_key,
+            self.create_view_model(eso_file_header, group_by_key,
                                    interval_request, is_fresh=is_fresh)
 
         if column_width_dct:
@@ -163,8 +162,8 @@ class GuiEsoFile(QTreeView):
         # clean up selection as this will be handled based on
         # currently selected list of items stored in main app
         self.clear_selection()
-        if current_selection:
-            self._update_selection(current_selection, group_by_key)
+        if select:
+            self._update_selection(select, group_by_key)
 
         if expanded_items:
             self._expand_items(expanded_items)
@@ -380,9 +379,9 @@ class GuiEsoFile(QTreeView):
 
 
 class MyModel(QStandardItemModel):
-    def __init__(self, eso_file_mirror, group_by_key=None, interval_request=None):
+    def __init__(self, eso_file_header, group_by_key=None, interval_request=None):
         super().__init__()
-        self.populate_data(eso_file_mirror, group_by_key, interval_request)
+        self.populate_data(eso_file_header, group_by_key, interval_request)
         self.setSortRole(Qt.AscendingOrder)
 
     def mimeTypes(self):
@@ -419,10 +418,16 @@ class MyModel(QStandardItemModel):
             item_2 = QStandardItem(output_piece(row, identifiers[2]))
             parent.appendRow([item_0, item_1, item_2])
 
-    def populate_data(self, eso_file_mirror, group_by_key, interval_request):
+    @staticmethod
+    def append_item(selection, proxy_index):
+        """ Append an item to a given selection. """
+        range = QItemSelectionRange(proxy_index)
+        selection.append(range)
+
+    def populate_data(self, eso_file_header, group_by_key, interval_request):
         """ Feed the model with output variables. """
         root = self.invisibleRootItem()
-        header_dict = eso_file_mirror.header_view(group_by_key=group_by_key,
+        header_dict = eso_file_header.header_view(group_by_key=group_by_key,
                                                   interval_request=interval_request)
 
         if group_by_key == "raw":
@@ -490,7 +495,7 @@ class MyFilterModel(QSortFilterProxyModel):
         pattern = filter.pattern().strip()
         return pattern.lower() in str_row.lower()
 
-    def find_match(self, current_selection, group_by_key=None):
+    def find_match(self, current_selection, group_by_key="raw"):
         """ Check if output variables are available in a new model. """
         selection = QItemSelection()
 
@@ -529,12 +534,6 @@ class MyFilterModel(QSortFilterProxyModel):
                     self.append_item(selection, p_ix)
 
         return selection
-
-    @staticmethod
-    def append_item(selection, proxy_index):
-        """ Append an item to a given selection. """
-        range = QItemSelectionRange(proxy_index)
-        selection.append(range)
 
     def flags(self, index):
         """ Set item flags. """

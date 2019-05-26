@@ -30,13 +30,13 @@ import eso_reader.misc_os as misc_os
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 from queue import Queue
 from multiprocessing import Manager, cpu_count, Pipe, Process
-from eso_file_widget import GuiEsoFile
+from view_widget import GuiEsoFile
 from chart_widgets import MyWebView
 from random import randint
 from threads import PipeEcho, MonitorThread, EsoFileWatcher, GuiMonitor
 
 HEIGHT_THRESHOLD = 650
-HIDE_DISABLED = True
+HIDE_DISABLED = False
 
 
 # noinspection PyPep8Naming,PyUnresolvedReferences
@@ -531,7 +531,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # ~~~~ Sorting set up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         group_by = QMenu(self)
-        items = ["-", "Key", "Variable", "Units"]
+        items = ["-", "key", "variable", "units"]
         data = ["raw", "key", "variable", "units"]
         self.group_by_btn = TitledButton(self.settings_group, fill_space=True,
                                          title="group by", menu=group_by,
@@ -592,16 +592,20 @@ class MainWindow(QtWidgets.QMainWindow):
         # retrieve required inputs from the interface
         group_by_key = self.get_group_by_key()
         intervals = self.selected_intervals()
-        current_eso_file_widget = self.current_eso_file
-        current_selection = self.selected
-        current_view_settings = self.current_view_settings
+        units_settings = self.get_units_settings()
+
+        eso_file_widget = self.current_eso_file
+        selection = self.selected
+        view_settings = self.current_view_settings
 
         # update the current widget
-        current_eso_file_widget.update_view_model(group_by_key,
-                                                  intervals,
-                                                  current_view_settings,
-                                                  is_fresh=is_fresh,
-                                                  current_selection=current_selection)
+        eso_file_widget.update_view_model(group_by_key,
+                                          intervals,
+                                          view_settings,
+                                          units_settings,
+                                          is_fresh=is_fresh,
+                                          select=selection)
+
         # check if some filtering is applied,
         # if yes, update the model accordingly
         if self.filter_line_edit.text():
@@ -624,6 +628,7 @@ class MainWindow(QtWidgets.QMainWindow):
         """ Update view when an interval is changed. """
         self.update_view()
 
+    # TODO might not needed - group in one function
     def get_units_system(self):
         """ Get currently set units system. """
         return self.units_system_btn.defaultAction().data()
@@ -635,6 +640,14 @@ class MainWindow(QtWidgets.QMainWindow):
     def get_energy_units(self):
         """ Get currently set energy units. """
         return self.energy_units_btn.defaultAction().data()
+
+    def get_units_settings(self):
+        """ Get currently selected units. """
+        energy_dct = self.default_energy_dct
+        units_system = self.units_system_btn.defaultAction().data()
+        energy_units = self.energy_units_btn.defaultAction().data()
+        power_units = self.power_units_btn.defaultAction().data()
+        return energy_dct, units_system, energy_dct, power_units
 
     def _update_btn_menu(self, act, btn):
         """ Handle changing actions on a 'Titled' button. """
