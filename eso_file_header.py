@@ -64,7 +64,7 @@ class EsoFileHeader:
                     else:
                         mask[interval][id] = var
 
-    def header_view(self, group_by_key="raw", interval_request=None):
+    def proxy_header(self, group_by_key="raw", interval_request=None):
         """ Create tree with categorized values. """
         dct = self._filtered_header_no_ids(request=interval_request)
 

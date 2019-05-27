@@ -14,7 +14,7 @@ import pickle
 from PySide2.QtGui import QStandardItemModel, QStandardItem, QFont
 
 
-def output_piece(variable, identifier):
+def variable_piece(variable, identifier):
     """ Identify and return a part of variable for given identifier.  """
     return variable.__getattribute__(identifier)
 
@@ -93,11 +93,11 @@ class GuiEsoFile(QTreeView):
         """
         Create a model and set up its appearance.
         """
-        model = MyModel(eso_file_header,
-                        group_by_key=group_by_key,
-                        interval_request=interval_request)
+        model = ViewModel(eso_file_header,
+                          group_by_key=group_by_key,
+                          interval_request=interval_request)
 
-        proxy_model = MyFilterModel()
+        proxy_model = FilterModel()
         proxy_model.setSourceModel(model)
         self.setModel(proxy_model)
 
@@ -304,15 +304,19 @@ class GuiEsoFile(QTreeView):
         for index in proxy_rows:
             source_item = proxy_model.item_from_index(index)
             source_index = proxy_model.mapToSource(index)
+
             if source_item.hasChildren():
                 expanded = self.isExpanded(index)
+
                 if expanded and not any(map(lambda x: x.parent() == source_index, rows)):
                     self.select_children(source_item, source_index)
+
                 # deselect all the parent nodes as these should not be
                 # included in output variable data
                 self.deselect_item(index)
-
-        proxy_rows = selection_model.selectedRows()  # updated selection
+                
+        # updated selection
+        proxy_rows = selection_model.selectedRows()
         self.update_app_outputs(proxy_rows)
 
     def update_app_outputs(self, proxy_indexes):
@@ -378,7 +382,7 @@ class GuiEsoFile(QTreeView):
             self.handle_state_change(name)
 
 
-class MyModel(QStandardItemModel):
+class ViewModel(QStandardItemModel):
     def __init__(self, eso_file_header, group_by_key=None, interval_request=None):
         super().__init__()
         self.populate_data(eso_file_header, group_by_key, interval_request)
@@ -411,33 +415,27 @@ class MyModel(QStandardItemModel):
             if not flat:
                 item_0 = QStandardItem(None)
             else:
-                item_0 = QStandardItem(output_piece(row, identifiers[0]))
+                item_0 = QStandardItem(variable_piece(row, identifiers[0]))
 
             item_0.setData(row, Qt.UserRole)  # First item in row holds all the information
-            item_1 = QStandardItem(output_piece(row, identifiers[1]))
-            item_2 = QStandardItem(output_piece(row, identifiers[2]))
+            item_1 = QStandardItem(variable_piece(row, identifiers[1]))
+            item_2 = QStandardItem(variable_piece(row, identifiers[2]))
             parent.appendRow([item_0, item_1, item_2])
-
-    @staticmethod
-    def append_item(selection, proxy_index):
-        """ Append an item to a given selection. """
-        range = QItemSelectionRange(proxy_index)
-        selection.append(range)
 
     def populate_data(self, eso_file_header, group_by_key, interval_request):
         """ Feed the model with output variables. """
         root = self.invisibleRootItem()
-        header_dict = eso_file_header.header_view(group_by_key=group_by_key,
-                                                  interval_request=interval_request)
+        proxy_header = eso_file_header.proxy_header(group_by_key=group_by_key,
+                                                    interval_request=interval_request)
 
         if group_by_key == "raw":
             # tree like structure is not being used
             # all the variable info is stored as header keys
-            self._append_rows(header_dict.keys(), root)
+            self._append_rows(proxy_header.keys(), root)
 
         else:
             identifiers = self._get_identifiers(group_by_key)
-            for key, variables in header_dict.items():
+            for key, variables in proxy_header.items():
                 if len(variables) == 1:
                     # there is only one variable in the container
                     # insert the data as a simple row
@@ -449,7 +447,7 @@ class MyModel(QStandardItemModel):
                     self._append_tree_rows(variables, parent, identifiers, flat=False)
 
 
-class MyFilterModel(QSortFilterProxyModel):
+class FilterModel(QSortFilterProxyModel):
     def __init__(self):
         super().__init__()
 
@@ -495,6 +493,12 @@ class MyFilterModel(QSortFilterProxyModel):
         pattern = filter.pattern().strip()
         return pattern.lower() in str_row.lower()
 
+    @staticmethod
+    def append_item(selection, proxy_index):
+        """ Append an item to a given selection. """
+        range = QItemSelectionRange(proxy_index)
+        selection.append(range)
+
     def find_match(self, current_selection, group_by_key="raw"):
         """ Check if output variables are available in a new model. """
         selection = QItemSelection()
@@ -506,7 +510,7 @@ class MyFilterModel(QSortFilterProxyModel):
         # create a list which holds parent parts of currently selected items
         # if the part of variable does not match, than the variable (or any children)
         # will not be selected
-        quick_check = [output_piece(var, group_by_key) for var in current_selection]
+        quick_check = [variable_piece(var, group_by_key) for var in current_selection]
 
         num_rows = self.rowCount()
         for i in range(num_rows):
