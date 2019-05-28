@@ -41,6 +41,7 @@ class GuiEsoFile(QTreeView):
         self._file_id = file_id
         self._interval = None
         self._group_by = None
+        self._units_settings = None
 
         self.expanded.connect(self.handle_expanded)
         self.collapsed.connect(self.handle_collapsed)
@@ -60,13 +61,17 @@ class GuiEsoFile(QTreeView):
         self.expand_all()
         self._set_first_col_spanned()
 
-    def _store_interval(self, current_interval):
+    def _store_interval(self, new_interval):
         """ Hold a value of the last interval settings. """
-        self._interval = current_interval
+        self._interval = new_interval
 
-    def _store_group_by_key(self, current_key):
-        """ Hold a value of the last interval settings. """
-        self._group_by = current_key
+    def _store_group_by_key(self, new_key):
+        """ Hold a value of the last grouping settings. """
+        self._group_by = new_key
+
+    def _store_units_settings(self, new_units):
+        """ Hold a data on the last units settings. """
+        self._units_settings = new_units
 
     def expand_all(self):
         """ Expand all nested nodes. """
@@ -156,6 +161,11 @@ class GuiEsoFile(QTreeView):
             self.create_view_model(eso_file_header, group_by_key,
                                    interval_request, is_fresh=is_fresh)
 
+            # Store current sorting key and interval
+            self._store_group_by_key(group_by_key)
+            self._store_interval(interval_request)
+            self._store_units_settings(units_settings)
+
         if column_width_dct:
             self._resize_columns(column_width_dct)
 
@@ -170,10 +180,6 @@ class GuiEsoFile(QTreeView):
 
         if sort_order:
             self._update_sort_order(*sort_order)
-
-        # Store current sorting key and interval
-        self._store_group_by_key(group_by_key)
-        self._store_interval(interval_request)
 
     def _set_header_labels(self, group_by_key):
         """ Assign header labels. """
@@ -314,7 +320,7 @@ class GuiEsoFile(QTreeView):
                 # deselect all the parent nodes as these should not be
                 # included in output variable data
                 self.deselect_item(index)
-                
+
         # updated selection
         proxy_rows = selection_model.selectedRows()
         self.update_app_outputs(proxy_rows)
@@ -401,25 +407,29 @@ class ViewModel(QStandardItemModel):
         return identifiers
 
     @staticmethod
-    def _append_rows(data_lst, parent):
+    def _append_rows(header_vars, parent):
         """ Add plain rows to the model. """
-        for row in data_lst:
-            item_row = [QStandardItem(item) for item in row]
-            item_row[0].setData(row, Qt.UserRole)  # First item in row holds all the information
+        for var in header_vars:
+            item_row = [QStandardItem(item) for item in var]
+            item_row[0].setData(var, Qt.UserRole)  # First item in row holds all the information
             parent.appendRow(item_row)
 
     @staticmethod
-    def _append_tree_rows(data_lst, parent, identifiers, flat=False):
+    def _append_tree_rows(header_vars, parent, identifiers, flat=False):
         """ Add plain rows for tree like view. """
-        for row in data_lst:
+        for var in header_vars:
+
             if not flat:
+                # for nested items, first item is empty as
+                # key is referenced as a parent
                 item_0 = QStandardItem(None)
             else:
-                item_0 = QStandardItem(variable_piece(row, identifiers[0]))
+                item_0 = QStandardItem(variable_piece(var, identifiers[0]))
 
-            item_0.setData(row, Qt.UserRole)  # First item in row holds all the information
-            item_1 = QStandardItem(variable_piece(row, identifiers[1]))
-            item_2 = QStandardItem(variable_piece(row, identifiers[2]))
+            # First item in row holds all the information
+            item_0.setData(var, Qt.UserRole)
+            item_1 = QStandardItem(variable_piece(var, identifiers[1]))
+            item_2 = QStandardItem(variable_piece(var, identifiers[2]))
             parent.appendRow([item_0, item_1, item_2])
 
     def populate_data(self, eso_file_header, group_by_key, interval_request):
