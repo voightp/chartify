@@ -156,8 +156,14 @@ class GuiEsoFile(QTreeView):
         sort_order = view_settings["order"]
         expanded_items = view_settings["expanded"]
 
-        if group_by_key != self._group_by or interval_request != self._interval:
-            # Only update the model if the settings have been changed
+        # Only update the model if the settings have changed
+        conditions = [
+            group_by_key != self._group_by,
+            interval_request != self._interval,
+            units_settings != self._units_settings
+        ]
+
+        if any(conditions):
             self.create_view_model(eso_file_header, group_by_key,
                                    interval_request, is_fresh=is_fresh)
 
@@ -166,14 +172,14 @@ class GuiEsoFile(QTreeView):
             self._store_interval(interval_request)
             self._store_units_settings(units_settings)
 
-        if column_width_dct:
-            self._resize_columns(column_width_dct)
-
         # clean up selection as this will be handled based on
         # currently selected list of items stored in main app
         self.clear_selection()
         if select:
             self._update_selection(select, group_by_key)
+
+        if column_width_dct:
+            self._resize_columns(column_width_dct)
 
         if expanded_items:
             self._expand_items(expanded_items)
@@ -351,24 +357,20 @@ class GuiEsoFile(QTreeView):
 
     def clear_selection(self):
         """ Clear all selected rows. """
-        selection_model = self.selectionModel()
-        selection_model.clearSelection()  # Note that this emits selectionChanged signal
+        self.selectionModel().clearSelection()  # Note that this emits selectionChanged signal
 
     def deselect_item(self, proxy_index):
         """ Select an item programmatically. """
-        selection_model = self.selectionModel()
-        selection_model.select(proxy_index, QItemSelectionModel.Deselect | QItemSelectionModel.Rows)
+        self.selectionModel().select(proxy_index, QItemSelectionModel.Deselect | QItemSelectionModel.Rows)
 
     def select_item(self, proxy_index):
         """ Select an item programmatically. """
-        selection_model = self.selectionModel()
-        selection_model.select(proxy_index, QItemSelectionModel.Select | QItemSelectionModel.Rows)
+        self.selectionModel().select(proxy_index, QItemSelectionModel.Select | QItemSelectionModel.Rows)
 
     def select_items(self, proxy_selection):
         """ Select items given by given qselection (model indexes). """
-        selection_model = self.selectionModel()
-        selection_model.select(proxy_selection,
-                               QItemSelectionModel.Select | QItemSelectionModel.Rows)
+        self.selectionModel().select(proxy_selection,
+                                     QItemSelectionModel.Select | QItemSelectionModel.Rows)
 
     def handle_state_change(self, name, collapsed=False):
         self.main_app.update_expanded_set(name, remove=collapsed)
