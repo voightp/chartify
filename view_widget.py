@@ -93,14 +93,13 @@ class GuiEsoFile(QTreeView):
         """ Set first column sort order to be 'ascending'. """
         self.sortByColumn(0, Qt.AscendingOrder)
 
-    def create_view_model(self, eso_file_header, group_by_key,
+    def create_view_model(self, eso_file_header, units_settings, group_by_key,
                           interval_request, is_fresh=False):
         """
         Create a model and set up its appearance.
         """
-        model = ViewModel(eso_file_header,
-                          group_by_key=group_by_key,
-                          interval_request=interval_request)
+        model = ViewModel(eso_file_header, units_settings,
+                          group_by_key, interval_request)
 
         proxy_model = FilterModel()
         proxy_model.setSourceModel(model)
@@ -164,7 +163,7 @@ class GuiEsoFile(QTreeView):
         ]
 
         if any(conditions):
-            self.create_view_model(eso_file_header, group_by_key,
+            self.create_view_model(eso_file_header, units_settings, group_by_key,
                                    interval_request, is_fresh=is_fresh)
 
             # Store current sorting key and interval
@@ -391,9 +390,9 @@ class GuiEsoFile(QTreeView):
 
 
 class ViewModel(QStandardItemModel):
-    def __init__(self, eso_file_header, group_by_key="raw", interval_request=None):
+    def __init__(self, eso_file_header, units_settings, group_by_key, interval_request):
         super().__init__()
-        self.populate_data(eso_file_header, group_by_key, interval_request)
+        self.populate_data(eso_file_header, units_settings, group_by_key, interval_request)
         self.setSortRole(Qt.AscendingOrder)
 
     def mimeTypes(self):
@@ -434,11 +433,12 @@ class ViewModel(QStandardItemModel):
             item_2 = QStandardItem(variable_piece(var, identifiers[2]))
             parent.appendRow([item_0, item_1, item_2])
 
-    def populate_data(self, eso_file_header, group_by_key, interval_request):
+    def populate_data(self, eso_file_header, units_settings, group_by_key, interval_request):
         """ Feed the model with output variables. """
         root = self.invisibleRootItem()
-        proxy_header = eso_file_header.proxy_header(group_by_key=group_by_key,
-                                                    interval_request=interval_request)
+        proxy_header = eso_file_header.proxy_header(units_settings,
+                                                    group_by_key,
+                                                    interval_request)
 
         if group_by_key == "raw":
             # tree like structure is not being used
@@ -446,7 +446,9 @@ class ViewModel(QStandardItemModel):
             self._append_rows(proxy_header.keys(), root)
 
         else:
+            # rearrange pieces of the header variable
             identifiers = self._get_identifiers(group_by_key)
+
             for key, variables in proxy_header.items():
                 if len(variables) == 1:
                     # there is only one variable in the container

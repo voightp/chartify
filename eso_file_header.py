@@ -40,28 +40,27 @@ class EsoFileHeader:
                 new_dct[v].append(interval)
         return new_dct
 
-    def _filtered_header_no_ids(self, request=None):
+    def _filtered_header_no_ids(self, intervals=None):
         """ Filter header dictionary and return dict with applicable items. """
-        if not request:
+        if not intervals:
             return self._header_no_ids()
 
-        else:
-            if not isinstance(request, list):
-                request = [request]
-
-            request = set(self.available_intervals).intersection(set(request))
+        if not isinstance(intervals, list):
+            intervals = [intervals]
+            intervals = set(self.available_intervals).intersection(set(intervals))
 
         filtered_header_dct = {}
 
         for key, value in self._header_no_ids().items():
-            if all(map(lambda x: x in value, request)):
+            if all(map(lambda x: x in value, intervals)):
                 filtered_header_dct[key] = value
 
         return filtered_header_dct
 
-    def proxy_header(self, group_by_key="raw", interval_request=None):
+    def proxy_header(self, units_settings, group_by_key, interval_request):
         """ Create tree with categorized values. """
-        dct = self._filtered_header_no_ids(request=interval_request)
+        dct = self._filtered_header_no_ids(intervals=interval_request)
+        energy_dct, units_system, energy_units, power_units = units_settings
 
         if group_by_key == "raw":
             return dct
@@ -76,3 +75,10 @@ class EsoFileHeader:
                 vis_dct[key].append(pieces)
 
             return vis_dct
+
+        is_energy = energy_rate_dct[interval]
+        if is_energy:
+            # 'energy' is requested for current output
+            data = rate_to_energy(data, data_set, start_date, end_date)
+        else:
+            data = energy_to_rate(data, data_set, start_date, end_date)

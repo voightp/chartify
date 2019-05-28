@@ -647,7 +647,7 @@ class MainWindow(QtWidgets.QMainWindow):
         units_system = self.units_system_btn.defaultAction().data()
         energy_units = self.energy_units_btn.defaultAction().data()
         power_units = self.power_units_btn.defaultAction().data()
-        return energy_dct, units_system, energy_dct, power_units
+        return energy_dct, units_system, energy_units, power_units
 
     def _update_btn_menu(self, act, btn):
         """ Handle changing actions on a 'Titled' button. """
