@@ -391,7 +391,7 @@ class GuiEsoFile(QTreeView):
 
 
 class ViewModel(QStandardItemModel):
-    def __init__(self, eso_file_header, group_by_key=None, interval_request=None):
+    def __init__(self, eso_file_header, group_by_key="raw", interval_request=None):
         super().__init__()
         self.populate_data(eso_file_header, group_by_key, interval_request)
         self.setSortRole(Qt.AscendingOrder)
