@@ -35,9 +35,12 @@ class EsoFileHeader:
     def _header_no_ids(self):
         """ Return a header dictionary with header info as keys and intervals as values. """
         new_dct = defaultdict(list)
+
         for interval, value in self._header_dct.items():
-            for id, v in value.items():
+            # loop only through values as id (key) is omitted
+            for v in value.values():
                 new_dct[v].append(interval)
+
         return new_dct
 
     def _filtered_header_no_ids(self, intervals=None):
