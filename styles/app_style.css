@@ -16,7 +16,6 @@ QFrame {
 
 QFrame#viewWidget {
    background-color: rgba(189, 189, 200, 0.8);
-  /* background-color: rgba(120, 144, 156, 0.8);*/
    margin: 0px;
    padding: 2px;
 }
