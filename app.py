@@ -63,7 +63,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.central_splitter.addWidget(self.left_main_wgt)
 
         # ~~~~ Left hand Tools Widget ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.toolbar_wgt = QFrame(self.left_main_wgt, objectName="toolbar")
+        self.toolbar_wgt = QFrame(self.left_main_wgt)
+        self.toolbar_wgt.setObjectName("toolbar")
         self.toolbar_layout = QVBoxLayout(self.toolbar_wgt)
         self.left_main_layout.addWidget(self.toolbar_wgt)
 
@@ -88,7 +89,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.toolbar_layout.addWidget(self.settings_group)
 
         # ~~~~ Left hand View widget  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.view_wgt = QFrame(self.left_main_wgt, objectName="viewWidget")
+        self.view_wgt = QFrame(self.left_main_wgt)
+        self.view_wgt.setObjectName("viewWidget")
         self.view_layout = QVBoxLayout(self.view_wgt)
         self.left_main_layout.addWidget(self.view_wgt)
 
@@ -98,9 +100,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.view_layout.addWidget(self.tab_wgt)
 
         # ~~~~ Left hand Tab Tools  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.view_tools_wgt = QGroupBox(self.view_wgt, objectName="viewTools")
-        self.collapse_all_btn = QToolButton(self.view_tools_wgt, objectName="smallButton")
-        self.expand_all_btn = QToolButton(self.view_tools_wgt, objectName="smallButton")
+        self.view_tools_wgt = QFrame(self.view_wgt)
+        self.view_tools_wgt.setObjectName("viewTools")
+        self.collapse_all_btn = QToolButton(self.view_tools_wgt)
+        self.collapse_all_btn.setObjectName("smallButton")
+        self.expand_all_btn = QToolButton(self.view_tools_wgt)
+        self.expand_all_btn.setObjectName("smallButton")
         self.filter_icon = QLabel(self.view_tools_wgt)
         self.filter_line_edit = QLineEdit(self.view_tools_wgt)
         self.set_up_view_tools()
@@ -189,7 +194,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.chart_area.setAcceptDrops(True)
 
         self.url = "http://127.0.0.1:8080/"
-        self.chart_area.load(self.url)
+        self.chart_area.load(QUrl(self.url))
 
         # ~~~~ Set up main widgets and layouts ~~~~~~~~~~~~~~~~~~~~~~~~~
         self.load_icons()
