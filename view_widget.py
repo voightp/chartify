@@ -12,6 +12,7 @@ from PySide2.QtGui import QDrag, QPixmap
 import pickle
 
 from PySide2.QtGui import QStandardItemModel, QStandardItem, QFont
+from eso_file_header import EsoFileHeader
 
 
 def variable_piece(variable, identifier):
@@ -93,13 +94,13 @@ class GuiEsoFile(QTreeView):
         """ Set first column sort order to be 'ascending'. """
         self.sortByColumn(0, Qt.AscendingOrder)
 
-    def create_view_model(self, eso_file_header, units_settings, group_by_key,
-                          interval_request, is_fresh=False):
+    def create_view_model(self, eso_file_header, units_settings,
+                          group_by_key, interval, is_fresh=False):
         """
         Create a model and set up its appearance.
         """
         model = ViewModel(eso_file_header, units_settings,
-                          group_by_key, interval_request)
+                          group_by_key, interval)
 
         proxy_model = FilterModel()
         proxy_model.setSourceModel(model)
@@ -390,9 +391,9 @@ class GuiEsoFile(QTreeView):
 
 
 class ViewModel(QStandardItemModel):
-    def __init__(self, eso_file_header, units_settings, group_by_key, interval_request):
+    def __init__(self, eso_file_header, units_settings, group_by_key, interval):
         super().__init__()
-        self.populate_data(eso_file_header, units_settings, group_by_key, interval_request)
+        self.populate_data(eso_file_header, units_settings, group_by_key, interval)
         self.setSortRole(Qt.AscendingOrder)
 
     def mimeTypes(self):
@@ -408,57 +409,43 @@ class ViewModel(QStandardItemModel):
         return identifiers
 
     @staticmethod
-    def _append_rows(header_vars, parent):
+    def _append_rows(header_iterator, parent):
         """ Add plain rows to the model. """
-        for var in header_vars:
-            item_row = [QStandardItem(item) for item in var]
-            item_row[0].setData(var, Qt.UserRole)  # First item in row holds all the information
+        for data, proxy in header_iterator:
+            item_row = [QStandardItem(item) for item in proxy]
+            item_row[0].setData(data, Qt.UserRole)  # First item in row holds all the information
             parent.appendRow(item_row)
 
-    @staticmethod
-    def _append_tree_rows(header_vars, parent, identifiers, flat=False):
-        """ Add plain rows for tree like view. """
-        for var in header_vars:
+    def _append_tree_rows(self, tree_header, root):
+        """ Add rows for a tree like view. """
+        for k, variables in tree_header.items():
 
-            if not flat:
-                # for nested items, first item is empty as
-                # key is referenced as a parent
-                item_0 = QStandardItem(None)
+            if len(variables) == 1:
+                # append as a plain row
+                self._append_rows(zip(*variables), root)
+
             else:
-                item_0 = QStandardItem(variable_piece(var, identifiers[0]))
+                parent = QStandardItem(k)
+                parent.setDragEnabled(False)
+                root.appendRow(parent)
+                self._append_rows(zip(*variables), parent)
 
-            # First item in row holds all the information
-            item_0.setData(var, Qt.UserRole)
-            item_1 = QStandardItem(variable_piece(var, identifiers[1]))
-            item_2 = QStandardItem(variable_piece(var, identifiers[2]))
-            parent.appendRow([item_0, item_1, item_2])
-
-    def populate_data(self, eso_file_header, units_settings, group_by_key, interval_request):
+    def populate_data(self, eso_file_header, units_settings, group_by_key, interval):
         """ Feed the model with output variables. """
         root = self.invisibleRootItem()
-        proxy_header = eso_file_header.proxy_header(units_settings,
-                                                    group_by_key,
-                                                    interval_request)
+        header = eso_file_header.get_header_iterator(interval,
+                                                     units_settings,
+                                                     group_by_key)
 
         if group_by_key == "raw":
             # tree like structure is not being used
-            # all the variable info is stored as header keys
-            self._append_rows(proxy_header.keys(), root)
+            # append as a plain table
+            self._append_rows(header, root)
 
         else:
-            # rearrange pieces of the header variable
-            identifiers = self._get_identifiers(group_by_key)
-
-            for key, variables in proxy_header.items():
-                if len(variables) == 1:
-                    # there is only one variable in the container
-                    # insert the data as a simple row
-                    self._append_tree_rows(variables, root, identifiers, flat=True)
-                else:
-                    parent = QStandardItem(key)
-                    parent.setDragEnabled(False)
-                    root.appendRow(parent)
-                    self._append_tree_rows(variables, parent, identifiers, flat=False)
+            # create a tree like structure
+            tree_header = EsoFileHeader.tree_header(header, group_by_key)
+            self._append_tree_rows(tree_header, root)
 
 
 class FilterModel(QSortFilterProxyModel):

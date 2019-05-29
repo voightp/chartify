@@ -386,7 +386,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     @staticmethod
     def filter_disabled(wgts):
-        """Take a list and split it to 'enabled', 'disabled' sub-lists. """
+        """ Take a list and split it to 'enabled', 'disabled' sub-lists. """
         enabled = []
         disabled = []
 
