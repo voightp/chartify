@@ -41,9 +41,10 @@ QGroupBox {
     border-radius: 0px;
 }
 
-QGroupBox#viewTools {
+QFrame#viewTools {
     border:none;
     margin: 4px 0px 2px 6px;
+    background-color: transparent;
 }
 
 QGroupBox::title {

@@ -1,20 +1,17 @@
-from collections import defaultdict
-import os
-import sys
+from collections import defaultdict, namedtuple
 
-from eso_reader.constants import TS, D, H, M, A, RP
-from eso_reader.mini_classes import HeaderVariable
+ProxyHeaderVariable = namedtuple("ProxyHeaderVariable", "key variable units proxy_units")
 
 
 class EsoFileHeader:
     """
     A class to handle the header data so it can be supplied
-    into the 'MyModel' class.
+    into the 'ViewModel' class.
 
     The 'header_view' method is used to manipulate the data
     based on specified 'sorting key'.
 
-    A 'sorting key' can be either 'None', 'key', 'variable'
+    A 'sorting key' can be either 'raw', 'key', 'variable'
     or 'units'
 
     Parameters
@@ -60,10 +57,14 @@ class EsoFileHeader:
 
         return filtered_header_dct
 
+    def _assign_proxy_units(self, dct, units_settings):
+        """ Add selected settings to the header dictionary. """
+        energy_dct, units_system, energy_units, power_units = units_settings
+        pass
+
     def proxy_header(self, units_settings, group_by_key, interval_request):
         """ Create tree with categorized values. """
         dct = self._filtered_header_no_ids(intervals=interval_request)
-        energy_dct, units_system, energy_units, power_units = units_settings
 
         if group_by_key == "raw":
             return dct

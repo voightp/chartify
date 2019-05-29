@@ -102,12 +102,16 @@ class MainWindow(QtWidgets.QMainWindow):
         # ~~~~ Left hand Tab Tools  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.view_tools_wgt = QFrame(self.view_wgt)
         self.view_tools_wgt.setObjectName("viewTools")
+
         self.collapse_all_btn = QToolButton(self.view_tools_wgt)
         self.collapse_all_btn.setObjectName("smallButton")
+
         self.expand_all_btn = QToolButton(self.view_tools_wgt)
         self.expand_all_btn.setObjectName("smallButton")
+
         self.filter_icon = QLabel(self.view_tools_wgt)
         self.filter_line_edit = QLineEdit(self.view_tools_wgt)
+
         self.set_up_view_tools()
         self.view_layout.addWidget(self.view_tools_wgt)
 
