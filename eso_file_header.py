@@ -155,7 +155,7 @@ def to_ip(units):
     cd/m2       ->
     """
 
-    request = units.lower()
+    request = units
     table = {
         "m": "ft",
         "m2": "ft2",

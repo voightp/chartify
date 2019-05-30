@@ -79,11 +79,25 @@ class TitledButton(QFrame):
     def menu(self):
         return self.button.menu()
 
-    def setDefaultAction(self, act):
-        self.button.setDefaultAction(act)
+    def setDefaultAction(self, action=None, i=-1, data=""):
+        acts = self.button.menu().actions()
+
+        if action:
+            self.button.setDefaultAction(action)
+
+        elif i > 0:
+            self.button.setDefaultAction(acts[i])
+
+        elif data:
+            for act in acts:
+                if act.data() == data:
+                    self.button.setDefaultAction(act)
 
     def defaultAction(self):
         return self.button.defaultAction()
+
+    def data(self):
+        return self.defaultAction().data()
 
 
 class IntervalButton(QToolButton):

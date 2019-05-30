@@ -38,6 +38,13 @@ from threads import PipeEcho, MonitorThread, EsoFileWatcher, GuiMonitor
 HEIGHT_THRESHOLD = 650
 HIDE_DISABLED = False
 
+DEFAULTS = {
+    "units_system": "SI",
+    "energy_units": "kWh",
+    "power_units": "kW",
+    "group_by": "variable",
+}
+
 
 # noinspection PyPep8Naming,PyUnresolvedReferences
 class MainWindow(QtWidgets.QMainWindow):
@@ -134,13 +141,17 @@ class MainWindow(QtWidgets.QMainWindow):
         # ~~~~ Actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.create_ui_actions()
 
-        # ~~~~ Eso files ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.current_view_settings = {"widths": None,
-                                      "order": None,
-                                      "expanded": set()}
+        # ~~~~ Intermediate settings ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.stored_view_settings = {"widths": None,
+                                     "order": None,
+                                     "expanded": set()}
 
         self.default_energy_dct = {TS: False, H: False, D: True,
                                    M: True, A: True, RP: True}
+
+        self._units_settings = {"units_system": None,
+                                "power_units": None,
+                                "energy_units": None}
 
         self.selected = None
 
@@ -223,9 +234,6 @@ class MainWindow(QtWidgets.QMainWindow):
         count = tab_widget.count()
         widgets = [tab_widget.widget(i) for i in range(count)]
         return widgets
-
-    def default_settings(self):
-        pass
 
     # TODO debug to find memory leaks
     def report_sizes(self):
@@ -544,31 +552,35 @@ class MainWindow(QtWidgets.QMainWindow):
         # ~~~~ Energy units set up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         energy_units_menu = QMenu(self)
         items = ["Wh", "kWh", "MWh", "J", "kJ", "GJ", "Btu", "kBtu", "MBtu"]
+        ix = items.index(DEFAULTS["energy_units"])
         self.energy_units_btn = TitledButton(self.settings_group, fill_space=True,
                                              title="energy", menu=energy_units_menu,
-                                             items=items, data=items, def_act_ix=1)
+                                             items=items, data=items, def_act_ix=ix)
 
         # ~~~~ Power units set up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         power_units_menu = QMenu(self)
         items = ["W", "kW", "MW", "Btu/h", "kBtu/h", "MBtu/h"]
+        ix = items.index(DEFAULTS["power_units"])
         self.power_units_btn = TitledButton(self.settings_group, fill_space=True,
                                             title="power", menu=power_units_menu,
-                                            items=items, data=items, def_act_ix=3)
+                                            items=items, data=items, def_act_ix=ix)
 
         # ~~~~ Units system set up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         units_system_menu = QMenu(self)
         items = ["SI", "IP"]
+        ix = items.index(DEFAULTS["units_system"])
         self.units_system_btn = TitledButton(self.settings_group, fill_space=True,
                                              title="system", menu=units_system_menu,
-                                             items=items, data=items, def_act_ix=0)
+                                             items=items, data=items, def_act_ix=ix)
 
         # ~~~~ Sorting set up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         group_by = QMenu(self)
         items = ["-", "key", "variable", "units"]
         data = ["raw", "key", "variable", "units"]
+        ix = items.index(DEFAULTS["group_by"])
         self.group_by_btn = TitledButton(self.settings_group, fill_space=True,
                                          title="group by", menu=group_by,
-                                         items=items, data=data, def_act_ix=2)
+                                         items=items, data=data, def_act_ix=ix)
 
         self.populate_settings_group()
 
@@ -625,7 +637,11 @@ class MainWindow(QtWidgets.QMainWindow):
 
         eso_file_widget = self.current_eso_file
         selection = self.selected
-        view_settings = self.current_view_settings
+        view_settings = self.stored_view_settings
+
+        if not eso_file_widget:
+            # do not update the view as there is no file
+            return
 
         # update the current widget
         eso_file_widget.update_view_model(group_by_key,
@@ -660,22 +676,22 @@ class MainWindow(QtWidgets.QMainWindow):
     # TODO might not needed - group in one function
     def get_units_system(self):
         """ Get currently set units system. """
-        return self.units_system_btn.defaultAction().data()
+        return self.units_system_btn.data()
 
     def get_power_units(self):
         """ Get currently set power units. """
-        return self.power_units_btn.defaultAction().data()
+        return self.power_units_btn.data()
 
     def get_energy_units(self):
         """ Get currently set energy units. """
-        return self.energy_units_btn.defaultAction().data()
+        return self.energy_units_btn.data()
 
     def get_units_settings(self):
         """ Get currently selected units. """
         energy_dct = self.default_energy_dct
-        units_system = self.units_system_btn.defaultAction().data()
-        energy_units = self.energy_units_btn.defaultAction().data()
-        power_units = self.power_units_btn.defaultAction().data()
+        units_system = self.units_system_btn.data()
+        energy_units = self.energy_units_btn.data()
+        power_units = self.power_units_btn.data()
         return energy_dct, units_system, energy_units, power_units
 
     def _update_btn_menu(self, act, btn):
@@ -685,11 +701,40 @@ class MainWindow(QtWidgets.QMainWindow):
 
         if changed:
             current_act.setChecked(False)
-            btn.setDefaultAction(act)
+            btn.setDefaultAction(action=act)
             self.update_view()
 
         else:
             current_act.setChecked(True)
+
+    def store_units_settings(self):
+        """ Store intermediate units settings. """
+        self._units_settings["energy_units"] = self.energy_units_btn.data()
+        self._units_settings["power_units"] = self.power_units_btn.data()
+        self._units_settings["units_system"] = self.units_system_btn.data()
+
+    def restore_units_settings(self):
+        """ Restore units settings. """
+        self.units_system_btn.setDefaultAction(data=self._units_settings["energy_units"])
+        self.power_units_btn.setDefaultAction(data=self._units_settings["power_units"])
+        self.energy_units_btn.setDefaultAction(data=self._units_settings["energy_units"])
+        self.update_view()
+
+    def reset_units_to_default(self):
+        """ Reset units to be E+ default. """
+        self.units_system_btn.setDefaultAction(data="SI")
+        self.power_units_btn.setDefaultAction(data="W")
+        self.energy_units_btn.setDefaultAction(data="J")
+        self.update_view()
+
+    def units_settings_toggled(self, state):
+        """ Update units settings when custom units toggled. """
+        print(state)
+        if state == 0:
+            self.store_units_settings()
+            self.reset_units_to_default()
+        else:
+            self.restore_units_settings()
 
     def units_system_changed(self, act):
         """ Update view when energy units are changed. """
@@ -821,13 +866,18 @@ class MainWindow(QtWidgets.QMainWindow):
         # ~~~~ Options buttons actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.export_xlsx_btn.clicked.connect(self.export_xlsx)
 
-        # ~~~~ Tree View Actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # ~~~~ View Actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.expand_all_btn.clicked.connect(self.expand_all)
+        self.collapse_all_btn.clicked.connect(self.collapse_all)
+
+        # ~~~~ Options Actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.custom_units_toggle.stateChanged.connect(self.units_settings_toggled)
+
+        # ~~~~ Settings Actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.group_by_btn.menu().triggered.connect(self.view_key_changed)
         self.energy_units_btn.menu().triggered.connect(self.energy_units_changed)
         self.power_units_btn.menu().triggered.connect(self.power_units_changed)
         self.units_system_btn.menu().triggered.connect(self.units_system_changed)
-        self.expand_all_btn.clicked.connect(self.expand_all)
-        self.collapse_all_btn.clicked.connect(self.collapse_all)
 
         # ~~~~ Filter action ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.filter_line_edit.textEdited.connect(self.text_edited)
@@ -838,19 +888,19 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def update_sort_order(self, new_index, new_order):
         """ Store current column vertical sorting. """
-        self.current_view_settings["order"] = (new_index, new_order)
+        self.stored_view_settings["order"] = (new_index, new_order)
 
     def update_section_widths(self, new_widths_dct):
         """ Store current column widths. """
-        self.current_view_settings["widths"] = new_widths_dct
+        self.stored_view_settings["widths"] = new_widths_dct
 
     def clear_expanded_set(self):
         """ Clear previously stored expanded items set. """
-        self.current_view_settings["expanded"].clear()
+        self.stored_view_settings["expanded"].clear()
 
     def update_expanded_set(self, new_expanded_item, remove=False):
         """ Handle populating and removing items from 'expanded' set. """
-        expanded_set = self.current_view_settings["expanded"]
+        expanded_set = self.stored_view_settings["expanded"]
 
         if not remove:
             # the method is used for populating the set
@@ -939,7 +989,7 @@ class MainWindow(QtWidgets.QMainWindow):
             request_lst.append(req)
         return request_lst
 
-    def current_units_settings(self):
+    def stored_units_settings(self):
         """ Get currently selected units settings. """
         units_system = self.units_system_btn.defaultAction().data()
         power = self.power_units_btn.defaultAction().data()
@@ -993,7 +1043,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def results_df(self):
         """ Get output valies for given variables. """
         ids, variables = self.current_request()
-        units_system, power, energy = self.current_units_settings()
+        units_system, power, energy = self._units_settings()
         energy_rate_dct = self.default_energy_dct
 
         files = [v for k, v in self.database.items() if k in ids]
