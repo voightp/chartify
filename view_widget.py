@@ -214,7 +214,7 @@ class GuiEsoFile(QTreeView):
         header.setStretchLastSection(False)
         # units column size is always fixed
         header.setSectionResizeMode(units_ix, QHeaderView.Fixed)
-        header.resizeSection(units_ix, 50)
+        header.resizeSection(units_ix, 70)
 
         if units_ix == 0:
             # units are being used as arrange key

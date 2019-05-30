@@ -497,7 +497,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # ~~~~ Generate include / exclude all files button ~~~~~~~~~~~~~~~~~
         self.all_eso_files_btn.setEnabled(False)
-        self.all_eso_files_btn.setText("All")
+        self.all_eso_files_btn.setText("All files")
         self.all_eso_files_btn.setCheckable(True)
 
         # ~~~~ Generate export xlsx button ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -722,6 +722,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def disable_interval_btns(self):
         """ Disable all interval buttons. """
         for btn in self.interval_btns.values():
+            btn.setChecked(False)
             btn.setEnabled(False)
 
     def delete_file_from_db(self, file_id):

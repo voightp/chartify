@@ -1,7 +1,6 @@
 from collections import defaultdict, namedtuple
 
 
-
 class EsoFileHeader:
     """
     A class to handle the header data so it can be supplied
@@ -85,12 +84,24 @@ class EsoFileHeader:
         return zip(header, proxy)
 
 
+def convert_energy(units, energy_units):
+    """ Convert energy units. """
+    e = energy_units
+    if units == "J/m2":
+        return e + "-ft2" if "btu" in e.lower() else p + "/m2"
+
+    else:
+        return e
+
+
 def convert_power(units, power_units):
     """ Convert power units. """
-    if units == "W/m2" and "btu" in power_units.lower():
-        return power_units + ".ft2"
+    p = power_units
+    if units == "W/m2":
+        return p + "-ft2" if "btu/h" in p.lower() else p + "/m2"
+
     else:
-        return power_units + "/m2"
+        return p
 
 
 def handle_energy_power(units, is_energy):
@@ -107,14 +118,17 @@ def handle_energy_power(units, is_energy):
 
 def convert_units(units, units_system, energy_units, power_units):
     """ Convert given units into requested format. """
-    if (units == "W" or "W/m2") and power_units != "W":
+    if (units == "W" or units == "W/m2") and power_units != "W":
         return convert_power(units, power_units)
 
     elif units == "J" and energy_units != "J":
-        return energy_units
+        return convert_energy(units, energy_units)
 
     elif units_system == "IP":
         return to_ip(units)
+
+    else:
+        return units
 
 
 def to_ip(units):

@@ -1,6 +1,6 @@
 from PySide2.QtWidgets import QWidget, QToolButton, QApplication, QVBoxLayout, QHBoxLayout, QLabel, \
     QSizePolicy, QFrame, \
-    QAction
+    QAction, QCheckBox
 from PySide2.QtCore import QSize, Qt
 import sys
 
@@ -108,3 +108,15 @@ class IntervalButton(QToolButton):
         self.setText(title)
         self.setCheckable(True)
         self.setAutoExclusive(True)
+
+
+class toggleButton(QCheckBox):
+    """
+    A custom button to represent a toggle button.
+
+    The appearance is handled by CSS.
+    """
+
+    def __init__(self, text, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.setText(text)
