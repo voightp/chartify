@@ -110,7 +110,7 @@ class IntervalButton(QToolButton):
         self.setAutoExclusive(True)
 
 
-class toggleButton(QCheckBox):
+class ToggleButton(QCheckBox):
     """
     A custom button to represent a toggle button.
 

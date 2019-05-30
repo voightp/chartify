@@ -15,7 +15,7 @@ from eso_file_header import EsoFileHeader
 from icons import Pixmap
 from progress_widget import MyStatusBar
 
-from buttons import TitledButton, IntervalButton
+from buttons import TitledButton, IntervalButton, ToggleButton
 from functools import partial
 import traceback
 import sys
@@ -70,14 +70,20 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # ~~~~ Left hand Tools Items ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.n_toolbar_cols = 2 if self.height() < HEIGHT_THRESHOLD else 1
+
         self.interval_btns = {}
         self.intervals_group = QGroupBox("Intervals", self.toolbar_wgt)
         self.set_up_interval_btns()
         self.toolbar_layout.addWidget(self.intervals_group)
 
+        self.tools_group = QGroupBox("Tools", self.toolbar_wgt)
+        self.export_xlsx_btn = QToolButton(self.tools_group)
+        self.set_up_tools()
+        self.toolbar_layout.addWidget(self.tools_group)
+
         self.options_group = QGroupBox("Options", self.toolbar_wgt)
-        self.all_eso_files_btn = QToolButton(self.options_group)
-        self.export_xlsx_btn = QToolButton(self.options_group)
+        self.all_eso_files_toggle = ToggleButton("all files", self.options_group)
+        self.custom_units_toggle = ToggleButton("custom units", self.options_group)
         self.set_up_options()
         self.toolbar_layout.addWidget(self.options_group)
 
@@ -299,7 +305,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def all_eso_files_requested(self):
         """ Check if results from all eso files are requested. """
-        btn = self.all_eso_files_btn
+        btn = self.all_eso_files_toggle
         return btn.isChecked() and btn.isEnabled()
 
     def _selected_interval(self):
@@ -370,7 +376,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def set_initial_layout(self):
         """ Define an app layout when there isn't any file loaded. """
         self.disable_interval_btns()
-        self.all_eso_files_btn.setEnabled(False)
+        self.all_eso_files_toggle.setEnabled(False)
         self.populate_intervals_group()
         self.populate_options_group()
         self.populate_settings_group()
@@ -431,19 +437,42 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             layout.parentWidget().show()
 
-    def populate_intervals_group(self):
-        """ Populate interval buttons based on a current state. """
-        layout = self.intervals_group.layout()
-        interval_btns = [btn for btn in self.interval_btns.values()]
-        n_cols = self.n_toolbar_cols
+    def _populate_group(self, group, widgets, n_cols):
+        """ Populate given group with given widgets. """
+        layout = group.layout()
 
         self.remove_children(layout)
 
         if HIDE_DISABLED:
-            interval_btns = self.hide_disabled(interval_btns)
+            widgets = self.hide_disabled(widgets)
             self.show_widgets(interval_btns)
 
-        self.populate_grid_layout(layout, interval_btns, n_cols)
+        self.populate_grid_layout(layout, widgets, n_cols)
+
+    def populate_intervals_group(self):
+        """ Populate interval buttons based on a current state. """
+        self._populate_group(self.intervals_group,
+                             self.interval_btns.values(),
+                             self.n_toolbar_cols)
+
+    def populate_tools_group(self):
+        """ Populate tools group layout. """
+        tools_btns = [self.export_xlsx_btn, ]
+        n_cols = self.n_toolbar_cols
+
+        self._populate_group(self.tools_group,
+                             tools_btns,
+                             n_cols)
+
+    def populate_options_group(self):
+        """ Populate options group layout. """
+        options_btns = [self.all_eso_files_toggle,
+                        self.custom_units_toggle]
+        n_cols = 1
+
+        self._populate_group(self.options_group,
+                             options_btns,
+                             n_cols)
 
     def populate_settings_group(self):
         """ Populate settings group layout. """
@@ -456,22 +485,6 @@ class MainWindow(QtWidgets.QMainWindow):
                          self.group_by_btn]
 
         self.populate_grid_layout(layout, settings_btns, n_cols)
-
-    def populate_options_group(self):
-        """ Populate options group layout. """
-        layout = self.options_group.layout()
-        options_btns = [self.all_eso_files_btn,
-                        self.export_xlsx_btn]
-
-        self.remove_children(layout)
-
-        if HIDE_DISABLED:
-            options_btns = self.hide_disabled(options_btns)
-            self.show_widgets(options_btns)
-
-        self.populate_grid_layout(layout,
-                                  options_btns,
-                                  self.n_toolbar_cols)
 
     def set_up_interval_btns(self):
         """ Create interval buttons and a parent container. """
@@ -496,16 +509,29 @@ class MainWindow(QtWidgets.QMainWindow):
         options_layout.setAlignment(Qt.AlignLeft)
 
         # ~~~~ Generate include / exclude all files button ~~~~~~~~~~~~~~~~~
-        self.all_eso_files_btn.setEnabled(False)
-        self.all_eso_files_btn.setText("All files")
-        self.all_eso_files_btn.setCheckable(True)
+        self.all_eso_files_toggle.setEnabled(False)
+        self.all_eso_files_toggle.setText("All files")
+        self.all_eso_files_toggle.setCheckable(True)
+
+        # ~~~~ Toggle custom units button ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.custom_units_toggle.setChecked(True)
+
+        self.populate_options_group()
+
+    def set_up_tools(self):
+        """ Create a general set of tools. """
+        # ~~~~ Layout to hold tools settings ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        tools_layout = QGridLayout(self.tools_group)
+        tools_layout.setSpacing(0)
+        tools_layout.setContentsMargins(0, 0, 0, 0)
+        tools_layout.setAlignment(Qt.AlignLeft)
 
         # ~~~~ Generate export xlsx button ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.export_xlsx_btn.setEnabled(False)
         self.export_xlsx_btn.setText("Save xlsx")
         self.export_xlsx_btn.setCheckable(False)
 
-        self.populate_options_group()
+        self.populate_tools_group()
 
     def set_up_settings(self):
         """ Create Settings menus and buttons. """
@@ -559,7 +585,7 @@ class MainWindow(QtWidgets.QMainWindow):
         btnLayout.setSpacing(0)
         btnLayout.setContentsMargins(0, 0, 0, 0)
 
-        # ~~~~ Add view buttons ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # ~~~~ Add view buttons ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         btnLayout.addWidget(self.collapse_all_btn)
         btnLayout.addWidget(self.expand_all_btn)
 
@@ -716,7 +742,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         if self.tab_wgt.count() <= 1:
             # only one file is available
-            self.all_eso_files_btn.setEnabled(False)
+            self.all_eso_files_toggle.setEnabled(False)
             self.populate_options_group()
 
     def disable_interval_btns(self):
@@ -887,7 +913,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # enable all eso file results btn if it's suitable
         if self.tab_wgt.count() > 1:
-            self.all_eso_files_btn.setEnabled(True)
+            self.all_eso_files_toggle.setEnabled(True)
             self.populate_options_group()
 
     def all_files_ids(self):
