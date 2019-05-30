@@ -145,7 +145,7 @@ class GuiEsoFile(QTreeView):
         proxy_indexes = proxy_selection.indexes()
         self.update_app_outputs(proxy_indexes)
 
-    def update_view_model(self, group_by_key, interval_request, view_settings,
+    def update_view_model(self, group_by_key, interval, view_settings,
                           units_settings, select=None, is_fresh=False):
         """
         Set the model and define behaviour of the tree view.
@@ -159,17 +159,17 @@ class GuiEsoFile(QTreeView):
         # Only update the model if the settings have changed
         conditions = [
             group_by_key != self._group_by,
-            interval_request != self._interval,
+            interval != self._interval,
             units_settings != self._units_settings
         ]
 
         if any(conditions):
             self.create_view_model(eso_file_header, units_settings, group_by_key,
-                                   interval_request, is_fresh=is_fresh)
+                                   interval, is_fresh=is_fresh)
 
             # Store current sorting key and interval
             self._store_group_by_key(group_by_key)
-            self._store_interval(interval_request)
+            self._store_interval(interval)
             self._store_units_settings(units_settings)
 
         # clean up selection as this will be handled based on
@@ -412,6 +412,15 @@ class ViewModel(QStandardItemModel):
     def _append_rows(header_iterator, parent):
         """ Add plain rows to the model. """
         for data, proxy in header_iterator:
+            i0 = QStandardItem(None)
+            i0.setData(data, Qt.UserRole)  # First item in row holds all the information
+            i1, i2 = QStandardItem(proxy[1]), QStandardItem(proxy[2])
+            parent.appendRow([i0, i1, i2])
+
+    @staticmethod
+    def _append_plain_rows(header_iterator, parent):
+        """ Add plain rows to the model. """
+        for data, proxy in header_iterator:
             item_row = [QStandardItem(item) for item in proxy]
             item_row[0].setData(data, Qt.UserRole)  # First item in row holds all the information
             parent.appendRow(item_row)
@@ -422,13 +431,13 @@ class ViewModel(QStandardItemModel):
 
             if len(variables) == 1:
                 # append as a plain row
-                self._append_rows(zip(*variables), root)
+                self._append_plain_rows(variables, root)
 
             else:
                 parent = QStandardItem(k)
                 parent.setDragEnabled(False)
                 root.appendRow(parent)
-                self._append_rows(zip(*variables), parent)
+                self._append_rows(variables, parent)
 
     def populate_data(self, eso_file_header, units_settings, group_by_key, interval):
         """ Feed the model with output variables. """
@@ -440,7 +449,7 @@ class ViewModel(QStandardItemModel):
         if group_by_key == "raw":
             # tree like structure is not being used
             # append as a plain table
-            self._append_rows(header, root)
+            self._append_plain_rows(header, root)
 
         else:
             # create a tree like structure

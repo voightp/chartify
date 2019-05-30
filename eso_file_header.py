@@ -1,6 +1,7 @@
 from collections import defaultdict, namedtuple
 
 
+
 class EsoFileHeader:
     """
     A class to handle the header data so it can be supplied
@@ -22,9 +23,10 @@ class EsoFileHeader:
     def __init__(self, header_dct):
         self._header_dct = header_dct
 
-    def _header_no_ids(self, interval):
-        """ Return a list of header variables for a given interval. """
-        return list(self._header_dct[interval])
+    @property
+    def available_intervals(self):
+        """ Get a list of available intervals. """
+        return self._header_dct.keys()
 
     @staticmethod
     def _get_field_names(group_by_key):
@@ -61,15 +63,18 @@ class EsoFileHeader:
         dct = defaultdict(list)
 
         for data, proxy in header_iterator:
-            key = proxy.__getattr__(group_by_key)
-            proxy.__setattr__(group_by_key, None)
+            key = proxy.__getattribute__(group_by_key)
             dct[key].append((data, proxy))
 
         return dct
 
+    def _variables(self, interval):
+        """ Return a list of header variables for a given interval. """
+        return list(self._header_dct[interval].values())
+
     def get_header_iterator(self, interval, units_settings, group_by_key):
         """ Return data - proxy paired list of tuples. """
-        header = self._header_no_ids(interval)
+        header = self._variables(interval)
         field_names = self._get_field_names(group_by_key)
 
         proxy = self.create_proxy(header,

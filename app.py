@@ -302,15 +302,13 @@ class MainWindow(QtWidgets.QMainWindow):
         btn = self.all_eso_files_btn
         return btn.isChecked() and btn.isEnabled()
 
-    def selected_intervals(self):
+    def _selected_interval(self):
         """ Get currently selected interval buttons. """
         btns = self.interval_btns
-        return [k for k, btn in btns.items() if btn.isChecked()]
-
-    def current_trace_type(self):
-        """ Get currently selected trace type. """
-        btns = self.trace_buttons.items()
-        return next(name for name, btn in btns if btn.isChecked())
+        try:
+            return next(k for k, btn in btns.items() if btn.isChecked())
+        except StopIteration:
+            pass
 
     def set_up_base_ui(self):
         """ Set up appearance of main widgets. """
@@ -594,13 +592,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def update_view(self, is_fresh=False):
         """ Create a new model when the tab or the interval has changed. """
-        # do not update when there isn't any file available
-        if self.tab_widget_empty():
-            return
-
         # retrieve required inputs from the interface
         group_by_key = self.get_group_by_key()
-        intervals = self.selected_intervals()
+        interval = self._selected_interval()
         units_settings = self.get_units_settings()
 
         eso_file_widget = self.current_eso_file
@@ -609,7 +603,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # update the current widget
         eso_file_widget.update_view_model(group_by_key,
-                                          intervals,
+                                          interval,
                                           view_settings,
                                           units_settings,
                                           is_fresh=is_fresh,
@@ -754,19 +748,13 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _available_intervals(self):
         """ Get available intervals for the current eso file. """
-        eso_file = self.current_eso_file.eso_file_header
-        return eso_file.available_intervals
-
-    def _selected_intervals(self):
-        """ Get currently selected interval buttons. """
-        btns = self.interval_btns
-        intervals = [intvl for intvl, btn in btns.items() if btn.isChecked()]
+        intervals = self.current_eso_file.eso_file_header.available_intervals
         return intervals
 
     def update_interval_buttons_state(self):
         """ Deactivate interval buttons if they are not applicable. """
         available_intervals = self._available_intervals()
-        selected_intervals = self._selected_intervals()
+        selected_interval = self._selected_interval()
         all_btns_dct = self.interval_btns
 
         for key, btn in all_btns_dct.items():
@@ -779,7 +767,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # when there isn't any previously selected interval applicable,
         # the first available button is selected
-        if all(map(lambda x: x not in available_intervals, selected_intervals)):
+        if selected_interval not in available_intervals:
             btn = next(btn for btn in all_btns_dct.values() if btn.isEnabled())
             btn.setChecked(True)
 
@@ -787,8 +775,8 @@ class MainWindow(QtWidgets.QMainWindow):
         """ Update view when tabChanged event is fired. """
         print("Tab changed {}".format(index))
         if not self.tab_widget_empty():
-            self.update_view(is_fresh=True)
             self.update_interval_buttons_state()
+            self.update_view(is_fresh=True)
             self.populate_intervals_group()
 
         else:
@@ -918,10 +906,10 @@ class MainWindow(QtWidgets.QMainWindow):
     def generate_variables(self, outputs):
         """ Create an output request using required 'Variable' class. """
         request_lst = []
-        for interval in self.selected_intervals():
-            for item in outputs:
-                req = Variable(interval, *item)
-                request_lst.append(req)
+        interval = self._selected_interval()
+        for item in outputs:
+            req = Variable(interval, *item)
+            request_lst.append(req)
         return request_lst
 
     def current_units_settings(self):
