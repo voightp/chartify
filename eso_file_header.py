@@ -28,11 +28,12 @@ class EsoFileHeader:
         return self._header_dct.keys()
 
     @staticmethod
-    def _get_field_names(group_by_key):
+    def _get_field_names(tree_key):
         """ Rearrange variable order. . """
         order = ["key", "variable", "units"]
-        order.remove(group_by_key)
-        order.insert(0, group_by_key)
+        if tree_key:
+            order.remove(tree_key)
+            order.insert(0, tree_key)
         return order
 
     @staticmethod
@@ -71,10 +72,10 @@ class EsoFileHeader:
         """ Return a list of header variables for a given interval. """
         return list(self._header_dct[interval].values())
 
-    def get_header_iterator(self, interval, units_settings, group_by_key):
+    def get_header_iterator(self, interval, units_settings, tree_key):
         """ Return data - proxy paired list of tuples. """
         header = self._variables(interval)
-        field_names = self._get_field_names(group_by_key)
+        field_names = self._get_field_names(tree_key)
 
         proxy = self.create_proxy(header,
                                   interval,

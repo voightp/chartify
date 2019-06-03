@@ -41,7 +41,7 @@ class GuiEsoFile(QTreeView):
         self.eso_file_header = eso_file_header
         self._file_id = file_id
         self._interval = None
-        self._group_by = None
+        self._tree_key = None
         self._units_settings = None
 
         self.expanded.connect(self.handle_expanded)
@@ -66,9 +66,9 @@ class GuiEsoFile(QTreeView):
         """ Hold a value of the last interval settings. """
         self._interval = new_interval
 
-    def _store_group_by_key(self, new_key):
+    def _store_tree_key(self, new_key):
         """ Hold a value of the last grouping settings. """
-        self._group_by = new_key
+        self._tree_key = new_key
 
     def _store_units_settings(self, new_units):
         """ Hold a data on the last units settings. """
@@ -95,25 +95,25 @@ class GuiEsoFile(QTreeView):
         self.sortByColumn(0, Qt.AscendingOrder)
 
     def create_view_model(self, eso_file_header, units_settings,
-                          group_by_key, interval, is_fresh=False):
+                          tree_key, interval, is_fresh=False):
         """
         Create a model and set up its appearance.
         """
         model = ViewModel(eso_file_header, units_settings,
-                          group_by_key, interval)
+                          tree_key, interval)
 
         proxy_model = FilterModel()
         proxy_model.setSourceModel(model)
         self.setModel(proxy_model)
 
         # define view appearance and behaviour
-        self._set_header_labels(group_by_key)
-        self._set_resize_behaviour(group_by_key)
+        self._set_header_labels(tree_key)
+        self._set_resize_behaviour(tree_key)
         self._set_first_col_spanned()
         self._set_ascending_order()
 
         if is_fresh:
-            # create header actions (only once)
+            # create header actions only when view is created
             self._create_header_actions()
 
     def _update_sort_order(self, index, order):
@@ -130,14 +130,14 @@ class GuiEsoFile(QTreeView):
                 if data in expanded_set:
                     self.expand(ix)
 
-    def _update_selection(self, current_selection, group_by_key):
+    def _update_selection(self, current_selection, tree_key):
         """ Select previously selected items when the model changes. """
         # Clear the container
         self.main_app.clear_current_selection()
 
         # Find matching items and return selection
         proxy_selection = self.model().find_match(current_selection,
-                                                  group_by_key=group_by_key)
+                                                  tree_key=tree_key)
         # Select items on the new model
         self.select_items(proxy_selection)
 
@@ -145,7 +145,7 @@ class GuiEsoFile(QTreeView):
         proxy_indexes = proxy_selection.indexes()
         self.update_app_outputs(proxy_indexes)
 
-    def update_view_model(self, group_by_key, interval, view_settings,
+    def update_view_model(self, tree_key, interval, view_settings,
                           units_settings, select=None, is_fresh=False):
         """
         Set the model and define behaviour of the tree view.
@@ -155,28 +155,32 @@ class GuiEsoFile(QTreeView):
         column_width_dct = view_settings["widths"]
         sort_order = view_settings["order"]
         expanded_items = view_settings["expanded"]
+        header_dct = view_settings["header"]
 
         # Only update the model if the settings have changed
         conditions = [
-            group_by_key != self._group_by,
+            tree_key != self._tree_key,
             interval != self._interval,
             units_settings != self._units_settings
         ]
 
         if any(conditions):
-            self.create_view_model(eso_file_header, units_settings, group_by_key,
+            self.create_view_model(eso_file_header, units_settings, tree_key,
                                    interval, is_fresh=is_fresh)
 
             # Store current sorting key and interval
-            self._store_group_by_key(group_by_key)
+            self._store_tree_key(tree_key)
             self._store_interval(interval)
             self._store_units_settings(units_settings)
+
+        # rearrange columns order
+        self._move_columns(header_dct)
 
         # clean up selection as this will be handled based on
         # currently selected list of items stored in main app
         self.clear_selection()
         if select:
-            self._update_selection(select, group_by_key)
+            self._update_selection(select, tree_key)
 
         if column_width_dct:
             self._resize_columns(column_width_dct)
@@ -187,15 +191,17 @@ class GuiEsoFile(QTreeView):
         if sort_order:
             self._update_sort_order(*sort_order)
 
-    def _set_header_labels(self, group_by_key):
+    def _set_header_labels(self, tree_key):
         """ Assign header labels. """
         model = self.model().sourceModel()
-        column_labels_dct = {"key": "Key", "variable": "Variable", "units": "Units"}
+        column_labels_dct = {"key": "Key",
+                             "variable": "Variable",
+                             "units": "Units"}
         labels = list(column_labels_dct.values())
 
-        if group_by_key != "raw":
+        if tree_key:
             # switch labels to reflect the arrange key input
-            parent_label = column_labels_dct.pop(group_by_key)
+            parent_label = column_labels_dct.pop(tree_key)
             labels.remove(parent_label)
             labels.insert(0, parent_label)
 
@@ -226,8 +232,8 @@ class GuiEsoFile(QTreeView):
             header.setSectionResizeMode(1, QHeaderView.Stretch)
             header.setSectionResizeMode(0, QHeaderView.Interactive)
 
-    def _get_column_ixs(self):
-        """ Return integer value of header labels. """
+    def _get_logical_ixs(self):
+        """ Return logical positions of header labels. """
         model = self.model()
         cols = [model.headerData(i, Qt.Horizontal) for i in range(model.columnCount())]
         key_ix = cols.index("Key")
@@ -235,10 +241,26 @@ class GuiEsoFile(QTreeView):
         units_ix = cols.index("Units")
         return key_ix, var_ix, units_ix
 
+    def _get_visual_ixs(self):
+        """ Return visual positions of header labels. """
+        ixs = self._get_logical_ixs()
+        key_ix, var_ix, units_ix = [self.header().visualIndex(i) for i in ixs]
+        return key_ix, var_ix, units_ix
+
+    def _move_columns(self, header_dct):
+        """ Rearrange column order. """
+        ixs = self._get_visual_ixs()
+        new_ixs = header_dct.values()
+
+        for ix, new_ix in zip(ixs, new_ixs):
+            if ix == new_ix:
+                continue
+            self.header().swapSections(ix, new_ix)
+
     def _resize_columns(self, column_width_dct):
         """ Set tree view column width. """
         header = self.header()
-        key_ix, var_ix, units_ix = self._get_column_ixs()
+        key_ix, var_ix, units_ix = self._get_logical_ixs()
         header.resizeSection(key_ix, column_width_dct["Key"])
         header.resizeSection(var_ix, column_width_dct["Variable"])
         header.resizeSection(units_ix, column_width_dct["Units"])
@@ -252,18 +274,32 @@ class GuiEsoFile(QTreeView):
         widths = self._get_column_widths()
         self.main_app.update_section_widths(widths)
 
+    def _section_moved(self, _logical_ix, _old_visual_ix, new_visual_ix):
+        """ Handle updating the model when first column changed. """
+        key_ix, var_ix, units_ix = self._get_visual_ixs()
+        self.main_app.update_sections_order({"key": key_ix,
+                                             "variable": var_ix,
+                                             "units": units_ix})
+
+        if new_visual_ix == 0 and self.main_app.get_tree_key():
+            # need to update view as section has been moved
+            # onto first position and tree key is applied
+            self.main_app.update_view()
+
     def _create_header_actions(self):
         """ Create header actions. """
         # When the file is loaded for the first time the header does not
         # contain required data to use 'view_resized' method.
         # Due to this, the action needs to be created only after the model
         # and its header has been created.
+        self.header().setFirstSectionMovable(True)
         self.header().sectionResized.connect(self._view_resized)
         self.header().sortIndicatorChanged.connect(self._sort_order_changed)
+        self.header().sectionMoved.connect(self._section_moved)
 
     def _get_column_widths(self):
         """ Extract a dictionary containing current column widths. """
-        key_ix, var_ix, units_ix = self._get_column_ixs()
+        key_ix, var_ix, units_ix = self._get_logical_ixs()
         header = self.header()
         return {
             "Key": header.sectionSize(key_ix),
@@ -391,9 +427,9 @@ class GuiEsoFile(QTreeView):
 
 
 class ViewModel(QStandardItemModel):
-    def __init__(self, eso_file_header, units_settings, group_by_key, interval):
+    def __init__(self, eso_file_header, units_settings, tree_key, interval):
         super().__init__()
-        self.populate_data(eso_file_header, units_settings, group_by_key, interval)
+        self.populate_data(eso_file_header, units_settings, tree_key, interval)
         self.setSortRole(Qt.AscendingOrder)
 
     def mimeTypes(self):
@@ -401,11 +437,11 @@ class ViewModel(QStandardItemModel):
         return "application/json"
 
     @staticmethod
-    def _get_identifiers(group_by_key):
+    def _get_identifiers(tree_key):
         """ Rearrange variable order. . """
         identifiers = ["key", "variable", "units"]
-        identifiers.remove(group_by_key)
-        identifiers.insert(0, group_by_key)
+        identifiers.remove(tree_key)
+        identifiers.insert(0, tree_key)
         return identifiers
 
     @staticmethod
@@ -439,21 +475,21 @@ class ViewModel(QStandardItemModel):
                 root.appendRow(parent)
                 self._append_rows(variables, parent)
 
-    def populate_data(self, eso_file_header, units_settings, group_by_key, interval):
+    def populate_data(self, eso_file_header, units_settings, tree_key, interval):
         """ Feed the model with output variables. """
         root = self.invisibleRootItem()
         header = eso_file_header.get_header_iterator(interval,
                                                      units_settings,
-                                                     group_by_key)
+                                                     tree_key)
 
-        if group_by_key == "raw":
+        if not tree_key:
             # tree like structure is not being used
             # append as a plain table
             self._append_plain_rows(header, root)
 
         else:
             # create a tree like structure
-            tree_header = EsoFileHeader.tree_header(header, group_by_key)
+            tree_header = EsoFileHeader.tree_header(header, tree_key)
             self._append_tree_rows(tree_header, root)
 
 
@@ -509,18 +545,18 @@ class FilterModel(QSortFilterProxyModel):
         range = QItemSelectionRange(proxy_index)
         selection.append(range)
 
-    def find_match(self, current_selection, group_by_key="raw"):
+    def find_match(self, current_selection, tree_key=None):
         """ Check if output variables are available in a new model. """
         selection = QItemSelection()
 
-        if group_by_key == "raw":
+        if not tree_key:
             # there isn't any preferred sorting applied so the first column is 'key'
-            group_by_key = "key"
+            tree_key = "key"
 
         # create a list which holds parent parts of currently selected items
         # if the part of variable does not match, than the variable (or any children)
         # will not be selected
-        quick_check = [variable_piece(var, group_by_key) for var in current_selection]
+        quick_check = [variable_piece(var, tree_key) for var in current_selection]
 
         num_rows = self.rowCount()
         for i in range(num_rows):

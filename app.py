@@ -116,6 +116,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.view_tools_wgt = QFrame(self.view_wgt)
         self.view_tools_wgt.setObjectName("viewTools")
 
+        self.tree_view_btn = QToolButton(self.view_tools_wgt)
+        self.tree_view_btn.setText("Tree")
+        self.tree_view_btn.setCheckable(True)
+
         self.collapse_all_btn = QToolButton(self.view_tools_wgt)
         self.collapse_all_btn.setObjectName("smallButton")
 
@@ -144,6 +148,11 @@ class MainWindow(QtWidgets.QMainWindow):
         # ~~~~ Intermediate settings ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.stored_view_settings = {"widths": None,
                                      "order": None,
+                                     "header": {
+                                         "key": 0,
+                                         "variable": 1,
+                                         "units": 2,
+                                     },
                                      "expanded": set()}
 
         self.default_energy_dct = {TS: False, H: False, D: True,
@@ -316,7 +325,7 @@ class MainWindow(QtWidgets.QMainWindow):
         btn = self.all_eso_files_toggle
         return btn.isChecked() and btn.isEnabled()
 
-    def _selected_interval(self):
+    def get_selected_interval(self):
         """ Get currently selected interval buttons. """
         btns = self.interval_btns
         try:
@@ -576,7 +585,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # ~~~~ Sorting set up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         group_by = QMenu(self)
         items = ["-", "key", "variable", "units"]
-        data = ["raw", "key", "variable", "units"]
+        data = [None, "key", "variable", "units"]
         ix = items.index(DEFAULTS["group_by"])
         self.group_by_btn = TitledButton(self.settings_group, fill_space=True,
                                          title="group by", menu=group_by,
@@ -592,14 +601,15 @@ class MainWindow(QtWidgets.QMainWindow):
         view_tools_layout.setContentsMargins(0, 0, 0, 0)
 
         # ~~~~ Widget to hold tree view buttons ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        btnWidget = QWidget(self.view_tools_wgt)
-        btnLayout = QHBoxLayout(btnWidget)
-        btnLayout.setSpacing(0)
-        btnLayout.setContentsMargins(0, 0, 0, 0)
+        btn_widget = QWidget(self.view_tools_wgt)
+        btn_layout = QHBoxLayout(btn_widget)
+        btn_layout.setSpacing(0)
+        btn_layout.setContentsMargins(0, 0, 0, 0)
 
         # ~~~~ Add view buttons ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        btnLayout.addWidget(self.collapse_all_btn)
-        btnLayout.addWidget(self.expand_all_btn)
+        btn_layout.addWidget(self.tree_view_btn)
+        btn_layout.addWidget(self.collapse_all_btn)
+        btn_layout.addWidget(self.expand_all_btn)
 
         # ~~~~ Create tree search line edit ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.filter_line_edit.setPlaceholderText("filter...")
@@ -612,15 +622,20 @@ class MainWindow(QtWidgets.QMainWindow):
         view_tools_layout.addWidget(self.filter_icon)
         view_tools_layout.addWidget(self.filter_line_edit)
         view_tools_layout.addItem(spacer)
-        view_tools_layout.addWidget(btnWidget)
+        view_tools_layout.addWidget(btn_widget)
 
-    def get_group_by_key(self):
+    def get_tree_key(self):
+        if self.tree_view_btn.isChecked():
+            dct = self.stored_view_settings["header"]
+            return next(k for k, v in dct.items() if v == 0)
+
+    def get_group_by_key(self):  # TODO remove after review
         """ Get current view arrange key from the interface. """
         return self.group_by_btn.defaultAction().data()
 
-    def handle_col_ex_btns(self, group_by_key):
+    def handle_col_ex_btns(self, tree_key):
         """ Enable / disable 'collapse all' / 'expand all' buttons. """
-        if group_by_key == "raw":
+        if not tree_key:
             self.collapse_all_btn.setEnabled(False)
             self.expand_all_btn.setEnabled(False)
 
@@ -631,8 +646,8 @@ class MainWindow(QtWidgets.QMainWindow):
     def update_view(self, is_fresh=False):
         """ Create a new model when the tab or the interval has changed. """
         # retrieve required inputs from the interface
-        group_by_key = self.get_group_by_key()
-        interval = self._selected_interval()
+        tree_key = self.get_tree_key()
+        interval = self.get_selected_interval()
         units_settings = self.get_units_settings()
 
         eso_file_widget = self.current_eso_file
@@ -644,7 +659,7 @@ class MainWindow(QtWidgets.QMainWindow):
             return
 
         # update the current widget
-        eso_file_widget.update_view_model(group_by_key,
+        eso_file_widget.update_view_model(tree_key,
                                           interval,
                                           view_settings,
                                           units_settings,
@@ -658,7 +673,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # based on the current view, enable or disable tree buttons
         # collapse and expand all buttons are not relevant for plain view
-        self.handle_col_ex_btns(group_by_key)
+        self.handle_col_ex_btns(tree_key)
 
     def update_layout(self):
         """ Update window layout accordingly to window size. """
@@ -754,15 +769,9 @@ class MainWindow(QtWidgets.QMainWindow):
         if changed:
             self.update_view()
 
-    def view_key_changed(self, act):
+    def tree_btn_clicked(self):
         """ Update view when view type is changed. """
-        changed = self.group_by_btn.update_state(act)
-
-        # disable expand / collapse all buttons
-        if changed:
-            key = act.data()
-            self.handle_col_ex_btns(key)
-            self.update_view()
+        self.update_view()
 
     def expand_all(self):
         """ Expand all tree view items. """
@@ -830,7 +839,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def update_interval_buttons_state(self):
         """ Deactivate interval buttons if they are not applicable. """
         available_intervals = self._available_intervals()
-        selected_interval = self._selected_interval()
+        selected_interval = self.get_selected_interval()
         all_btns_dct = self.interval_btns
 
         for key, btn in all_btns_dct.items():
@@ -878,7 +887,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.custom_units_toggle.stateChanged.connect(self.units_settings_toggled)
 
         # ~~~~ Settings Actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.group_by_btn.menu().triggered.connect(self.view_key_changed)
+        self.tree_view_btn.clicked.connect(self.tree_btn_clicked)
         self.energy_units_btn.menu().triggered.connect(self.energy_units_changed)
         self.power_units_btn.menu().triggered.connect(self.power_units_changed)
         self.units_system_btn.menu().triggered.connect(self.units_system_changed)
@@ -889,6 +898,10 @@ class MainWindow(QtWidgets.QMainWindow):
         # ~~~~ Tab actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.tab_wgt.tabCloseRequested.connect(self.remove_eso_file)
         self.tab_wgt.currentChanged.connect(self.tab_changed)
+
+    def update_sections_order(self, header):
+        """ Store current view header order. """
+        self.stored_view_settings["header"] = header
 
     def update_sort_order(self, new_index, new_order):
         """ Store current column vertical sorting. """
@@ -987,7 +1000,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def generate_variables(self, outputs):
         """ Create an output request using required 'Variable' class. """
         request_lst = []
-        interval = self._selected_interval()
+        interval = self.get_selected_interval()
         for item in outputs:
             req = Variable(interval, *item)
             request_lst.append(req)
