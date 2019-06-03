@@ -88,7 +88,7 @@ def convert_energy(units, energy_units):
     """ Convert energy units. """
     e = energy_units
     if units == "J/m2":
-        return e + "-ft2" if "btu" in e.lower() else p + "/m2"
+        return e + "-ft2" if "btu" in e.lower() else e + "/m2"
 
     else:
         return e
@@ -121,7 +121,7 @@ def convert_units(units, units_system, energy_units, power_units):
     if (units == "W" or units == "W/m2") and power_units != "W":
         return convert_power(units, power_units)
 
-    elif units == "J" and energy_units != "J":
+    elif (units == "J" or units == "J/m2") and energy_units != "J":
         return convert_energy(units, energy_units)
 
     elif units_system == "IP":

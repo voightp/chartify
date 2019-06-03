@@ -756,11 +756,13 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def view_key_changed(self, act):
         """ Update view when view type is changed. """
-        self.group_by_btn.update_state(act)
+        changed = self.group_by_btn.update_state(act)
 
         # disable expand / collapse all buttons
-        key = act.data()
-        self.handle_col_ex_btns(key)
+        if changed:
+            key = act.data()
+            self.handle_col_ex_btns(key)
+            self.update_view()
 
     def expand_all(self):
         """ Expand all tree view items. """
@@ -1038,8 +1040,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def results_df(self):
         """ Get output valies for given variables. """
         ids, variables = self.current_request()
-        units_system, power, energy = self._units_settings()
-        energy_rate_dct = self.default_energy_dct
+        energy_rate_dct, units_system, power, energy = self.get_units_settings()
 
         files = [v for k, v in self.database.items() if k in ids]
         df = get_results(files, variables, rate_units=power,
