@@ -48,15 +48,15 @@ class TitledButton(QFrame):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
-        label = QLabel(title, self, objectName="buttonTitle")
+        self.title = QLabel(title, self)
+        self.title.setObjectName("buttonTitle")
 
         if fill_space:
-            self.title = label
             self.title.setAttribute(Qt.WA_TransparentForMouseEvents)
             self.title.move(4, -8)
 
         else:
-            layout.addWidget(label)
+            layout.addWidget(self.title)
 
         layout.addWidget(self.button)
 
@@ -73,31 +73,62 @@ class TitledButton(QFrame):
             self.button.setPopupMode(QToolButton.InstantPopup)
             self.button.setDefaultAction(actions[def_act_ix])
 
-    def setToolButtonStyle(self, style):
-        self.button.setToolButtonStyle(style)
-
     def menu(self):
         return self.button.menu()
 
-    def setDefaultAction(self, action=None, i=-1, data=""):
-        acts = self.button.menu().actions()
+    def data(self):
+        return self.defaultAction().data()
 
-        if action:
-            self.button.setDefaultAction(action)
+    def setChecked(self, checked):
+        self.button.setChecked(checked)
 
-        elif i > 0:
-            self.button.setDefaultAction(acts[i])
+    def setEnabled(self, enabled):
+        self.title.setEnabled(enabled)
+        self.button.setEnabled(enabled)
 
-        elif data:
-            for act in acts:
-                if act.data() == data:
-                    self.button.setDefaultAction(act)
+    def setToolButtonStyle(self, style):
+        self.button.setToolButtonStyle(style)
+
+    def setDefaultAction(self, action):
+        self.button.setDefaultAction(action)
 
     def defaultAction(self):
         return self.button.defaultAction()
 
-    def data(self):
-        return self.defaultAction().data()
+    def get_action(self, i=-1, data=""):
+        """ Get an action based on index or action's data. """
+        acts = self.button.menu().actions()
+
+        if i > 0:
+            return acts[i]
+
+        elif data:
+            for act in acts:
+                if act.data() == data:
+                    return act
+
+    def update_state(self, act):
+        """ Handle changing button actions. """
+        current_act = self.defaultAction()
+        changed = current_act != act
+
+        if changed:
+            current_act.setChecked(False)
+            self.setDefaultAction(act)
+
+        else:
+            current_act.setChecked(True)
+
+        return changed
+
+    def update_state_programmatically(self, act):
+        """ Handle changing buttons state when handling internally. """
+        changed = self.update_state(act)
+
+        if changed:
+            act.setChecked(True)
+
+        self.setChecked(True)
 
 
 class IntervalButton(QToolButton):

@@ -673,39 +673,14 @@ class MainWindow(QtWidgets.QMainWindow):
         """ Update view when an interval is changed. """
         self.update_view()
 
-    # TODO might not needed - group in one function
-    def get_units_system(self):
-        """ Get currently set units system. """
-        return self.units_system_btn.data()
-
-    def get_power_units(self):
-        """ Get currently set power units. """
-        return self.power_units_btn.data()
-
-    def get_energy_units(self):
-        """ Get currently set energy units. """
-        return self.energy_units_btn.data()
-
     def get_units_settings(self):
         """ Get currently selected units. """
         energy_dct = self.default_energy_dct
         units_system = self.units_system_btn.data()
         energy_units = self.energy_units_btn.data()
         power_units = self.power_units_btn.data()
+
         return energy_dct, units_system, energy_units, power_units
-
-    def _update_btn_menu(self, act, btn):
-        """ Handle changing actions on a 'Titled' button. """
-        current_act = btn.defaultAction()
-        changed = current_act != act
-
-        if changed:
-            current_act.setChecked(False)
-            btn.setDefaultAction(action=act)
-            self.update_view()
-
-        else:
-            current_act.setChecked(True)
 
     def store_units_settings(self):
         """ Store intermediate units settings. """
@@ -715,48 +690,75 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def restore_units_settings(self):
         """ Restore units settings. """
-        self.units_system_btn.setDefaultAction(data=self._units_settings["energy_units"])
-        self.power_units_btn.setDefaultAction(data=self._units_settings["power_units"])
-        self.energy_units_btn.setDefaultAction(data=self._units_settings["energy_units"])
+        data = self._units_settings["units_system"]
+        act = self.units_system_btn.get_action(data=data)
+        self.units_system_btn.update_state_programmatically(act)
+
+        data = self._units_settings["energy_units"]
+        act = self.energy_units_btn.get_action(data=data)
+        self.energy_units_btn.update_state_programmatically(act)
+
+        data = self._units_settings["power_units"]
+        act = self.power_units_btn.get_action(data=data)
+        self.power_units_btn.update_state_programmatically(act)
+
         self.update_view()
 
+    def enable_units_buttons(self, enable):
+        """ Enable or disable units settings buttons. """
+        self.units_system_btn.setEnabled(enable)
+        self.energy_units_btn.setEnabled(enable)
+        self.power_units_btn.setEnabled(enable)
+
     def reset_units_to_default(self):
-        """ Reset units to be E+ default. """
-        self.units_system_btn.setDefaultAction(data="SI")
-        self.power_units_btn.setDefaultAction(data="W")
-        self.energy_units_btn.setDefaultAction(data="J")
+        """ Reset units to E+ default. """
+        act = self.units_system_btn.get_action(data="SI")
+        self.units_system_btn.update_state_programmatically(act)
+
+        act = self.energy_units_btn.get_action(data="J")
+        self.energy_units_btn.update_state_programmatically(act)
+
+        act = self.power_units_btn.get_action(data="W")
+        self.power_units_btn.update_state_programmatically(act)
+
         self.update_view()
 
     def units_settings_toggled(self, state):
         """ Update units settings when custom units toggled. """
-        print(state)
         if state == 0:
             self.store_units_settings()
             self.reset_units_to_default()
+            self.enable_units_buttons(False)
         else:
             self.restore_units_settings()
+            self.enable_units_buttons(True)
 
     def units_system_changed(self, act):
         """ Update view when energy units are changed. """
-        btn = self.units_system_btn
-        self._update_btn_menu(act, btn)
+        changed = self.units_system_btn.update_state(act)
+
+        if changed:
+            self.update_view()
 
     def power_units_changed(self, act):
         """ Update view when energy units are changed. """
-        btn = self.power_units_btn
-        self._update_btn_menu(act, btn)
+        changed = self.power_units_btn.update_state(act)
+
+        if changed:
+            self.update_view()
 
     def energy_units_changed(self, act):
         """ Update view when energy units are changed. """
-        btn = self.energy_units_btn
-        self._update_btn_menu(act, btn)
+        changed = self.energy_units_btn.update_state(act)
+
+        if changed:
+            self.update_view()
 
     def view_key_changed(self, act):
         """ Update view when view type is changed. """
-        btn = self.group_by_btn
-        self._update_btn_menu(act, btn)
+        self.group_by_btn.update_state(act)
 
-        # ~~~~ Disable expand / collapse all buttons ~~~~~~~~~~~~~~~~~~~~~~~~
+        # disable expand / collapse all buttons
         key = act.data()
         self.handle_col_ex_btns(key)
 
@@ -988,13 +990,6 @@ class MainWindow(QtWidgets.QMainWindow):
             req = Variable(interval, *item)
             request_lst.append(req)
         return request_lst
-
-    def stored_units_settings(self):
-        """ Get currently selected units settings. """
-        units_system = self.units_system_btn.defaultAction().data()
-        power = self.power_units_btn.defaultAction().data()
-        energy = self.energy_units_btn.defaultAction().data()
-        return units_system, power, energy
 
     def current_request(self):
         """ Get a currently selected output variables information. """
