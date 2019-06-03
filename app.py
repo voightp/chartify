@@ -1049,6 +1049,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         return df
 
+    # TODO review these when handling results
     def single_file_results(self, request):
         return get_results(self.currentEsoFileWidget.esoFile, request)
 
