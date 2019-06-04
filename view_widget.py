@@ -204,19 +204,10 @@ class View(QTreeView):
 
         self.shuffle_columns(view_order)
 
-        print("MODEL")
-        print(self._get_visual_names())
-        print(self._get_logical_names())
-        print(self._get_logical_ixs())
-
     def _set_header_labels(self, view_order):
         """ Assign header labels. """
         model = self.model().sourceModel()
-        # model.setHorizontalHeaderLabels(view_order)
-
-        # h = QHeaderView(self, Qt.Horizontal)
-        for i, dt in enumerate(view_order):
-            self.model().setHeaderData(i, Qt.Horizontal, dt)
+        model.setHorizontalHeaderLabels(view_order)
 
     def _set_resize_behaviour(self, view_order):
         """ Define resizing behaviour. """
@@ -287,6 +278,7 @@ class View(QTreeView):
 
     def _section_moved(self, _logical_ix, _old_visual_ix, new_visual_ix):
         """ Handle updating the model when first column changed. """
+        print(_logical_ix, _old_visual_ix, new_visual_ix)
         names = self._get_visual_names()
         self.main_app.update_sections_order(names)
 
