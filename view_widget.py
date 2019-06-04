@@ -119,6 +119,15 @@ class View(QTreeView):
             self._create_header_actions()
             self.initialized = True
 
+    def shuffle_columns(self, order):
+        """ Reset column positions to match last visual appearance. """
+        header = self.header()
+        for i, nm in enumerate(order):
+            vis_names = self._get_visual_names()
+            j = vis_names.index(nm)
+            if i != j:
+                header.moveSection(j, i)
+
     def _update_sort_order(self, index, order):
         """ Set header order. """
         self.header().setSortIndicator(index, order)
@@ -193,10 +202,21 @@ class View(QTreeView):
         if sort_order:
             self._update_sort_order(*sort_order)
 
+        self.shuffle_columns(view_order)
+
+        print("MODEL")
+        print(self._get_visual_names())
+        print(self._get_logical_names())
+        print(self._get_logical_ixs())
+
     def _set_header_labels(self, view_order):
         """ Assign header labels. """
         model = self.model().sourceModel()
-        model.setHorizontalHeaderLabels(view_order)
+        # model.setHorizontalHeaderLabels(view_order)
+
+        # h = QHeaderView(self, Qt.Horizontal)
+        for i, dt in enumerate(view_order):
+            self.model().setHeaderData(i, Qt.Horizontal, dt)
 
     def _set_resize_behaviour(self, view_order):
         """ Define resizing behaviour. """
@@ -223,31 +243,27 @@ class View(QTreeView):
             header.setSectionResizeMode(1, QHeaderView.Stretch)
             header.setSectionResizeMode(0, QHeaderView.Interactive)
 
-    def _get_log_names(self):
+    def _get_logical_names(self):
         """ Get names sorted by logical index. """
         model = self.model()
         num = model.columnCount()
         names = [model.headerData(i, Qt.Horizontal).lower() for i in range(num)]
-        print("LOGICAL NAMES")
-        print(names)
         return names
 
-    def _get_vis_names(self):
+    def _get_visual_names(self):
         """ Return sorted column names (by visual index). """
         num = self.model().columnCount()
-        names = self._get_log_names()
+        names = self._get_logical_names()
         vis_ixs = [self.header().visualIndex(i) for i in range(num)]
 
         z = list(zip(names, vis_ixs))
         z.sort(key=lambda x: x[1])
         sorted_names = list(zip(*z))[0]
-        print("VISUAL NAMES")
-        print(sorted_names)
         return sorted_names
 
     def _get_logical_ixs(self):
         """ Return logical positions of header labels. """
-        names = self._get_log_names()
+        names = self._get_logical_names()
         return (names.index("key"),
                 names.index("variable"),
                 names.index("units"))
@@ -271,13 +287,14 @@ class View(QTreeView):
 
     def _section_moved(self, _logical_ix, _old_visual_ix, new_visual_ix):
         """ Handle updating the model when first column changed. """
-        names = self._get_vis_names()
+        names = self._get_visual_names()
         self.main_app.update_sections_order(names)
 
-        if new_visual_ix == 0 and self.main_app.is_tree():
+        if new_visual_ix == 0 and self.main_app.is_tree() and _logical_ix != 0:
             # need to update view as section has been moved
             # onto first position and tree key is applied
             self.main_app.update_view()
+            self.header().swapSections(new_visual_ix, _old_visual_ix)
 
     def _create_header_actions(self):
         """ Create header actions. """
