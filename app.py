@@ -205,6 +205,10 @@ class MainWindow(QtWidgets.QMainWindow):
         memory.triggered.connect(self.report_sizes)  # TODO REMOVE THIS
         self.memory_menu = self.menuBar().addAction(memory)  # TODO REMOVE THIS
 
+        dummy = QAction("Dummy", self)
+        dummy.triggered.connect(self.load_dummy)  # TODO REMOVE THIS
+        self.dummy_menu = self.menuBar().addAction(dummy)  # TODO REMOVE THIS
+
         self.show_menu = self.menuBar().addAction(css)
         self.help_menu = self.menuBar().addAction(no_css)
         self.mirror_menu = self.menuBar().addAction(mirror)
@@ -256,6 +260,10 @@ class MainWindow(QtWidgets.QMainWindow):
         print("Executor size", asizeof.asizeof(self.pool))
         print("Monitor thread", asizeof.asizeof(self.monitor_thread))
         print("Watcher thread", asizeof.asizeof(self.watcher_thread))
+
+    def load_dummy(self):
+        """ Load a dummy file. """
+        self._load_eso_files(["tests/eplusout.eso"])
 
     def mirror(self):
         """ Mirror the layout. """
