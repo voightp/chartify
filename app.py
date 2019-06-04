@@ -30,7 +30,7 @@ import eso_reader.misc_os as misc_os
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 from queue import Queue
 from multiprocessing import Manager, cpu_count, Pipe, Process
-from view_widget import GuiEsoFile
+from view_widget import View
 from chart_widgets import MyWebView
 from random import randint
 from threads import PipeEcho, MonitorThread, EsoFileWatcher, GuiMonitor
@@ -148,11 +148,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # ~~~~ Intermediate settings ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.stored_view_settings = {"widths": None,
                                      "order": None,
-                                     "header": {
-                                         "key": 0,
-                                         "variable": 1,
-                                         "units": 2,
-                                     },
+                                     "header": ("variable", "key", "units"),
                                      "expanded": set()}
 
         self.default_energy_dct = {TS: False, H: False, D: True,
@@ -224,7 +220,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.chart_area.setAcceptDrops(True)
 
         self.url = "http://127.0.0.1:8080/"
-        self.chart_area.load(QUrl(self.url))
+        # self.chart_area.load(QUrl(self.url))
 
         # ~~~~ Set up main widgets and layouts ~~~~~~~~~~~~~~~~~~~~~~~~~
         self.load_icons()
@@ -624,18 +620,16 @@ class MainWindow(QtWidgets.QMainWindow):
         view_tools_layout.addItem(spacer)
         view_tools_layout.addWidget(btn_widget)
 
-    def get_tree_key(self):
-        if self.tree_view_btn.isChecked():
-            dct = self.stored_view_settings["header"]
-            return next(k for k, v in dct.items() if v == 0)
+    def is_tree(self):
+        return self.tree_view_btn.isChecked()
 
     def get_group_by_key(self):  # TODO remove after review
         """ Get current view arrange key from the interface. """
         return self.group_by_btn.defaultAction().data()
 
-    def handle_col_ex_btns(self, tree_key):
+    def handle_col_ex_btns(self, is_tree):
         """ Enable / disable 'collapse all' / 'expand all' buttons. """
-        if not tree_key:
+        if not is_tree:
             self.collapse_all_btn.setEnabled(False)
             self.expand_all_btn.setEnabled(False)
 
@@ -643,10 +637,10 @@ class MainWindow(QtWidgets.QMainWindow):
             self.collapse_all_btn.setEnabled(True)
             self.expand_all_btn.setEnabled(True)
 
-    def update_view(self, is_fresh=False):
+    def update_view(self):
         """ Create a new model when the tab or the interval has changed. """
         # retrieve required inputs from the interface
-        tree_key = self.get_tree_key()
+        is_tree = self.is_tree()
         interval = self.get_selected_interval()
         units_settings = self.get_units_settings()
 
@@ -659,11 +653,10 @@ class MainWindow(QtWidgets.QMainWindow):
             return
 
         # update the current widget
-        eso_file_widget.update_view_model(tree_key,
+        eso_file_widget.update_view_model(is_tree,
                                           interval,
                                           view_settings,
                                           units_settings,
-                                          is_fresh=is_fresh,
                                           select=selection)
 
         # check if some filtering is applied,
@@ -673,7 +666,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # based on the current view, enable or disable tree buttons
         # collapse and expand all buttons are not relevant for plain view
-        self.handle_col_ex_btns(tree_key)
+        self.handle_col_ex_btns(is_tree)
 
     def update_layout(self):
         """ Update window layout accordingly to window size. """
@@ -861,7 +854,7 @@ class MainWindow(QtWidgets.QMainWindow):
         print("Tab changed {}".format(index))
         if not self.tab_widget_empty():
             self.update_interval_buttons_state()
-            self.update_view(is_fresh=True)
+            self.update_view()
             self.populate_intervals_group()
 
         else:
@@ -899,9 +892,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.tab_wgt.tabCloseRequested.connect(self.remove_eso_file)
         self.tab_wgt.currentChanged.connect(self.tab_changed)
 
-    def update_sections_order(self, header):
+    def update_sections_order(self, order):
         """ Store current view header order. """
-        self.stored_view_settings["header"] = header
+        self.stored_view_settings["header"] = order
 
     def update_sort_order(self, new_index, new_order):
         """ Store current column vertical sorting. """
@@ -972,7 +965,7 @@ class MainWindow(QtWidgets.QMainWindow):
         """ Add eso file into 'tab' widget. """
         # add the file on the ui
         eso_file_header = EsoFileHeader(eso_file.header_dct)
-        eso_file_widget = GuiEsoFile(self, id, eso_file_header)
+        eso_file_widget = View(self, id, eso_file_header)
         self.tab_wgt.addTab(eso_file_widget, eso_file.file_name)
 
         # add the file into database

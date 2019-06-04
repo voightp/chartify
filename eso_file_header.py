@@ -28,20 +28,11 @@ class EsoFileHeader:
         return self._header_dct.keys()
 
     @staticmethod
-    def _get_field_names(tree_key):
-        """ Rearrange variable order. . """
-        order = ["key", "variable", "units"]
-        if tree_key:
-            order.remove(tree_key)
-            order.insert(0, tree_key)
-        return order
-
-    @staticmethod
-    def create_proxy(header, interval, units_settings, field_names):
+    def create_proxy(header, units_settings, view_order, interval):
         """ Create a list of proxy variables. """
         energy_dct, units_system, energy_units, power_units = units_settings
         use_energy = energy_dct[interval]
-        ProxyHeaderVariable = namedtuple("ProxyHeaderVariable", field_names)
+        ProxyHeaderVariable = namedtuple("ProxyHeaderVariable", list(view_order))
         proxy_header = []
 
         for var in header:
@@ -58,12 +49,12 @@ class EsoFileHeader:
         return proxy_header
 
     @classmethod
-    def tree_header(cls, header_iterator, group_by_key):
+    def tree_header(cls, header_iterator, tree_key):
         """ Group variables into tree based on given key. """
         dct = defaultdict(list)
 
         for data, proxy in header_iterator:
-            key = proxy.__getattribute__(group_by_key)
+            key = proxy.__getattribute__(tree_key)
             dct[key].append((data, proxy))
 
         return dct
@@ -72,15 +63,11 @@ class EsoFileHeader:
         """ Return a list of header variables for a given interval. """
         return list(self._header_dct[interval].values())
 
-    def get_header_iterator(self, interval, units_settings, tree_key):
+    def get_header_iterator(self, units_settings, view_order, interval):
         """ Return data - proxy paired list of tuples. """
         header = self._variables(interval)
-        field_names = self._get_field_names(tree_key)
-
-        proxy = self.create_proxy(header,
-                                  interval,
-                                  units_settings,
-                                  field_names)
+        proxy = self.create_proxy(header, units_settings,
+                                  view_order, interval)
 
         return zip(header, proxy)
 

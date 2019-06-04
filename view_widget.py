@@ -15,12 +15,7 @@ from PySide2.QtGui import QStandardItemModel, QStandardItem, QFont
 from eso_file_header import EsoFileHeader
 
 
-def variable_piece(variable, identifier):
-    """ Identify and return a part of variable for given identifier.  """
-    return variable.__getattribute__(identifier)
-
-
-class GuiEsoFile(QTreeView):
+class View(QTreeView):
     def __init__(self, main_app, file_id, eso_file_header):
         super().__init__()
         self.setRootIsDecorated(True)
@@ -38,11 +33,13 @@ class GuiEsoFile(QTreeView):
         self.setFocusPolicy(Qt.NoFocus)
 
         self.main_app = main_app
+        self.initialized = False
         self.eso_file_header = eso_file_header
         self._file_id = file_id
         self._interval = None
-        self._tree_key = None
+        self._is_tree = None
         self._units_settings = None
+        self._view_settings = None
 
         self.expanded.connect(self.handle_expanded)
         self.collapsed.connect(self.handle_collapsed)
@@ -68,11 +65,15 @@ class GuiEsoFile(QTreeView):
 
     def _store_tree_key(self, new_key):
         """ Hold a value of the last grouping settings. """
-        self._tree_key = new_key
+        self._is_tree = new_key
 
     def _store_units_settings(self, new_units):
         """ Hold a data on the last units settings. """
         self._units_settings = new_units
+
+    def _store_view_settings(self, new_settings):
+        """ Hold a data on the last view settings. """
+        self._units_settings = new_settings
 
     def expand_all(self):
         """ Expand all nested nodes. """
@@ -95,26 +96,28 @@ class GuiEsoFile(QTreeView):
         self.sortByColumn(0, Qt.AscendingOrder)
 
     def create_view_model(self, eso_file_header, units_settings,
-                          tree_key, interval, is_fresh=False):
+                          tree_key, view_order, interval):
         """
         Create a model and set up its appearance.
         """
-        model = ViewModel(eso_file_header, units_settings,
-                          tree_key, interval)
+        model = ViewModel()
+        model.populate_data(eso_file_header, units_settings,
+                            tree_key, view_order, interval)
 
         proxy_model = FilterModel()
         proxy_model.setSourceModel(model)
         self.setModel(proxy_model)
 
         # define view appearance and behaviour
-        self._set_header_labels(tree_key)
-        self._set_resize_behaviour(tree_key)
+        self._set_header_labels(view_order)
+        # self._set_resize_behaviour(view_order)
         self._set_first_col_spanned()
         self._set_ascending_order()
 
-        if is_fresh:
+        if not self.initialized:
             # create header actions only when view is created
             self._create_header_actions()
+            self.initialized = True
 
     def _update_sort_order(self, index, order):
         """ Set header order. """
@@ -145,36 +148,35 @@ class GuiEsoFile(QTreeView):
         proxy_indexes = proxy_selection.indexes()
         self.update_app_outputs(proxy_indexes)
 
-    def update_view_model(self, tree_key, interval, view_settings,
-                          units_settings, select=None, is_fresh=False):
+    def update_view_model(self, is_tree, interval, view_settings,
+                          units_settings, select=None):
         """
         Set the model and define behaviour of the tree view.
         """
-
         eso_file_header = self.eso_file_header
         column_width_dct = view_settings["widths"]
         sort_order = view_settings["order"]
         expanded_items = view_settings["expanded"]
-        header_dct = view_settings["header"]
+        view_order = view_settings["header"]
+        tree_key = view_order[0] if is_tree else None
 
         # Only update the model if the settings have changed
         conditions = [
-            tree_key != self._tree_key,
+            is_tree != self._is_tree,
             interval != self._interval,
-            units_settings != self._units_settings
+            units_settings != self._units_settings,
+            view_settings != self._view_settings
         ]
 
         if any(conditions):
-            self.create_view_model(eso_file_header, units_settings, tree_key,
-                                   interval, is_fresh=is_fresh)
+            self.create_view_model(eso_file_header, units_settings,
+                                   tree_key, view_order, interval)
 
             # Store current sorting key and interval
-            self._store_tree_key(tree_key)
+            self._store_tree_key(is_tree)
             self._store_interval(interval)
             self._store_units_settings(units_settings)
-
-        # rearrange columns order
-        self._move_columns(header_dct)
+            self._store_view_settings(view_settings)
 
         # clean up selection as this will be handled based on
         # currently selected list of items stored in main app
@@ -191,28 +193,17 @@ class GuiEsoFile(QTreeView):
         if sort_order:
             self._update_sort_order(*sort_order)
 
-    def _set_header_labels(self, tree_key):
+    def _set_header_labels(self, view_order):
         """ Assign header labels. """
         model = self.model().sourceModel()
-        column_labels_dct = {"key": "Key",
-                             "variable": "Variable",
-                             "units": "Units"}
-        labels = list(column_labels_dct.values())
+        model.setHorizontalHeaderLabels(view_order)
 
-        if tree_key:
-            # switch labels to reflect the arrange key input
-            parent_label = column_labels_dct.pop(tree_key)
-            labels.remove(parent_label)
-            labels.insert(0, parent_label)
-
-        model.setHorizontalHeaderLabels(labels)
-
-    def _set_resize_behaviour(self, group_by_key):
+    def _set_resize_behaviour(self, view_order):
         """ Define resizing behaviour. """
         header = self.header()
         units_ix = 2
 
-        if group_by_key == "units":
+        if tree_key == "units":
             # Units index is always '2', unless
             # it's used as an arrange key
             units_ix = 0
@@ -232,38 +223,42 @@ class GuiEsoFile(QTreeView):
             header.setSectionResizeMode(1, QHeaderView.Stretch)
             header.setSectionResizeMode(0, QHeaderView.Interactive)
 
+    def _get_log_names(self):
+        """ Get names sorted by logical index. """
+        model = self.model()
+        num = model.columnCount()
+        names = [model.headerData(i, Qt.Horizontal).lower() for i in range(num)]
+        print("LOGICAL NAMES")
+        print(names)
+        return names
+
+    def _get_vis_names(self):
+        """ Return sorted column names (by visual index). """
+        num = self.model().columnCount()
+        names = self._get_log_names()
+        vis_ixs = [self.header().visualIndex(i) for i in range(num)]
+
+        z = list(zip(names, vis_ixs))
+        z.sort(key=lambda x: x[1])
+        sorted_names = list(zip(*z))[0]
+        print("VISUAL NAMES")
+        print(sorted_names)
+        return sorted_names
+
     def _get_logical_ixs(self):
         """ Return logical positions of header labels. """
-        model = self.model()
-        cols = [model.headerData(i, Qt.Horizontal) for i in range(model.columnCount())]
-        key_ix = cols.index("Key")
-        var_ix = cols.index("Variable")
-        units_ix = cols.index("Units")
-        return key_ix, var_ix, units_ix
-
-    def _get_visual_ixs(self):
-        """ Return visual positions of header labels. """
-        ixs = self._get_logical_ixs()
-        key_ix, var_ix, units_ix = [self.header().visualIndex(i) for i in ixs]
-        return key_ix, var_ix, units_ix
-
-    def _move_columns(self, header_dct):
-        """ Rearrange column order. """
-        ixs = self._get_visual_ixs()
-        new_ixs = header_dct.values()
-
-        for ix, new_ix in zip(ixs, new_ixs):
-            if ix == new_ix:
-                continue
-            self.header().swapSections(ix, new_ix)
+        names = self._get_log_names()
+        return (names.index("key"),
+                names.index("variable"),
+                names.index("units"))
 
     def _resize_columns(self, column_width_dct):
         """ Set tree view column width. """
         header = self.header()
         key_ix, var_ix, units_ix = self._get_logical_ixs()
-        header.resizeSection(key_ix, column_width_dct["Key"])
-        header.resizeSection(var_ix, column_width_dct["Variable"])
-        header.resizeSection(units_ix, column_width_dct["Units"])
+        header.resizeSection(key_ix, column_width_dct["key"])
+        header.resizeSection(var_ix, column_width_dct["variable"])
+        header.resizeSection(units_ix, column_width_dct["units"])
 
     def _sort_order_changed(self, index, order):
         """ Store current sorting order in main app. """
@@ -276,12 +271,10 @@ class GuiEsoFile(QTreeView):
 
     def _section_moved(self, _logical_ix, _old_visual_ix, new_visual_ix):
         """ Handle updating the model when first column changed. """
-        key_ix, var_ix, units_ix = self._get_visual_ixs()
-        self.main_app.update_sections_order({"key": key_ix,
-                                             "variable": var_ix,
-                                             "units": units_ix})
+        names = self._get_vis_names()
+        self.main_app.update_sections_order(names)
 
-        if new_visual_ix == 0 and self.main_app.get_tree_key():
+        if new_visual_ix == 0 and self.main_app.is_tree():
             # need to update view as section has been moved
             # onto first position and tree key is applied
             self.main_app.update_view()
@@ -302,9 +295,9 @@ class GuiEsoFile(QTreeView):
         key_ix, var_ix, units_ix = self._get_logical_ixs()
         header = self.header()
         return {
-            "Key": header.sectionSize(key_ix),
-            "Variable": header.sectionSize(var_ix),
-            "Units": header.sectionSize(units_ix)
+            "key": header.sectionSize(key_ix),
+            "variable": header.sectionSize(var_ix),
+            "units": header.sectionSize(units_ix)
         }
 
     def fetch_request(self):
@@ -427,22 +420,13 @@ class GuiEsoFile(QTreeView):
 
 
 class ViewModel(QStandardItemModel):
-    def __init__(self, eso_file_header, units_settings, tree_key, interval):
+    def __init__(self):
         super().__init__()
-        self.populate_data(eso_file_header, units_settings, tree_key, interval)
         self.setSortRole(Qt.AscendingOrder)
 
     def mimeTypes(self):
         # TODO Double check if this is working
         return "application/json"
-
-    @staticmethod
-    def _get_identifiers(tree_key):
-        """ Rearrange variable order. . """
-        identifiers = ["key", "variable", "units"]
-        identifiers.remove(tree_key)
-        identifiers.insert(0, tree_key)
-        return identifiers
 
     @staticmethod
     def _append_rows(header_iterator, parent):
@@ -475,12 +459,10 @@ class ViewModel(QStandardItemModel):
                 root.appendRow(parent)
                 self._append_rows(variables, parent)
 
-    def populate_data(self, eso_file_header, units_settings, tree_key, interval):
+    def populate_data(self, eso_file_header, units_settings, tree_key, view_order, interval):
         """ Feed the model with output variables. """
         root = self.invisibleRootItem()
-        header = eso_file_header.get_header_iterator(interval,
-                                                     units_settings,
-                                                     tree_key)
+        header = eso_file_header.get_header_iterator(units_settings, view_order, interval)
 
         if not tree_key:
             # tree like structure is not being used
@@ -556,7 +538,7 @@ class FilterModel(QSortFilterProxyModel):
         # create a list which holds parent parts of currently selected items
         # if the part of variable does not match, than the variable (or any children)
         # will not be selected
-        quick_check = [variable_piece(var, tree_key) for var in current_selection]
+        quick_check = [var.__getattribute__(tree_key) for var in current_selection]
 
         num_rows = self.rowCount()
         for i in range(num_rows):
