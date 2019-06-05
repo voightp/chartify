@@ -1,7 +1,7 @@
 from PySide2.QtWidgets import QWidget, QToolButton, QApplication, QVBoxLayout, QHBoxLayout, QLabel, \
     QSizePolicy, QFrame, \
     QAction, QCheckBox, QSlider
-from PySide2.QtCore import QSize, Qt
+from PySide2.QtCore import QSize, Qt, Signal
 import sys
 
 
@@ -161,11 +161,14 @@ class ToggleButton(QFrame):
 
     The appearance is handled by CSS.
     """
+    object_name = "toggleButton"
+    container_name = "toggleButtonContainer"
+    stateChanged = Signal(int)  # camel case to follow qt rules
 
-    def __init__(self, *args, text="", **kwargs):
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.setObjectName("toggleButton")
         self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+        self.setObjectName(ToggleButton.container_name)
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -175,10 +178,40 @@ class ToggleButton(QFrame):
         self.slider.setMinimum(0)
         self.slider.setMaximum(1)
         self.slider.setValue(0)
+        self.slider.valueChanged.connect(self.onValueChange)
+        self.slider.setObjectName(ToggleButton.object_name)
+
+        self.label = None
 
         layout.addWidget(self.slider)
 
-        if text:
-            self.label = QLabel(self)
-            self.label.setText(text)
-            layout.addWidget(self.label)
+    def onValueChange(self, val):
+        """ Trigger slider stateChange signal. """
+        self.setChecked(bool(val))
+        self.stateChanged.emit(val)
+
+    def isChecked(self):
+        """ Get the current state of toggle button. """
+        return bool(self.slider.value())
+
+    def setText(self, text):
+        """ Set toggle button label. """
+        self.label = QLabel(self)
+        self.label.setText(text)
+        self.layout().addWidget(self.label)
+
+    def setChecked(self, checked):
+        """ Set toggle button checked. """
+        obj_name = ToggleButton.object_name + ("Checked" if checked else "")
+        self.slider.setObjectName(obj_name)
+        self.slider.setValue(int(checked))
+        self.slider.style().unpolish(self.slider)
+        self.slider.style().polish(self.slider)
+
+    def setEnabled(self, enabled):
+        """ Enable or disable the button. """
+        obj_name = ToggleButton.object_name + ("" if enabled else "Disabled")
+        self.slider.setObjectName(obj_name)
+        self.slider.setEnabled(enabled)
+        self.slider.style().unpolish(self.slider)
+        self.slider.style().polish(self.slider)

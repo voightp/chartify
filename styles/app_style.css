@@ -64,15 +64,16 @@ QToolButton {
 
 QToolButton:checked {
     color: white;
-  /*  background-color: rgba(41,182,246,1);*/
     background-color: rgba(255,87,34,0.7);
 }
+
 
 QToolButton:hover:checked {
    background-color: rgba(255,87,34,0.7);
 }
 
 QToolButton:disabled {
+    color:  rgba(140,140,140,1);
     opacity: 0.5;
     border-color: rgba(0, 0, 0, 0.26);
     background-color: rgba(0, 0, 0, 0.12);
@@ -346,27 +347,31 @@ QScrollBar::handle {
 
  }
 
- QCheckBox {
-    background: yellow;
- }
+QFrame#toggleButtonContainer {
+    margin: 2px;
+}
 
- QFrame#toggleButton {
-    background-color: white;
- }
-
- QSlider {
-    margin: 0px;
+QSlider {
+    margin: 0px 2px 0px 0px;
     padding: 2px 5px;
     height: 14px;
     max-width: 20px;
-    background: green;
+    background: rgba(189, 189, 200, 0.8);
     border-radius: 8px;
     border: 0px solid black;
+}
 
+QSlider#toggleButtonChecked {
+    background: rgba(255,87,34,0.7);
  }
 
- QSlider::groove:horizontal {
-    background: green;
+QSlider#toggleButtonDisabled {
+    opacity: 0.5;
+    background: rgba(0, 0, 0, 0.12);
+ }
+
+QSlider::groove:horizontal {
+    background: transparent;
 }
 
 QSlider::handle:horizontal {

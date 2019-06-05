@@ -89,8 +89,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.toolbar_layout.addWidget(self.tools_group)
 
         self.options_group = QGroupBox("Options", self.toolbar_wgt)
-        self.all_eso_files_toggle = ToggleButton("all files", self.options_group)
-        self.custom_units_toggle = ToggleButton("custom units", self.options_group)
+        self.all_eso_files_toggle = ToggleButton(self.options_group)
+        self.custom_units_toggle = ToggleButton(self.options_group)
         self.set_up_options()
         self.toolbar_layout.addWidget(self.options_group)
 
@@ -502,8 +502,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         settings_btns = [self.energy_units_btn,
                          self.power_units_btn,
-                         self.units_system_btn,
-                         self.group_by_btn]
+                         self.units_system_btn]
 
         self.populate_grid_layout(layout, settings_btns, n_cols)
 
@@ -530,12 +529,12 @@ class MainWindow(QtWidgets.QMainWindow):
         options_layout.setAlignment(Qt.AlignLeft)
 
         # ~~~~ Generate include / exclude all files button ~~~~~~~~~~~~~~~~~
-        # self.all_eso_files_toggle.setEnabled(False) # TODO update to new toggle
-        # self.all_eso_files_toggle.setText("All files")
-        # self.all_eso_files_toggle.setCheckable(True)
+        self.all_eso_files_toggle.setText("all files")
+        self.all_eso_files_toggle.setEnabled(False)
 
         # ~~~~ Toggle custom units button ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        # self.custom_units_toggle.setChecked(True)
+        self.custom_units_toggle.setText("custom units")
+        self.custom_units_toggle.setChecked(True)
 
         self.populate_options_group()
 
@@ -586,15 +585,6 @@ class MainWindow(QtWidgets.QMainWindow):
                                              title="system", menu=units_system_menu,
                                              items=items, data=items, def_act_ix=ix)
 
-        # ~~~~ Sorting set up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        group_by = QMenu(self)
-        items = ["-", "key", "variable", "units"]
-        data = [None, "key", "variable", "units"]
-        ix = items.index(DEFAULTS["group_by"])
-        self.group_by_btn = TitledButton(self.settings_group, fill_space=True,
-                                         title="group by", menu=group_by,
-                                         items=items, data=data, def_act_ix=ix)
-
         self.populate_settings_group()
 
     def set_up_view_tools(self):
@@ -636,19 +626,10 @@ class MainWindow(QtWidgets.QMainWindow):
         """ Check if tree structure is requested. """
         return self.tree_view_btn.isChecked()
 
-    def get_group_by_key(self):  # TODO remove after review
-        """ Get current view arrange key from the interface. """
-        return self.group_by_btn.defaultAction().data()
-
-    def handle_col_ex_btns(self, is_tree):
+    def handle_col_ex_btns(self, enabled):
         """ Enable / disable 'collapse all' / 'expand all' buttons. """
-        if not is_tree:
-            self.collapse_all_btn.setEnabled(False)
-            self.expand_all_btn.setEnabled(False)
-
-        else:
-            self.collapse_all_btn.setEnabled(True)
-            self.expand_all_btn.setEnabled(True)
+        self.collapse_all_btn.setEnabled(enabled)
+        self.expand_all_btn.setEnabled(enabled)
 
     def update_view(self):
         """ Create a new model when the tab or the interval has changed. """
@@ -880,7 +861,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.resized.connect(self.update_layout)
 
         # ~~~~ Interval buttons actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        _ = [btn.clicked.connect(self.interval_changed) for btn in self.interval_btns.values()]
+        btns = self.interval_btns.values()
+        _ = [btn.clicked.connect(self.interval_changed) for btn in btns]
 
         # ~~~~ Options buttons actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.export_xlsx_btn.clicked.connect(self.export_xlsx)
@@ -890,7 +872,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.collapse_all_btn.clicked.connect(self.collapse_all)
 
         # ~~~~ Options Actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.custom_units_toggle.slider.valueChanged.connect(self.units_settings_toggled)
+        self.custom_units_toggle.stateChanged.connect(self.units_settings_toggled)
 
         # ~~~~ Settings Actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.tree_view_btn.clicked.connect(self.tree_btn_clicked)
