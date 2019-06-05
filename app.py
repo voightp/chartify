@@ -117,8 +117,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.view_tools_wgt.setObjectName("viewTools")
 
         self.tree_view_btn = QToolButton(self.view_tools_wgt)
-        self.tree_view_btn.setText("Tree")
-        self.tree_view_btn.setCheckable(True)
+        self.tree_view_btn.setObjectName("treeButton")
 
         self.collapse_all_btn = QToolButton(self.view_tools_wgt)
         self.collapse_all_btn.setObjectName("smallButton")
@@ -146,17 +145,17 @@ class MainWindow(QtWidgets.QMainWindow):
         self.create_ui_actions()
 
         # ~~~~ Intermediate settings ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.stored_view_settings = {"widths": None,
-                                     "order": None,
+        self.stored_view_settings = {"widths": {},
+                                     "order": tuple(),
                                      "header": ("variable", "key", "units"),
                                      "expanded": set()}
 
         self.default_energy_dct = {TS: False, H: False, D: True,
                                    M: True, A: True, RP: True}
 
-        self._units_settings = {"units_system": None,
-                                "power_units": None,
-                                "energy_units": None}
+        self._units_settings = {"units_system": "",
+                                "power_units": "",
+                                "energy_units": ""}
 
         self.selected = None
 
@@ -289,7 +288,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def resizeEvent(self, event):
         """ Handle window behaviour when on resize. """
         self.resized.emit()
-        return super().resizeEvent(event)
+        return super(MainWindow, self).resizeEvent(event)
 
     def populate_current_selection(self, outputs):
         """ Store current selection in main app. """
@@ -384,8 +383,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.setWindowIcon(QPixmap("./icons/twotone_pie_chart.png"))
         self.filter_icon.setPixmap(Pixmap("./icons/filter_list.png", r=255, g=255, b=255))
-        self.expand_all_btn.setIcon(Pixmap("./icons/unfold_more.png"))
-        self.collapse_all_btn.setIcon(Pixmap("./icons/unfold_less.png"))
+        self.expand_all_btn.setIcon(Pixmap("./icons/unfold_more.png", a=0.5))
+        self.collapse_all_btn.setIcon(Pixmap("./icons/unfold_less.png", a=0.5))
+        self.tree_view_btn.setIcon(Pixmap("./icons/tree_view.png", a=0.5))
 
     def set_up_tab_wgt(self):
         """ Set up appearance and behaviour of the tab widget. """
@@ -615,10 +615,14 @@ class MainWindow(QtWidgets.QMainWindow):
         btn_layout.addWidget(self.collapse_all_btn)
         btn_layout.addWidget(self.expand_all_btn)
 
-        # ~~~~ Create tree search line edit ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # ~~~~ Create view search line edit ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.filter_line_edit.setPlaceholderText("filter...")
         self.filter_line_edit.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         self.filter_line_edit.setFixedWidth(160)
+
+        # ~~~~ Set up tree button  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.tree_view_btn.setText("Tree")
+        self.tree_view_btn.setCheckable(True)
 
         spacer = QSpacerItem(1, 1, QSizePolicy.Expanding, QSizePolicy.Minimum)
 
@@ -629,6 +633,7 @@ class MainWindow(QtWidgets.QMainWindow):
         view_tools_layout.addWidget(btn_widget)
 
     def is_tree(self):
+        """ Check if tree structure is requested. """
         return self.tree_view_btn.isChecked()
 
     def get_group_by_key(self):  # TODO remove after review

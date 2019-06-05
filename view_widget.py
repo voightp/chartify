@@ -33,11 +33,11 @@ class View(QTreeView):
         self.setFocusPolicy(Qt.NoFocus)
 
         self.main_app = main_app
-        self.initialized = False
+        self._initialized = False
         self.eso_file_header = eso_file_header
         self._file_id = file_id
         self._interval = None
-        self._is_tree = None
+        self._tree_key = None
         self._units_settings = None
         self._view_settings = None
 
@@ -65,15 +65,11 @@ class View(QTreeView):
 
     def _store_tree_key(self, new_key):
         """ Hold a value of the last grouping settings. """
-        self._is_tree = new_key
+        self._tree_key = new_key
 
     def _store_units_settings(self, new_units):
         """ Hold a data on the last units settings. """
         self._units_settings = new_units
-
-    def _store_view_settings(self, new_settings):
-        """ Hold a data on the last view settings. """
-        self._units_settings = new_settings
 
     def expand_all(self):
         """ Expand all nested nodes. """
@@ -114,14 +110,15 @@ class View(QTreeView):
         self._set_first_col_spanned()
         self._set_ascending_order()
 
-        if not self.initialized:
+        if not self._initialized:
             # create header actions only when view is created
             self._create_header_actions()
-            self.initialized = True
+            self._initialized = True
 
-    def shuffle_columns(self, order):
+    def _shuffle_columns(self, order):
         """ Reset column positions to match last visual appearance. """
         header = self.header()
+
         for i, nm in enumerate(order):
             vis_names = self._get_visual_names()
             j = vis_names.index(nm)
@@ -157,41 +154,12 @@ class View(QTreeView):
         proxy_indexes = proxy_selection.indexes()
         self.update_app_outputs(proxy_indexes)
 
-    def update_view_model(self, is_tree, interval, view_settings,
-                          units_settings, select=None):
-        """
-        Set the model and define behaviour of the tree view.
-        """
-        eso_file_header = self.eso_file_header
+    def update_view_appearance(self, view_settings):
+        """ Update the model appearance to be consistent with last view. """
         column_width_dct = view_settings["widths"]
         sort_order = view_settings["order"]
         expanded_items = view_settings["expanded"]
         view_order = view_settings["header"]
-        tree_key = view_order[0] if is_tree else None
-
-        # Only update the model if the settings have changed
-        conditions = [
-            is_tree != self._is_tree,
-            interval != self._interval,
-            units_settings != self._units_settings,
-            view_settings != self._view_settings
-        ]
-
-        if any(conditions):
-            self.create_view_model(eso_file_header, units_settings,
-                                   tree_key, view_order, interval)
-
-            # Store current sorting key and interval
-            self._store_tree_key(is_tree)
-            self._store_interval(interval)
-            self._store_units_settings(units_settings)
-            self._store_view_settings(view_settings)
-
-        # clean up selection as this will be handled based on
-        # currently selected list of items stored in main app
-        self.clear_selection()
-        if select:
-            self._update_selection(select, tree_key)
 
         if column_width_dct:
             self._resize_columns(column_width_dct)
@@ -202,7 +170,42 @@ class View(QTreeView):
         if sort_order:
             self._update_sort_order(*sort_order)
 
-        self.shuffle_columns(view_order)
+        # it's required to adjust columns order to match the last applied order
+        # the problematic part is updating tree structure as the logical indexes
+        # change which causes the order to be broken
+        self._shuffle_columns(view_order)
+
+    def update_view_model(self, is_tree, interval, view_settings,
+                          units_settings, select=None):
+        """
+        Set the model and define behaviour of the tree view.
+        """
+        eso_file_header = self.eso_file_header
+
+        view_order = view_settings["header"]
+        tree_key = view_order[0] if is_tree else None
+
+        # Only update the model if the settings have changed
+        conditions = [tree_key != self._tree_key,
+                      interval != self._interval,
+                      units_settings != self._units_settings, ]
+
+        if any(conditions):
+            self.create_view_model(eso_file_header, units_settings,
+                                   tree_key, view_order, interval)
+
+            # Store current sorting key and interval
+            self._store_tree_key(tree_key)
+            self._store_interval(interval)
+            self._store_units_settings(units_settings)
+
+        # clean up selection as this will be handled based on
+        # currently selected list of items stored in main app
+        self.clear_selection()
+        if select:
+            self._update_selection(select, tree_key)
+
+        self.update_view_appearance(view_settings)
 
     def _set_header_labels(self, view_order):
         """ Assign header labels. """
@@ -285,8 +288,8 @@ class View(QTreeView):
         if new_visual_ix == 0 and self.main_app.is_tree() and _logical_ix != 0:
             # need to update view as section has been moved
             # onto first position and tree key is applied
+            print("Updating view")
             self.main_app.update_view()
-            self.header().swapSections(new_visual_ix, _old_visual_ix)
 
     def _create_header_actions(self):
         """ Create header actions. """
