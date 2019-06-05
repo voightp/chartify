@@ -150,6 +150,10 @@ QLabel#buttonTitle {
     background: transparent;
 }
 
+QLabel#buttonTitle:disabled {
+    color: rgb(112, 112, 112);
+}
+
 QProgressBar {
 
 }

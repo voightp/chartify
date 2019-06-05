@@ -35,6 +35,8 @@ class TitledButton(QFrame):
         data : list of str, default None
             If specified, 'data' attribute is added for menu actions.
     """
+    button_name = "buttonFrame"
+    title_name = "buttonTitle"
 
     def __init__(self, parent, fill_space=True, title="",
                  menu=None, items=None, def_act_ix=0, data=None):
@@ -42,14 +44,14 @@ class TitledButton(QFrame):
         self.button = QToolButton(self)
         self.button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
-        self.setObjectName("buttonFrame")
+        self.setObjectName(TitledButton.button_name)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
         self.title = QLabel(title, self)
-        self.title.setObjectName("buttonTitle")
+        self.title.setObjectName(TitledButton.title_name)
 
         if fill_space:
             self.title.setAttribute(Qt.WA_TransparentForMouseEvents)
