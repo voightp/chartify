@@ -385,7 +385,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.filter_icon.setPixmap(Pixmap("./icons/filter_list.png", r=255, g=255, b=255))
         self.expand_all_btn.setIcon(Pixmap("./icons/unfold_more.png", a=0.5))
         self.collapse_all_btn.setIcon(Pixmap("./icons/unfold_less.png", a=0.5))
-        self.tree_view_btn.setIcon(Pixmap("./icons/tree_view.png", a=0.5))
+        self.tree_view_btn.setIcon(Pixmap("./icons/plain_view.png", a=0.5))
 
     def set_up_tab_wgt(self):
         """ Set up appearance and behaviour of the tab widget. """
@@ -756,8 +756,12 @@ class MainWindow(QtWidgets.QMainWindow):
         if changed:
             self.update_view()
 
-    def tree_btn_clicked(self):
+    def tree_btn_toggled(self, checked):
         """ Update view when view type is changed. """
+        # update button icon
+        print(checked)
+        pth = "icons/" + ("tree" if checked else "plain") + "_view.png"
+        self.tree_view_btn.setIcon(Pixmap(pth, a=0.5))
         self.update_view()
 
     def expand_all(self):
@@ -875,7 +879,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.custom_units_toggle.stateChanged.connect(self.units_settings_toggled)
 
         # ~~~~ Settings Actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.tree_view_btn.clicked.connect(self.tree_btn_clicked)
+        self.tree_view_btn.clicked.connect(self.tree_btn_toggled)
         self.energy_units_btn.menu().triggered.connect(self.energy_units_changed)
         self.power_units_btn.menu().triggered.connect(self.power_units_changed)
         self.units_system_btn.menu().triggered.connect(self.units_system_changed)

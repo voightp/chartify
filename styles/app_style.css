@@ -91,32 +91,29 @@ QToolButton#smallButton {
   }
 
  QToolButton#smallButton:disabled {
-    border-color: rgba(0, 0, 0, 0.26);
-  }
-
-QToolButton#treeButton {
-    width: 23;
-    height: 18;
-    border: 1px solid white;
-    margin: 2px;
-  }
-
-QToolButton#treeButton:hover {
-    background-color: rgba(192,192,211,0.2);
-  }
-
- QToolButton#treeButton:checked {
-    width: 23;
-    height: 18;
-    background-color: white;
-    color: rgb(112, 112, 112);
-    border: 1px solid rgba(255,87,34,0.7);
-    margin: 2px;
+    border-color: rgba(255, 255, 255, 0.26);
+    background-color: rgba(255, 255, 255, 0.12);
   }
 
 QToolButton#smallButton:hover {
     margin: 2px;
     background-color: rgba(255, 255, 255, 0.7);
+  }
+
+ QToolButton#treeButton {
+    width: 23;
+    height: 18;
+    border: 1px solid white ;
+    margin: 2px;
+  }
+
+ QToolButton#treeButton:hover {
+    margin: 2px;
+    background-color: rgba(255, 255, 255, 0.7);
+  }
+
+  QToolButton#treeButton:checked {
+    background: white;
   }
 
 QLineEdit {

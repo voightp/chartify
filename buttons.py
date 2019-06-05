@@ -81,9 +81,6 @@ class TitledButton(QFrame):
     def data(self):
         return self.defaultAction().data()
 
-    def setChecked(self, checked):
-        self.button.setChecked(checked)
-
     def setEnabled(self, enabled):
         self.title.setEnabled(enabled)
         self.button.setEnabled(enabled)
@@ -129,8 +126,6 @@ class TitledButton(QFrame):
 
         if changed:
             act.setChecked(True)
-
-        self.setChecked(True)
 
 
 class IntervalButton(QToolButton):
