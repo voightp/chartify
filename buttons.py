@@ -1,6 +1,6 @@
 from PySide2.QtWidgets import QWidget, QToolButton, QApplication, QVBoxLayout, QHBoxLayout, QLabel, \
     QSizePolicy, QFrame, \
-    QAction, QCheckBox
+    QAction, QCheckBox, QSlider
 from PySide2.QtCore import QSize, Qt
 import sys
 
@@ -121,7 +121,7 @@ class TitledButton(QFrame):
 
         return changed
 
-    def update_state_internaly(self, act):
+    def update_state_internally(self, act):
         """ Handle changing buttons state when handling internally. """
         changed = self.update_state(act)
 
@@ -155,13 +155,30 @@ class IntervalButton(QToolButton):
         self.setAutoExclusive(True)
 
 
-class ToggleButton(QCheckBox):
+class ToggleButton(QFrame):
     """
     A custom button to represent a toggle button.
 
     The appearance is handled by CSS.
     """
 
-    def __init__(self, text, *args, **kwargs):
+    def __init__(self, *args, text="", **kwargs):
         super().__init__(*args, **kwargs)
-        self.setText(text)
+        self.setObjectName("toggleButton")
+        self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+
+        self.slider = QSlider(Qt.Horizontal, self)
+        self.slider.setMinimum(0)
+        self.slider.setMaximum(1)
+        self.slider.setValue(0)
+
+        layout.addWidget(self.slider)
+
+        if text:
+            self.label = QLabel(self)
+            self.label.setText(text)
+            layout.addWidget(self.label)

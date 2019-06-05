@@ -530,12 +530,12 @@ class MainWindow(QtWidgets.QMainWindow):
         options_layout.setAlignment(Qt.AlignLeft)
 
         # ~~~~ Generate include / exclude all files button ~~~~~~~~~~~~~~~~~
-        self.all_eso_files_toggle.setEnabled(False)
-        self.all_eso_files_toggle.setText("All files")
-        self.all_eso_files_toggle.setCheckable(True)
+        # self.all_eso_files_toggle.setEnabled(False) # TODO update to new toggle
+        # self.all_eso_files_toggle.setText("All files")
+        # self.all_eso_files_toggle.setCheckable(True)
 
         # ~~~~ Toggle custom units button ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.custom_units_toggle.setChecked(True)
+        # self.custom_units_toggle.setChecked(True)
 
         self.populate_options_group()
 
@@ -713,15 +713,15 @@ class MainWindow(QtWidgets.QMainWindow):
         """ Restore units settings. """
         data = self._units_settings["units_system"]
         act = self.units_system_btn.get_action(data=data)
-        self.units_system_btn.update_state_internaly(act)
+        self.units_system_btn.update_state_internally(act)
 
         data = self._units_settings["energy_units"]
         act = self.energy_units_btn.get_action(data=data)
-        self.energy_units_btn.update_state_internaly(act)
+        self.energy_units_btn.update_state_internally(act)
 
         data = self._units_settings["power_units"]
         act = self.power_units_btn.get_action(data=data)
-        self.power_units_btn.update_state_internaly(act)
+        self.power_units_btn.update_state_internally(act)
 
         self.update_view()
 
@@ -734,13 +734,13 @@ class MainWindow(QtWidgets.QMainWindow):
     def reset_units_to_default(self):
         """ Reset units to E+ default. """
         act = self.units_system_btn.get_action(data="SI")
-        self.units_system_btn.update_state_internaly(act)
+        self.units_system_btn.update_state_internally(act)
 
         act = self.energy_units_btn.get_action(data="J")
-        self.energy_units_btn.update_state_internaly(act)
+        self.energy_units_btn.update_state_internally(act)
 
         act = self.power_units_btn.get_action(data="W")
-        self.power_units_btn.update_state_internaly(act)
+        self.power_units_btn.update_state_internally(act)
 
         self.update_view()
 
@@ -890,7 +890,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.collapse_all_btn.clicked.connect(self.collapse_all)
 
         # ~~~~ Options Actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.custom_units_toggle.stateChanged.connect(self.units_settings_toggled)
+        self.custom_units_toggle.slider.valueChanged.connect(self.units_settings_toggled)
 
         # ~~~~ Settings Actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.tree_view_btn.clicked.connect(self.tree_btn_clicked)

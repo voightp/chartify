@@ -343,5 +343,37 @@ QScrollBar::handle {
  }
 
  QMenu::item:hover {
-    background:
+
  }
+
+ QCheckBox {
+    background: yellow;
+ }
+
+ QFrame#toggleButton {
+    background-color: white;
+ }
+
+ QSlider {
+    margin: 0px;
+    padding: 2px 5px;
+    height: 14px;
+    max-width: 20px;
+    background: green;
+    border-radius: 8px;
+    border: 0px solid black;
+
+ }
+
+ QSlider::groove:horizontal {
+    background: green;
+}
+
+QSlider::handle:horizontal {
+    height: 7px;
+    width: 14px;
+    border 2px solid black;
+    border-radius: 7px;
+    background: white;
+    margin: 0 -4px; /* expand outside the groove */
+}
