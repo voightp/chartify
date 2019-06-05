@@ -121,7 +121,7 @@ class TitledButton(QFrame):
 
         return changed
 
-    def update_state_programmatically(self, act):
+    def update_state_internaly(self, act):
         """ Handle changing buttons state when handling internally. """
         changed = self.update_state(act)
 

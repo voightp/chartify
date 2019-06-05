@@ -713,15 +713,15 @@ class MainWindow(QtWidgets.QMainWindow):
         """ Restore units settings. """
         data = self._units_settings["units_system"]
         act = self.units_system_btn.get_action(data=data)
-        self.units_system_btn.update_state_programmatically(act)
+        self.units_system_btn.update_state_internaly(act)
 
         data = self._units_settings["energy_units"]
         act = self.energy_units_btn.get_action(data=data)
-        self.energy_units_btn.update_state_programmatically(act)
+        self.energy_units_btn.update_state_internaly(act)
 
         data = self._units_settings["power_units"]
         act = self.power_units_btn.get_action(data=data)
-        self.power_units_btn.update_state_programmatically(act)
+        self.power_units_btn.update_state_internaly(act)
 
         self.update_view()
 
@@ -734,13 +734,13 @@ class MainWindow(QtWidgets.QMainWindow):
     def reset_units_to_default(self):
         """ Reset units to E+ default. """
         act = self.units_system_btn.get_action(data="SI")
-        self.units_system_btn.update_state_programmatically(act)
+        self.units_system_btn.update_state_internaly(act)
 
         act = self.energy_units_btn.get_action(data="J")
-        self.energy_units_btn.update_state_programmatically(act)
+        self.energy_units_btn.update_state_internaly(act)
 
         act = self.power_units_btn.get_action(data="W")
-        self.power_units_btn.update_state_programmatically(act)
+        self.power_units_btn.update_state_internaly(act)
 
         self.update_view()
 
