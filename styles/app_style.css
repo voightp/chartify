@@ -91,8 +91,8 @@ QToolButton#smallButton {
   }
 
  QToolButton#smallButton:disabled {
-    border-color: rgba(255, 255, 255, 0.26);
-    background-color: rgba(255, 255, 255, 0.12);
+    border-color: rgb(230, 230, 230);
+    background-color: rgb(230, 230, 230);
   }
 
 QToolButton#smallButton:hover {

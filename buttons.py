@@ -5,6 +5,12 @@ from PySide2.QtCore import QSize, Qt, Signal
 import sys
 
 
+def update_appearance(wgt):
+    """ Refresh CSS of the widget. """
+    wgt.style().unpolish(wgt)
+    wgt.style().polish(wgt)
+
+
 class TitledButton(QFrame):
     """
     A custom button to include a top left title label.
@@ -156,8 +162,14 @@ class ToggleButton(QFrame):
     """
     A custom button to represent a toggle button.
 
-    The appearance is handled by CSS.
+    The appearance is handled by CSS. Default object name is 'toggleButton'
+    ('toggleButtonContainer' for parent frame) and the appearance changes
+    based on the current state.
+
+    There can be tree states enabled unchecked ('toggleButton'), enabled
+    checked ('toggleButtonChecked') and disabled ('toggleButtonDisabled').
     """
+
     object_name = "toggleButton"
     container_name = "toggleButtonContainer"
     stateChanged = Signal(int)  # camel case to follow qt rules
@@ -199,16 +211,19 @@ class ToggleButton(QFrame):
 
     def setChecked(self, checked):
         """ Set toggle button checked. """
+        sl = self.slider
+        sl.setValue(int(checked))
+
         obj_name = ToggleButton.object_name + ("Checked" if checked else "")
-        self.slider.setObjectName(obj_name)
-        self.slider.setValue(int(checked))
-        self.slider.style().unpolish(self.slider)
-        self.slider.style().polish(self.slider)
+        sl.setObjectName(obj_name)
+        update_appearance(sl)
 
     def setEnabled(self, enabled):
         """ Enable or disable the button. """
-        obj_name = ToggleButton.object_name + ("" if enabled else "Disabled")
-        self.slider.setObjectName(obj_name)
-        self.slider.setEnabled(enabled)
-        self.slider.style().unpolish(self.slider)
-        self.slider.style().polish(self.slider)
+        sl = self.slider
+        sl.setEnabled(enabled)
+
+        plc = ("Checked" if self.isChecked() else "")
+        obj_name = ToggleButton.object_name + (plc if enabled else "Disabled")
+        sl.setObjectName(obj_name)
+        update_appearance(sl)
