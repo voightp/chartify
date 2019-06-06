@@ -145,7 +145,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.create_ui_actions()
 
         # ~~~~ Intermediate settings ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.stored_view_settings = {"widths": {},
+        self.stored_view_settings = {"widths": {"interactive": None,
+                                                "fixed": 70},
                                      "order": tuple(),
                                      "header": ("variable", "key", "units"),
                                      "expanded": set()}
@@ -899,9 +900,9 @@ class MainWindow(QtWidgets.QMainWindow):
         """ Store current column vertical sorting. """
         self.stored_view_settings["order"] = (new_index, new_order)
 
-    def update_section_widths(self, new_widths_dct):
+    def update_section_widths(self, key, width):
         """ Store current column widths. """
-        self.stored_view_settings["widths"] = new_widths_dct
+        self.stored_view_settings["widths"][key] = width
 
     def clear_expanded_set(self):
         """ Clear previously stored expanded items set. """

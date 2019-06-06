@@ -16,6 +16,8 @@ from eso_file_header import EsoFileHeader
 
 
 class View(QTreeView):
+    units_section_width = 70
+
     def __init__(self, main_app, file_id, eso_file_header):
         super().__init__()
         self.setRootIsDecorated(True)
@@ -106,7 +108,6 @@ class View(QTreeView):
 
         # define view appearance and behaviour
         self._set_header_labels(view_order)
-        # self._set_resize_behaviour(view_order)
         self._set_first_col_spanned()
         self._set_ascending_order()
 
@@ -156,13 +157,12 @@ class View(QTreeView):
 
     def update_view_appearance(self, view_settings):
         """ Update the model appearance to be consistent with last view. """
-        column_width_dct = view_settings["widths"]
+        width_dct = view_settings["widths"]
         sort_order = view_settings["order"]
         expanded_items = view_settings["expanded"]
         view_order = view_settings["header"]
 
-        if column_width_dct:
-            self._resize_columns(column_width_dct)
+        self.update_resize_behaviour()
 
         if expanded_items:
             self._expand_items(expanded_items)
@@ -212,30 +212,28 @@ class View(QTreeView):
         model = self.model().sourceModel()
         model.setHorizontalHeaderLabels(view_order)
 
-    def _set_resize_behaviour(self, view_order):
+    def update_resize_behaviour(self):
         """ Define resizing behaviour. """
         header = self.header()
-        units_ix = 2
 
-        if tree_key == "units":
-            # Units index is always '2', unless
-            # it's used as an arrange key
-            units_ix = 0
+        # both logical and visual indexes are ordered as 'key', 'variable', 'units
+        log_ixs = self._get_logical_ixs()
+        vis_ixs = [self.header().visualIndex(i) for i in log_ixs]
 
-        header.setStretchLastSection(False)
         # units column size is always fixed
-        header.setSectionResizeMode(units_ix, QHeaderView.Fixed)
-        header.resizeSection(units_ix, 70)
+        header.setSectionResizeMode(log_ixs[2], QHeaderView.Fixed)
+        header.setStretchLastSection(False)
 
-        if units_ix == 0:
-            # units are being used as arrange key
-            # set other fields to be stretched
-            header.setSectionResizeMode(2, QHeaderView.Stretch)
-            header.setSectionResizeMode(1, QHeaderView.Interactive)
+        if vis_ixs[0] > vis_ixs[1]:
+            stretch = log_ixs[0]
+            interactive = log_ixs[1]
+
         else:
-            # units are stored in the last column
-            header.setSectionResizeMode(1, QHeaderView.Stretch)
-            header.setSectionResizeMode(0, QHeaderView.Interactive)
+            stretch = log_ixs[1]
+            interactive = log_ixs[0]
+
+        header.setSectionResizeMode(stretch, QHeaderView.Stretch)
+        header.setSectionResizeMode(interactive, QHeaderView.Interactive)
 
     def _get_logical_names(self):
         """ Get names sorted by logical index. """
@@ -255,6 +253,11 @@ class View(QTreeView):
         sorted_names = list(zip(*z))[0]
         return sorted_names
 
+    def _get_logical_index(self, name):
+        """ Get a logical index of a given section title. """
+        names = self._get_logical_names()
+        return names.index(name)
+
     def _get_logical_ixs(self):
         """ Return logical positions of header labels. """
         names = self._get_logical_names()
@@ -262,22 +265,17 @@ class View(QTreeView):
                 names.index("variable"),
                 names.index("units"))
 
-    def _resize_columns(self, column_width_dct):
-        """ Set tree view column width. """
-        header = self.header()
-        key_ix, var_ix, units_ix = self._get_logical_ixs()
-        header.resizeSection(key_ix, column_width_dct["key"])
-        header.resizeSection(var_ix, column_width_dct["variable"])
-        header.resizeSection(units_ix, column_width_dct["units"])
-
     def _sort_order_changed(self, index, order):
         """ Store current sorting order in main app. """
         self.main_app.update_sort_order(index, order)
 
     def _view_resized(self):
-        """ Store column widths in the main app. """
-        widths = self._get_column_widths()
-        self.main_app.update_section_widths(widths)
+        """ Store interactive section width in the main app. """
+        header = self.header()
+        for i in range(3):
+            if header.sectionResizeMode(i) == header.Interactive:
+                width = header.sectionSize(i)
+                self.main_app.update_section_widths("interactive", width)
 
     def _section_moved(self, _logical_ix, _old_visual_ix, new_visual_ix):
         """ Handle updating the model when first column changed. """
@@ -291,6 +289,8 @@ class View(QTreeView):
             print("Updating view")
             self.main_app.update_view()
 
+        self.update_resize_behaviour()
+
     def _create_header_actions(self):
         """ Create header actions. """
         # When the file is loaded for the first time the header does not
@@ -301,16 +301,6 @@ class View(QTreeView):
         self.header().sectionResized.connect(self._view_resized)
         self.header().sortIndicatorChanged.connect(self._sort_order_changed)
         self.header().sectionMoved.connect(self._section_moved)
-
-    def _get_column_widths(self):
-        """ Extract a dictionary containing current column widths. """
-        key_ix, var_ix, units_ix = self._get_logical_ixs()
-        header = self.header()
-        return {
-            "key": header.sectionSize(key_ix),
-            "variable": header.sectionSize(var_ix),
-            "units": header.sectionSize(units_ix)
-        }
 
     def fetch_request(self):
         """ Get currently requested outputs. """
@@ -409,7 +399,7 @@ class View(QTreeView):
         self.selectionModel().select(proxy_index, QItemSelectionModel.Select | QItemSelectionModel.Rows)
 
     def select_items(self, proxy_selection):
-        """ Select items given by given qselection (model indexes). """
+        """ Select items given by given selection (model indexes). """
         self.selectionModel().select(proxy_selection,
                                      QItemSelectionModel.Select | QItemSelectionModel.Rows)
 
