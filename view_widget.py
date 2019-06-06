@@ -89,10 +89,6 @@ class View(QTreeView):
             if model.hasChildren(ix):
                 self.setFirstColumnSpanned(i, self.rootIndex(), True)
 
-    def _set_ascending_order(self):
-        """ Set first column sort order to be 'ascending'. """
-        self.sortByColumn(0, Qt.AscendingOrder)
-
     def create_view_model(self, eso_file_header, units_settings,
                           tree_key, view_order, interval):
         """
@@ -109,7 +105,6 @@ class View(QTreeView):
         # define view appearance and behaviour
         self._set_header_labels(view_order)
         self._set_first_col_spanned()
-        self._set_ascending_order()
 
         if not self._initialized:
             # create header actions only when view is created
@@ -163,12 +158,10 @@ class View(QTreeView):
         view_order = view_settings["header"]
 
         self.update_resize_behaviour()
+        self._update_sort_order(*sort_order)
 
         if expanded_items:
             self._expand_items(expanded_items)
-
-        if sort_order:
-            self._update_sort_order(*sort_order)
 
         # it's required to adjust columns order to match the last applied order
         # the problematic part is updating tree structure as the logical indexes
