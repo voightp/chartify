@@ -145,7 +145,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.create_ui_actions()
 
         # ~~~~ Intermediate settings ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.stored_view_settings = {"widths": {"interactive": None,
+        self.stored_view_settings = {"widths": {"interactive": 200,
                                                 "fixed": 70},
                                      "order": (0, Qt.AscendingOrder),
                                      "header": ("variable", "key", "units"),
