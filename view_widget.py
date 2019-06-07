@@ -289,17 +289,17 @@ class View(QTreeView):
                 width = header.sectionSize(i)
                 self.main_app.update_section_widths("interactive", width)
 
-    def _section_moved(self, _logical_ix, _old_visual_ix, new_visual_ix):
+    def _section_moved(self, _logical_ix, old_visual_ix, new_visual_ix):
         """ Handle updating the model when first column changed. """
-        print(_logical_ix, _old_visual_ix, new_visual_ix)
         names = self._get_visual_names()
         self.main_app.update_sections_order(names)
 
-        if new_visual_ix == 0 and self.main_app.is_tree() and _logical_ix != 0:
+        if (new_visual_ix == 0 or old_visual_ix == 0) and self.main_app.is_tree():
             # need to update view as section has been moved
             # onto first position and tree key is applied
             print("Updating view")
             self.main_app.update_view()
+            self._update_sort_order(names[0], Qt.AscendingOrder)
 
         self.update_resize_behaviour()
         self.resize_header()
