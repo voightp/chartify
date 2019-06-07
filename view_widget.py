@@ -21,16 +21,18 @@ class View(QTreeView):
     def __init__(self, main_app, file_id, eso_file_header):
         super().__init__()
         self.setRootIsDecorated(True)
-        self.setAlternatingRowColors(False)
-        self.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.setUniformRowHeights(True)
-        self.setWordWrap(True)  # not working at the moment
+        self.setSortingEnabled(True)
+
+        self.setDragEnabled(False)
+        self.setWordWrap(False)  # not working at the moment
+        self.setAlternatingRowColors(False)
+
+        self.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.setDefaultDropAction(Qt.CopyAction)
-        self.setDragEnabled(False)
-        self.setSortingEnabled(True)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         self.setFocusPolicy(Qt.NoFocus)
 
