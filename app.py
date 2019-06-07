@@ -147,7 +147,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # ~~~~ Intermediate settings ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.stored_view_settings = {"widths": {"interactive": 200,
                                                 "fixed": 70},
-                                     "order": (0, Qt.AscendingOrder),
+                                     "order": ("variable", Qt.AscendingOrder),
                                      "header": ("variable", "key", "units"),
                                      "expanded": set()}
 
@@ -896,9 +896,9 @@ class MainWindow(QtWidgets.QMainWindow):
         """ Store current view header order. """
         self.stored_view_settings["header"] = order
 
-    def update_sort_order(self, new_index, new_order):
+    def update_sort_order(self, name, new_order):
         """ Store current column vertical sorting. """
-        self.stored_view_settings["order"] = (new_index, new_order)
+        self.stored_view_settings["order"] = (name, new_order)
 
     def update_section_widths(self, key, width):
         """ Store current column widths. """

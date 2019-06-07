@@ -121,10 +121,9 @@ class View(QTreeView):
             if i != j:
                 header.moveSection(j, i)
 
-    def _update_sort_order(self, vis_ix, order):
+    def _update_sort_order(self, name, order):
         """ Set header order. """
-        log_ix = self.header().logicalIndex(vis_ix)
-        print("UPDATING ORDER", vis_ix, log_ix, order)
+        log_ix = self._get_logical_index(name)
         self.header().setSortIndicator(log_ix, order)
 
     def _expand_items(self, expanded_set):
@@ -276,9 +275,8 @@ class View(QTreeView):
 
     def _sort_order_changed(self, log_ix, order):
         """ Store current sorting order in main app. """
-        vis_ix = self.header().visualIndex(log_ix)
-        print("ORDER CHANGED", vis_ix, log_ix, order)
-        self.main_app.update_sort_order(vis_ix, order)
+        name = self.model().headerData(log_ix, Qt.Horizontal)
+        self.main_app.update_sort_order(name, order)
 
     def _view_resized(self):
         """ Store interactive section width in the main app. """
@@ -301,9 +299,6 @@ class View(QTreeView):
             self.main_app.update_view()
 
         self.update_resize_behaviour()
-        ix = self.header().sortIndicatorSection()
-        order = self.header().sortIndicatorOrder()
-        self._sort_order_changed(ix, order)
         self.resize_header()
 
     def _create_header_actions(self):
