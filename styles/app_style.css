@@ -107,13 +107,13 @@ QToolButton#smallButton:hover {
     margin: 2px;
   }
 
+ QToolButton#treeButton:checked {
+    background: white;
+  }
+
  QToolButton#treeButton:hover {
     margin: 2px;
     background-color: rgba(255, 255, 255, 0.7);
-  }
-
-  QToolButton#treeButton:checked {
-    background: white;
   }
 
 QLineEdit {
@@ -137,7 +137,7 @@ TitledButton QToolButton:hover {
 
 }
 
-QLabel {
+QLabel#buttonTitle {
     background: transparent;
 }
 
