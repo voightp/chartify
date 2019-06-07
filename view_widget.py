@@ -24,20 +24,21 @@ class View(QTreeView):
         self.setAlternatingRowColors(False)
         self.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.setUniformRowHeights(True)
-        self.setWordWrap(False)  # not working at the moment
+        self.setWordWrap(True)  # not working at the moment
         self.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.setDefaultDropAction(Qt.CopyAction)
         self.setDragEnabled(False)
         self.setSortingEnabled(True)
-        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         self.setFocusPolicy(Qt.NoFocus)
 
         self.main_app = main_app
-        self._initialized = False
         self.eso_file_header = eso_file_header
         self._file_id = file_id
+
+        self._initialized = False
         self._interval = None
         self._tree_key = None
         self._units_settings = None

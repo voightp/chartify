@@ -309,6 +309,12 @@ QScrollBar:vertical {
     margin: 2px;
 }
 
+QScrollBar:horizontal {
+    background: transparent;
+    height: 10px;
+    margin: 2px;
+}
+
  QScrollBar::up-arrow:vertical, QScrollBar::down-arrow:vertical {
      border: 0px solid grey;
      width: 0px;
@@ -316,7 +322,14 @@ QScrollBar:vertical {
      background: transparent;
  }
 
-QScrollBar::handle {
+ QScrollBar::right-arrow:horizontal, QScrollBar::left-arrow:horizontal {
+     border: 0px solid grey;
+     width: 0px;
+     height: 0px;
+     background: transparent;
+ }
+
+QScrollBar::handle:vertical, QScrollBar::handle:horizontal {
    background-color: rgba(255,87,34,0.7);
 }
 
@@ -326,8 +339,14 @@ QScrollBar::handle {
      height: 10px;
  }
 
-   QScrollBar::add-line:vertical:pressed {
-     background: rgba(255,87,34,0.7);
+ QScrollBar::add-line:horizontal {
+     border: 0px solid grey;
+     background-color: rgba(189, 189, 200, 0.8);
+     width: 10px;
+ }
+
+   QScrollBar::add-line:pressed {
+     background: rgba(255,87,34,0.5);
  }
 
  QScrollBar::sub-line:vertical {
@@ -336,7 +355,13 @@ QScrollBar::handle {
      height: 10px;
  }
 
-  QScrollBar::sub-line:vertical:pressed {
+  QScrollBar::sub-line:horizontal {
+     border: 0px solid grey;
+     background-color: rgba(189, 189, 200, 0.8);
+     width: 10px;
+ }
+
+  QScrollBar::sub-line:pressed {
      background: rgba(255,87,34,0.7);
  }
 
