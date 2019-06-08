@@ -75,7 +75,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.left_main_layout.addWidget(self.toolbar_wgt)
 
         # ~~~~ Left hand Tools Items ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.n_toolbar_cols = 2 if self.height() < HEIGHT_THRESHOLD else 1
+        self.n_toolbar_cols = 2
 
         self.interval_btns = {}
         self.intervals_group = QGroupBox("Intervals", self.toolbar_wgt)
@@ -505,7 +505,7 @@ class MainWindow(QtWidgets.QMainWindow):
         """ Populate units group layout. """
         btns = [self.energy_units_btn,
                 self.power_units_btn,
-                self.units_system_btn,]
+                self.units_system_btn, ]
         hide_disabled = False
         n_cols = 2
 
@@ -664,12 +664,15 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def update_layout(self):
         """ Update window layout accordingly to window size. """
-        new_cols = 2 if self.height() < HEIGHT_THRESHOLD else 1
-        if new_cols != self.n_toolbar_cols:
-            self.n_toolbar_cols = new_cols
-            self.populate_intervals_group()
-            self.populate_units_group()
-            self.populate_settings_group()
+        # TODO Review if suitable
+        # here can be a code to update toolbar layout when main window is resized
+        # new_cols = 2 if self.height() < HEIGHT_THRESHOLD else 1
+        # if new_cols != self.n_toolbar_cols:
+        #     self.n_toolbar_cols = new_cols
+        #     self.populate_intervals_group()
+        #     self.populate_units_group()
+        #     self.populate_settings_group()
+        pass
 
     def interval_changed(self):
         """ Update view when an interval is changed. """
