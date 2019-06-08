@@ -20,6 +20,7 @@ QFrame#viewWidget {
    padding: 2px;
 }
 
+
 QSplitter::handle {
     background-color: rgba(189, 189, 200, 0.8);
 }
@@ -29,14 +30,18 @@ QFrame#toolbar {
     background-color: white;
 }
 
+QLabel {
+    background: transparent;
+}
+
 QStatusBar {
     background: white;
     border-radius: 0px;
 }
 
 QGroupBox {
-    border:none;
-    margin: 12px 0px 0px 0px;
+    border-top: 1px solid rgba(140,140,140,0.5);
+    margin: 30px 0px 15px 0px;
     border-radius: 0px;
 }
 
@@ -47,9 +52,23 @@ QFrame#viewTools {
 }
 
 QGroupBox::title {
-    subcontrol-origin: margin;
+    subcontrol-origin: padding;
     subcontrol-position: top left;
-    left: 2px;
+    left: 4px;
+    top: -18px;
+}
+
+QGroupBox#intervalsGroup {
+    min-height: 150px;
+}
+
+QGroupBox#toolsGroup {
+    min-height: 150px;
+}
+
+QFrame#unitsGroup {
+    border-top: 1px solid rgba(140,140,140,0.5)
+
 }
 
 QToolButton {
@@ -135,10 +154,6 @@ TitledButton QToolButton {
 
 TitledButton QToolButton:hover {
 
-}
-
-QLabel#buttonTitle {
-    background: transparent;
 }
 
 QLabel#buttonTitle {

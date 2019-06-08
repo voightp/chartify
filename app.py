@@ -36,7 +36,6 @@ from random import randint
 from threads import PipeEcho, MonitorThread, EsoFileWatcher, GuiMonitor
 
 HEIGHT_THRESHOLD = 650
-HIDE_DISABLED = False
 
 DEFAULTS = {
     "units_system": "SI",
@@ -80,19 +79,34 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.interval_btns = {}
         self.intervals_group = QGroupBox("Intervals", self.toolbar_wgt)
+        self.intervals_group.setObjectName("intervalsGroup")
         self.set_up_interval_btns()
         self.toolbar_layout.addWidget(self.intervals_group)
 
+        self.all_eso_files_btn = ToggleButton(self.toolbar_wgt)
+        self.all_eso_files_btn.setText("all files")
+        # self.all_eso_files_btn.setCheckable(True) # TODO decide if use toggle
+        self.all_eso_files_btn.setEnabled(False)
+        self.toolbar_layout.addWidget(self.all_eso_files_btn)
+
         self.tools_group = QGroupBox("Tools", self.toolbar_wgt)
+        self.tools_group.setObjectName("toolsGroup")
         self.export_xlsx_btn = QToolButton(self.tools_group)
         self.set_up_tools()
         self.toolbar_layout.addWidget(self.tools_group)
 
-        self.options_group = QGroupBox("Options", self.toolbar_wgt)
-        self.all_eso_files_toggle = ToggleButton(self.options_group)
-        self.custom_units_toggle = ToggleButton(self.options_group)
-        self.set_up_options()
-        self.toolbar_layout.addWidget(self.options_group)
+        self.custom_units_toggle = ToggleButton(self.toolbar_wgt)
+        self.custom_units_toggle.setText("custom units")
+        self.custom_units_toggle.setChecked(True)
+        self.toolbar_layout.addWidget(self.custom_units_toggle)
+
+        self.units_group = QFrame(self.toolbar_wgt)
+        self.units_group.setObjectName("unitsGroup")
+        self.energy_units_btn = None
+        self.power_units_btn = None
+        self.units_system_btn = None
+        self.set_up_units()
+        self.toolbar_layout.addWidget(self.units_group)
 
         spacer = QSpacerItem(1, 1, QSizePolicy.Minimum, QSizePolicy.Expanding)
         self.toolbar_layout.addSpacerItem(spacer)
@@ -229,6 +243,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # ~~~~ Set up main widgets and layouts ~~~~~~~~~~~~~~~~~~~~~~~~~
         self.load_icons()
         self.set_up_base_ui()
+        self.set_initial_layout()
         self.toggle_css()
 
     @property
@@ -295,18 +310,16 @@ class MainWindow(QtWidgets.QMainWindow):
         """ Store current selection in main app. """
         self.selected = outputs
 
-        # enable export xlsx function
+        # enable export xlsx function TODO
         self.export_xlsx_btn.setEnabled(True)
-        self.populate_options_group()
 
     def clear_current_selection(self):
         """ Handle behaviour when no variables are selected. """
         self.selected = None
 
         # disable export xlsx as there are no
-        # variables to be exported
+        # variables to be exported TODO
         self.export_xlsx_btn.setEnabled(False)
-        self.populate_options_group()
 
     def keyPressEvent(self, event):
         """ Manage keyboard events. """
@@ -326,7 +339,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def all_eso_files_requested(self):
         """ Check if results from all eso files are requested. """
-        btn = self.all_eso_files_toggle
+        btn = self.all_eso_files_btn
         return btn.isChecked() and btn.isEnabled()
 
     def get_selected_interval(self):
@@ -398,10 +411,11 @@ class MainWindow(QtWidgets.QMainWindow):
     def set_initial_layout(self):
         """ Define an app layout when there isn't any file loaded. """
         self.disable_interval_btns()
-        self.all_eso_files_toggle.setEnabled(False)
-        self.populate_intervals_group()
-        self.populate_options_group()
+        self.all_eso_files_btn.setEnabled(False)
+        self.populate_intervals_group(hide_disabled=False)
+        self.populate_units_group()
         self.populate_settings_group()
+        self.populate_tools_group()
 
     def hide_disabled(self, wgts):
         """ Hide disabled widgets from the interface. """
@@ -453,57 +467,57 @@ class MainWindow(QtWidgets.QMainWindow):
         for btn, ix in zip(wgts, ixs):
             layout.addWidget(btn, *ix)
 
-        if layout.count() == 0:
-            layout.parentWidget().hide()
+        # if layout.count() == 0: # TODO decide whether hide unused groups
+        #     layout.parentWidget().hide()
+        #
+        # else:
+        #     layout.parentWidget().show()
 
-        else:
-            layout.parentWidget().show()
-
-    def _populate_group(self, group, widgets, n_cols):
+    def _populate_group(self, group, widgets, n_cols, hide_disabled):
         """ Populate given group with given widgets. """
         layout = group.layout()
 
         self.remove_children(layout)
 
-        if HIDE_DISABLED:
+        if hide_disabled:
             widgets = self.hide_disabled(widgets)
-            self.show_widgets(interval_btns)
+            self.show_widgets(widgets)
 
         self.populate_grid_layout(layout, widgets, n_cols)
 
-    def populate_intervals_group(self):
+    def populate_intervals_group(self, hide_disabled=True):
         """ Populate interval buttons based on a current state. """
         self._populate_group(self.intervals_group,
                              self.interval_btns.values(),
-                             self.n_toolbar_cols)
+                             self.n_toolbar_cols,
+                             hide_disabled)
 
     def populate_tools_group(self):
         """ Populate tools group layout. """
         tools_btns = [self.export_xlsx_btn, ]
         n_cols = self.n_toolbar_cols
+        hide_disabled = False
 
-        self._populate_group(self.tools_group,
-                             tools_btns,
-                             n_cols)
+        self._populate_group(self.tools_group, tools_btns,
+                             n_cols, hide_disabled)
 
-    def populate_options_group(self):
-        """ Populate options group layout. """
-        options_btns = [self.all_eso_files_toggle,
-                        self.custom_units_toggle]
-        n_cols = 1
+    def populate_units_group(self):
+        """ Populate units group layout. """
+        btns = [self.energy_units_btn,
+                self.power_units_btn,
+                self.units_system_btn,]
+        hide_disabled = False
+        n_cols = 2
 
-        self._populate_group(self.options_group,
-                             options_btns,
-                             n_cols)
+        self._populate_group(self.units_group, btns,
+                             n_cols, hide_disabled)
 
     def populate_settings_group(self):
         """ Populate settings group layout. """
         layout = self.settings_group.layout()
         n_cols = self.n_toolbar_cols
 
-        settings_btns = [self.energy_units_btn,
-                         self.power_units_btn,
-                         self.units_system_btn]
+        settings_btns = []
 
         self.populate_grid_layout(layout, settings_btns, n_cols)
 
@@ -513,31 +527,44 @@ class MainWindow(QtWidgets.QMainWindow):
         interval_btns_layout = QGridLayout(self.intervals_group)
         interval_btns_layout.setSpacing(0)
         interval_btns_layout.setContentsMargins(0, 0, 0, 0)
-        interval_btns_layout.setAlignment(Qt.AlignLeft)
+        interval_btns_layout.setAlignment(Qt.AlignTop)
 
         # ~~~~ Generate interval buttons ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         ids = {TS: "Timestep", H: "Hourly", D: "Daily", M: "Monthly", A: "Annual", RP: "Runperiod"}
         p = self.intervals_group
         self.interval_btns = {k: IntervalButton(v, parent=p) for k, v in ids.items()}
-        self.populate_intervals_group()
 
-    def set_up_options(self):
-        """ Create all files button. """
+    def set_up_units(self):
+        """ Set up units options. . """
         # ~~~~ Layout to hold options  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        options_layout = QGridLayout(self.options_group)
-        options_layout.setSpacing(0)
-        options_layout.setContentsMargins(0, 0, 0, 0)
-        options_layout.setAlignment(Qt.AlignLeft)
+        units_layout = QGridLayout(self.units_group)
+        units_layout.setSpacing(0)
+        units_layout.setContentsMargins(0, 0, 0, 0)
+        units_layout.setAlignment(Qt.AlignLeft)
 
-        # ~~~~ Generate include / exclude all files button ~~~~~~~~~~~~~~~~~
-        self.all_eso_files_toggle.setText("all files")
-        self.all_eso_files_toggle.setEnabled(False)
+        # ~~~~ Energy units set up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        energy_units_menu = QMenu(self)
+        items = ["Wh", "kWh", "MWh", "J", "kJ", "GJ", "Btu", "kBtu", "MBtu"]
+        ix = items.index(DEFAULTS["energy_units"])
+        self.energy_units_btn = TitledButton(self.units_group, fill_space=True,
+                                             title="energy", menu=energy_units_menu,
+                                             items=items, data=items, def_act_ix=ix)
 
-        # ~~~~ Toggle custom units button ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.custom_units_toggle.setText("custom units")
-        self.custom_units_toggle.setChecked(True)
+        # ~~~~ Power units set up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        power_units_menu = QMenu(self)
+        items = ["W", "kW", "MW", "Btu/h", "kBtu/h", "MBtu/h"]
+        ix = items.index(DEFAULTS["power_units"])
+        self.power_units_btn = TitledButton(self.units_group, fill_space=True,
+                                            title="power", menu=power_units_menu,
+                                            items=items, data=items, def_act_ix=ix)
 
-        self.populate_options_group()
+        # ~~~~ Units system set up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        units_system_menu = QMenu(self)
+        items = ["SI", "IP"]
+        ix = items.index(DEFAULTS["units_system"])
+        self.units_system_btn = TitledButton(self.units_group, fill_space=True,
+                                             title="system", menu=units_system_menu,
+                                             items=items, data=items, def_act_ix=ix)
 
     def set_up_tools(self):
         """ Create a general set of tools. """
@@ -545,14 +572,12 @@ class MainWindow(QtWidgets.QMainWindow):
         tools_layout = QGridLayout(self.tools_group)
         tools_layout.setSpacing(0)
         tools_layout.setContentsMargins(0, 0, 0, 0)
-        tools_layout.setAlignment(Qt.AlignLeft)
+        tools_layout.setAlignment(Qt.AlignTop)
 
         # ~~~~ Generate export xlsx button ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.export_xlsx_btn.setEnabled(False)
         self.export_xlsx_btn.setText("Save xlsx")
         self.export_xlsx_btn.setCheckable(False)
-
-        self.populate_tools_group()
 
     def set_up_settings(self):
         """ Create Settings menus and buttons. """
@@ -561,32 +586,6 @@ class MainWindow(QtWidgets.QMainWindow):
         settings_layout.setSpacing(0)
         settings_layout.setContentsMargins(0, 0, 0, 0)
         settings_layout.setAlignment(Qt.AlignLeft)
-
-        # ~~~~ Energy units set up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        energy_units_menu = QMenu(self)
-        items = ["Wh", "kWh", "MWh", "J", "kJ", "GJ", "Btu", "kBtu", "MBtu"]
-        ix = items.index(DEFAULTS["energy_units"])
-        self.energy_units_btn = TitledButton(self.settings_group, fill_space=True,
-                                             title="energy", menu=energy_units_menu,
-                                             items=items, data=items, def_act_ix=ix)
-
-        # ~~~~ Power units set up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        power_units_menu = QMenu(self)
-        items = ["W", "kW", "MW", "Btu/h", "kBtu/h", "MBtu/h"]
-        ix = items.index(DEFAULTS["power_units"])
-        self.power_units_btn = TitledButton(self.settings_group, fill_space=True,
-                                            title="power", menu=power_units_menu,
-                                            items=items, data=items, def_act_ix=ix)
-
-        # ~~~~ Units system set up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        units_system_menu = QMenu(self)
-        items = ["SI", "IP"]
-        ix = items.index(DEFAULTS["units_system"])
-        self.units_system_btn = TitledButton(self.settings_group, fill_space=True,
-                                             title="system", menu=units_system_menu,
-                                             items=items, data=items, def_act_ix=ix)
-
-        self.populate_settings_group()
 
     def set_up_view_tools(self):
         """ Create tools, settings and search line for the view. """
@@ -669,7 +668,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if new_cols != self.n_toolbar_cols:
             self.n_toolbar_cols = new_cols
             self.populate_intervals_group()
-            self.populate_options_group()
+            self.populate_units_group()
             self.populate_settings_group()
 
     def interval_changed(self):
@@ -792,8 +791,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         if self.tab_wgt.count() <= 1:
             # only one file is available
-            self.all_eso_files_toggle.setEnabled(False)
-            self.populate_options_group()
+            self.all_eso_files_btn.setEnabled(False)
 
     def disable_interval_btns(self):
         """ Disable all interval buttons. """
@@ -973,8 +971,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # enable all eso file results btn if it's suitable
         if self.tab_wgt.count() > 1:
-            self.all_eso_files_toggle.setEnabled(True)
-            self.populate_options_group()
+            self.all_eso_files_btn.setEnabled(True)
 
     def all_files_ids(self):
         """ Return ids of all loaded eso files. """
@@ -1023,12 +1020,12 @@ class MainWindow(QtWidgets.QMainWindow):
 
         for path in eso_file_paths:
             # create a monitor to report progress on the ui
-            id = ids.pop(0)
-            monitor = GuiMonitor(path, id, progress_queue)
+            id_ = ids.pop(0)
+            monitor = GuiMonitor(path, id_, progress_queue)
 
             # create a new process to load eso file
             future = self.pool.submit(load_eso_file, path, monitor=monitor)
-            future.add_done_callback(partial(wait_for_results, id, monitor, file_queue))
+            future.add_done_callback(partial(wait_for_results, id_, monitor, file_queue))
 
     def load_files(self):
         """ Select eso files from explorer and start processing. """
