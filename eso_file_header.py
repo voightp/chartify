@@ -28,10 +28,9 @@ class EsoFileHeader:
         return self._header_dct.keys()
 
     @staticmethod
-    def create_proxy(header, units_settings, view_order, interval):
+    def create_proxy(header, units_settings, view_order):
         """ Create a list of proxy variables. """
-        energy_dct, units_system, energy_units, power_units = units_settings
-        use_energy = energy_dct[interval]
+        rate_to_energy, units_system, energy_units, power_units = units_settings
         ProxyHeaderVariable = namedtuple("ProxyHeaderVariable", list(view_order))
         proxy_header = []
 
@@ -39,7 +38,7 @@ class EsoFileHeader:
             units = var.units
 
             if units in ["W", "W/m2", "J"]:
-                units = handle_energy_power(units, use_energy)
+                units = handle_energy_power(units, rate_to_energy)
 
             proxy_units = convert_units(units, units_system, energy_units, power_units)
             proxy = ProxyHeaderVariable(key=var.key, variable=var.variable, units=proxy_units)
@@ -66,8 +65,7 @@ class EsoFileHeader:
     def get_header_iterator(self, units_settings, view_order, interval):
         """ Return data - proxy paired list of tuples. """
         header = self._variables(interval)
-        proxy = self.create_proxy(header, units_settings,
-                                  view_order, interval)
+        proxy = self.create_proxy(header, units_settings, view_order)
 
         return zip(header, proxy)
 

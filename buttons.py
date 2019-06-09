@@ -97,6 +97,12 @@ class TitledButton(QFrame):
     def setDefaultAction(self, action):
         self.button.setDefaultAction(action)
 
+    def setButtonObjectName(self,name):
+        self.button.setObjectName(name)
+
+    def setText(self, text):
+        self.button.setText(text)
+
     def defaultAction(self):
         return self.button.defaultAction()
 

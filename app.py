@@ -10,7 +10,7 @@ from PySide2.QtCore import QSize, Qt, QThreadPool, QThread, QObject, Signal, \
     QSortFilterProxyModel, QModelIndex, \
     QItemSelectionModel, QRegExp, QUrl, QTimer, QFile
 from PySide2.QtWebEngineWidgets import QWebEnginePage, QWebEngineView, QWebEngineSettings
-from PySide2.QtGui import QKeySequence, QIcon, QPixmap, QFontDatabase
+from PySide2.QtGui import QKeySequence, QIcon, QPixmap, QFontDatabase, QFont
 from eso_file_header import EsoFileHeader
 from icons import Pixmap
 from progress_widget import MyStatusBar
@@ -83,14 +83,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.set_up_interval_btns()
         self.toolbar_layout.addWidget(self.intervals_group)
 
-        self.all_eso_files_btn = ToggleButton(self.toolbar_wgt)
-        self.all_eso_files_btn.setText("all files")
-        # self.all_eso_files_btn.setCheckable(True) # TODO decide if use toggle
-        self.all_eso_files_btn.setEnabled(False)
-        self.toolbar_layout.addWidget(self.all_eso_files_btn)
-
         self.tools_group = QGroupBox("Tools", self.toolbar_wgt)
         self.tools_group.setObjectName("toolsGroup")
+        self.all_eso_files_btn = QToolButton(self.toolbar_wgt)
         self.export_xlsx_btn = QToolButton(self.tools_group)
         self.set_up_tools()
         self.toolbar_layout.addWidget(self.tools_group)
@@ -105,6 +100,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.energy_units_btn = None
         self.power_units_btn = None
         self.units_system_btn = None
+        self.rate_to_energy_btn = None
         self.set_up_units()
         self.toolbar_layout.addWidget(self.units_group)
 
@@ -165,12 +161,13 @@ class MainWindow(QtWidgets.QMainWindow):
                                      "header": ("variable", "key", "units"),
                                      "expanded": set()}
 
-        self.default_energy_dct = {TS: False, H: False, D: True,
+        self.energy_to_rate_dct = {TS: False, H: False, D: True,
                                    M: True, A: True, RP: True}
 
         self._units_settings = {"units_system": "",
                                 "power_units": "",
-                                "energy_units": ""}
+                                "energy_units": "",
+                                "rate_to_energy": False}
 
         self.selected = None
 
@@ -494,7 +491,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def populate_tools_group(self):
         """ Populate tools group layout. """
-        tools_btns = [self.export_xlsx_btn, ]
+        tools_btns = [self.all_eso_files_btn,
+                      self.export_xlsx_btn, ]
         n_cols = self.n_toolbar_cols
         hide_disabled = False
 
@@ -505,7 +503,8 @@ class MainWindow(QtWidgets.QMainWindow):
         """ Populate units group layout. """
         btns = [self.energy_units_btn,
                 self.power_units_btn,
-                self.units_system_btn, ]
+                self.units_system_btn,
+                self.rate_to_energy_btn]
         hide_disabled = False
         n_cols = 2
 
@@ -566,6 +565,12 @@ class MainWindow(QtWidgets.QMainWindow):
                                              title="system", menu=units_system_menu,
                                              items=items, data=items, def_act_ix=ix)
 
+        # ~~~~ Units system set up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.rate_to_energy_btn = QToolButton(self.units_group)
+        self.rate_to_energy_btn.setCheckable(True)
+        self.rate_to_energy_btn.setObjectName("rateToEnergyBtn")
+        self.rate_to_energy_btn.setText("rate to\n energy")
+
     def set_up_tools(self):
         """ Create a general set of tools. """
         # ~~~~ Layout to hold tools settings ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -573,6 +578,11 @@ class MainWindow(QtWidgets.QMainWindow):
         tools_layout.setSpacing(0)
         tools_layout.setContentsMargins(0, 0, 0, 0)
         tools_layout.setAlignment(Qt.AlignTop)
+
+        # ~~~~ Generate export xlsx button ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.all_eso_files_btn.setText("all files")
+        self.all_eso_files_btn.setCheckable(True)
+        self.all_eso_files_btn.setEnabled(False)
 
         # ~~~~ Generate export xlsx button ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.export_xlsx_btn.setEnabled(False)
@@ -680,7 +690,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def get_units_settings(self):
         """ Get currently selected units. """
-        energy_dct = self.default_energy_dct
+        energy_dct = self.energy_to_rate_dct
         units_system = self.units_system_btn.data()
         energy_units = self.energy_units_btn.data()
         power_units = self.power_units_btn.data()
@@ -692,6 +702,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self._units_settings["energy_units"] = self.energy_units_btn.data()
         self._units_settings["power_units"] = self.power_units_btn.data()
         self._units_settings["units_system"] = self.units_system_btn.data()
+        self._units_settings["rate_to_energy"] = self.rate_to_energy_btn.isEnabled()
 
     def restore_units_settings(self):
         """ Restore units settings. """
@@ -714,6 +725,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.units_system_btn.setEnabled(enable)
         self.energy_units_btn.setEnabled(enable)
         self.power_units_btn.setEnabled(enable)
+        self.rate_to_energy_btn.setEnabled(enable)
 
     def reset_units_to_default(self):
         """ Reset units to E+ default. """
@@ -1046,7 +1058,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def results_df(self):
         """ Get output valies for given variables. """
         ids, variables = self.current_request()
-        energy_rate_dct, units_system, power, energy = self.get_units_settings()
+        energy_rate_dct, units_system, energy, power = self.get_units_settings()
 
         files = [v for k, v in self.database.items() if k in ids]
         df = get_results(files, variables, rate_units=power,
