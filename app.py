@@ -41,7 +41,6 @@ DEFAULTS = {
     "units_system": "SI",
     "energy_units": "kWh",
     "power_units": "kW",
-    "group_by": "variable",
 }
 
 
@@ -389,9 +388,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.setWindowIcon(QPixmap("./icons/twotone_pie_chart.png"))
         self.filter_icon.setPixmap(Pixmap("./icons/filter_list.png", r=255, g=255, b=255))
-        self.expand_all_btn.setIcon(Pixmap("./icons/unfold_more.png", a=0.5))
-        self.collapse_all_btn.setIcon(Pixmap("./icons/unfold_less.png", a=0.5))
-        self.tree_view_btn.setIcon(Pixmap("./icons/plain_view.png", a=0.5))
+        self.expand_all_btn.setIcon(Pixmap("./icons/unfold_more.png", r=255, g=255, b=255))
+        self.collapse_all_btn.setIcon(Pixmap("./icons/unfold_less.png", r=255, g=255, b=255))
+        self.tree_view_btn.setIcon(Pixmap("./icons/plain_view.png", r=255, g=255, b=255))
 
     def set_up_tab_wgt(self):
         """ Set up appearance and behaviour of the tab widget. """
@@ -600,9 +599,9 @@ class MainWindow(QtWidgets.QMainWindow):
         btn_layout.setContentsMargins(0, 0, 0, 0)
 
         # ~~~~ Add view buttons ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        btn_layout.addWidget(self.tree_view_btn)
-        btn_layout.addWidget(self.collapse_all_btn)
         btn_layout.addWidget(self.expand_all_btn)
+        btn_layout.addWidget(self.collapse_all_btn)
+        btn_layout.addWidget(self.tree_view_btn)
 
         # ~~~~ Create view search line edit ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.filter_line_edit.setPlaceholderText("filter...")
@@ -656,10 +655,6 @@ class MainWindow(QtWidgets.QMainWindow):
         # if yes, update the model accordingly
         if self.filter_line_edit.text():
             self._filter_view()
-
-        # based on the current view, enable or disable tree buttons
-        # collapse and expand all buttons are not relevant for plain view
-        self.handle_col_ex_btns(is_tree)
 
     def update_layout(self):
         """ Update window layout accordingly to window size. """
@@ -776,7 +771,10 @@ class MainWindow(QtWidgets.QMainWindow):
         """ Update view when view type is changed. """
         # update button icon
         pth = "icons/" + ("tree" if checked else "plain") + "_view.png"
-        self.tree_view_btn.setIcon(Pixmap(pth, a=0.5))
+        self.tree_view_btn.setIcon(Pixmap(pth, r=255, g=255, b=255))
+
+        # collapse and expand all buttons are not relevant for plain view
+        self.handle_col_ex_btns(checked)
 
         self.update_view()
 
