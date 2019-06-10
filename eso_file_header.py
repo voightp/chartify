@@ -37,8 +37,8 @@ class EsoFileHeader:
         for var in header:
             units = var.units
 
-            if units in ["W", "W/m2", "J"]:
-                units = handle_energy_power(units, rate_to_energy)
+            if units in ["W", "W/m2"]:
+                units = handle_rate_to_energy(units, rate_to_energy)
 
             proxy_units = convert_units(units, units_system, energy_units, power_units)
             proxy = ProxyHeaderVariable(key=var.key, variable=var.variable, units=proxy_units)
@@ -90,13 +90,10 @@ def convert_power(units, power_units):
         return p
 
 
-def handle_energy_power(units, is_energy):
+def handle_rate_to_energy(units, is_energy):
     """ Return proxy units for given parameters. """
     if is_energy and (units == "W" or units == "W/m2"):
         return "J/m2" if units == "W/m2" else "J"
-
-    elif not is_energy and units == "J":
-        return "W"
 
     else:
         return units

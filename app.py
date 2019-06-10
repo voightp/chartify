@@ -159,9 +159,6 @@ class MainWindow(QtWidgets.QMainWindow):
                                      "header": ("variable", "key", "units"),
                                      "expanded": set()}
 
-        self.energy_to_rate_dct = {TS: False, H: False, D: True,
-                                   M: True, A: True, RP: True}
-
         self._units_settings = {"units_system": "",
                                 "power_units": "",
                                 "energy_units": "",
@@ -678,16 +675,24 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def interval_changed(self):
         """ Update view when an interval is changed. """
+        # handle changing the state on rate_to_energy_btn
+        # as this is allowed only for daily+ intervals
+        interval = self.get_selected_interval()
+        b = interval not in [TS, H]
+        self.rate_to_energy_btn.setEnabled(b)
+
         self.update_view()
 
     def get_units_settings(self):
         """ Get currently selected units. """
-        energy_dct = self.energy_to_rate_dct
+        btn = self.rate_to_energy_btn
+        rate_to_energy = btn.isEnabled() and btn.isChecked()
+
         units_system = self.units_system_btn.data()
         energy_units = self.energy_units_btn.data()
         power_units = self.power_units_btn.data()
 
-        return energy_dct, units_system, energy_units, power_units
+        return rate_to_energy, units_system, energy_units, power_units
 
     def store_units_settings(self):
         """ Store intermediate units settings. """
@@ -763,12 +768,16 @@ class MainWindow(QtWidgets.QMainWindow):
         if changed:
             self.update_view()
 
+    def rate_to_energy_toggled(self):
+        """ Update view when rate_to_energy changes. """
+        self.update_view()
+
     def tree_btn_toggled(self, checked):
         """ Update view when view type is changed. """
         # update button icon
-        print(checked)
         pth = "icons/" + ("tree" if checked else "plain") + "_view.png"
         self.tree_view_btn.setIcon(Pixmap(pth, a=0.5))
+
         self.update_view()
 
     def expand_all(self):
@@ -883,6 +892,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # ~~~~ Options Actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.custom_units_toggle.stateChanged.connect(self.units_settings_toggled)
+        self.rate_to_energy_btn.clicked.connect(self.rate_to_energy_toggled)
 
         # ~~~~ Settings Actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.tree_view_btn.clicked.connect(self.tree_btn_toggled)
@@ -1050,12 +1060,13 @@ class MainWindow(QtWidgets.QMainWindow):
     def results_df(self):
         """ Get output valies for given variables. """
         ids, variables = self.current_request()
-        energy_rate_dct, units_system, energy, power = self.get_units_settings()
+        rate_to_energy, units_system, energy, power = self.get_units_settings()
+        rate_to_energy_dct = {self.get_selected_interval(): rate_to_energy}
 
         files = [v for k, v in self.database.items() if k in ids]
         df = get_results(files, variables, rate_units=power,
                          energy_units=energy, add_file_name="column",
-                         energy_rate_dct=energy_rate_dct)
+                         energy_rate_dct=rate_to_energy_dct)
 
         return df
 
