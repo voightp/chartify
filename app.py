@@ -75,8 +75,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.left_main_layout.addWidget(self.toolbar_wgt)
 
         # ~~~~ Left hand Tools Items ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.n_toolbar_cols = 2
-
         self.interval_btns = {}
         self.intervals_group = QGroupBox("Intervals", self.toolbar_wgt)
         self.intervals_group.setObjectName("intervalsGroup")
@@ -470,7 +468,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # else:
         #     layout.parentWidget().show()
 
-    def _populate_group(self, group, widgets, n_cols, hide_disabled):
+    def _populate_group(self, group, widgets, hide_disabled, n_cols=2):
         """ Populate given group with given widgets. """
         layout = group.layout()
 
@@ -484,20 +482,16 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def populate_intervals_group(self, hide_disabled=True):
         """ Populate interval buttons based on a current state. """
-        self._populate_group(self.intervals_group,
-                             self.interval_btns.values(),
-                             self.n_toolbar_cols,
-                             hide_disabled)
+        btns = self.interval_btns.values()
+        self._populate_group(self.intervals_group, btns, hide_disabled)
 
     def populate_tools_group(self):
         """ Populate tools group layout. """
         tools_btns = [self.all_eso_files_btn,
                       self.export_xlsx_btn, ]
-        n_cols = self.n_toolbar_cols
         hide_disabled = False
 
-        self._populate_group(self.tools_group, tools_btns,
-                             n_cols, hide_disabled)
+        self._populate_group(self.tools_group, tools_btns, hide_disabled)
 
     def populate_units_group(self):
         """ Populate units group layout. """
@@ -506,17 +500,15 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.units_system_btn,
                 self.rate_to_energy_btn]
         hide_disabled = False
-        n_cols = 2
 
-        self._populate_group(self.units_group, btns,
-                             n_cols, hide_disabled)
+        self._populate_group(self.units_group, btns, hide_disabled)
 
     def populate_settings_group(self):
         """ Populate settings group layout. """
         layout = self.settings_group.layout()
-        n_cols = self.n_toolbar_cols
 
         settings_btns = []
+        n_cols = 2
 
         self.populate_grid_layout(layout, settings_btns, n_cols)
 
