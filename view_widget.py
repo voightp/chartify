@@ -29,7 +29,6 @@ class View(QTreeView):
         self.setAlternatingRowColors(False)
 
         self.setSelectionBehavior(QAbstractItemView.SelectRows)
-        self.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.setDefaultDropAction(Qt.CopyAction)
