@@ -9,12 +9,26 @@ class MyStatusBar(QStatusBar):
     def __init__(self, parent):
         super().__init__(parent)
         self.setFixedHeight(20)
+
         self.widgets = {}
         self.active_jobs = []
         self.pending_jobs = []
 
+        self.summary_wgt = SummaryWidget(self)
+        self.addWidget(self.summary_wgt)
+
     def set_max_value(self, monitor_id, max_value):
         self.widgets[monitor_id].set_maximum(max_value)
+
+    def update_summary(self):
+        n_jobs = len(self.pending_jobs)
+        wgt = self.summary_wgt
+        if n_jobs > 0:
+            wgt.update_label(n_jobs)
+            if wgt.isHidden():
+                wgt.setVisible(True)
+        else:
+            wgt.setVisible(False)
 
     def add_file(self, id_, name):
         wgt = ProgressWidget(self, name)
@@ -26,9 +40,11 @@ class MyStatusBar(QStatusBar):
         else:
             self.pending_jobs.insert(0, wgt)
 
+        self.update_summary()
+
     def display_wgt(self, wgt):
         self.active_jobs.append(wgt)
-        self.addWidget(wgt)
+        self.insertWidget(0, wgt)
         wgt.set_pending()
 
     def update_progress(self, id_, val):
@@ -44,6 +60,22 @@ class MyStatusBar(QStatusBar):
             self.display_wgt(wgt)
         except IndexError:
             pass
+
+        self.update_summary()
+
+
+class SummaryWidget(QWidget):
+    def __init__(self, parent):
+        super().__init__(parent)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+
+        self.label = QLabel(self)
+        layout.addWidget(self.label)
+
+    def update_label(self, n):
+        self.label.setText("and other {} files...".format(n))
 
 
 class ProgressWidget(QWidget):
