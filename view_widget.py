@@ -169,10 +169,11 @@ class View(QTreeView):
         self.update_resize_behaviour()
         self.resize_header()
         self._update_sort_order(*sort_order)
-        self.update_scroll_position()
 
         if expanded_items:
             self._expand_items(expanded_items)
+
+        self.update_scroll_position()
 
         # it's required to adjust columns order to match the last applied order
         # the problematic part is updating tree structure as the logical indexes
