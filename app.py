@@ -41,6 +41,7 @@ DEFAULTS = {
     "units_system": "SI",
     "energy_units": "kWh",
     "power_units": "kW",
+    "tree_view": True,
 }
 
 
@@ -234,7 +235,6 @@ class MainWindow(QtWidgets.QMainWindow):
         # ~~~~ Set up main widgets and layouts ~~~~~~~~~~~~~~~~~~~~~~~~~
         self.load_icons()
         self.set_up_base_ui()
-        self.set_initial_layout()
         self.toggle_css()
 
     @property
@@ -390,7 +390,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.filter_icon.setPixmap(Pixmap("./icons/filter_list.png", r=255, g=255, b=255))
         self.expand_all_btn.setIcon(Pixmap("./icons/unfold_more.png", r=255, g=255, b=255))
         self.collapse_all_btn.setIcon(Pixmap("./icons/unfold_less.png", r=255, g=255, b=255))
-        self.tree_view_btn.setIcon(Pixmap("./icons/plain_view.png", r=255, g=255, b=255))
+
+        tree_view_icon = "./icons/tree_view.png" if self.is_tree() else "./icons/plain_view.png"
+        self.tree_view_btn.setIcon(Pixmap(tree_view_icon, r=255, g=255, b=255))
 
     def set_up_tab_wgt(self):
         """ Set up appearance and behaviour of the tab widget. """
@@ -402,7 +404,6 @@ class MainWindow(QtWidgets.QMainWindow):
     def set_initial_layout(self):
         """ Define an app layout when there isn't any file loaded. """
         self.disable_interval_btns()
-        self.all_eso_files_btn.setEnabled(False)
         self.populate_intervals_group(hide_disabled=False)
         self.populate_units_group()
         self.populate_settings_group()
@@ -521,6 +522,8 @@ class MainWindow(QtWidgets.QMainWindow):
         p = self.intervals_group
         self.interval_btns = {k: IntervalButton(v, parent=p) for k, v in ids.items()}
 
+        self.populate_intervals_group(hide_disabled=False)
+
     def set_up_units(self):
         """ Set up units options. . """
         # ~~~~ Layout to hold options  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -559,6 +562,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.rate_to_energy_btn.setObjectName("rateToEnergyBtn")
         self.rate_to_energy_btn.setText("rate to\n energy")
 
+        self.populate_units_group()
+
     def set_up_tools(self):
         """ Create a general set of tools. """
         # ~~~~ Layout to hold tools settings ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -576,6 +581,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.export_xlsx_btn.setEnabled(False)
         self.export_xlsx_btn.setText("Save xlsx")
         self.export_xlsx_btn.setCheckable(False)
+
+        self.populate_tools_group()
 
     def set_up_settings(self):
         """ Create Settings menus and buttons. """
@@ -611,6 +618,10 @@ class MainWindow(QtWidgets.QMainWindow):
         # ~~~~ Set up tree button  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.tree_view_btn.setText("Tree")
         self.tree_view_btn.setCheckable(True)
+
+        is_checked = DEFAULTS["tree_view"]
+        self.tree_view_btn.setChecked(is_checked)
+        self.handle_col_ex_btns(is_checked)
 
         spacer = QSpacerItem(1, 1, QSizePolicy.Expanding, QSizePolicy.Minimum)
 
