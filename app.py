@@ -821,6 +821,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def disable_interval_btns(self):
         """ Disable all interval buttons. """
         for btn in self.interval_btns.values():
+            btn.setHidden(False)
             btn.setChecked(False)
             btn.setEnabled(False)
 

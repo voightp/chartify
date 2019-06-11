@@ -49,7 +49,6 @@ class View(QTreeView):
         self.expanded.connect(self.handle_expanded)
         self.collapsed.connect(self.handle_collapsed)
         self.pressed.connect(self.handle_drag_attempt)
-        self.verticalScrollBar().valueChanged.connect(self.slider_moved)
 
     @property
     def file_id(self):
@@ -173,12 +172,11 @@ class View(QTreeView):
         if expanded_items:
             self._expand_items(expanded_items)
 
-        self.update_scroll_position()
-
         # it's required to adjust columns order to match the last applied order
         # the problematic part is updating tree structure as the logical indexes
         # change which causes the order to be broken
         self._shuffle_columns(view_order)
+        self.update_scroll_position()
 
     def update_view_model(self, is_tree, interval, view_settings,
                           units_settings, select=None):
@@ -196,6 +194,8 @@ class View(QTreeView):
                       units_settings != self._units_settings, ]
 
         if any(conditions):
+            # TODO temporarily disconnect scrolling signal - make this prettier
+            self.verticalScrollBar().valueChanged.disconnect(self.slider_moved)
             self.create_view_model(eso_file_header, units_settings,
                                    tree_key, view_order, interval)
 
@@ -203,6 +203,7 @@ class View(QTreeView):
             self._store_tree_key(tree_key)
             self._store_interval(interval)
             self._store_units_settings(units_settings)
+            self.verticalScrollBar().valueChanged.connect(self.slider_moved)
 
         # clean up selection as this will be handled based on
         # currently selected list of items stored in main app
@@ -325,6 +326,7 @@ class View(QTreeView):
 
     def slider_moved(self, val):
         """ Handle moving view slider. """
+        print(val)
         self._scrollbar_position = val
 
     def fetch_request(self):
