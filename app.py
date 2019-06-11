@@ -932,16 +932,11 @@ class MainWindow(QtWidgets.QMainWindow):
         """ Clear previously stored expanded items set. """
         self.stored_view_settings["expanded"].clear()
 
-    def update_expanded_set(self, new_expanded_item, remove=False):
+    def update_expanded_set(self, add=None, remove=None):
         """ Handle populating and removing items from 'expanded' set. """
         expanded_set = self.stored_view_settings["expanded"]
-
-        if not remove:
-            # the method is used for populating the set
-            expanded_set.add(new_expanded_item)
-
-        else:
-            expanded_set.remove(new_expanded_item)
+        expanded_set.add(add)
+        expanded_set.remove(remove)
 
     def start_loading_file(self, monitor_id, monitor_name):
         """ Add a progress bar on the interface. """

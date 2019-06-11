@@ -428,22 +428,20 @@ class View(QTreeView):
         self.selectionModel().select(proxy_selection,
                                      QItemSelectionModel.Select | QItemSelectionModel.Rows)
 
-    def handle_state_change(self, name, collapsed=False):
-        self.main_app.update_expanded_set(name, remove=collapsed)
-
     def handle_collapsed(self, index):
         """ Deselect the row when node collapses."""
+        print(index)
         proxy_model = self.model()
         if proxy_model.hasChildren(index):
             name = proxy_model.data(index)
-            self.handle_state_change(name, collapsed=True)
+            self.main_app.update_expanded_set(remove=name)
 
     def handle_expanded(self, index):
         """ Deselect the row when node is expanded. """
         proxy_model = self.model()
         if proxy_model.hasChildren(index):
             name = proxy_model.data(index)
-            self.handle_state_change(name)
+            self.main_app.update_expanded_set(add=name)
 
 
 class ViewModel(QStandardItemModel):
