@@ -942,9 +942,9 @@ class MainWindow(QtWidgets.QMainWindow):
         if remove:
             expanded_set.remove(remove)
 
-    def start_loading_file(self, monitor_id, monitor_name):
+    def initialize_file_progress(self, monitor_id, monitor_name):
         """ Add a progress bar on the interface. """
-        self.status_bar.start_loading(monitor_id, monitor_name)
+        self.status_bar.add_file(monitor_id, monitor_name)
 
     def update_progress_text(self, monitor_id, text):
         """ Update text info for a given monitor. """
@@ -1096,7 +1096,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def create_thread_actions(self):
         """ Create actions related to background threads. """
         self.watcher_thread.loaded.connect(self.add_eso_file)
-        self.monitor_thread.initialized.connect(self.start_loading_file)
+        self.monitor_thread.initialized.connect(self.initialize_file_progress)
         self.monitor_thread.started.connect(self.update_progress_text)
         self.monitor_thread.progress_text_updated.connect(self.update_progress_text)
         self.monitor_thread.progress_bar_updated.connect(self.update_bar_progress)
