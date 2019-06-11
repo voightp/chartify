@@ -44,10 +44,12 @@ class View(QTreeView):
         self._tree_key = None
         self._units_settings = None
         self._view_settings = None
+        self._scrollbar_position = 0
 
         self.expanded.connect(self.handle_expanded)
         self.collapsed.connect(self.handle_collapsed)
         self.pressed.connect(self.handle_drag_attempt)
+        self.verticalScrollBar().valueChanged.connect(self.slider_moved)
 
     @property
     def file_id(self):
@@ -153,6 +155,11 @@ class View(QTreeView):
         proxy_indexes = proxy_selection.indexes()
         self.update_app_outputs(proxy_indexes)
 
+    def update_scroll_position(self):
+        """ Update the slider position. """
+        val = self._scrollbar_position
+        self.verticalScrollBar().setValue(val)
+
     def update_view_appearance(self, view_settings):
         """ Update the model appearance to be consistent with last view. """
         sort_order = view_settings["order"]
@@ -162,6 +169,7 @@ class View(QTreeView):
         self.update_resize_behaviour()
         self.resize_header()
         self._update_sort_order(*sort_order)
+        self.update_scroll_position()
 
         if expanded_items:
             self._expand_items(expanded_items)
@@ -313,6 +321,10 @@ class View(QTreeView):
         self.header().sectionResized.connect(self._view_resized)
         self.header().sortIndicatorChanged.connect(self._sort_order_changed)
         self.header().sectionMoved.connect(self._section_moved)
+
+    def slider_moved(self, val):
+        """ Handle moving view slider. """
+        self._scrollbar_position = val
 
     def fetch_request(self):
         """ Get currently requested outputs. """
