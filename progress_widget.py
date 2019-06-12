@@ -14,38 +14,43 @@ class MyStatusBar(QStatusBar):
         self.active_jobs = []
         self.pending_jobs = []
 
-        self.summary_wgt = SummaryWidget(self)
-        self.addWidget(self.summary_wgt)
-
     def set_max_value(self, monitor_id, max_value):
         self.widgets[monitor_id].set_maximum(max_value)
 
     def update_summary(self):
-        n_jobs = len(self.pending_jobs)
+        n_pending = len(self.pending_jobs)
+        self.active_jobs[-1].update_label(n_pending)
+
+    def add_summary_widget(self):
+        wgt = SummaryWidget(self)
+        wgt.update_label(2)
+        self.active_jobs.append(wgt)
+        self.addWidget(wgt)
+
+    def remove_summary_widget(self):
         wgt = self.summary_wgt
-        if n_jobs > 0:
-            wgt.update_label(n_jobs)
-            if wgt.isHidden():
-                wgt.setVisible(True)
-        else:
-            wgt.setVisible(False)
+        self.removeWidget(wgt)
+        self.active_jobs.remove(wgt)
 
     def add_file(self, id_, name):
         wgt = ProgressWidget(self, name)
+        wgt.set_pending()
         self.widgets[id_] = wgt
 
-        if len(self.active_jobs) < self.max_active_jobs:
-            self.display_wgt(wgt)
+        n_active = len(self.active_jobs)
 
+        if n_active <= self.max_active_jobs:
+            self.active_jobs.append(wgt)
+            self.addWidget(wgt)
+
+        elif n_active == (self.max_active_jobs + 1):
+            last_wgt = self.active_jobs.pop(-1)
+            self.pending_jobs.insert(0, last_wgt)
+            self.pending_jobs.insert(1, wgt)
+            self.add_summary_widget()
         else:
             self.pending_jobs.insert(0, wgt)
-
-        self.update_summary()
-
-    def display_wgt(self, wgt):
-        self.active_jobs.append(wgt)
-        self.insertWidget(0, wgt)
-        wgt.set_pending()
+            self.update_summary()
 
     def update_progress(self, id_, val):
         self.widgets[id_].progress_bar.setValue(val)
@@ -55,13 +60,18 @@ class MyStatusBar(QStatusBar):
         del_wgt.deleteLater()
         del self.widgets[id_]
 
-        try:
-            wgt = self.pending_jobs.pop(0)
-            self.display_wgt(wgt)
-        except IndexError:
-            pass
+        n_pending = len(self.pending_jobs)
 
-        self.update_summary()
+        if n_pending == 1:
+            self.remove_summary_widget()
+
+
+        try:
+            wgt = .pop(0)
+        except IndexError:
+            return
+
+        n_active = len(self.active_jobs)
 
 
 class SummaryWidget(QWidget):
