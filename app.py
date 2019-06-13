@@ -1157,6 +1157,9 @@ def wait_for_results(id, monitor, queue, future):
     except BrokenPipeError:
         print("The application is being closed - catching broken pipe.")
 
+    except loky.process_executor.BrokenProcessPool:
+        print("The application is being closed - catching broken process pool executor.")
+
     except Exception as e:
         monitor.processing_failed("Processing failed!")
         traceback.print_exc()
