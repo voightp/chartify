@@ -121,6 +121,9 @@ class ProgressWidget(QWidget):
     def set_label(self, text):
         self.label.setText(text)
 
+    def set_failed_state(self):
+        pass
+
 
 class SummaryWidget(ProgressWidget):
     def __init__(self, parent):
