@@ -24,7 +24,7 @@ import ctypes
 import loky
 
 from eso_reader.constants import TS, D, H, M, A, RP
-from eso_reader.eso_file import EsoFile, load_eso_file, get_results
+from eso_reader.eso_file import EsoFile, load_eso_file, get_results, IncompleteFile
 from eso_reader.mini_classes import Variable
 import eso_reader.misc_os as misc_os
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
@@ -1050,7 +1050,7 @@ class MainWindow(QtWidgets.QMainWindow):
             monitor = GuiMonitor(path, id_, progress_queue)
 
             # create a new process to load eso file
-            future = self.pool.submit(load_eso_file, path, monitor=monitor)
+            future = self.pool.submit(load_eso_file, path, monitor=monitor, suppress_errors=False)
             future.add_done_callback(partial(wait_for_results, id_, monitor, file_queue))
 
     def load_files(self):
@@ -1067,7 +1067,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self._load_eso_files(file_pths)
 
     def results_df(self):
-        """ Get output valies for given variables. """
+        """ Get output values for given variables. """
         ids, variables = self.current_request()
         rate_to_energy, units_system, energy, power = self.get_units_settings()
         rate_to_energy_dct = {self.get_selected_interval(): rate_to_energy}
@@ -1147,22 +1147,17 @@ def wait_for_results(id, monitor, queue, future):
     """ Put loaded file into the queue and clean up the pool. """
     try:
         eso_file = future.result()
+        queue.put((id, eso_file))
 
-        if eso_file:
-            queue.put((id, eso_file))
-
-        else:
-            monitor.processing_failed("Processing failed!")
+    except IncompleteFile:
+        print("File '{}' is not complete - processing failed.".format(monitor.path))
+        monitor.processing_failed("Processing failed!")
 
     except BrokenPipeError:
         print("The application is being closed - catching broken pipe.")
 
     except loky.process_executor.BrokenProcessPool:
         print("The application is being closed - catching broken process pool executor.")
-
-    except Exception as e:
-        monitor.processing_failed("Processing failed!")
-        traceback.print_exc()
 
 
 def install_fonts(pth, db):

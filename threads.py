@@ -29,13 +29,9 @@ class MonitorThread(QThread):
 
             def send_started():
                 self.started.emit(mon_id, mon_name)
-                self.progress_text_updated.emit(mon_id, message)
 
             def send_finished():
                 self.finished.emit(mon_id)
-
-            def send_update_text():
-                self.progress_text_updated.emit(mon_id, message)
 
             def preprocessing_finished():
                 steps = monitor.n_steps
@@ -47,25 +43,20 @@ class MonitorThread(QThread):
             def do_not_report():
                 pass
 
-            def failed():
+            def send_failed():
                 self.progress_text_updated.emit(mon_id, "FAILED")
 
             switch = {
-                "init": send_initialized,
-                -1: failed,
-                0: send_started,
-                1: preprocessing_finished,
-                2: send_update_text,
-                3: do_not_report,
-                4: send_update_text,
-                5: do_not_report,
-                6: send_update_text,
-                7: do_not_report,
-                8: send_update_text,
-                9: do_not_report,
-                10: send_update_text,
-                11: do_not_report,
-                12: send_finished,
+                -1: send_failed,
+                0: send_initialized,
+                1: send_started,
+                2: preprocessing_finished,
+                3: do_not_report,  # header finished
+                4: do_not_report,  # body finished
+                5: do_not_report,  # intervals finished
+                6: do_not_report,  # output cls finished
+                7: do_not_report,  # tree finished
+                8: send_finished,
                 100: send_update_progress_bar,
             }
 
@@ -106,7 +97,7 @@ class GuiMonitor(DefaultMonitor):
         super().__init__(path)
         self.queue = queue
         self.id = id
-        self.send_message("init", "Waiting")
+        self.send_message(0, "Waiting")
 
     def calculate_steps(self):
         chunk_size = 10000
