@@ -183,7 +183,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # TODO PASSING THE DATA TO DASH APP
         self.watcher_thread = EsoFileWatcher(self.file_queue)
         self.monitor_thread = MonitorThread(self.progress_queue)
-        self.pool = self.create_pool()
+        self.pool = create_pool()
         self.create_thread_actions()
         self.watcher_thread.start()
         self.monitor_thread.start()
@@ -964,13 +964,6 @@ class MainWindow(QtWidgets.QMainWindow):
         """ Remove a progress bar when the file is loaded. """
         self.status_bar.file_loaded(monitor_id)
 
-    @staticmethod
-    def create_pool():
-        """ Create a new proccess pool. """
-        n_cores = cpu_count()
-        workers = (n_cores - 1) if n_cores > 1 else 1
-        return loky.get_reusable_executor(max_workers=workers)
-
     def current_eso_file_id(self):
         """ Return an id of the currently selected file. """
         current_file = self.current_eso_file
@@ -1129,6 +1122,14 @@ class MainWindow(QtWidgets.QMainWindow):
             self.delete_eso_file_content(0)
 
         self.set_initial_layout()
+
+
+def create_pool():
+    """ Create a new process pool. """
+    n_cores = cpu_count()
+    workers = (n_cores - 1) if n_cores > 1 else 1
+    loky.ProcessPoolExecutor
+    return loky.get_reusable_executor(max_workers=workers)
 
 
 def generate_ids(used_ids, n=1, max_id=99999):
