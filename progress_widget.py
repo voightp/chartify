@@ -175,4 +175,5 @@ class SummaryWidget(ProgressWidget):
         self.set_pending()
 
     def update_label(self, n):
+        """ Update number of pending jobs. """
         self.label.setText("+ {} files...".format(n))
