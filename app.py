@@ -412,7 +412,9 @@ class MainWindow(QtWidgets.QMainWindow):
     def hide_disabled(self, wgts):
         """ Hide disabled widgets from the interface. """
         enabled, disabled = self.filter_disabled(wgts)
-        self.hide_widgets(disabled)
+
+        for wgt in disabled:
+            wgt.hide()
 
         return enabled
 
@@ -429,12 +431,6 @@ class MainWindow(QtWidgets.QMainWindow):
                 disabled.append(wgt)
 
         return enabled, disabled
-
-    @staticmethod
-    def hide_widgets(wgts):
-        """ Hide given widgets. """
-        for wgt in wgts:
-            wgt.hide()
 
     @staticmethod
     def show_widgets(wgts):
@@ -683,10 +679,12 @@ class MainWindow(QtWidgets.QMainWindow):
         """ Update view when an interval is changed. """
         # handle changing the state on rate_to_energy_btn
         # as this is allowed only for daily+ intervals
-        interval = self.get_selected_interval()
-        b = interval not in [TS, H]
-        self.rate_to_energy_btn.setEnabled(b)
+        if self.custom_units_toggle.isChecked():
+            interval = self.get_selected_interval()
+            b = interval not in [TS, H]
+            self.rate_to_energy_btn.setEnabled(b)
 
+        # create a new view
         self.update_view()
 
     def get_units_settings(self):
