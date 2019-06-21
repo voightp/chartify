@@ -22,6 +22,7 @@ import sys
 import os
 import ctypes
 import loky
+import psutil
 
 from eso_reader.constants import TS, D, H, M, A, RP
 from eso_reader.eso_file import EsoFile, load_eso_file, get_results, IncompleteFile
@@ -291,6 +292,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.watcher_thread.terminate()
         self.monitor_thread.terminate()
         self.manager.shutdown()
+
+        kill_child_processes(os.getpid())
 
     def resizeEvent(self, event):
         """ Handle window behaviour when on resize. """
@@ -1129,6 +1132,11 @@ def create_pool():
     return loky.get_reusable_executor(max_workers=workers)
 
 
+def kill_pool():
+    """ Shutdown the process pool. """
+    loky.get_reusable_executor().shutdown(wait=False, kill_workers=True)
+
+
 def generate_ids(used_ids, n=1, max_id=99999):
     """ Create a list with unique ids. """
     ids = []
@@ -1139,6 +1147,20 @@ def generate_ids(used_ids, n=1, max_id=99999):
             if len(ids) == n:
                 break
     return ids
+
+
+def kill_child_processes(parent_pid):
+    """ Terminate all running child processes. """
+    try:
+        parent = psutil.Process(parent_pid)
+    except psutil.NoSuchProcess:
+        return
+    children = parent.children(recursive=True)
+    for p in children:
+        try:
+            p.terminate()
+        except psutil.NoSuchProcess:
+            continue
 
 
 def wait_for_results(id_, monitor, queue, future):
