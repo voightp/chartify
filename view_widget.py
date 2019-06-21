@@ -16,7 +16,6 @@ from eso_file_header import EsoFileHeader
 
 
 class View(QTreeView):
-    units_section_width = 70
 
     def __init__(self, main_app, file_id, eso_file_header):
         super().__init__()
@@ -109,11 +108,6 @@ class View(QTreeView):
         self._set_header_labels(view_order)
         self._set_first_col_spanned()
 
-        if not self._initialized:
-            # create header actions only when view is created
-            self._create_header_actions()
-            self._initialized = True
-
     def _shuffle_columns(self, order):
         """ Reset column positions to match last visual appearance. """
         header = self.header()
@@ -124,7 +118,7 @@ class View(QTreeView):
             if i != j:
                 header.moveSection(j, i)
 
-    def _update_sort_order(self, name, order):
+    def update_sort_order(self, name, order):
         """ Set header order. """
         log_ix = self._get_logical_index(name)
         self.header().setSortIndicator(log_ix, order)
@@ -164,10 +158,11 @@ class View(QTreeView):
         sort_order = view_settings["order"]
         expanded_items = view_settings["expanded"]
         view_order = view_settings["header"]
+        widths = self.main_app.stored_view_settings["widths"]
 
         self.update_resize_behaviour()
-        self.resize_header()
-        self._update_sort_order(*sort_order)
+        self.resize_header(widths)
+        self.update_sort_order(*sort_order)
 
         if expanded_items:
             self._expand_items(expanded_items)
@@ -177,6 +172,14 @@ class View(QTreeView):
         # change which causes the order to be broken
         self._shuffle_columns(view_order)
         self.update_scroll_position()
+
+    def disconnect_actions(self):
+        """ Disconnect specific signals to avoid overriding stored values. """
+        self.verticalScrollBar().valueChanged.disconnect(self.slider_moved)
+
+    def reconnect_actions(self):
+        """ Connect specific signals. """
+        self.verticalScrollBar().valueChanged.connect(self.slider_moved)
 
     def update_view_model(self, is_tree, interval, view_settings,
                           units_settings, select=None):
@@ -194,8 +197,7 @@ class View(QTreeView):
                       units_settings != self._units_settings, ]
 
         if any(conditions):
-            # TODO temporarily disconnect scrolling signal - make this prettier
-            self.verticalScrollBar().valueChanged.disconnect(self.slider_moved)
+            self.disconnect_actions()
             self.create_view_model(eso_file_header, units_settings,
                                    tree_key, view_order, interval)
 
@@ -203,7 +205,7 @@ class View(QTreeView):
             self._store_tree_key(tree_key)
             self._store_interval(interval)
             self._store_units_settings(units_settings)
-            self.verticalScrollBar().valueChanged.connect(self.slider_moved)
+            self.reconnect_actions()
 
         # clean up selection as this will be handled based on
         # currently selected list of items stored in main app
@@ -213,15 +215,19 @@ class View(QTreeView):
 
         self.update_view_appearance(view_settings)
 
+        if not self._initialized:
+            # create header actions only when view is created
+            self._create_header_actions()
+            self._initialized = True
+
     def _set_header_labels(self, view_order):
         """ Assign header labels. """
         model = self.model().sourceModel()
         model.setHorizontalHeaderLabels(view_order)
 
-    def resize_header(self):
+    def resize_header(self, widths):
         """ Update header sizes. """
         header = self.header()
-        widths = self.main_app.stored_view_settings["widths"]
         interactive = widths["interactive"]
         fixed = widths["fixed"]
 
@@ -236,7 +242,7 @@ class View(QTreeView):
         """ Define resizing behaviour. """
         header = self.header()
 
-        # both logical and visual indexes are ordered as 'key', 'variable', 'units
+        # both logical and visual indexes are ordered as 'key', 'variable', 'units'
         log_ixs = self._get_logical_ixs()
         vis_ixs = [self.header().visualIndex(i) for i in log_ixs]
 
@@ -293,9 +299,11 @@ class View(QTreeView):
     def _view_resized(self):
         """ Store interactive section width in the main app. """
         header = self.header()
+
         for i in range(3):
             if header.sectionResizeMode(i) == header.Interactive:
                 width = header.sectionSize(i)
+                print("STORING", width)
                 self.main_app.update_section_widths("interactive", width)
 
     def _section_moved(self, _logical_ix, old_visual_ix, new_visual_ix):
@@ -308,14 +316,16 @@ class View(QTreeView):
             # onto first position and tree key is applied
             print("Updating view")
             self.main_app.update_view()
-            self._update_sort_order(names[0], Qt.AscendingOrder)
+            self.update_sort_order(names[0], Qt.AscendingOrder)
 
         self.update_resize_behaviour()
-        self.resize_header()
+
+        widths = self.main_app.stored_view_settings["widths"]
+        self.resize_header(widths)
 
     def _create_header_actions(self):
         """ Create header actions. """
-        # When the file is loaded for the first time the header does not
+        # When the file is loaded for the first time, the header does not
         # contain required data to use 'view_resized' method.
         # Due to this, the action needs to be created only after the model
         # and its header has been created.
@@ -326,7 +336,6 @@ class View(QTreeView):
 
     def slider_moved(self, val):
         """ Handle moving view slider. """
-        print(val)
         self._scrollbar_position = val
 
     def fetch_request(self):
