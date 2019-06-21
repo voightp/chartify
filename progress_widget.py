@@ -4,6 +4,11 @@ from queue import Queue
 
 
 class MyStatusBar(QStatusBar):
+    """
+    Wrapper class with added functionality to
+    display widgets with file processing progress.
+
+    """
     max_active_jobs = 5
 
     def __init__(self, parent):
@@ -18,21 +23,27 @@ class MyStatusBar(QStatusBar):
 
     @property
     def sorted_wgts(self):
+        """ Sort widgets by their value (descending order). """
         wgts = list(self.widgets.values())
         return sorted(wgts, key=lambda x: x.value(), reverse=True)
 
     def position_changed(self, wgt):
+        """ Check if the current widget triggers repositioning. """
         pos = self.sorted_wgts.index(wgt)
 
         try:
             i = self._visible.index(wgt)
         except ValueError:
+            # widget is in pending section, although it
+            # can still be being processed on machines with
+            # number of cpu greater than max_active_jobs
             vals = [v.value() for v in self._visible]
             return any(map(lambda x: x < (wgt.value() + 1), vals))
 
         return pos != i
 
     def update_wgt_progress(self, id_, val):
+        """ Update progress value on a widget. """
         wgt = self.widgets[id_]
         wgt.progress_bar.setValue(val)
 
@@ -42,9 +53,11 @@ class MyStatusBar(QStatusBar):
             self.update_bar_progress()
 
     def set_max_value(self, id_, max_value):
+        """ Set up maximum progress value. """
         self.widgets[id_].set_maximum(max_value)
 
     def update_bar_progress(self):
+        """ Update progress widget display on the status bar. """
         wgts = self.sorted_wgts
         max_ = self.max_active_jobs
         vis = self._visible
@@ -67,13 +80,15 @@ class MyStatusBar(QStatusBar):
                 self.addWidget(d)
 
     def add_file(self, id_, name):
+        """ Add progress widget to the status bar. """
         wgt = ProgressWidget(self)
         wgt.set_label(name)
         wgt.set_pending()
         self.widgets[id_] = wgt
         self.update_bar_progress()
 
-    def file_loaded(self, id_):
+    def remove_file(self, id_):
+        """ Remove widget from the status bar. """
         del_wgt = self.widgets[id_]
         del_wgt.deleteLater()
         del self.widgets[id_]
@@ -87,6 +102,12 @@ class MyStatusBar(QStatusBar):
 
 
 class ProgressWidget(QWidget):
+    """
+    A widget to display current eso file
+    processing progress.
+
+    """
+
     def __init__(self, parent):
         super().__init__(parent)
         layout = QVBoxLayout(self)
@@ -115,16 +136,20 @@ class ProgressWidget(QWidget):
                                                self.value())
 
     def set_maximum(self, maximum):
+        """ Set progress bar maximum value. """
         self._maximum = maximum
         self.progress_bar.setRange(1, maximum)
 
     def set_pending(self):
+        """ Set pending status. """
         self.progress_bar.setRange(0, 0)
 
     def set_label(self, text):
+        """ Set text on the label. """
         self.label.setText(text)
 
     def value(self):
+        """ Get current progress value (as percentage). """
         bar = self.progress_bar
         try:
             val = bar.value() / bar.maximum() * 100
@@ -138,9 +163,16 @@ class ProgressWidget(QWidget):
 
 
 class SummaryWidget(ProgressWidget):
+    """
+    A special type of progress widget to report
+    remaining number of jobs.
+
+    The status is always pending.
+
+    """
     def __init__(self, parent):
         super().__init__(parent)
         self.set_pending()
 
     def update_label(self, n):
-        self.label.setText("and other {} files...".format(n))
+        self.label.setText("+ {} files...".format(n))

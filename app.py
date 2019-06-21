@@ -963,7 +963,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def file_loaded(self, monitor_id):
         """ Remove a progress bar when the file is loaded. """
-        self.status_bar.file_loaded(monitor_id)
+        self.status_bar.remove_file(monitor_id)
 
     def current_eso_file_id(self):
         """ Return an id of the currently selected file. """
