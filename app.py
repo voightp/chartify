@@ -959,7 +959,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def update_bar_progress(self, monitor_id, value):
         """ Update progress value for a given monitor. """
-        self.status_bar.update_progress(monitor_id, value)
+        self.status_bar.update_wgt_progress(monitor_id, value)
 
     def file_loaded(self, monitor_id):
         """ Remove a progress bar when the file is loaded. """
