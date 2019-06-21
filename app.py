@@ -1126,7 +1126,6 @@ def create_pool():
     """ Create a new process pool. """
     n_cores = cpu_count()
     workers = (n_cores - 1) if n_cores > 1 else 1
-    loky.ProcessPoolExecutor
     return loky.get_reusable_executor(max_workers=workers)
 
 
@@ -1142,21 +1141,24 @@ def generate_ids(used_ids, n=1, max_id=99999):
     return ids
 
 
-def wait_for_results(id, monitor, queue, future):
+def wait_for_results(id_, monitor, queue, future):
     """ Put loaded file into the queue and clean up the pool. """
     try:
         eso_file = future.result()
-        queue.put((id, eso_file))
+        queue.put((id_, eso_file))
 
     except IncompleteFile:
-        print("File '{}' is not complete - processing failed.".format(monitor.path))
+        print("File '{}' is not complete -"
+              " processing failed.".format(monitor.path))
         monitor.processing_failed("Processing failed!")
 
     except BrokenPipeError:
-        print("The application is being closed - catching broken pipe.")
+        print("The application is being closed - "
+              "catching broken pipe.")
 
     except loky.process_executor.BrokenProcessPool:
-        print("The application is being closed - catching broken process pool executor.")
+        print("The application is being closed - "
+              "catching broken process pool executor.")
 
 
 def install_fonts(pth, db):
