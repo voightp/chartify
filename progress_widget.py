@@ -28,7 +28,7 @@ class MyStatusBar(QStatusBar):
             i = self._visible.index(wgt)
         except ValueError:
             vals = [v.value() for v in self._visible]
-            return any(map(lambda x: x < wgt.value(), vals))
+            return any(map(lambda x: x < (wgt.value() + 1), vals))
 
         return pos != i
 
@@ -127,7 +127,7 @@ class ProgressWidget(QWidget):
     def value(self):
         bar = self.progress_bar
         try:
-            val = bar.value() / bar.maximum()
+            val = bar.value() / bar.maximum() * 100
         except ZeroDivisionError:
             val = -1
 
