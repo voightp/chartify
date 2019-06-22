@@ -90,7 +90,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.toolbar_layout.addWidget(self.tools_group)
 
         self.custom_units_toggle = ToggleButton(self.toolbar_wgt)
-        self.custom_units_toggle.setText("custom units")
+        self.custom_units_toggle.setText("Units")
         self.custom_units_toggle.setChecked(True)
         self.toolbar_layout.addWidget(self.custom_units_toggle)
 
