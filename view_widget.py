@@ -39,9 +39,9 @@ class View(QTreeView):
         self._file_id = file_id
 
         self._initialized = False
-        self._interval = None
-        self._tree_key = None
-        self._units_settings = None
+        self._settings = {"interval": None,
+                          "tree_key": None,
+                          "units": None}
         self._view_settings = None
         self._scrollbar_position = 0
 
@@ -63,17 +63,11 @@ class View(QTreeView):
         self.expand_all()
         self._set_first_col_spanned()
 
-    def _store_interval(self, new_interval):
-        """ Hold a value of the last interval settings. """
-        self._interval = new_interval
-
-    def _store_tree_key(self, new_key):
-        """ Hold a value of the last grouping settings. """
-        self._tree_key = new_key
-
-    def _store_units_settings(self, new_units):
-        """ Hold a data on the last units settings. """
-        self._units_settings = new_units
+    def store_settings(self, interval, tree_key, units):
+        """ Store intermediate settings. """
+        self._settings = {"interval": interval,
+                          "tree_key": tree_key,
+                          "units": units}
 
     def expand_all(self):
         """ Expand all nested nodes. """
@@ -192,9 +186,9 @@ class View(QTreeView):
         tree_key = view_order[0] if is_tree else None
 
         # Only update the model if the settings have changed
-        conditions = [tree_key != self._tree_key,
-                      interval != self._interval,
-                      units_settings != self._units_settings, ]
+        conditions = [tree_key != self._settings["tree_key"],
+                      interval != self._settings["interval"],
+                      units_settings != self._settings["units"], ]
 
         if any(conditions):
             self.disconnect_actions()
@@ -202,9 +196,7 @@ class View(QTreeView):
                                    tree_key, view_order, interval)
 
             # Store current sorting key and interval
-            self._store_tree_key(tree_key)
-            self._store_interval(interval)
-            self._store_units_settings(units_settings)
+            self.store_settings(interval, tree_key, units_settings)
             self.reconnect_actions()
 
         # clean up selection as this will be handled based on
