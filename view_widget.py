@@ -45,6 +45,7 @@ class View(QTreeView):
         self._view_settings = None
         self._scrollbar_position = 0
 
+        self.verticalScrollBar().valueChanged.connect(self.slider_moved)
         self.expanded.connect(self.handle_expanded)
         self.collapsed.connect(self.handle_collapsed)
         self.pressed.connect(self.handle_drag_attempt)
