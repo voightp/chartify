@@ -22,6 +22,7 @@ class View(QTreeView):
         self.setRootIsDecorated(True)
         self.setUniformRowHeights(True)
         self.setSortingEnabled(True)
+        self.setMouseTracking(True)
 
         self.setDragEnabled(False)
         self.setWordWrap(False)  # not working at the moment
@@ -463,14 +464,25 @@ class ViewModel(QStandardItemModel):
         for data, proxy in header_iterator:
             i0 = QStandardItem(None)
             i0.setData(data, Qt.UserRole)  # First item in row holds all the information
-            i1, i2 = QStandardItem(proxy[1]), QStandardItem(proxy[2])
+
+            i1 = QStandardItem(proxy[1])
+            i1.setStatusTip(proxy[1])
+
+            i2 = QStandardItem(proxy[2])
+            i2.setStatusTip(proxy[2])
+
             parent.appendRow([i0, i1, i2])
 
     @staticmethod
     def _append_plain_rows(header_iterator, parent):
         """ Add plain rows to the model. """
         for data, proxy in header_iterator:
-            item_row = [QStandardItem(item) for item in proxy]
+            item_row = []
+            for it in proxy:
+                item = QStandardItem(it)
+                item.setStatusTip(it)
+                item_row.append(item)
+
             item_row[0].setData(data, Qt.UserRole)  # First item in row holds all the information
             parent.appendRow(item_row)
 
