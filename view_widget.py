@@ -86,8 +86,8 @@ class View(QTreeView):
             if model.hasChildren(ix):
                 self.setFirstColumnSpanned(i, self.rootIndex(), True)
 
-    def create_view_model(self, eso_file_header, units_settings,
-                          tree_key, view_order, interval):
+    def build_view_model(self, eso_file_header, units_settings,
+                         tree_key, view_order, interval):
         """
         Create a model and set up its appearance.
         """
@@ -193,8 +193,8 @@ class View(QTreeView):
 
         if any(conditions):
             self.disconnect_actions()
-            self.create_view_model(eso_file_header, units_settings,
-                                   tree_key, view_order, interval)
+            self.build_view_model(eso_file_header, units_settings,
+                                  tree_key, view_order, interval)
 
             # Store current sorting key and interval
             self.store_settings(interval, tree_key, units_settings)
@@ -308,7 +308,7 @@ class View(QTreeView):
             # need to update view as section has been moved
             # onto first position and tree key is applied
             print("Updating view")
-            self.main_app.update_view()
+            self.main_app.build_view()
             self.update_sort_order(names[0], Qt.AscendingOrder)
 
         self.update_resize_behaviour()

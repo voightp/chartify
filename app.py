@@ -639,7 +639,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.collapse_all_btn.setEnabled(enabled)
         self.expand_all_btn.setEnabled(enabled)
 
-    def update_view(self):
+    def build_view(self):
         """ Create a new model when the tab or the interval has changed. """
         # retrieve required inputs from the interface
         is_tree = self.is_tree()
@@ -688,7 +688,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.rate_to_energy_btn.setEnabled(b)
 
         # create a new view
-        self.update_view()
+        self.build_view()
 
     def get_units_settings(self):
         """ Get currently selected units. """
@@ -722,7 +722,7 @@ class MainWindow(QtWidgets.QMainWindow):
         act = self.power_units_btn.get_action(data=data)
         self.power_units_btn.update_state_internally(act)
 
-        self.update_view()
+        self.build_view()
 
     def enable_units_buttons(self, enable):
         """ Enable or disable units settings buttons. """
@@ -742,7 +742,7 @@ class MainWindow(QtWidgets.QMainWindow):
         act = self.power_units_btn.get_action(data="W")
         self.power_units_btn.update_state_internally(act)
 
-        self.update_view()
+        self.build_view()
 
     def units_settings_toggled(self, state):
         """ Update units settings when custom units toggled. """
@@ -759,25 +759,25 @@ class MainWindow(QtWidgets.QMainWindow):
         changed = self.units_system_btn.update_state(act)
 
         if changed:
-            self.update_view()
+            self.build_view()
 
     def power_units_changed(self, act):
         """ Update view when energy units are changed. """
         changed = self.power_units_btn.update_state(act)
 
         if changed:
-            self.update_view()
+            self.build_view()
 
     def energy_units_changed(self, act):
         """ Update view when energy units are changed. """
         changed = self.energy_units_btn.update_state(act)
 
         if changed:
-            self.update_view()
+            self.build_view()
 
     def rate_to_energy_toggled(self):
         """ Update view when rate_to_energy changes. """
-        self.update_view()
+        self.build_view()
 
     def tree_btn_toggled(self, checked):
         """ Update view when view type is changed. """
@@ -788,7 +788,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # collapse and expand all buttons are not relevant for plain view
         self.handle_col_ex_btns(checked)
 
-        self.update_view()
+        self.build_view()
 
     def expand_all(self):
         """ Expand all tree view items. """
@@ -878,7 +878,7 @@ class MainWindow(QtWidgets.QMainWindow):
         print("Tab changed {}".format(index))
         if not self.tab_widget_empty():
             self.update_interval_buttons_state()
-            self.update_view()
+            self.build_view()
             self.populate_intervals_group()
 
         else:
