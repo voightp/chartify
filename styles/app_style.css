@@ -54,8 +54,13 @@ QFrame#viewTools {
 QGroupBox::title {
     subcontrol-origin: padding;
     subcontrol-position: top left;
-    left: 4px;
-    top: -18px;
+    left: 2px;
+    top: -14px;
+}
+
+QGroupBox {
+    font-size: 11px;
+    text-transform: uppercase;
 }
 
 QGroupBox#intervalsGroup {
@@ -68,7 +73,6 @@ QGroupBox#toolsGroup {
 
 QFrame#unitsGroup {
     border-top: 1px solid rgba(140,140,140,0.5)
-
 }
 
 QToolButton {
@@ -398,6 +402,11 @@ QScrollBar::handle:vertical, QScrollBar::handle:horizontal {
 
 QFrame#toggleButtonContainer {
     margin: 2px;
+}
+
+ToggleButton QLabel {
+    font-size: 11px;
+    text-transform: uppercase;
 }
 
 QSlider {
