@@ -13,6 +13,7 @@ import pickle
 
 from PySide2.QtGui import QStandardItemModel, QStandardItem, QFont
 from eso_file_header import EsoFileHeader
+from functools import partial
 
 
 class View(QTreeView):
@@ -459,32 +460,31 @@ class ViewModel(QStandardItemModel):
         return "application/json"
 
     @staticmethod
-    def _append_rows(header_iterator, parent):
+    def set_status_tip(item, var):
+        """ Parse variable to create a status tip. """
+        tip = "{}  |  {}  |  {}".format(var.variable, var.key, var.units)
+        item.setStatusTip(tip)
+
+    def _append_rows(self, header_iterator, parent):
         """ Add plain rows to the model. """
         for data, proxy in header_iterator:
-            i0 = QStandardItem(None)
-            i0.setData(data, Qt.UserRole)  # First item in row holds all the information
 
-            i1 = QStandardItem(proxy[1])
-            i1.setStatusTip(proxy[1])
+            row = [QStandardItem(None),
+                   QStandardItem(proxy[1]),
+                   QStandardItem(proxy[2])]
 
-            i2 = QStandardItem(proxy[2])
-            i2.setStatusTip(proxy[2])
+            _ = [self.set_status_tip(item, data) for item in row]
 
-            parent.appendRow([i0, i1, i2])
+            parent.appendRow(row)
 
-    @staticmethod
-    def _append_plain_rows(header_iterator, parent):
+    def _append_plain_rows(self, header_iterator, parent):
         """ Add plain rows to the model. """
         for data, proxy in header_iterator:
-            item_row = []
-            for it in proxy:
-                item = QStandardItem(it)
-                item.setStatusTip(it)
-                item_row.append(item)
+            row = [QStandardItem(item) for item in proxy]
+            _ = [self.set_status_tip(item, data) for item in row]
 
-            item_row[0].setData(data, Qt.UserRole)  # First item in row holds all the information
-            parent.appendRow(item_row)
+            row[0].setData(data, Qt.UserRole)  # First item in row holds all the information
+            parent.appendRow(row)
 
     def _append_tree_rows(self, tree_header, root):
         """ Add rows for a tree like view. """
