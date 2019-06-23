@@ -965,6 +965,10 @@ class MainWindow(QtWidgets.QMainWindow):
         """ Remove a progress bar when the file is loaded. """
         self.status_bar.remove_file(monitor_id)
 
+    def file_failed(self, monitor_id):
+        """ Set failed status on the progress widget. """
+        self.status_bar.set_failed(monitor_id)
+
     def current_eso_file_id(self):
         """ Return an id of the currently selected file. """
         current_file = self.current_eso_file
@@ -1097,6 +1101,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.monitor_thread.progress_bar_updated.connect(self.update_bar_progress)
         self.monitor_thread.preprocess_finished.connect(self.set_progress_bar_max)
         self.monitor_thread.finished.connect(self.file_loaded)
+        self.monitor_thread.failed.connect(self.file_failed)
 
     # noinspection PyAttributeOutsideInit
     def create_menu_actions(self):

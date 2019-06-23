@@ -1,5 +1,7 @@
 from PySide2 import QtCore
-from PySide2.QtWidgets import QWidget, QLabel, QProgressBar, QFormLayout, QStatusBar, QVBoxLayout, QSizePolicy
+from PySide2.QtWidgets import QWidget, QLabel, QProgressBar, QFormLayout, QStatusBar, QVBoxLayout, QSizePolicy, \
+    QPushButton, QHBoxLayout
+from PySide2.QtCore import Signal
 from queue import Queue
 
 
@@ -16,7 +18,7 @@ class MyStatusBar(QStatusBar):
         self.setFixedHeight(20)
 
         self.widgets = {}
-        self.summary_wgt = SummaryWidget(self)
+        self.summary_wgt = SummaryWidget(self, None)
         self.summary_wgt.set_pending()
 
         self._visible = []
@@ -50,13 +52,13 @@ class MyStatusBar(QStatusBar):
         changed = self.position_changed(wgt)
 
         if changed:
-            self.update_bar_progress()
+            self.update_bar()
 
     def set_max_value(self, id_, max_value):
         """ Set up maximum progress value. """
         self.widgets[id_].set_maximum(max_value)
 
-    def update_bar_progress(self):
+    def update_bar(self):
         """ Update progress widget display on the status bar. """
         wgts = self.sorted_wgts
         max_ = self.max_active_jobs
@@ -81,11 +83,13 @@ class MyStatusBar(QStatusBar):
 
     def add_file(self, id_, name):
         """ Add progress widget to the status bar. """
-        wgt = ProgressWidget(self)
+        wgt = ProgressWidget(self, id_)
         wgt.set_label(name)
         wgt.set_pending()
+        wgt.remove.connect(self.remove_file)
+
         self.widgets[id_] = wgt
-        self.update_bar_progress()
+        self.update_bar()
 
     def remove_file(self, id_):
         """ Remove widget from the status bar. """
@@ -98,7 +102,11 @@ class MyStatusBar(QStatusBar):
         except ValueError:
             pass
 
-        self.update_bar_progress()
+        self.update_bar()
+
+    def set_failed(self, id_):
+        """ Set failed status on the given widget. """
+        self.widgets[id_].set_failed_status()
 
 
 class ProgressWidget(QWidget):
@@ -107,26 +115,36 @@ class ProgressWidget(QWidget):
     processing progress.
 
     """
+    remove = Signal(int)
 
-    def __init__(self, parent):
+    def __init__(self, parent, id_):
         super().__init__(parent)
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(0)
+        self.id_ = id_
+        self.maximum = 0
+
+        self.main_layout = QHBoxLayout(self)
+        self.main_layout.setContentsMargins(0, 0, 0, 0)
+        self.main_layout.setSpacing(0)
 
         self.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
         self.setFixedWidth(140)
 
-        self.progress_bar = QProgressBar()
+        wgt = QWidget(self)
+        layout = QVBoxLayout(wgt)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+
+        self.progress_bar = QProgressBar(wgt)
         self.progress_bar.setTextVisible(False)
         self.progress_bar.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.progress_bar.setFixedHeight(2)
 
-        self.label = QLabel(self)
+        self.label = QLabel(wgt)
+
         layout.addWidget(self.label)
         layout.addWidget(self.progress_bar)
 
-        self._maximum = 0
+        self.main_layout.addWidget(wgt)
 
     def __repr__(self):
         return "Progress widget '{}'\n" \
@@ -137,7 +155,7 @@ class ProgressWidget(QWidget):
 
     def set_maximum(self, maximum):
         """ Set progress bar maximum value. """
-        self._maximum = maximum
+        self.maximum = maximum
         self.progress_bar.setRange(1, maximum)
 
     def set_pending(self):
@@ -158,8 +176,25 @@ class ProgressWidget(QWidget):
 
         return val
 
-    def set_failed_state(self):
-        pass
+    def send_remove_me(self):
+        """ Give signal to status bar to remove this widget. """
+        self.remove.emit(self.id_)
+
+    def set_failed_status(self):
+        """ Apply 'failed' style on the progress widget. """
+        bar = self.progress_bar
+        bar.setMaximum(999)
+        bar.setValue(999)
+
+        bar.setProperty("failed", "true")
+        bar.style().unpolish(bar)
+        bar.style().polish(bar)
+
+        self.setToolTip("FAILED - INCOMPLETE FILE")
+        btn = QPushButton(self, "FOO")
+        btn.clicked.connect(self.send_remove_me)
+
+        self.layout().addWidget(btn)
 
 
 class SummaryWidget(ProgressWidget):
@@ -170,8 +205,9 @@ class SummaryWidget(ProgressWidget):
     The status is always pending.
 
     """
-    def __init__(self, parent):
-        super().__init__(parent)
+
+    def __init__(self, parent, id_):
+        super().__init__(parent, id_)
         self.set_pending()
 
     def update_label(self, n):

@@ -44,7 +44,7 @@ class MonitorThread(QThread):
                 pass
 
             def send_failed():
-                self.progress_text_updated.emit(mon_id, "FAILED")
+                self.failed.emit(mon_id, "FAILED")
 
             switch = {
                 -1: send_failed,

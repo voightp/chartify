@@ -179,12 +179,16 @@ QLabel#buttonTitle:disabled {
 }
 
 QProgressBar {
-
+    background-color: rgb(255, 255, 255);
 }
 
 QProgressBar::chunk {
-    background-color: #90cc00;
+    background-color: rgb(144, 204, 0);
     width: 1px;
+}
+
+QProgressBar::chunk[failed="true"] {
+    background-color: rgb(144, 0, 0);
 }
 
 QTabBar QToolButton {
