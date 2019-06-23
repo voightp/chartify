@@ -298,7 +298,6 @@ class View(QTreeView):
         for i in range(3):
             if header.sectionResizeMode(i) == header.Interactive:
                 width = header.sectionSize(i)
-                print("STORING", width)
                 self.main_app.update_section_widths("interactive", width)
 
     def _section_moved(self, _logical_ix, old_visual_ix, new_visual_ix):
@@ -436,7 +435,6 @@ class View(QTreeView):
 
     def handle_collapsed(self, index):
         """ Deselect the row when node collapses."""
-        print(index)
         proxy_model = self.model()
         if proxy_model.hasChildren(index):
             name = proxy_model.data(index)
