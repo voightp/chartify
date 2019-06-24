@@ -466,13 +466,12 @@ class ViewModel(QStandardItemModel):
     def _append_rows(self, header_iterator, parent):
         """ Add plain rows to the model. """
         for data, proxy in header_iterator:
-
             row = [QStandardItem(None),
                    QStandardItem(proxy[1]),
                    QStandardItem(proxy[2])]
 
             _ = [self.set_status_tip(item, data) for item in row]
-
+            row[0].setData(data, Qt.UserRole)  # First item in row holds all the information
             parent.appendRow(row)
 
     def _append_plain_rows(self, header_iterator, parent):
