@@ -463,24 +463,15 @@ class ViewModel(QStandardItemModel):
         tip = "{}  |  {}  |  {}".format(var.variable, var.key, var.units)
         item.setStatusTip(tip)
 
-    def _append_rows(self, header_iterator, parent):
-        """ Add plain rows to the model. """
+    def _append_rows(self, header_iterator, parent, tree=False):
+        """ Add rows to the model. """
         for data, proxy in header_iterator:
-            row = [QStandardItem(None),
-                   QStandardItem(proxy[1]),
-                   QStandardItem(proxy[2])]
-
-            _ = [self.set_status_tip(item, data) for item in row]
-            row[0].setData(data, Qt.UserRole)  # First item in row holds all the information
-            parent.appendRow(row)
-
-    def _append_plain_rows(self, header_iterator, parent):
-        """ Add plain rows to the model. """
-        for data, proxy in header_iterator:
+            if tree:
+                proxy = [None, proxy[1], proxy[2]]
             row = [QStandardItem(item) for item in proxy]
-            _ = [self.set_status_tip(item, data) for item in row]
-
             row[0].setData(data, Qt.UserRole)  # First item in row holds all the information
+
+            _ = [self.set_status_tip(item, data) for item in row]
             parent.appendRow(row)
 
     def _append_tree_rows(self, tree_header, root):
@@ -489,13 +480,13 @@ class ViewModel(QStandardItemModel):
 
             if len(variables) == 1:
                 # append as a plain row
-                self._append_plain_rows(variables, root)
+                self._append_rows(variables, root)
 
             else:
                 parent = QStandardItem(k)
                 parent.setDragEnabled(False)
                 root.appendRow(parent)
-                self._append_rows(variables, parent)
+                self._append_rows(variables, parent, tree=True)
 
     def populate_data(self, eso_file_header, units_settings, tree_key, view_order, interval):
         """ Feed the model with output variables. """
