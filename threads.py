@@ -130,3 +130,5 @@ class GuiMonitor(DefaultMonitor):
             print("Cannot send message!\n{}".format(e))
         except FileNotFoundError as e:
             print("Cannot find file!\n{}".format(e))
+        except BrokenPipeError:
+            print("App is being closed, cannot send message!")
