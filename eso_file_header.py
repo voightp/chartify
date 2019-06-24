@@ -101,7 +101,10 @@ def handle_rate_to_energy(units, is_energy):
 
 def convert_units(units, units_system, energy_units, power_units):
     """ Convert given units into requested format. """
-    if (units == "W" or units == "W/m2") and power_units != "W":
+    if units == "":
+        return "-"
+
+    elif (units == "W" or units == "W/m2") and power_units != "W":
         return convert_power(units, power_units)
 
     elif (units == "J" or units == "J/m2") and energy_units != "J":
