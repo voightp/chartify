@@ -45,6 +45,12 @@ DEFAULTS = {
     "tree_view": True,
 }
 
+si_energy_units = ["Wh", "kWh", "MWh", "J", "MJ", "GJ"]
+si_power_units = ["W", "kW", "MW"]
+
+ip_energy_units = ["Btu", "kBtu", "MBtu"]
+ip_power_units = ["Btu/h", "kBtu/h", "MBtu/h", "W"]
+
 
 # noinspection PyPep8Naming,PyUnresolvedReferences
 class MainWindow(QtWidgets.QMainWindow):
@@ -533,7 +539,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # ~~~~ Energy units set up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         energy_units_menu = QMenu(self)
-        items = ["Wh", "kWh", "MWh", "J", "kJ", "GJ", "Btu", "kBtu", "MBtu"]
+        items = si_energy_units + ip_energy_units
         ix = items.index(DEFAULTS["energy_units"])
         self.energy_units_btn = TitledButton(self.units_group, fill_space=True,
                                              title="energy", menu=energy_units_menu,
@@ -541,7 +547,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # ~~~~ Power units set up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         power_units_menu = QMenu(self)
-        items = ["W", "kW", "MW", "Btu/h", "kBtu/h", "MBtu/h"]
+        items = list(dict.fromkeys(si_power_units + ip_power_units))  # remove duplicate 'W'
         ix = items.index(DEFAULTS["power_units"])
         self.power_units_btn = TitledButton(self.units_group, fill_space=True,
                                             title="power", menu=power_units_menu,
@@ -554,6 +560,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.units_system_btn = TitledButton(self.units_group, fill_space=True,
                                              title="system", menu=units_system_menu,
                                              items=items, data=items, def_act_ix=ix)
+        self.toggle_units(DEFAULTS["units_system"])
 
         # ~~~~ Units system set up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.rate_to_energy_btn = QToolButton(self.units_group)
@@ -754,9 +761,25 @@ class MainWindow(QtWidgets.QMainWindow):
             self.restore_units_settings()
             self.enable_units_buttons(True)
 
+    def toggle_units(self, units_system):
+        """ Handle displaying allowed units for given units system. """
+        if units_system == "IP":
+            en_acts = ip_energy_units
+            pw_acts = ip_power_units
+
+        else:
+            en_acts = si_energy_units
+            pw_acts = si_power_units
+
+        self.energy_units_btn.filter_visible_actions(en_acts)
+        self.power_units_btn.filter_visible_actions(pw_acts)
+
     def units_system_changed(self, act):
         """ Update view when energy units are changed. """
         changed = self.units_system_btn.update_state(act)
+
+        dt = act.data()
+        self.toggle_units(dt)
 
         if changed:
             self.build_view()

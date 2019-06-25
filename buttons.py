@@ -93,7 +93,7 @@ class TitledButton(QFrame):
     def setDefaultAction(self, action):
         self.button.setDefaultAction(action)
 
-    def setButtonObjectName(self,name):
+    def setButtonObjectName(self, name):
         self.button.setObjectName(name)
 
     def setText(self, text):
@@ -113,6 +113,17 @@ class TitledButton(QFrame):
             for act in acts:
                 if act.data() == data:
                     return act
+
+    def filter_visible_actions(self, acts_dt):
+        """ Show only actions on the given list(based on data). """
+        acts = self.button.menu().actions()
+
+        if self.data() not in acts_dt:
+            a = self.get_action(data=acts_dt[0])
+            self.update_state_internally(a)
+
+        for act in acts:
+            act.setVisible(act.data() in acts_dt)
 
     def update_state(self, act):
         """ Handle changing button actions. """
