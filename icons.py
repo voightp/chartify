@@ -18,7 +18,7 @@ class Pixmap(QPixmap):
             self.repaint(path, r, g, b, a)
 
     def repaint(self, path, r, g, b, a):
-        print("Repainting!")
+        """ Repaint all non-transparent pixels with given color. """
         try:
             img = QImage(path)
             for x in range(img.width()):

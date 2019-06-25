@@ -261,6 +261,18 @@ QTabBar::tab:selected {
     /* expand/overlap to the left and right by 4px */
 }
 
+QTabBar::close-button {
+    image: url(icons/remove_white.png);
+}
+
+QTabBar::close-button:selected {
+    image: url(icons/remove_red.png);
+}
+
+QTabBar::close-button:hover {
+    image: url(icons/remove_red.png);
+}
+
 QTabBar::tab:first:selected {
 
 }
