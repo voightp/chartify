@@ -24,17 +24,13 @@ class TitledButton(QFrame):
     -----------
         parent : QWidget
             A button' parent.
-        width : int, default 50
-            A width of the container.
-        height : int, default 50
-            A height of the container.
         fill_space : bool, default True
             Defines if the label is inside the button layout or above.
         title : str
             A title of the button.
-        menu : QMenu
+        menu : QMenu, default None
             QToolButton menu component.
-        items : list of str
+        items : list of str, default None
             A list of menu item names.
         default_action_index : int
             An index of the tool button default action.
