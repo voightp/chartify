@@ -423,11 +423,11 @@ QSlider {
     border: 0px solid black;
 }
 
-QSlider#toggleButtonChecked {
+QSlider[checked="true"] {
     background: rgb(255,137,100);
  }
 
-QSlider#toggleButtonDisabled {
+QSlider[enabled="false"] {
     opacity: 0.5;
     background: rgba(0, 0, 0, 0.12);
  }

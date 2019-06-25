@@ -220,8 +220,8 @@ class ToggleButton(QFrame):
         sl = self.slider
         sl.setValue(int(checked))
 
-        obj_name = ToggleButton.object_name + ("Checked" if checked else "")
-        sl.setObjectName(obj_name)
+        nm = "true" if checked else ""
+        sl.setProperty("checked", nm)
         update_appearance(sl)
 
     def setEnabled(self, enabled):
@@ -229,7 +229,9 @@ class ToggleButton(QFrame):
         sl = self.slider
         sl.setEnabled(enabled)
 
-        plc = ("Checked" if self.isChecked() else "")
-        obj_name = ToggleButton.object_name + (plc if enabled else "Disabled")
-        sl.setObjectName(obj_name)
+        if self.isChecked():
+            sl.setProperty("checked", "true")
+        else:
+            nm = "" if enabled else "false"
+            sl.setProperty("enabled", nm)
         update_appearance(sl)
