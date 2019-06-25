@@ -496,7 +496,7 @@ class ViewModel(QStandardItemModel):
         if not tree_key:
             # tree like structure is not being used
             # append as a plain table
-            self._append_plain_rows(header, root)
+            self._append_rows(header, root)
 
         else:
             # create a tree like structure
