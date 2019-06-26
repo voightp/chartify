@@ -122,29 +122,36 @@ class ProgressWidget(QWidget):
         self.id_ = id_
         self.maximum = 0
 
-        self.main_layout = QHBoxLayout(self)
+        self.main_layout = QVBoxLayout(self)
         self.main_layout.setContentsMargins(0, 0, 0, 0)
-        self.main_layout.setSpacing(0)
+        self.main_layout.setSpacing(1)
 
         self.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
         self.setFixedWidth(140)
 
         wgt = QWidget(self)
-        layout = QVBoxLayout(wgt)
+        layout = QHBoxLayout(wgt)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(0)
+        layout.setSpacing(2)
 
         self.progress_bar = QProgressBar(wgt)
         self.progress_bar.setTextVisible(False)
         self.progress_bar.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.progress_bar.setFixedHeight(2)
 
+        self.del_btn = QPushButton(wgt)
+        self.del_btn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self.del_btn.setFixedSize(15, 15)
+        self.del_btn.setVisible(False)
+        self.del_btn.clicked.connect(self.send_remove_me)
+
         self.label = QLabel(wgt)
 
+        layout.addWidget(self.del_btn)
         layout.addWidget(self.label)
-        layout.addWidget(self.progress_bar)
 
         self.main_layout.addWidget(wgt)
+        self.main_layout.addWidget(self.progress_bar)
 
     def __repr__(self):
         return "Progress widget '{}'\n" \
@@ -186,15 +193,14 @@ class ProgressWidget(QWidget):
         bar.setMaximum(999)
         bar.setValue(999)
 
-        bar.setProperty("failed", "true")
-        bar.style().unpolish(bar)
-        bar.style().polish(bar)
+        self.setProperty("failed", "true")
+        self.style().unpolish(self.label)
+        self.style().unpolish(self.progress_bar)
+        self.style().polish(self.label)
+        self.style().polish(self.progress_bar)
 
+        self.del_btn.show()
         self.setToolTip("FAILED - INCOMPLETE FILE")
-        btn = QPushButton(self, "FOO")
-        btn.clicked.connect(self.send_remove_me)
-
-        self.layout().addWidget(btn)
 
 
 class SummaryWidget(ProgressWidget):

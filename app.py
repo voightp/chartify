@@ -400,17 +400,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.expand_all_btn.setIcon(Pixmap("./icons/unfold_more.png", r=255, g=255, b=255))
         self.collapse_all_btn.setIcon(Pixmap("./icons/unfold_less.png", r=255, g=255, b=255))
 
-        # TODO THIS IS IN PLACE TO GENERATE ICONS
-        ic_red = Pixmap("./icons/remove_black.png", r=239, g=83, b=80)
-        ic_grey = Pixmap("./icons/remove_black.png", r=112, g=112, b=112)
-        ic_transp = Pixmap("./icons/remove_black.png", r=255, g=255, b=255, a=0)
-        ic_white = Pixmap("./icons/remove_black.png", r=255, g=255, b=255)
-
-        ic_red.save("./icons/remove_red.png")
-        ic_grey.save("./icons/remove_grey.png")
-        ic_transp.save("./icons/remove_transparent.png")
-        ic_white.save("./icons/remove_white.png")
-
         tree_view_icon = "./icons/tree_view.png" if self.is_tree() else "./icons/plain_view.png"
         self.tree_view_btn.setIcon(Pixmap(tree_view_icon, r=255, g=255, b=255))
 

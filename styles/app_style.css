@@ -178,17 +178,30 @@ QLabel#buttonTitle:disabled {
     color: rgb(112, 112, 112);
 }
 
-QProgressBar {
+ProgressWidget QPushButton {
+    image: url(icons/remove_red.png);
+    margin-bottom: 2px;
+}
+
+ProgressWidget QProgressBar {
     background-color: rgb(255, 255, 255);
 }
 
-QProgressBar::chunk {
+ProgressWidget QProgressBar::chunk {
     background-color: rgb(144, 204, 0);
     width: 1px;
 }
 
-QProgressBar::chunk[failed="true"] {
-    background-color: rgb(144, 0, 0);
+ProgressWidget[failed="true"] QProgressBar::chunk {
+    background-color: rgb(239 , 0, 0);
+}
+
+ProgressWidget QLabel {
+    font-size: 11px;
+}
+
+ProgressWidget[failed="true"] QLabel {
+    color: rgb(239 , 0, 0);
 }
 
 QTabBar QToolButton {
@@ -270,7 +283,7 @@ QTabBar::close-button:selected {
 }
 
 QTabBar::close-button:hover {
-    image: url(icons/remove_red.png);
+    image: url(icons/remove_light_red.png);
 }
 
 QTabBar::tab:first:selected {
