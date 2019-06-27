@@ -1,7 +1,8 @@
 from PySide2 import QtCore
 from PySide2.QtWidgets import QWidget, QLabel, QProgressBar, QFormLayout, QStatusBar, QVBoxLayout, QSizePolicy, \
     QPushButton, QHBoxLayout
-from PySide2.QtCore import Signal
+from PySide2.QtCore import Signal, Qt
+from threads import MonitorThread
 from queue import Queue
 
 
@@ -11,17 +12,44 @@ class MyStatusBar(QStatusBar):
     display widgets with file processing progress.
 
     """
-    max_active_jobs = 5
-
     def __init__(self, parent):
         super().__init__(parent)
         self.setFixedHeight(20)
+
+
+class ProgressContainer(QWidget):
+    """
+    A container to hold all progress widgets.
+
+    """
+    max_active_jobs = 5
+    child_width = 140
+
+    def __init__(self, parent, queue):
+        super().__init__(parent)
+        m = self.max_active_jobs * self.child_width
+        self.setFixedWidth(m)
+
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+        layout.setAlignment(Qt.AlignLeft)
 
         self.widgets = {}
         self.summary_wgt = SummaryWidget(self, None)
         self.summary_wgt.set_pending()
 
         self._visible = []
+
+        self.monitor_thread = MonitorThread(queue)
+        self.monitor_thread.start()
+        self.monitor_thread.initialized.connect(self.initialize_file_progress)
+        self.monitor_thread.started.connect(self.update_progress_text)
+        self.monitor_thread.progress_text_updated.connect(self.update_progress_text)
+        self.monitor_thread.progress_bar_updated.connect(self.update_bar_progress)
+        self.monitor_thread.preprocess_finished.connect(self.set_progress_bar_max)
+        self.monitor_thread.finished.connect(self.file_loaded)
+        self.monitor_thread.failed.connect(self.file_failed)
 
     @property
     def sorted_wgts(self):
@@ -66,7 +94,7 @@ class MyStatusBar(QStatusBar):
 
         if wgts != vis:
             for w in vis:
-                self.removeWidget(w)
+                self.layout().removeWidget(w)
 
             disp = wgts[0:max_]
             if len(wgts) > max_:
@@ -74,12 +102,14 @@ class MyStatusBar(QStatusBar):
                 n = len(wgts) - len(disp)
                 self.summary_wgt.update_label(n)
                 disp.append(self.summary_wgt)
+            else:
+                self.summary_wgt.hide()
 
             vis.clear()
             for d in disp:
                 d.show()
                 vis.append(d)
-                self.addWidget(d)
+                self.layout().addWidget(d)
 
     def add_file(self, id_, name):
         """ Add progress widget to the status bar. """
@@ -108,6 +138,31 @@ class MyStatusBar(QStatusBar):
         """ Set failed status on the given widget. """
         self.widgets[id_].set_failed_status()
 
+    def initialize_file_progress(self, monitor_id, monitor_name):
+        """ Add a progress bar on the interface. """
+        self.add_file(monitor_id, monitor_name)
+
+    def update_progress_text(self, monitor_id, text):
+        """ Update text info for a given monitor. """
+        pass
+        # self.status_bar.progressBars[monitor_id].setText(text)
+
+    def set_progress_bar_max(self, monitor_id, max_value):
+        """ Set maximum progress value for a given monitor. """
+        self.set_max_value(monitor_id, max_value)
+
+    def update_bar_progress(self, monitor_id, value):
+        """ Update progress value for a given monitor. """
+        self.update_wgt_progress(monitor_id, value)
+
+    def file_loaded(self, monitor_id):
+        """ Remove a progress bar when the file is loaded. """
+        self.remove_file(monitor_id)
+
+    def file_failed(self, monitor_id):
+        """ Set failed status on the progress widget. """
+        self.set_failed(monitor_id)
+
 
 class ProgressWidget(QWidget):
     """
@@ -127,7 +182,7 @@ class ProgressWidget(QWidget):
         self.main_layout.setSpacing(1)
 
         self.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
-        self.setFixedWidth(140)
+        self.setFixedWidth(ProgressContainer.child_width)
 
         wgt = QWidget(self)
         layout = QHBoxLayout(wgt)

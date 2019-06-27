@@ -13,7 +13,7 @@ from PySide2.QtWebEngineWidgets import QWebEnginePage, QWebEngineView, QWebEngin
 from PySide2.QtGui import QKeySequence, QIcon, QPixmap, QFontDatabase, QFont
 from eso_file_header import EsoFileHeader
 from icons import Pixmap
-from progress_widget import MyStatusBar
+from progress_widget import MyStatusBar, ProgressContainer
 
 from buttons import TitledButton, IntervalButton, ToggleButton
 from functools import partial
@@ -173,14 +173,17 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.selected = None
 
-        # ~~~~ Status bar ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.status_bar = MyStatusBar(self)
-        self.setStatusBar(self.status_bar)
-
         # ~~~~ Queues ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.file_queue = Queue()
         self.manager = Manager()
         self.progress_queue = self.manager.Queue()
+
+        # ~~~~ Status bar ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.status_bar = MyStatusBar(self)
+        self.setStatusBar(self.status_bar)
+
+        self.progress_container = ProgressContainer(self.status_bar, self.progress_queue)
+        self.status_bar.addWidget(self.progress_container)
 
         # ~~~~ Database ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # self.database = self.manager.dict() TODO simple dict might be sufficient
@@ -189,11 +192,10 @@ class MainWindow(QtWidgets.QMainWindow):
         # ~~~~ Monitoring threads ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # TODO PASSING THE DATA TO DASH APP
         self.watcher_thread = EsoFileWatcher(self.file_queue)
-        self.monitor_thread = MonitorThread(self.progress_queue)
+
         self.pool = create_pool()
         self.create_thread_actions()
         self.watcher_thread.start()
-        self.monitor_thread.start()
 
         # ~~~~ Timer ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # Timer to delay firing of the 'text_edited' event
@@ -271,7 +273,7 @@ class MainWindow(QtWidgets.QMainWindow):
         summary.print_(sum1)
         print("DB size", asizeof.asizeof(self.database))
         print("Executor size", asizeof.asizeof(self.pool))
-        print("Monitor thread", asizeof.asizeof(self.monitor_thread))
+        print("Monitor thread", asizeof.asizeof(self.progress_container.monitor_thread))
         print("Watcher thread", asizeof.asizeof(self.watcher_thread))
 
     def load_dummy(self):
@@ -296,7 +298,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def closeEvent(self, event):
         """ Shutdown all the background stuff. """
         self.watcher_thread.terminate()
-        self.monitor_thread.terminate()
+        self.progress_container.monitor_thread.terminate()
         self.manager.shutdown()
 
         kill_child_processes(os.getpid())
@@ -967,31 +969,6 @@ class MainWindow(QtWidgets.QMainWindow):
         if remove:
             expanded_set.remove(remove)
 
-    def initialize_file_progress(self, monitor_id, monitor_name):
-        """ Add a progress bar on the interface. """
-        self.status_bar.add_file(monitor_id, monitor_name)
-
-    def update_progress_text(self, monitor_id, text):
-        """ Update text info for a given monitor. """
-        pass
-        # self.status_bar.progressBars[monitor_id].setText(text)
-
-    def set_progress_bar_max(self, monitor_id, max_value):
-        """ Set maximum progress value for a given monitor. """
-        self.status_bar.set_max_value(monitor_id, max_value)
-
-    def update_bar_progress(self, monitor_id, value):
-        """ Update progress value for a given monitor. """
-        self.status_bar.update_wgt_progress(monitor_id, value)
-
-    def file_loaded(self, monitor_id):
-        """ Remove a progress bar when the file is loaded. """
-        self.status_bar.remove_file(monitor_id)
-
-    def file_failed(self, monitor_id):
-        """ Set failed status on the progress widget. """
-        self.status_bar.set_failed(monitor_id)
-
     def current_eso_file_id(self):
         """ Return an id of the currently selected file. """
         current_file = self.current_eso_file
@@ -1118,13 +1095,6 @@ class MainWindow(QtWidgets.QMainWindow):
     def create_thread_actions(self):
         """ Create actions related to background threads. """
         self.watcher_thread.loaded.connect(self.add_eso_file)
-        self.monitor_thread.initialized.connect(self.initialize_file_progress)
-        self.monitor_thread.started.connect(self.update_progress_text)
-        self.monitor_thread.progress_text_updated.connect(self.update_progress_text)
-        self.monitor_thread.progress_bar_updated.connect(self.update_bar_progress)
-        self.monitor_thread.preprocess_finished.connect(self.set_progress_bar_max)
-        self.monitor_thread.finished.connect(self.file_loaded)
-        self.monitor_thread.failed.connect(self.file_failed)
 
     # noinspection PyAttributeOutsideInit
     def create_menu_actions(self):
