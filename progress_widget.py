@@ -12,6 +12,7 @@ class MyStatusBar(QStatusBar):
     display widgets with file processing progress.
 
     """
+
     def __init__(self, parent):
         super().__init__(parent)
         self.setFixedHeight(20)
@@ -24,15 +25,14 @@ class ProgressContainer(QWidget):
     """
     max_active_jobs = 5
     child_width = 140
+    child_spacing = 3
 
     def __init__(self, parent, queue):
         super().__init__(parent)
-        m = self.max_active_jobs * self.child_width
-        self.setFixedWidth(m)
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(0)
+        layout.setSpacing(self.child_spacing)
         layout.setAlignment(Qt.AlignLeft)
 
         self.widgets = {}
@@ -42,7 +42,23 @@ class ProgressContainer(QWidget):
         self._visible = []
 
         self.monitor_thread = MonitorThread(queue)
+        self.connect_monitor_actions()
         self.monitor_thread.start()
+
+    @property
+    def width(self):
+        """ Calculate container maximum width. """
+        m = self.max_active_jobs * (self.child_width + self.child_spacing)
+        self.setFixedWidth(m)
+
+    @property
+    def sorted_wgts(self):
+        """ Sort widgets by their value (descending order). """
+        wgts = list(self.widgets.values())
+        return sorted(wgts, key=lambda x: x.value(), reverse=True)
+
+    def connect_monitor_actions(self):
+        """ Create monitor actions. """
         self.monitor_thread.initialized.connect(self.initialize_file_progress)
         self.monitor_thread.started.connect(self.update_progress_text)
         self.monitor_thread.progress_text_updated.connect(self.update_progress_text)
@@ -50,12 +66,6 @@ class ProgressContainer(QWidget):
         self.monitor_thread.preprocess_finished.connect(self.set_progress_bar_max)
         self.monitor_thread.finished.connect(self.file_loaded)
         self.monitor_thread.failed.connect(self.file_failed)
-
-    @property
-    def sorted_wgts(self):
-        """ Sort widgets by their value (descending order). """
-        wgts = list(self.widgets.values())
-        return sorted(wgts, key=lambda x: x.value(), reverse=True)
 
     def position_changed(self, wgt):
         """ Check if the current widget triggers repositioning. """
@@ -94,6 +104,7 @@ class ProgressContainer(QWidget):
 
         if wgts != vis:
             for w in vis:
+                w.hide()
                 self.layout().removeWidget(w)
 
             disp = wgts[0:max_]
@@ -102,8 +113,6 @@ class ProgressContainer(QWidget):
                 n = len(wgts) - len(disp)
                 self.summary_wgt.update_label(n)
                 disp.append(self.summary_wgt)
-            else:
-                self.summary_wgt.hide()
 
             vis.clear()
             for d in disp:
