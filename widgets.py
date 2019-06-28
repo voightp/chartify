@@ -1,9 +1,9 @@
-from PySide2.QtWidgets import QTextEdit, QSizePolicy
+from PySide2.QtWidgets import QTextEdit, QSizePolicy, QLineEdit, QFrame, QHBoxLayout
 from PySide2.QtGui import QTextOption
 from PySide2.QtCore import Qt, Signal
 
 
-class LineEdit(QTextEdit):
+class LineEdit(QFrame):
     """
     A custom line edit to allow changing cursor color.
 
@@ -12,13 +12,15 @@ class LineEdit(QTextEdit):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.setTabChangesFocus(True)
-        self.setWordWrapMode(QTextOption.NoWrap)
-        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        self.setFixedHeight(20)
-        self.textChanged.connect(self.on_text_change)
+        self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+        self.line_edit = QLineEdit(self)
+        self.line_edit.textEdited.connect(self.on_text_change)
+
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+
+        layout.addWidget(self.line_edit)
 
     def on_text_change(self):
         """ Trigger textEdited signal. """
@@ -26,4 +28,8 @@ class LineEdit(QTextEdit):
 
     def text(self):
         """ Get str content. """
-        return self.toPlainText()
+        return self.line_edit.text()
+
+    def setPlaceholderText(self, text):
+        """ Set LineEdit placeholder text. """
+        self.line_edit.setPlaceholderText(text)

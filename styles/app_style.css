@@ -161,8 +161,11 @@ QToolButton#expandButton:hover {
   }
 
 LineEdit {
-    margin: 0px 0px 0px 5px;
-    border-radius: 0px;
+    background-color:
+}
+
+LineEdit QLineEdit{
+       background-color: rgba(143,143,143,0);
  }
 
 QFrame#buttonFrame {
