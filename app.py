@@ -5,7 +5,7 @@ from PySide2.QtWidgets import QWidget, QTabWidget, QTreeView, QSplitter, QHBoxLa
     QFileDialog, \
     QDialog, QProgressBar, QFormLayout, QAbstractItemView, QSlider, QSpacerItem, QSizePolicy, \
     QLineEdit, QComboBox, \
-    QMdiArea, QHeaderView, QTableView, QApplication, QScrollArea, QStatusBar, QMenu, QFrame
+    QMdiArea, QHeaderView, QTableView, QApplication, QScrollArea, QStatusBar, QMenu, QFrame, QTextEdit
 from PySide2.QtCore import QSize, Qt, QThreadPool, QThread, QObject, Signal, \
     QSortFilterProxyModel, QModelIndex, \
     QItemSelectionModel, QRegExp, QUrl, QTimer, QFile
@@ -14,6 +14,7 @@ from PySide2.QtGui import QKeySequence, QIcon, QPixmap, QFontDatabase, QFont
 from eso_file_header import EsoFileHeader
 from icons import Pixmap
 from progress_widget import MyStatusBar, ProgressContainer
+from widgets import LineEdit
 
 from buttons import TitledButton, IntervalButton, ToggleButton
 from functools import partial
@@ -135,13 +136,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.tree_view_btn.setObjectName("treeButton")
 
         self.collapse_all_btn = QToolButton(self.view_tools_wgt)
-        self.collapse_all_btn.setObjectName("smallButton")
+        self.collapse_all_btn.setObjectName("collapseButton")
 
         self.expand_all_btn = QToolButton(self.view_tools_wgt)
-        self.expand_all_btn.setObjectName("smallButton")
+        self.expand_all_btn.setObjectName("expandButton")
 
         self.filter_icon = QLabel(self.view_tools_wgt)
-        self.filter_line_edit = QLineEdit(self.view_tools_wgt)
+        self.filter_line_edit = LineEdit(self.view_tools_wgt)
 
         self.set_up_view_tools()
         self.view_layout.addWidget(self.view_tools_wgt)
@@ -398,12 +399,11 @@ class MainWindow(QtWidgets.QMainWindow):
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)  # this sets toolbar icon on win 7
 
         self.setWindowIcon(QPixmap("./icons/twotone_pie_chart.png"))
-        self.filter_icon.setPixmap(Pixmap("./icons/filter_list.png", r=255, g=255, b=255))
-        self.expand_all_btn.setIcon(Pixmap("./icons/unfold_more.png", r=255, g=255, b=255))
-        self.collapse_all_btn.setIcon(Pixmap("./icons/unfold_less.png", r=255, g=255, b=255))
+        f1 = Pixmap("./icons/chevron_right.png", r=112, g=112, b=112)
+        f2 = Pixmap("./icons/expand_more.png", r=112, g=112, b=112)
 
-        tree_view_icon = "./icons/tree_view.png" if self.is_tree() else "./icons/plain_view.png"
-        self.tree_view_btn.setIcon(Pixmap(tree_view_icon, r=255, g=255, b=255))
+        f1.save("./icons/chevron_right_grey.png")
+        f2.save("./icons/expand_more_grey.png")
 
     def set_up_tab_wgt(self):
         """ Set up appearance and behaviour of the tab widget. """
@@ -624,7 +624,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.filter_line_edit.setFixedWidth(160)
 
         # ~~~~ Set up tree button  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.tree_view_btn.setText("Tree")
         self.tree_view_btn.setCheckable(True)
 
         is_checked = DEFAULTS["tree_view"]
@@ -806,9 +805,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def tree_btn_toggled(self, checked):
         """ Update view when view type is changed. """
-        # update button icon
-        pth = "icons/" + ("tree" if checked else "plain") + "_view.png"
-        self.tree_view_btn.setIcon(Pixmap(pth, r=255, g=255, b=255))
+        self.tree_view_btn.setProperty("checked", checked)
 
         # collapse and expand all buttons are not relevant for plain view
         self.handle_col_ex_btns(checked)
