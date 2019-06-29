@@ -219,8 +219,11 @@ class ToggleButton(QFrame):
     def setText(self, text):
         """ Set toggle button label. """
         self.label = QLabel(self)
+        self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
         self.label.setText(text)
-        self.layout().addWidget(self.label)
+        self.label.setAlignment(Qt.AlignLeft | Qt.AlignBottom)
+        self.label.setIndent(0)
+        self.layout().insertWidget(0, self.label)
 
     def setChecked(self, checked):
         """ Set toggle button checked. """
