@@ -6,7 +6,7 @@ from threads import MonitorThread
 from queue import Queue
 
 
-class MyStatusBar(QStatusBar):
+class StatusBar(QStatusBar):
     """
     Wrapper class with added functionality to
     display widgets with file processing progress.

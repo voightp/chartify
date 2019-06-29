@@ -13,7 +13,7 @@ from PySide2.QtWebEngineWidgets import QWebEnginePage, QWebEngineView, QWebEngin
 from PySide2.QtGui import QKeySequence, QIcon, QPixmap, QFontDatabase, QFont
 from eso_file_header import EsoFileHeader
 from icons import Pixmap
-from progress_widget import MyStatusBar, ProgressContainer
+from progress_widget import StatusBar, ProgressContainer
 from widgets import LineEdit
 
 from buttons import TitledButton, IntervalButton, ToggleButton
@@ -180,7 +180,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.progress_queue = self.manager.Queue()
 
         # ~~~~ Status bar ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.status_bar = MyStatusBar(self)
+        self.status_bar = StatusBar(self)
         self.setStatusBar(self.status_bar)
 
         self.progress_container = ProgressContainer(self.status_bar, self.progress_queue)
