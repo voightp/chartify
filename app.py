@@ -193,9 +193,9 @@ class MainWindow(QtWidgets.QMainWindow):
         # ~~~~ Monitoring threads ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # TODO PASSING THE DATA TO DASH APP
         self.watcher_thread = EsoFileWatcher(self.file_queue)
+        self.watcher_thread.loaded.connect(self.add_eso_file)
 
         self.pool = create_pool()
-        self.create_thread_actions()
         self.watcher_thread.start()
 
         # ~~~~ Timer ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1088,10 +1088,6 @@ class MainWindow(QtWidgets.QMainWindow):
         """ Export selected variables data to xlsx. """
         df = self.results_df()
         df.to_excel("C:/users/vojte/desktop/test.xlsx")
-
-    def create_thread_actions(self):
-        """ Create actions related to background threads. """
-        self.watcher_thread.loaded.connect(self.add_eso_file)
 
     # noinspection PyAttributeOutsideInit
     def create_menu_actions(self):
