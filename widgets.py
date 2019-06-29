@@ -2,7 +2,8 @@ from PySide2.QtWidgets import QTextEdit, QSizePolicy, QLineEdit, QFrame, QHBoxLa
 from PySide2.QtGui import QTextOption
 from PySide2.QtCore import Qt, Signal
 
-
+# TODO this might not be necessary
+# the reason behind this is that I'd like to find a way to hack cursor color
 class LineEdit(QFrame):
     """
     A custom line edit to allow changing cursor color.
