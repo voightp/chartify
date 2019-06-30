@@ -5,7 +5,7 @@ from PySide2.QtWidgets import QWidget, QTabWidget, QTreeView, QSplitter, QHBoxLa
     QFileDialog, \
     QDialog, QProgressBar, QFormLayout, QAbstractItemView, QSlider, QSpacerItem, QSizePolicy, \
     QLineEdit, QComboBox, \
-    QMdiArea, QHeaderView, QTableView, QApplication, QScrollArea, QStatusBar, QMenu, QFrame, QTextEdit
+    QMdiArea, QHeaderView, QTableView, QApplication, QScrollArea, QStatusBar, QMenu, QFrame, QTextEdit, QPushButton
 from PySide2.QtCore import QSize, Qt, QThreadPool, QThread, QObject, Signal, \
     QSortFilterProxyModel, QModelIndex, \
     QItemSelectionModel, QRegExp, QUrl, QTimer, QFile
@@ -186,6 +186,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.progress_container = ProgressContainer(self.status_bar, self.progress_queue)
         self.status_bar.addWidget(self.progress_container)
 
+        self.swap_btn = QToolButton(self)
+        self.swap_btn.clicked.connect(self.mirror)
+        self.swap_btn.setObjectName("swapButton")
+        self.status_bar.addPermanentWidget(self.swap_btn)
+
         # ~~~~ Database ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # self.database = self.manager.dict() TODO simple dict might be sufficient
         self.database = {}
@@ -205,29 +210,28 @@ class MainWindow(QtWidgets.QMainWindow):
         self.timer.timeout.connect(self._filter_view)
 
         # ~~~~ Menus ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.mini_menu = QMenuBar(self.toolbar_wgt)
         self.create_menu_actions()
-        self.file_menu = self.menuBar().addMenu("&File")
+        self.file_menu = self.mini_menu.addMenu(QIcon("icons/spanner.png"), "File")
+
+        self.toolbar_layout.insertWidget(0, self.mini_menu)
         # TODO reload css button (temporary)
-        css = QAction("CSS", self)
+        css = QAction("C", self)
         css.triggered.connect(self.toggle_css)
 
-        no_css = QAction("NO CSS", self)
+        no_css = QAction("N C", self)
         no_css.triggered.connect(self.turn_off_css)
 
-        mirror = QAction("Mirror", self)
-        mirror.triggered.connect(self.mirror)
-
-        memory = QAction("Memory", self)
+        memory = QAction("M", self)
         memory.triggered.connect(self.report_sizes)  # TODO REMOVE THIS
-        self.memory_menu = self.menuBar().addAction(memory)  # TODO REMOVE THIS
+        self.memory_menu = self.mini_menu.addAction(memory)  # TODO REMOVE THIS
 
-        dummy = QAction("Dummy", self)
+        dummy = QAction("D", self)
         dummy.triggered.connect(self.load_dummy)  # TODO REMOVE THIS
-        self.dummy_menu = self.menuBar().addAction(dummy)  # TODO REMOVE THIS
+        self.dummy_menu = self.mini_menu.addAction(dummy)  # TODO REMOVE THIS
 
-        self.show_menu = self.menuBar().addAction(css)
-        self.help_menu = self.menuBar().addAction(no_css)
-        self.mirror_menu = self.menuBar().addAction(mirror)
+        self.show_menu = self.mini_menu.addAction(css)
+        self.help_menu = self.mini_menu.addAction(no_css)
         self.file_menu.addAction(self.loadEsoFileAct)
         self.file_menu.addAction(self.loadFilesFromFolderAct)
         self.file_menu.addAction(self.closeAllTabsAct)

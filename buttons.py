@@ -189,7 +189,8 @@ class ToggleButton(QFrame):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+        self.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Minimum)
+        self.setFixedWidth(80)
         self.setObjectName(ToggleButton.container_name)
 
         layout = QHBoxLayout(self)
