@@ -16,7 +16,7 @@ from icons import Pixmap
 from progress_widget import StatusBar, ProgressContainer
 from widgets import LineEdit
 
-from buttons import TitledButton, IntervalButton, ToggleButton
+from buttons import TitledButton, IntervalButton, ToggleButton, MenuButton
 from functools import partial
 import traceback
 import sys
@@ -113,9 +113,10 @@ class MainWindow(QtWidgets.QMainWindow):
         spacer = QSpacerItem(1, 1, QSizePolicy.Minimum, QSizePolicy.Expanding)
         self.toolbar_layout.addSpacerItem(spacer)
 
-        self.settings_group = QGroupBox("Settings", self.toolbar_wgt)
-        self.set_up_settings()
-        self.toolbar_layout.addWidget(self.settings_group)
+        self.settings_btn = MenuButton(QIcon("icons/gear_outlined_black.png"), "Settings", self.toolbar_wgt)
+        self.settings_btn.setObjectName("settingsButton")
+        self.settings_btn.setIconSize(QSize(48, 48))
+        self.toolbar_layout.addWidget(self.settings_btn)
 
         # ~~~~ Left hand View widget  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.view_wgt = QFrame(self.left_main_wgt)
@@ -210,12 +211,32 @@ class MainWindow(QtWidgets.QMainWindow):
         self.timer.timeout.connect(self._filter_view)
 
         # ~~~~ Menus ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.mini_menu = QMenuBar(self.toolbar_wgt)
-        self.create_menu_actions()
-        self.file_menu = self.mini_menu.addMenu(QIcon("icons/spanner.png"), "File")
+        self.mini_menu = QHBoxLayout(self.toolbar_wgt)
+        self.toolbar_layout.insertLayout(0, self.mini_menu)
 
-        self.toolbar_layout.insertWidget(0, self.mini_menu)
+        icon_size = QSize(25, 25)
+        load_file = MenuButton(QIcon("icons/add_file_black.png"), "Load file | files", self)
+        load_file.setIconSize(icon_size)
+        load_file.clicked.connect(self.load_files)
+        load_file.setStatusTip("Open eso file or files")
+        self.mini_menu.addWidget(load_file)
+
+        save_all = MenuButton(QIcon("icons/save_black.png"), "Save", self)
+        save_all.setIconSize(icon_size)
+        save_all.clicked.connect(lambda: print("NEEDS FUNCTION TO SAVE"))
+        save_all.setStatusTip("Save current project")
+        self.mini_menu.addWidget(save_all)
+
+        about = MenuButton(QIcon("icons/help_black.png"), "Save", self)
+        about.setIconSize(icon_size)
+        about.clicked.connect(lambda: print("NEEDS FUNCTION TO SAVE"))
+        about.setStatusTip("About")
+        self.mini_menu.addWidget(about)
+
         # TODO reload css button (temporary)
+        mn = QMenu(self)
+        self.settings_btn.setMenu(mn)
+
         css = QAction("C", self)
         css.triggered.connect(self.toggle_css)
 
@@ -224,17 +245,11 @@ class MainWindow(QtWidgets.QMainWindow):
 
         memory = QAction("M", self)
         memory.triggered.connect(self.report_sizes)  # TODO REMOVE THIS
-        self.memory_menu = self.mini_menu.addAction(memory)  # TODO REMOVE THIS
 
         dummy = QAction("D", self)
         dummy.triggered.connect(self.load_dummy)  # TODO REMOVE THIS
-        self.dummy_menu = self.mini_menu.addAction(dummy)  # TODO REMOVE THIS
 
-        self.show_menu = self.mini_menu.addAction(css)
-        self.help_menu = self.mini_menu.addAction(no_css)
-        self.file_menu.addAction(self.loadEsoFileAct)
-        self.file_menu.addAction(self.loadFilesFromFolderAct)
-        self.file_menu.addAction(self.closeAllTabsAct)
+        mn.addActions([css, no_css, memory, dummy])
 
         self.chart_area = QWebEngineView(self)
         self.chart_area.settings().setAttribute(QWebEngineSettings.JavascriptCanAccessClipboard,
@@ -375,7 +390,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.toolbar_layout.setAlignment(Qt.AlignTop)
 
         self.intervals_group.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
-        self.settings_group.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
 
         self.tab_wgt.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
         self.tab_wgt.setMinimumWidth(400)
@@ -595,14 +609,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.export_xlsx_btn.setCheckable(False)
 
         self.populate_tools_group()
-
-    def set_up_settings(self):
-        """ Create Settings menus and buttons. """
-        # ~~~~ Layout to hold units settings ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        settings_layout = QGridLayout(self.settings_group)
-        settings_layout.setSpacing(0)
-        settings_layout.setContentsMargins(0, 0, 0, 0)
-        settings_layout.setAlignment(Qt.AlignLeft)
 
     def set_up_view_tools(self):
         """ Create tools, settings and search line for the view. """
@@ -1058,13 +1064,6 @@ class MainWindow(QtWidgets.QMainWindow):
         if file_pths:
             self._load_eso_files(file_pths)
 
-    def open_folder(self):
-        """ Select folder containing eso files and start processing.  """
-        dirPath = QFileDialog.getExistingDirectory(self, "Open folder (includes subfolders).")
-        if dirPath:
-            file_pths = misc_os.list_files(dirPath, 2, ext="eso")
-            self._load_eso_files(file_pths)
-
     def results_df(self):
         """ Get output values for given variables. """
         ids, variables = self.current_request()
@@ -1092,25 +1091,6 @@ class MainWindow(QtWidgets.QMainWindow):
         """ Export selected variables data to xlsx. """
         df = self.results_df()
         df.to_excel("C:/users/vojte/desktop/test.xlsx")
-
-    # noinspection PyAttributeOutsideInit
-    def create_menu_actions(self):
-        """ Create top toolbar menu actions. """
-        # ~~~~ Menu actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.loadEsoFileAct = QAction("&Load Eso Files", self)
-        self.loadEsoFileAct.setShortcut(QKeySequence("Ctrl+L"))
-        self.loadEsoFileAct.triggered.connect(self.load_files)
-        self.loadEsoFileAct.setStatusTip("Select Eso file to load")
-
-        self.loadFilesFromFolderAct = QAction("&Load Eso Files from folder", self)
-        self.loadFilesFromFolderAct.setShortcut(QKeySequence("Ctrl+Alt+L"))
-        self.loadFilesFromFolderAct.triggered.connect(self.open_folder)
-        self.loadFilesFromFolderAct.setStatusTip("Select folder to load eso files.")
-
-        self.closeAllTabsAct = QAction("Close all eso files.", self)
-        self.closeAllTabsAct.setShortcut(QKeySequence("Ctrl+Alt+C"))
-        self.closeAllTabsAct.triggered.connect(self.close_all_tabs)
-        self.closeAllTabsAct.setStatusTip("Close all open tabs.")
 
     def close_all_tabs(self):
         """ Delete all the content. """

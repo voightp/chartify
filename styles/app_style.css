@@ -171,6 +171,18 @@ QToolButton#expandButton:hover {
     background-color: rgba(255,255,255,0.15)
   }
 
+MenuButton {
+    border: 0px;
+    width: 36px;
+    height: 36px;
+    margin: 0px;
+  }
+
+ MenuButton#settingsButton {
+    height: 36px;
+    width: 36px;
+ }
+
 LineEdit {
     background-color:
 }

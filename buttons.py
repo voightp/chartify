@@ -1,7 +1,7 @@
 from PySide2.QtWidgets import QWidget, QToolButton, QApplication, QVBoxLayout, QHBoxLayout, QLabel, \
     QSizePolicy, QFrame, \
     QAction, QCheckBox, QSlider
-from PySide2.QtCore import QSize, Qt, Signal
+from PySide2.QtCore import QSize, Qt, Signal, QSize
 import sys
 
 
@@ -246,3 +246,15 @@ class ToggleButton(QFrame):
             nm = "" if enabled else "false"
             sl.setProperty("enabled", nm)
         update_appearance(sl)
+
+
+class MenuButton(QToolButton):
+    """
+    A button to mimic 'Action' behaviour.
+
+    """
+
+    def __init__(self, icon, text, parent):
+        super().__init__(parent)
+        self.setIcon(icon)
+        self.setText(text)
