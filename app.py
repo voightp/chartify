@@ -56,6 +56,9 @@ ip_power_units = ["Btu/h", "kBtu/h", "MBtu/h", "W"]
 # noinspection PyPep8Naming,PyUnresolvedReferences
 class MainWindow(QtWidgets.QMainWindow):
     resized = Signal()
+    background_color = {"r": 255, "g": 255, "b": 255}
+    primary_color = {"r": 112, "g": 112, "b": 112}
+    secondary_color = {"r": 112, "g": 112, "b": 112}
 
     def __init__(self):
         super(MainWindow, self).__init__()
@@ -113,9 +116,9 @@ class MainWindow(QtWidgets.QMainWindow):
         spacer = QSpacerItem(1, 1, QSizePolicy.Minimum, QSizePolicy.Expanding)
         self.toolbar_layout.addSpacerItem(spacer)
 
-        self.settings_btn = MenuButton(QIcon("icons/gear_outlined_black.png"), "Settings", self.toolbar_wgt)
+        self.settings_btn = MenuButton(Pixmap("icons/gear_black.png", **self.primary_color), "Settings", self.toolbar_wgt)
         self.settings_btn.setObjectName("settingsButton")
-        self.settings_btn.setIconSize(QSize(48, 48))
+        self.settings_btn.setIconSize(QSize(40, 40))
         self.toolbar_layout.addWidget(self.settings_btn)
 
         # ~~~~ Left hand View widget  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -190,6 +193,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.swap_btn = QToolButton(self)
         self.swap_btn.clicked.connect(self.mirror)
         self.swap_btn.setObjectName("swapButton")
+        self.swap_btn.setIcon(Pixmap("./icons/swap_black.png", **self.primary_color))
         self.status_bar.addPermanentWidget(self.swap_btn)
 
         # ~~~~ Database ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -215,19 +219,19 @@ class MainWindow(QtWidgets.QMainWindow):
         self.toolbar_layout.insertLayout(0, self.mini_menu)
 
         icon_size = QSize(25, 25)
-        load_file = MenuButton(QIcon("icons/add_file_black.png"), "Load file | files", self)
+        load_file = MenuButton(QIcon("icons/add_file_grey.png"), "Load file | files", self)
         load_file.setIconSize(icon_size)
         load_file.clicked.connect(self.load_files)
         load_file.setStatusTip("Open eso file or files")
         self.mini_menu.addWidget(load_file)
 
-        save_all = MenuButton(QIcon("icons/save_black.png"), "Save", self)
+        save_all = MenuButton(QIcon("icons/save_grey.png"), "Save", self)
         save_all.setIconSize(icon_size)
         save_all.clicked.connect(lambda: print("NEEDS FUNCTION TO SAVE"))
         save_all.setStatusTip("Save current project")
         self.mini_menu.addWidget(save_all)
 
-        about = MenuButton(QIcon("icons/help_black.png"), "Save", self)
+        about = MenuButton(QIcon("icons/help_grey.png"), "Save", self)
         about.setIconSize(icon_size)
         about.clicked.connect(lambda: print("NEEDS FUNCTION TO SAVE"))
         about.setStatusTip("About")
@@ -417,11 +421,14 @@ class MainWindow(QtWidgets.QMainWindow):
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)  # this sets toolbar icon on win 7
 
         self.setWindowIcon(QPixmap("./icons/twotone_pie_chart.png"))
-        f1 = Pixmap("./icons/chevron_right.png", r=112, g=112, b=112)
-        f2 = Pixmap("./icons/expand_more.png", r=112, g=112, b=112)
+        grey = dict(r=112, g=112, b=112)
+        f1 = Pixmap("./icons/add_file_black.png", **grey)
+        f2 = Pixmap("./icons/save_black.png", **grey)
+        f3 = Pixmap("./icons/help_black", **grey)
 
-        f1.save("./icons/chevron_right_grey.png")
-        f2.save("./icons/expand_more_grey.png")
+        f1.save("./icons/add_file_grey.png")
+        f2.save("./icons/save_grey.png")
+        f3.save("./icons/help_grey.png")
 
     def set_up_tab_wgt(self):
         """ Set up appearance and behaviour of the tab widget. """

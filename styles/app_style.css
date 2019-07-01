@@ -123,8 +123,6 @@ QToolButton#collapseButton {
     background: transparent;
     width: 20px;
     height: 20px;
-    image: url("icons/swap_black.png");
-
  }
 
  QToolButton#collapseButton:disabled {
@@ -179,8 +177,8 @@ MenuButton {
   }
 
  MenuButton#settingsButton {
-    height: 36px;
-    width: 36px;
+    height: 60px;
+    width: 60px;
  }
 
 LineEdit {
@@ -377,11 +375,6 @@ QHeaderView::up-arrow {
   image: url(icons/expand_more.png);
   width: 12px;
   height: 12px;
-}
-
-QHeaderView::up-arrow {
-   /* image: url(icons/expand_less.png);*/
-
 }
 
 QTreeView {
