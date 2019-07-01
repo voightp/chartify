@@ -35,56 +35,54 @@ class ProgressContainer(QWidget):
         layout.setSpacing(self.child_spacing)
         layout.setAlignment(Qt.AlignLeft)
 
-        self.widgets = self.create_widgets()
         self.files = {}
-        self.summary_wgt = SummaryWidget(self)
-        self.summary_wgt.set_pending()
 
-        self._visible = []
-
+        self.widgets = self.create_widgets()
         self.monitor_thread = MonitorThread(queue)
         self.connect_monitor_actions()
         self.monitor_thread.start()
 
     @property
-    def width(self):
-        """ Calculate container maximum width. """
-        m = self.max_active_jobs * (self.child_width + self.child_spacing)
-        self.setFixedWidth(m)
-
-    @property
     def sorted_files(self):
         """ Sort widgets by value (descending order). """
-        wgts = list(self.files.values())
-        return sorted(wgts, key=lambda x: x.value(), reverse=True)
+        files = list(self.files.values())
+        return sorted(files, key=lambda x: x.value, reverse=True)
 
     @property
     def failed_files(self):
         """ Extract 'failed' jobs. """
         return list(filter(lambda x: x.failed, self.sorted_wgts))
 
-    def connect_monitor_actions(self):
-        """ Create monitor actions. """
-        self.monitor_thread.initialized.connect(self.initialize_file_progress)
-        self.monitor_thread.started.connect(self.update_progress_text)
-        self.monitor_thread.progress_text_updated.connect(self.update_progress_text)
-        self.monitor_thread.progress_bar_updated.connect(self.update_bar_progress)
-        self.monitor_thread.preprocess_finished.connect(self.set_progress_bar_max)
-        self.monitor_thread.finished.connect(self.file_loaded)
-        self.monitor_thread.failed.connect(self.file_failed)
+    @property
+    def visible_files(self):
+        """ Get currently visible files. """
+        wgts = self.visible_widgets
+        return [wgt.file_ref for wgt in wgts]
+
+    @property
+    def visible_widgets(self):
+        """ Get currently visible widgets. """
+        return list(filter(lambda x: x.file_ref, self.widgets))
+
+    def visible_index(self, file):
+        """ Get visible index, returns 'None' if invalid. """
+        try:
+            return self.visible_files.index(file)
+        except ValueError:
+            return None
 
     def position_changed(self, file):
         """ Check if the current widget triggers repositioning. """
         pos = self.sorted_files.index(file)
 
-        try:
-            i = self._visible.index(file)
-        except ValueError:
+        i = self.visible_index(file)
+
+        if i is not None:
             # widget is in pending section, although it
             # can still be being processed on machines with
             # number of cpu greater than max_active_jobs
-            vals = [v.value() for v in self._visible]
-            return any(map(lambda x: x < (file.value() + 1), vals))
+            vals = [v.value for v in self.visible_files]
+            return any(map(lambda x: x < (file.value + 1), vals))
 
         return pos != i
 
@@ -93,39 +91,43 @@ class ProgressContainer(QWidget):
         f = self.files[id_]
         f.set_value(val)
 
-        changed = self.position_changed(f)
+        i = self.visible_index(f)
+        if i is not None:
+            self.widgets[i].set_value(val)
 
-        if changed:
+        # check if file visible position has changed
+        if self.position_changed(f):
             self.update_bar()
 
     def set_max_value(self, id_, max_value):
         """ Set up maximum progress value. """
-        self.files[id_].set_maximum(max_value)
+        f = self.files[id_]
+        f.set_maximum(max_value)
+
+        i = self.visible_index(f)
+        if i is not None:
+            self.widgets[i].set_maximum(max_value)
 
     def update_bar(self):
         """ Update progress widget display on the status bar. """
         files = self.sorted_files
         widgets = self.widgets
         max_ = self.max_active_jobs
-        vis = self._visible
         n = len(files)
-        disp = []
 
-        for i, w in enumerate(widgets):
-            b = i < min([max_, n])
-            w.setVisible(b)
+        disp = files[0:max_]
+        if n > max_:
+            n = n - max_ - 1
+            sm = SummaryFile()
+            sm.update_label(n)
+            disp[-1] = sm
 
-        if n <= max_:
-            for f, w in zip(files, widgets):
-                w.set_maximum(f.maximum)
-                w.set_label(f.name)
-                w.set_value(f.value)
+        for f, w in zip(disp, widgets):
+            if f != w.file_ref:
+                w.update_file_ref(f)
 
-        vis.clear()
-        for d in disp:
-            d.show()
-            vis.append(d)
-            self.layout().addWidget(d)
+        for w in widgets:
+            w.setVisible(bool(w.file_ref))
 
     def create_widgets(self):
         """ Initialize progress widgets. """
@@ -136,6 +138,7 @@ class ProgressContainer(QWidget):
             wgt.set_pending()
             wgt.setVisible(False)
             wgts.append(wgt)
+            self.layout().addWidget(wgt)
         return wgts
 
     def add_file(self, id_, name):
@@ -148,10 +151,9 @@ class ProgressContainer(QWidget):
         """ Remove widget from the status bar. """
         del_file = self.files.pop(id_)
 
-        try:
-            self._visible.remove(del_file)
-        except ValueError:
-            pass
+        i = self.visible_files.index(del_file)
+        if i is not None:
+            self.widgets[i].file_ref = None
 
         self.update_bar()
 
@@ -184,6 +186,16 @@ class ProgressContainer(QWidget):
         """ Set failed status on the progress widget. """
         self.set_failed(monitor_id)
 
+    def connect_monitor_actions(self):
+        """ Create monitor actions. """
+        self.monitor_thread.initialized.connect(self.initialize_file_progress)
+        self.monitor_thread.started.connect(self.update_progress_text)
+        self.monitor_thread.progress_text_updated.connect(self.update_progress_text)
+        self.monitor_thread.progress_bar_updated.connect(self.update_bar_progress)
+        self.monitor_thread.preprocess_finished.connect(self.set_progress_bar_max)
+        self.monitor_thread.finished.connect(self.file_loaded)
+        self.monitor_thread.failed.connect(self.file_failed)
+
 
 class ProgressFile:
     """
@@ -192,7 +204,7 @@ class ProgressFile:
 
     def __init__(self, id_, name):
         self.id_ = id_
-        self.name = name
+        self.label = name
         self._maximum = 0
         self._value = 0
         self._failed = False
@@ -230,6 +242,26 @@ class ProgressFile:
         self._maximum = maximum
 
 
+class SummaryFile:
+    """
+    A special type of progress file to report
+    remaining number of jobs.
+
+    The status is always pending.
+
+    """
+
+    def __init__(self):
+        self.maximum = 999
+        self.value = 999
+        self.label = ""
+        self.file_ref = "summary"
+
+    def update_label(self, n):
+        """ Update number of pending jobs. """
+        self.label = "processing {} files...".format(n)
+
+
 class ProgressWidget(QWidget):
     """
     A widget to display current eso file
@@ -240,6 +272,8 @@ class ProgressWidget(QWidget):
 
     def __init__(self, parent):
         super().__init__(parent)
+        self.file_ref = None
+
         self.main_layout = QVBoxLayout(self)
         self.main_layout.setContentsMargins(0, 0, 0, 0)
         self.main_layout.setSpacing(1)
@@ -278,6 +312,17 @@ class ProgressWidget(QWidget):
                                                self.progress_bar.maximum(),
                                                self.value())
 
+    def set_file_ref(self, file):
+        """ Assign file reference. """
+        self.file_ref = file
+
+    def update_file_ref(self, file):
+        """ Update widget properties. """
+        self.file_ref = file
+        self.set_maximum(file.maximum)
+        self.set_value(file.value)
+        self.set_label(file.label)
+
     def set_maximum(self, maximum):
         """ Set progress bar maximum value. """
         self.progress_bar.setRange(1, maximum)
@@ -312,21 +357,3 @@ class ProgressWidget(QWidget):
 
         self.del_btn.show()
         self.setToolTip("FAILED - INCOMPLETE FILE")
-
-
-class SummaryWidget(ProgressWidget):
-    """
-    A special type of progress widget to report
-    remaining number of jobs.
-
-    The status is always pending.
-
-    """
-
-    def __init__(self, parent):
-        super().__init__(parent)
-        self.set_pending()
-
-    def update_label(self, n):
-        """ Update number of pending jobs. """
-        self.label.setText("processing {} files...".format(n))
