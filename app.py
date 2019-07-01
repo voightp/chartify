@@ -116,7 +116,8 @@ class MainWindow(QtWidgets.QMainWindow):
         spacer = QSpacerItem(1, 1, QSizePolicy.Minimum, QSizePolicy.Expanding)
         self.toolbar_layout.addSpacerItem(spacer)
 
-        self.settings_btn = MenuButton(Pixmap("icons/gear_black.png", **self.primary_color), "Settings", self.toolbar_wgt)
+        self.settings_btn = MenuButton(Pixmap("icons/gear_black.png", **self.primary_color), "Settings",
+                                       self.toolbar_wgt)
         self.settings_btn.setObjectName("settingsButton")
         self.settings_btn.setIconSize(QSize(40, 40))
         self.toolbar_layout.addWidget(self.settings_btn)
@@ -442,7 +443,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.disable_interval_btns()
         self.populate_intervals_group(hide_disabled=False)
         self.populate_units_group()
-        self.populate_settings_group()
         self.populate_tools_group()
 
     def hide_disabled(self, wgts):
@@ -531,15 +531,6 @@ class MainWindow(QtWidgets.QMainWindow):
         hide_disabled = False
 
         self._populate_group(self.units_group, btns, hide_disabled)
-
-    def populate_settings_group(self):
-        """ Populate settings group layout. """
-        layout = self.settings_group.layout()
-
-        settings_btns = []
-        n_cols = 2
-
-        self.populate_grid_layout(layout, settings_btns, n_cols)
 
     def set_up_interval_btns(self):
         """ Create interval buttons and a parent container. """
