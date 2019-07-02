@@ -251,18 +251,25 @@ ProgressWidget[failed="true"] QLabel {
 }
 
 QTabBar QToolButton {
-    width: 50px;
-    height: 40px;
-    border: 1px solid rgba(255,255,255,0.3);
-    border-radius: 0px;
-    background-color: white;
-    color: rgba(0, 0, 0,1);
-    font-size: 12px;
-    margin: 1px;
+    width: 10px;
+    height: 5px;
+    border: none;
+    border-radius: 6px;
+    background-color: transparent;
+    margin: 8px 2px;
 }
 
 QTabBar QToolButton:hover {
     background: rgba(255,255,255,0.3);
+    border: none;
+}
+
+QTabBar QToolButton::left-arrow {
+    image: url("./icons/chevron_left.png");
+}
+
+QTabBar QToolButton::right-arrow {
+    image: url("icons/chevron_right.png");
 }
 
 QTabBar QToolButton:disabled {
