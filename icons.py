@@ -1,4 +1,6 @@
-from PySide2.QtGui import QImage, QPixmap, QColor
+from PySide2.QtGui import QImage, QPixmap, QColor, QPainter, QFont, QFontMetrics
+from PySide2.QtWidgets import QApplication, QWidget
+from PySide2.QtCore import Qt, QPoint
 
 
 class Pixmap(QPixmap):
@@ -32,3 +34,21 @@ class Pixmap(QPixmap):
 
         except IOError:
             print("Could not open f{path}")
+
+
+def text_to_pixmap(text, font, color):
+    """ Convert text to QPixmap of a given size. """
+
+    def text_geometry():
+        fm = QFontMetrics(font)
+        return fm.width(text), fm.height()
+
+    w, h = text_geometry()
+    pix = QPixmap(w, h)
+    pix.fill(Qt.transparent)
+    p = QPainter(pix)
+    p.setPen(color)
+    p.setFont(font)
+    p.drawText(pix.rect(), Qt.AlignCenter, text)
+    p.end()
+    return pix
