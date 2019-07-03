@@ -130,14 +130,13 @@ class View(QTreeView):
                 if data in expanded_set:
                     self.expand(ix)
 
-    def _update_selection(self, current_selection, tree_key):
+    def _update_selection(self, current_selection, key):
         """ Select previously selected items when the model changes. """
         # Clear the container
         self.main_app.clear_current_selection()
 
         # Find matching items and return selection
-        proxy_selection = self.model().find_match(current_selection,
-                                                  tree_key=tree_key)
+        proxy_selection = self.model().find_match(current_selection, key)
         # Select items on the new model
         self.select_items(proxy_selection)
 
@@ -206,7 +205,7 @@ class View(QTreeView):
         # currently selected list of items stored in main app
         self.clear_selection()
         if select:
-            self._update_selection(select, tree_key)
+            self._update_selection(select, view_order[0])
 
         self.update_view_appearance(view_settings)
 
@@ -556,18 +555,14 @@ class FilterModel(QSortFilterProxyModel):
         range = QItemSelectionRange(proxy_index)
         selection.append(range)
 
-    def find_match(self, current_selection, tree_key=None):
+    def find_match(self, current_selection, key):
         """ Check if output variables are available in a new model. """
         selection = QItemSelection()
-
-        if not tree_key:
-            # there isn't any preferred sorting applied so the first column is 'key'
-            tree_key = "key"
 
         # create a list which holds parent parts of currently selected items
         # if the part of variable does not match, than the variable (or any children)
         # will not be selected
-        quick_check = [var.__getattribute__(tree_key) for var in current_selection]
+        quick_check = [var.__getattribute__(key) for var in current_selection]
 
         num_rows = self.rowCount()
         for i in range(num_rows):
