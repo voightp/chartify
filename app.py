@@ -10,9 +10,9 @@ from PySide2.QtCore import QSize, Qt, QThreadPool, QThread, QObject, Signal, \
     QSortFilterProxyModel, QModelIndex, \
     QItemSelectionModel, QRegExp, QUrl, QTimer, QFile
 from PySide2.QtWebEngineWidgets import QWebEnginePage, QWebEngineView, QWebEngineSettings
-from PySide2.QtGui import QKeySequence, QIcon, QPixmap, QFontDatabase, QFont
+from PySide2.QtGui import QKeySequence, QIcon, QPixmap, QFontDatabase, QFont, QColor
 from eso_file_header import EsoFileHeader
-from icons import Pixmap
+from icons import Pixmap, text_to_pixmap
 from progress_widget import StatusBar, ProgressContainer
 from widgets import LineEdit
 
@@ -533,9 +533,15 @@ class MainWindow(QtWidgets.QMainWindow):
         interval_btns_layout.setAlignment(Qt.AlignTop)
 
         # ~~~~ Generate interval buttons ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        ids = {TS: "Timestep", H: "Hourly", D: "Daily", M: "Monthly", A: "Annual", RP: "Runperiod"}
         p = self.intervals_group
-        self.interval_btns = {k: IntervalButton(v, parent=p) for k, v in ids.items()}
+        ids = {TS: "TS", H: "H", D: "D", M: "M", A: "A", RP: "RP"}
+        font = QFont("Roboto", 40)
+        color = QColor(r=112, g=112, b=112)
+
+        for k, v in ids.items():
+            btn = IntervalButton(k, text_to_pixmap(v, font, color), parent=p)
+            btn.setIconSize(QSize(20, 20))
+            self.interval_btns[k] = btn
 
         self.populate_intervals_group(hide_disabled=False)
 

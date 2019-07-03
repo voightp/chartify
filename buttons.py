@@ -163,10 +163,12 @@ class IntervalButton(QToolButton):
 
     """
 
-    def __init__(self, title, *args, **kwargs):
+    def __init__(self, title, icon, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setEnabled(False)
+        self.setIcon(icon)
         self.setText(title)
+        self.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
         self.setCheckable(True)
         self.setAutoExclusive(True)
 
