@@ -34,6 +34,10 @@ QLabel {
     background: transparent;
 }
 
+QLabel#filterIcon {
+    image: url("./icons/filter_list_white.png");
+}
+
 QStatusBar {
     background: white;
     border-radius: 0px;
@@ -185,12 +189,10 @@ MenuButton {
     width: 60px;
  }
 
-LineEdit {
-    background-color:
-}
-
 LineEdit QLineEdit{
-       background-color: rgba(143,143,143,0);
+    border: 1px solid white;
+    background-color: rgba(143,143,143,0);
+    border-radius: 2px;
  }
 
 QFrame#buttonFrame {

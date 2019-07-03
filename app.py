@@ -147,6 +147,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.expand_all_btn.setObjectName("expandButton")
 
         self.filter_icon = QLabel(self.view_tools_wgt)
+        self.filter_icon.setPixmap(QPixmap("./icons/filter_list_white.png"))
         self.filter_line_edit = LineEdit(self.view_tools_wgt)
 
         self.set_up_view_tools()
@@ -536,7 +537,7 @@ class MainWindow(QtWidgets.QMainWindow):
         p = self.intervals_group
         ids = {TS: "TS", H: "H", D: "D", M: "M", A: "A", RP: "RP"}
         font = QFont("Roboto", 40)
-        color = QColor(r=112, g=112, b=112)
+        color = QColor(112, 112, 112)
 
         for k, v in ids.items():
             btn = IntervalButton(k, text_to_pixmap(v, font, color), parent=p)
@@ -610,7 +611,7 @@ class MainWindow(QtWidgets.QMainWindow):
         """ Create tools, settings and search line for the view. """
         # ~~~~ Widget to hold tree view tools ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         view_tools_layout = QHBoxLayout(self.view_tools_wgt)
-        view_tools_layout.setSpacing(0)
+        view_tools_layout.setSpacing(6)
         view_tools_layout.setContentsMargins(0, 0, 0, 0)
 
         # ~~~~ Widget to hold tree view buttons ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
