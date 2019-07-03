@@ -15,14 +15,14 @@ QFrame {
 }
 
 QFrame#viewWidget {
-   background-color: rgba(189, 189, 200, 0.8);
+   background-color: rgb(200, 200, 211);
    margin: 0px;
    padding: 2px;
 }
 
 
 QSplitter::handle {
-    background-color: rgba(189, 189, 200, 0.8);
+    background-color: rgb(200, 200, 211);
 }
 
 QFrame#toolbar {
@@ -145,11 +145,11 @@ QToolButton#collapseButton:hover {
 
  QToolButton#expandButton:disabled {
     opacity: 0.5;
-    border-color: rgba(255,255,255,0.5)
+    border-color: rgba(255,255,255,0.5);
   }
 
 QToolButton#expandButton:hover {
-    background-color: rgba(255,255,255,0.15)
+    background-color: rgba(255,255,255,0.15);
   }
 
  QToolButton#treeButton {
@@ -251,29 +251,38 @@ ProgressWidget[failed="true"] QLabel {
 }
 
 QTabBar QToolButton {
-    width: 10px;
-    height: 5px;
-    border: none;
-    border-radius: 6px;
-    background-color: transparent;
-    margin: 8px 2px;
+    border: 1px solid white;
+    background: rgb(200, 200, 211);
+    margin: 2px;
 }
 
 QTabBar QToolButton:hover {
-    background: rgba(255,255,255,0.3);
-    border: none;
+    background-color: rgb(208,208,218);
+    border: 1px solid white;
+}
+
+QTabBar::scroller {
+    width: 60px;
 }
 
 QTabBar QToolButton::left-arrow {
-    image: url("./icons/chevron_left.png");
+    image: url("./icons/chevron_left_white.png");
+}
+
+QTabBar QToolButton::left-arrow:disabled {
+    image: url("icons/transparent.png");
 }
 
 QTabBar QToolButton::right-arrow {
-    image: url("icons/chevron_right.png");
+    image: url("icons/chevron_right_white.png");
+}
+
+QTabBar QToolButton::right-arrow:disabled {
+    image: url("icons/transparent.png");
 }
 
 QTabBar QToolButton:disabled {
-    border: 0px;
+    border: transparent;
     background: transparent;
     color: transparent;
 }
@@ -296,7 +305,7 @@ QTabBar::tab {
     color: rgba(255,255,255);
     border-top-left-radius: 0px;
     border-top-right-radius: 0px;
-    padding: 10px;
+    padding: 10px 8px;
     border-right: 2px solid white;
 }
 
