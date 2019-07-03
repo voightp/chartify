@@ -239,8 +239,8 @@ class SummaryFile:
     """
 
     def __init__(self):
-        self.maximum = 999
-        self.value = 999
+        self.maximum = 0
+        self.value = 0
         self.label = ""
         self.file_ref = "summary"
         self.failed = False
