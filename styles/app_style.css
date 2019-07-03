@@ -521,10 +521,10 @@ ToggleButton QLabel {
 QSlider {
     margin: 0px 2px 0px 0px;
     padding: 2px 5px;
-    height: 14px;
-    max-width: 20px;
+    height: 11px;
+    max-width: 14px;
     background: rgba(189, 189, 200, 0.8);
-    border-radius: 8px;
+    border-radius: 7px;
     border: 0px solid black;
 }
 
@@ -542,10 +542,9 @@ QSlider::groove:horizontal {
 }
 
 QSlider::handle:horizontal {
-    height: 7px;
-    width: 14px;
-    border 2px solid black;
-    border-radius: 7px;
+    height: 5px;
+    width: 11px;
+    border-radius: 5px;
     background: white;
-    margin: 0 -4px; /* expand outside the groove */
+    margin: 0 -4px;
 }
