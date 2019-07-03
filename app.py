@@ -422,14 +422,6 @@ class MainWindow(QtWidgets.QMainWindow):
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)  # this sets toolbar icon on win 7
 
         self.setWindowIcon(QPixmap("./icons/twotone_pie_chart.png"))
-        grey = dict(r=112, g=112, b=112)
-        f1 = Pixmap("./icons/add_file_black.png", **grey)
-        f2 = Pixmap("./icons/save_black.png", **grey)
-        f3 = Pixmap("./icons/help_black", **grey)
-
-        f1.save("./icons/add_file_grey.png")
-        f2.save("./icons/save_grey.png")
-        f3.save("./icons/help_grey.png")
 
     def set_up_tab_wgt(self):
         """ Set up appearance and behaviour of the tab widget. """
