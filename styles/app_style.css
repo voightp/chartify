@@ -204,6 +204,10 @@ TitledButton QToolButton {
     font-size: 13px;
 }
 
+TitledButton QToolButton::menu-indicator {
+    image: url(icons/expand_more_grey.png);
+}
+
 TitledButton QToolButton:checked {
     background-color: transparent;
     border-color: rgb(198,198,198);
@@ -507,12 +511,32 @@ QScrollBar::handle:vertical, QScrollBar::handle:horizontal {
      background: rgba(255,87,34,0.7);
  }
 
+QMenu::indicator {
+    background: white;
+    border: 0px solid blue;
+    border-style: none;
+}
+
+QMenu::icon {
+    background: red;
+}
+
+QMenu::indicator:checked {
+    image: url(icons/check_black.png);
+}
+
+
  QMenu::item {
     background: white;
  }
 
  QMenu::item:selected {
     background-color: rgba(255,220,200);
+ }
+
+  QMenu::item:checked {
+    background: rgba(255,87,34,0.7);
+    color: white;
  }
 
 QFrame#toggleButtonContainer {
