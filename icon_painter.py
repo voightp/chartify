@@ -11,11 +11,9 @@ install_fonts("./resources", db)
 db.addApplicationFont("./resources/Roboto-Regular.ttf")
 
 col = dict(r=255, g=255, b=255)
-# f1 = Pixmap("./icons/chevron_right.png", **col)
-# f2 = Pixmap("./icons/chevron_left.png", **col)
-#
-# f1.save("./icons/chevron_right_white.png")
-# f2.save("./icons/chevron_left_white.png")
+f1 = Pixmap("./icons/check_black.png", **col)
+
+f1.save("./icons/check_white.png")
 
 
 
