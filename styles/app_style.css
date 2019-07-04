@@ -17,7 +17,7 @@ QFrame {
 QFrame#viewWidget {
    background-color: rgb(200, 200, 211);
    margin: 0px;
-   padding: 2px;
+   padding: 2px 0px;
 }
 
 
@@ -26,7 +26,8 @@ QSplitter::handle {
 }
 
 QFrame#toolbar {
-    border-right: 0px solid grey;
+    border-right: 2px solid rgb(200, 200, 211);
+    border-bottom: 2px solid rgb(200, 200, 211);
     background-color: white;
 }
 
