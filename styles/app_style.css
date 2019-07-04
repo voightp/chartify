@@ -508,36 +508,43 @@ QScrollBar::handle:vertical, QScrollBar::handle:horizontal {
  }
 
   QScrollBar::sub-line:pressed {
-     background: rgba(255,87,34,0.7);
+     background: rgb(255, 137, 100);
  }
 
-QMenu::indicator {
-    background: white;
-    border: 0px solid blue;
-    border-style: none;
+QMenu {
+  border: 0px solid white;
+  margin: 0px;
 }
 
 QMenu::icon {
-    background: red;
+  margin: 0px;
 }
 
-QMenu::indicator:checked {
-    image: url(icons/check_black.png);
+QMenu::item {
+  background-color: white;
+  padding: 10px 24px 10px 20px;
+  border: 1px transparent white;
 }
 
+QMenu::item:selected {
+  background: rgb(255,221,210);
+}
 
- QMenu::item {
-    background: white;
- }
+QMenu::item:checked {
+   background-color: rgb(255, 137, 100);
+   color: white;
+}
 
- QMenu::item:selected {
-    background-color: rgba(255,220,200);
- }
+QMenu::indicator {
+  width: 12px;
+  height: 12px;
+  padding-left: 6px;
+}
 
-  QMenu::item:checked {
-    background: rgba(255,87,34,0.7);
-    color: white;
- }
+QMenu::indicator:non-exclusive:checked {
+  image: url("./icons/check_white.png");
+}
+
 
 QFrame#toggleButtonContainer {
     margin: 2px;
