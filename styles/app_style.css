@@ -209,6 +209,13 @@ TitledButton QToolButton::menu-indicator {
     image: url(icons/expand_more_grey.png);
 }
 
+QToolButton::menu-indicator {
+    image: url(icons/expand_more_grey.png);
+    margin: 2px;
+    width: 12px;
+    height: 12px;
+}
+
 TitledButton QToolButton:checked {
     background-color: transparent;
     border-color: rgb(198,198,198);
