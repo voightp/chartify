@@ -50,6 +50,9 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 
+# painter
+icon_painter.py
+
 # Translations
 *.mo
 *.pot
