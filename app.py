@@ -220,11 +220,17 @@ class MainWindow(QtWidgets.QMainWindow):
         self.mini_menu = QHBoxLayout(self.toolbar_wgt)
         self.toolbar_layout.insertLayout(0, self.mini_menu)
 
+        load_file = QAction(QIcon("./icons/add_file_grey.png"), "Load file | files", self)
+        close_all = QAction(QIcon("./icons/remove_grey.png"), "Close all files", self)
+        file_menu = QMenu(self)
+        file_menu.addActions([load_file, close_all])
+
         icon_size = QSize(25, 25)
         load_file = MenuButton(QIcon("icons/add_file_grey.png"), "Load file | files", self)
         load_file.setIconSize(icon_size)
         load_file.clicked.connect(self.load_files)
         load_file.setStatusTip("Open eso file or files")
+        load_file.setMenu(file_menu)
         self.mini_menu.addWidget(load_file)
 
         save_all = MenuButton(QIcon("icons/save_grey.png"), "Save", self)
