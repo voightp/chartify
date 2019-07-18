@@ -201,7 +201,6 @@ class ProgressFile:
             val = self._value / self._maximum * 100
         except ZeroDivisionError:
             val = -1
-        print("{} - {}".format(self.label, val))
         return val
 
     @property
