@@ -320,7 +320,7 @@ QTabWidget::pane { /* The tab widget frame */
     it reads QTabBar _not_ QTabWidget */
 QTabBar::tab {
    /* border: 2px solid rgba(240,85,74,1);*/
-    color: rgba(255,255,255);
+    color: rgb(255,255,255);
     border-top-left-radius: 0px;
     border-top-right-radius: 0px;
     padding: 10px 8px;
@@ -335,14 +335,14 @@ QTabBar::tab:!selected {
 
 QTabBar::tab:selected {
     background: rgb(255,255,255);
-    color: rgba(140,140,140);
+    color: rgb(140,140,140);
     margin-left: 0px;
     margin-right: 0px;
 }
 
 QTabBar::tab:selected:hover {
     background: rgb(255,255,255);
-    border-bottom-color: rgb(255,255,255,1);
+    border-bottom-color: rgb(255,255,255);
 }
 
 QTabBar::tab:hover {
@@ -416,7 +416,7 @@ QTreeView {
 }
 
 QTreeView::item {
-    border: 1px solid rgba(189,189,189);
+    border: 1px solid rgb(189,189,189);
     border-top-color: transparent;
     border-bottom-color: transparent;
     border-left-color: transparent;
