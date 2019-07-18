@@ -217,8 +217,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.timer.timeout.connect(self._filter_view)
 
         # ~~~~ Menus ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.mini_menu = QHBoxLayout(self.toolbar_wgt)
-        self.toolbar_layout.insertLayout(0, self.mini_menu)
+        self.mini_menu = QWidget(self.toolbar_wgt)
+        self.mini_menu_layout = QHBoxLayout(self.mini_menu)
+        self.mini_menu_layout.setContentsMargins(0, 0, 0, 0)
+        self.mini_menu_layout.setSpacing(0)
+        self.toolbar_layout.insertWidget(0, self.mini_menu)
 
         load_file = QAction(QIcon("./icons/add_file_grey.png"), "Load file | files", self)
         close_all = QAction(QIcon("./icons/remove_grey.png"), "Close all files", self)
@@ -231,19 +234,19 @@ class MainWindow(QtWidgets.QMainWindow):
         load_file.clicked.connect(self.load_files)
         load_file.setStatusTip("Open eso file or files")
         load_file.setMenu(file_menu)
-        self.mini_menu.addWidget(load_file)
+        self.mini_menu_layout.addWidget(load_file)
 
         save_all = MenuButton(QIcon("icons/save_grey.png"), "Save", self)
         save_all.setIconSize(icon_size)
         save_all.clicked.connect(lambda: print("NEEDS FUNCTION TO SAVE"))
         save_all.setStatusTip("Save current project")
-        self.mini_menu.addWidget(save_all)
+        self.mini_menu_layout.addWidget(save_all)
 
         about = MenuButton(QIcon("icons/help_grey.png"), "Save", self)
         about.setIconSize(icon_size)
         about.clicked.connect(lambda: print("NEEDS FUNCTION TO SAVE"))
         about.setStatusTip("About")
-        self.mini_menu.addWidget(about)
+        self.mini_menu_layout.addWidget(about)
 
         # TODO reload css button (temporary)
         mn = QMenu(self)
