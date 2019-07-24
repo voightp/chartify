@@ -92,9 +92,15 @@ class MainWindow(QtWidgets.QMainWindow):
         self.set_up_interval_btns()
         self.toolbar_layout.addWidget(self.intervals_group)
 
+        self.outputs_group = QGroupBox("Outputs", self.toolbar_wgt)
+        self.outputs_group.setObjectName("outputsGroup")
+        self.building_totals_btn = QToolButton(self.toolbar_wgt)
+        self.all_eso_files_btn = QToolButton(self.toolbar_wgt)
+        self.set_up_outputs_btns()
+        self.toolbar_layout.addWidget(self.outputs_group)
+
         self.tools_group = QGroupBox("Tools", self.toolbar_wgt)
         self.tools_group.setObjectName("toolsGroup")
-        self.all_eso_files_btn = QToolButton(self.toolbar_wgt)
         self.export_xlsx_btn = QToolButton(self.tools_group)
         self.set_up_tools()
         self.toolbar_layout.addWidget(self.tools_group)
@@ -229,7 +235,7 @@ class MainWindow(QtWidgets.QMainWindow):
         file_menu.addActions([load_file, close_all])
 
         icon_size = QSize(25, 25)
-        load_file = MenuButton(QIcon("icons/add_file_grey.png"), "Load file | files", self)
+        load_file = MenuButton(QIcon("icons/file_grey.png"), "Load file | files", self)
         load_file.setIconSize(icon_size)
         load_file.clicked.connect(self.load_files)
         load_file.setStatusTip("Open eso file or files")
@@ -445,6 +451,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.disable_interval_btns()
         self.populate_intervals_group(hide_disabled=False)
         self.populate_units_group()
+        self.populate_outputs_group()
         self.populate_tools_group()
 
     def hide_disabled(self, wgts):
@@ -499,10 +506,9 @@ class MainWindow(QtWidgets.QMainWindow):
         # else:
         #     layout.parentWidget().show()
 
-    def _populate_group(self, group, widgets, hide_disabled, n_cols=2):
+    def _populate_group(self, group, widgets, hide_disabled=False, n_cols=2):
         """ Populate given group with given widgets. """
         layout = group.layout()
-
         self.remove_children(layout)
 
         if hide_disabled:
@@ -511,18 +517,22 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.populate_grid_layout(layout, widgets, n_cols)
 
+    def populate_outputs_group(self):
+        """ Populate outputs buttons. """
+        outputs_btns = [self.building_totals_btn,
+                        self.all_eso_files_btn]
+
+        self._populate_group(self.outputs_group, outputs_btns)
+
     def populate_intervals_group(self, hide_disabled=True):
         """ Populate interval buttons based on a current state. """
         btns = self.interval_btns.values()
-        self._populate_group(self.intervals_group, btns, hide_disabled)
+        self._populate_group(self.intervals_group, btns, hide_disabled=hide_disabled)
 
     def populate_tools_group(self):
         """ Populate tools group layout. """
-        tools_btns = [self.all_eso_files_btn,
-                      self.export_xlsx_btn, ]
-        hide_disabled = False
-
-        self._populate_group(self.tools_group, tools_btns, hide_disabled)
+        tools_btns = [self.export_xlsx_btn, ]
+        self._populate_group(self.tools_group, tools_btns)
 
     def populate_units_group(self):
         """ Populate units group layout. """
@@ -530,9 +540,29 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.power_units_btn,
                 self.units_system_btn,
                 self.rate_to_energy_btn]
-        hide_disabled = False
 
-        self._populate_group(self.units_group, btns, hide_disabled)
+        self._populate_group(self.units_group, btns)
+
+    def set_up_outputs_btns(self):
+        """ Create interval buttons and a parent container. """
+        # ~~~~ Layout to hold interval buttons ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        outputs_btns_layout = QGridLayout(self.outputs_group)
+        outputs_btns_layout.setSpacing(0)
+        outputs_btns_layout.setContentsMargins(0, 0, 0, 0)
+        outputs_btns_layout.setAlignment(Qt.AlignTop)
+
+        self.building_totals_btn.setText("totals")
+        self.building_totals_btn.setCheckable(True)
+        self.building_totals_btn.setEnabled(False)
+        outputs_btns_layout.addWidget(self.building_totals_btn)
+
+        # ~~~~ Generate all eso files button ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.all_eso_files_btn.setText("all files")
+        self.all_eso_files_btn.setCheckable(True)
+        self.all_eso_files_btn.setEnabled(False)
+        outputs_btns_layout.addWidget(self.all_eso_files_btn)
+
+        self.populate_outputs_group()
 
     def set_up_interval_btns(self):
         """ Create interval buttons and a parent container. """
@@ -605,11 +635,6 @@ class MainWindow(QtWidgets.QMainWindow):
         tools_layout.setAlignment(Qt.AlignTop)
 
         # ~~~~ Generate export xlsx button ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.all_eso_files_btn.setText("all files")
-        self.all_eso_files_btn.setCheckable(True)
-        self.all_eso_files_btn.setEnabled(False)
-
-        # ~~~~ Generate export xlsx button ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.export_xlsx_btn.setEnabled(False)
         self.export_xlsx_btn.setText("Save xlsx")
         self.export_xlsx_btn.setCheckable(False)
@@ -654,6 +679,10 @@ class MainWindow(QtWidgets.QMainWindow):
         view_tools_layout.addItem(spacer)
         view_tools_layout.addWidget(btn_widget)
 
+    def building_totals(self):
+        """ Check if building totals are requested. """
+        return self.building_totals_btn.isChecked()
+
     def is_tree(self):
         """ Check if tree structure is requested. """
         return self.tree_view_btn.isChecked()
@@ -667,6 +696,7 @@ class MainWindow(QtWidgets.QMainWindow):
         """ Create a new model when the tab or the interval has changed. """
         # retrieve required inputs from the interface
         is_tree = self.is_tree()
+        totals = self.building_totals()
         interval = self.get_selected_interval()
         units_settings = self.get_units_settings()
 
@@ -852,6 +882,8 @@ class MainWindow(QtWidgets.QMainWindow):
     def remove_eso_file(self, index):
         """ Delete current eso file. """
         self.delete_eso_file_content(index)
+        if self.tab_wgt.count() == 0:
+            self.building_totals_btn.setEnabled(False)
 
         if self.tab_wgt.count() <= 1:
             # only one file is available
@@ -934,6 +966,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # ~~~~ Options buttons actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.export_xlsx_btn.clicked.connect(self.export_xlsx)
+        self.building_totals_btn.clicked.connect(self.switch_totals)
 
         # ~~~~ View Actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.expand_all_btn.clicked.connect(self.expand_all)
@@ -1009,6 +1042,10 @@ class MainWindow(QtWidgets.QMainWindow):
         # enable all eso file results btn if it's suitable
         if self.tab_wgt.count() > 1:
             self.all_eso_files_btn.setEnabled(True)
+
+        # enable all eso file results btn if it's suitable
+        if self.tab_wgt.count() > 0:
+            self.building_totals_btn.setEnabled(True)
 
     def all_files_ids(self):
         """ Return ids of all loaded eso files. """
@@ -1092,6 +1129,10 @@ class MainWindow(QtWidgets.QMainWindow):
                     self.esoFileWidgets]
         esoFiles.sort(key=lambda x: x.file_name)
         return get_results(esoFiles, requestList)
+
+    def switch_totals(self):
+        """ Toggle standard outputs and totals. """
+        self.build_view()
 
     def export_xlsx(self):
         """ Export selected variables data to xlsx. """
