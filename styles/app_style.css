@@ -47,7 +47,7 @@ QStatusBar {
 
 QGroupBox {
     border-top: 1px solid rgba(140,140,140,0.5);
-    margin: 30px 0px 15px 0px;
+    margin: 30px 0px 0px 0px;
     border-radius: 0px;
 }
 
@@ -190,6 +190,13 @@ MenuButton {
     width: 60px;
  }
 
+ MenuButton::menu-indicator {
+    image: url(icons/plus_grey.png);
+    margin: 3px;
+    width: 10px;
+    height: 10px;
+}
+
 LineEdit QLineEdit{
     border: 1px solid white;
     background-color: rgba(143,143,143,0);
@@ -207,11 +214,7 @@ TitledButton QToolButton {
 
 TitledButton QToolButton::menu-indicator {
     image: url(icons/expand_more_grey.png);
-}
-
-QToolButton::menu-indicator {
-    image: url(icons/expand_more_grey.png);
-    margin: 2px;
+    margin: 1px;
     width: 12px;
     height: 12px;
 }
