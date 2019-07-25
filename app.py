@@ -1116,7 +1116,7 @@ class MainWindow(QtWidgets.QMainWindow):
         files = [v for k, v in self.database.items() if k in ids]
         df = get_results(files, variables, rate_units=power,
                          energy_units=energy, add_file_name="column",
-                         energy_rate_dct=rate_to_energy_dct)
+                         rate_to_energy_dct=rate_to_energy_dct)
 
         return df
 
