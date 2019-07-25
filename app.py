@@ -453,6 +453,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def set_initial_layout(self):
         """ Define an app layout when there isn't any file loaded. """
+        self.all_eso_files_btn.setEnabled(False)
+        self.building_totals_btn.setEnabled(False)
+
         self.disable_interval_btns()
         self.populate_intervals_group(hide_disabled=False)
         self.populate_units_group()
