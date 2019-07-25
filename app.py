@@ -230,18 +230,20 @@ class MainWindow(QtWidgets.QMainWindow):
         self.mini_menu_layout.setSpacing(0)
         self.toolbar_layout.insertWidget(0, self.mini_menu)
 
-        load_file = QAction(QIcon("./icons/add_file_grey.png"), "Load file | files", self)
-        close_all = QAction(QIcon("./icons/remove_grey.png"), "Close all files", self)
+        load_file_act = QAction(QIcon("./icons/add_file_grey.png"), "Load file | files", self)
+        load_file_act.triggered.connect(self.load_files)
+        close_all_act = QAction(QIcon("./icons/remove_grey.png"), "Close all files", self)
+        close_all_act.triggered.connect(self.close_all_tabs)
         file_menu = QMenu(self)
-        file_menu.addActions([load_file, close_all])
+        file_menu.addActions([load_file_act, close_all_act])
 
         icon_size = QSize(25, 25)
-        load_file = MenuButton(QIcon("icons/file_grey.png"), "Load file | files", self)
-        load_file.setIconSize(icon_size)
-        load_file.clicked.connect(self.load_files)
-        load_file.setStatusTip("Open eso file or files")
-        load_file.setMenu(file_menu)
-        self.mini_menu_layout.addWidget(load_file)
+        load_file_btn = MenuButton(QIcon("icons/file_grey.png"), "Load file | files", self)
+        load_file_btn.setIconSize(icon_size)
+        load_file_btn.clicked.connect(self.load_files)
+        load_file_btn.setStatusTip("Open eso file or files")
+        load_file_btn.setMenu(file_menu)
+        self.mini_menu_layout.addWidget(load_file_btn)
 
         save_all = MenuButton(QIcon("icons/save_grey.png"), "Save", self)
         save_all.setIconSize(icon_size)
@@ -897,8 +899,8 @@ class MainWindow(QtWidgets.QMainWindow):
     def delete_files_from_db(self, *args):
         """ Delete the eso file from the database. """
         try:
-            print("Deleting file: '{}' from database.".format(self.database[file_id].file_path))
             for id_ in args:
+                print("Deleting file id: '{}' from database.".format(self.database[id_]))
                 del self.database[id_]
 
         except KeyError:
