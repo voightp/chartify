@@ -881,7 +881,13 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def remove_eso_file(self, index):
         """ Delete current eso file. """
-        self.delete_file_set(index)
+        wgt = self.tab_wgt.widget(index)
+        std_id_ = wgt.std_file_header.id_
+        tot_id_ = wgt.tot_file_header.id_
+
+        self.remove_file_from_ui(index, wgt)
+        self.delete_files_from_db(std_id_, tot_id_)
+
         if self.tab_wgt.count() == 0:
             self.building_totals_btn.setEnabled(False)
 
@@ -907,17 +913,11 @@ class MainWindow(QtWidgets.QMainWindow):
             print("Cannot delete the eso file: id '{}',\n"
                   "File was not found in database.".format(file_id))
 
-    def delete_file_set(self, tab_index):
+    def remove_file_from_ui(self, index, wgt):
         """ Delete the content of the file with given index. """
-        wgt = self.tab_wgt.widget(tab_index)
-        std_id_, tot_id_ = wgt.std_file_header.id_, wgt.tot_file_header.id_
-
-        # delete the eso file from database
-        self.delete_files_from_db(std_id_, tot_id_)
-
         # delete the widget and remove the tab
         wgt.deleteLater()
-        self.tab_wgt.removeTab(tab_index)
+        self.tab_wgt.removeTab(index)
 
     def _available_intervals(self):
         """ Get available intervals for the current eso file. """
@@ -1143,9 +1143,14 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def close_all_tabs(self):
         """ Delete all the content. """
-        for _ in range(self.tab_wgt.count()):
-            self.delete_file_set(0)
+        ids = []
+        for i in range(self.tab_wgt.count()):
+            wgt = self.tab_wgt.widget(i)
+            ids.append(wgt.std_file_header.id_)
+            ids.append(wgt.tot_file_header.id_)
+            self.remove_file_from_ui(i, wgt)
 
+        self.delete_files_from_db(*ids)
         self.set_initial_layout()
 
 
