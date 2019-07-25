@@ -14,7 +14,7 @@ from PySide2.QtGui import QKeySequence, QIcon, QPixmap, QFontDatabase, QFont, QC
 from eso_file_header import FileHeader
 from icons import Pixmap, text_to_pixmap
 from progress_widget import StatusBar, ProgressContainer
-from widgets import LineEdit
+from widgets import LineEdit, DropFrame
 
 from buttons import TitledButton, IntervalButton, ToggleButton, MenuButton
 from functools import partial
@@ -76,7 +76,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.central_layout.addWidget(self.central_splitter)
 
         # ~~~~ Left hand area ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.left_main_wgt = QWidget(self.central_splitter)
+        self.left_main_wgt = DropFrame(self.central_splitter,
+                                       callbacks={"load_eso_files": self._load_eso_files})
+        self.left_main_wgt.setObjectName("leftMainWgt")
         self.left_main_layout = QHBoxLayout(self.left_main_wgt)
         self.central_splitter.addWidget(self.left_main_wgt)
 
