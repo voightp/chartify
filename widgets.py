@@ -59,7 +59,7 @@ class DropFrame(QFrame):
     def dropEvent(self, event):
         """ Handle file drops. """
         mime = event.mimeData()
-        files = self.filter_eso_files(mime.urls())
+        files = filter_eso_files(mime.urls())
 
         if files:
             # invoke load files
