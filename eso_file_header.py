@@ -1,7 +1,7 @@
 from collections import defaultdict, namedtuple
 
 
-class EsoFileHeader:
+class FileHeader:
     """
     A class to handle the header data so it can be supplied
     into the 'ViewModel' class.
@@ -19,13 +19,14 @@ class EsoFileHeader:
 
     """
 
-    def __init__(self, header_dct):
-        self._header_dct = header_dct
+    def __init__(self, id_, header_dct):
+        self.header_dct = header_dct
+        self.id_ = id_
 
     @property
     def available_intervals(self):
         """ Get a list of available intervals. """
-        return self._header_dct.keys()
+        return self.header_dct.keys()
 
     @staticmethod
     def create_proxy(header, units_settings, view_order):
@@ -60,7 +61,7 @@ class EsoFileHeader:
 
     def _variables(self, interval):
         """ Return a list of header variables for a given interval. """
-        return list(self._header_dct[interval].values())
+        return list(self.header_dct[interval].values())
 
     def get_header_iterator(self, units_settings, view_order, interval):
         """ Return data - proxy paired list of tuples. """
