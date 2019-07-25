@@ -27,6 +27,7 @@ import psutil
 
 from eso_reader.constants import TS, D, H, M, A, RP
 from eso_reader.eso_file import EsoFile, get_results, IncompleteFile
+from eso_reader.building_eso_file import BuildingEsoFile
 from eso_reader.mini_classes import Variable
 import eso_reader.misc_os as misc_os
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
@@ -1084,10 +1085,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _load_eso_files(self, eso_file_paths):
         """ Start eso file processing. """
-
-        def load_file(path, **kwargs):
-            return EsoFile(path, **kwargs)
-
         progress_queue = self.progress_queue
         file_queue = self.file_queue
 
@@ -1188,15 +1185,19 @@ def kill_child_processes(parent_pid):
             continue
 
 
+def load_file(path, **kwargs):
+    """ Process eso file. """
+    std_file = EsoFile(path, **kwargs)
+    tot_file = BuildingEsoFile(std_file)
+    kwargs["monitor"].building_totals_finished()
+    return std_file, tot_file
+
+
 def wait_for_results(id_, monitor, queue, future):
     """ Put loaded file into the queue and clean up the pool. """
     try:
-        eso_file = future.result()
-
-        file_totals = eso_file.get_building_totals()
-        monitor.building_totals_finished()
-
-        queue.put((id_, eso_file, file_totals))
+        std_file, tot_file = future.result()
+        queue.put((id_, std_file, tot_file))
 
     except IncompleteFile:
         print("File '{}' is not complete -"
