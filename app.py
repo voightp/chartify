@@ -1146,11 +1146,11 @@ class MainWindow(QtWidgets.QMainWindow):
     def close_all_tabs(self):
         """ Delete all the content. """
         ids = []
-        for i in range(self.tab_wgt.count()):
-            wgt = self.tab_wgt.widget(i)
+        for _ in range(self.tab_wgt.count()):
+            wgt = self.tab_wgt.widget(0)
             ids.append(wgt.std_file_header.id_)
             ids.append(wgt.tot_file_header.id_)
-            self.remove_file_from_ui(i, wgt)
+            self.remove_file_from_ui(0, wgt)
 
         self.delete_files_from_db(*ids)
         self.set_initial_layout()
