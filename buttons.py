@@ -2,13 +2,8 @@ from PySide2.QtWidgets import QWidget, QToolButton, QApplication, QVBoxLayout, Q
     QSizePolicy, QFrame, \
     QAction, QCheckBox, QSlider
 from PySide2.QtCore import QSize, Qt, Signal, QSize
+from widgets import update_appearance
 import sys
-
-
-def update_appearance(wgt):
-    """ Refresh CSS of the widget. """
-    wgt.style().unpolish(wgt)
-    wgt.style().polish(wgt)
 
 
 class TitledButton(QFrame):

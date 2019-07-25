@@ -11,10 +11,10 @@ from PySide2.QtCore import QSize, Qt, QThreadPool, QThread, QObject, Signal, \
     QItemSelectionModel, QRegExp, QUrl, QTimer, QFile
 from PySide2.QtWebEngineWidgets import QWebEnginePage, QWebEngineView, QWebEngineSettings
 from PySide2.QtGui import QKeySequence, QIcon, QPixmap, QFontDatabase, QFont, QColor
-from eso_file_header import EsoFileHeader
+from eso_file_header import FileHeader
 from icons import Pixmap, text_to_pixmap
 from progress_widget import StatusBar, ProgressContainer
-from widgets import LineEdit
+from widgets import LineEdit, DropFrame
 
 from buttons import TitledButton, IntervalButton, ToggleButton, MenuButton
 from functools import partial
@@ -26,7 +26,8 @@ import loky
 import psutil
 
 from eso_reader.constants import TS, D, H, M, A, RP
-from eso_reader.eso_file import EsoFile, load_eso_file, get_results, IncompleteFile
+from eso_reader.eso_file import EsoFile, get_results, IncompleteFile
+from eso_reader.building_eso_file import BuildingEsoFile
 from eso_reader.mini_classes import Variable
 import eso_reader.misc_os as misc_os
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
@@ -75,7 +76,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.central_layout.addWidget(self.central_splitter)
 
         # ~~~~ Left hand area ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.left_main_wgt = QWidget(self.central_splitter)
+        self.left_main_wgt = DropFrame(self.central_splitter,
+                                       callbacks={"load_eso_files": self._load_eso_files})
+        self.left_main_wgt.setObjectName("leftMainWgt")
         self.left_main_layout = QHBoxLayout(self.left_main_wgt)
         self.central_splitter.addWidget(self.left_main_wgt)
 
@@ -211,7 +214,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # ~~~~ Monitoring threads ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # TODO PASSING THE DATA TO DASH APP
         self.watcher_thread = EsoFileWatcher(self.file_queue)
-        self.watcher_thread.loaded.connect(self.add_eso_file)
+        self.watcher_thread.loaded.connect(self.on_file_loaded)
 
         self.pool = create_pool()
         self.watcher_thread.start()
@@ -229,18 +232,20 @@ class MainWindow(QtWidgets.QMainWindow):
         self.mini_menu_layout.setSpacing(0)
         self.toolbar_layout.insertWidget(0, self.mini_menu)
 
-        load_file = QAction(QIcon("./icons/add_file_grey.png"), "Load file | files", self)
-        close_all = QAction(QIcon("./icons/remove_grey.png"), "Close all files", self)
+        load_file_act = QAction(QIcon("./icons/add_file_grey.png"), "Load file | files", self)
+        load_file_act.triggered.connect(self.load_files)
+        close_all_act = QAction(QIcon("./icons/remove_grey.png"), "Close all files", self)
+        close_all_act.triggered.connect(self.close_all_tabs)
         file_menu = QMenu(self)
-        file_menu.addActions([load_file, close_all])
+        file_menu.addActions([load_file_act, close_all_act])
 
         icon_size = QSize(25, 25)
-        load_file = MenuButton(QIcon("icons/file_grey.png"), "Load file | files", self)
-        load_file.setIconSize(icon_size)
-        load_file.clicked.connect(self.load_files)
-        load_file.setStatusTip("Open eso file or files")
-        load_file.setMenu(file_menu)
-        self.mini_menu_layout.addWidget(load_file)
+        load_file_btn = MenuButton(QIcon("icons/file_grey.png"), "Load file | files", self)
+        load_file_btn.setIconSize(icon_size)
+        load_file_btn.clicked.connect(self.load_files)
+        load_file_btn.setStatusTip("Open eso file or files")
+        load_file_btn.setMenu(file_menu)
+        self.mini_menu_layout.addWidget(load_file_btn)
 
         save_all = MenuButton(QIcon("icons/save_grey.png"), "Save", self)
         save_all.setIconSize(icon_size)
@@ -709,11 +714,8 @@ class MainWindow(QtWidgets.QMainWindow):
             return
 
         # update the current widget
-        eso_file_widget.update_view_model(is_tree,
-                                          interval,
-                                          view_settings,
-                                          units_settings,
-                                          select=selection)
+        eso_file_widget.update_view_model(totals, is_tree, interval, view_settings,
+                                          units_settings, select=selection)
 
         # check if some filtering is applied,
         # if yes, update the model accordingly
@@ -881,7 +883,13 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def remove_eso_file(self, index):
         """ Delete current eso file. """
-        self.delete_eso_file_content(index)
+        wgt = self.tab_wgt.widget(index)
+        std_id_ = wgt.std_file_header.id_
+        tot_id_ = wgt.tot_file_header.id_
+
+        self.remove_file_from_ui(index, wgt)
+        self.delete_files_from_db(std_id_, tot_id_)
+
         if self.tab_wgt.count() == 0:
             self.building_totals_btn.setEnabled(False)
 
@@ -896,31 +904,26 @@ class MainWindow(QtWidgets.QMainWindow):
             btn.setChecked(False)
             btn.setEnabled(False)
 
-    def delete_file_from_db(self, file_id):
+    def delete_files_from_db(self, *args):
         """ Delete the eso file from the database. """
         try:
-            print("Deleting file: '{}' from database.".format(self.database[file_id].file_path))
-            del self.database[file_id]
+            for id_ in args:
+                print("Deleting file id: '{}' from database.".format(self.database[id_]))
+                del self.database[id_]
 
         except KeyError:
             print("Cannot delete the eso file: id '{}',\n"
                   "File was not found in database.".format(file_id))
 
-    def delete_eso_file_content(self, tab_index):
+    def remove_file_from_ui(self, index, wgt):
         """ Delete the content of the file with given index. """
-        widget = self.tab_wgt.widget(tab_index)
-        file_id = widget.file_id
-
-        # delete the eso file from database
-        self.delete_file_from_db(file_id)
-
         # delete the widget and remove the tab
-        widget.deleteLater()
-        self.tab_wgt.removeTab(tab_index)
+        wgt.deleteLater()
+        self.tab_wgt.removeTab(index)
 
     def _available_intervals(self):
         """ Get available intervals for the current eso file. """
-        intervals = self.current_eso_file.eso_file_header.available_intervals
+        intervals = self.current_eso_file.std_file_header.available_intervals
         return intervals
 
     def update_interval_buttons_state(self):
@@ -1011,14 +1014,12 @@ class MainWindow(QtWidgets.QMainWindow):
 
         if add:
             expanded_set.add(add)
-
         if remove:
             expanded_set.remove(remove)
 
-    def current_eso_file_id(self):
+    def get_current_file_id(self):
         """ Return an id of the currently selected file. """
-        current_file = self.current_eso_file
-        return current_file.file_id
+        return self.current_eso_file.get_file_id(self.building_totals())
 
     def add_file_to_db(self, file_id, eso_file):
         """ Add processed eso file to the database. """
@@ -1029,15 +1030,18 @@ class MainWindow(QtWidgets.QMainWindow):
         except BrokenPipeError:
             print("Application has been closed - catching broken pipe!")
 
-    def add_eso_file(self, id, eso_file):
+    def on_file_loaded(self, id_, std_file, tot_file):
         """ Add eso file into 'tab' widget. """
-        # add the file on the ui
-        eso_file_header = EsoFileHeader(eso_file.header_dct)
-        eso_file_widget = View(self, id, eso_file_header)
-        self.tab_wgt.addTab(eso_file_widget, eso_file.file_name)
+        std_id_ = f"s{id_}"
+        std_file_header = FileHeader(std_id_, std_file.header_dct)
+        self.add_file_to_db(std_id_, std_file)
 
-        # add the file into database
-        self.add_file_to_db(id, eso_file)
+        tot_id_ = f"t{id_}"
+        tot_file_header = FileHeader(tot_id_, tot_file.header_dct)
+        self.add_file_to_db(tot_id_, std_file)
+
+        eso_file_widget = View(self, std_file_header, tot_file_header)
+        self.tab_wgt.addTab(eso_file_widget, std_file.file_name)
 
         # enable all eso file results btn if it's suitable
         if self.tab_wgt.count() > 1:
@@ -1058,7 +1062,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.all_eso_files_requested():
             return self.all_files_ids()
 
-        file_id = self.current_eso_file_id()
+        file_id = self.get_current_file_id()
         return [file_id]
 
     def generate_variables(self, outputs):
@@ -1098,7 +1102,7 @@ class MainWindow(QtWidgets.QMainWindow):
             monitor = GuiMonitor(path, id_, progress_queue)
 
             # create a new process to load eso file
-            future = self.pool.submit(load_eso_file, path, monitor=monitor, suppress_errors=False)
+            future = self.pool.submit(load_file, path, monitor=monitor, suppress_errors=False)
             future.add_done_callback(partial(wait_for_results, id_, monitor, file_queue))
 
     def load_files(self):
@@ -1141,9 +1145,14 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def close_all_tabs(self):
         """ Delete all the content. """
-        for _ in range(self.tab_wgt.count()):
-            self.delete_eso_file_content(0)
+        ids = []
+        for i in range(self.tab_wgt.count()):
+            wgt = self.tab_wgt.widget(i)
+            ids.append(wgt.std_file_header.id_)
+            ids.append(wgt.tot_file_header.id_)
+            self.remove_file_from_ui(i, wgt)
 
+        self.delete_files_from_db(*ids)
         self.set_initial_layout()
 
 
@@ -1185,11 +1194,19 @@ def kill_child_processes(parent_pid):
             continue
 
 
+def load_file(path, **kwargs):
+    """ Process eso file. """
+    std_file = EsoFile(path, **kwargs)
+    tot_file = BuildingEsoFile(std_file)
+    kwargs["monitor"].building_totals_finished()
+    return std_file, tot_file
+
+
 def wait_for_results(id_, monitor, queue, future):
     """ Put loaded file into the queue and clean up the pool. """
     try:
-        eso_file = future.result()
-        queue.put((id_, eso_file))
+        std_file, tot_file = future.result()
+        queue.put((id_, std_file, tot_file))
 
     except IncompleteFile:
         print("File '{}' is not complete -"

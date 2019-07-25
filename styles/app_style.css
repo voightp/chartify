@@ -10,24 +10,34 @@ light blue: rgba(33, 150, 243, 0.5)
 }
 
 QFrame {
-    background-color: white;
+    background-color: transparent;
     border-radius: 0px;
 }
 
-QFrame#viewWidget {
+DropFrame#leftMainWgt {
    background-color: rgb(200, 200, 211);
-   margin: 0px;
-   padding: 2px 0px;
+   padding: 2px;
 }
 
+QFrame#viewWidget {
+   margin: 0px;
+   padding: 0px;
+}
+
+DropFrame#leftMainWgt[drag-accept="true"] {
+   background-color: rgb(197,225,165);
+}
+
+DropFrame#leftMainWgt[drag-accept="false"] {
+   background-color: rgb(255,171,145);
+}
 
 QSplitter::handle {
-    background-color: rgb(200, 200, 211);
+    background-color: white;
 }
 
 QFrame#toolbar {
-    border-right: 2px solid rgb(200, 200, 211);
-    border-bottom: 2px solid rgb(200, 200, 211);
+    margin-right: 2px;
     background-color: white;
 }
 
@@ -197,9 +207,9 @@ MenuButton {
     height: 10px;
 }
 
-LineEdit QLineEdit{
-    border: 1px solid white;
-    background-color: rgba(143,143,143,0);
+LineEdit, QLineEdit{
+    border: 0px solid white;
+    background-color: white;
     border-radius: 2px;
  }
 

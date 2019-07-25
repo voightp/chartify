@@ -12,13 +12,13 @@ from PySide2.QtGui import QDrag, QPixmap
 import pickle
 
 from PySide2.QtGui import QStandardItemModel, QStandardItem, QFont
-from eso_file_header import EsoFileHeader
+from eso_file_header import FileHeader
 from functools import partial
 
 
 class View(QTreeView):
 
-    def __init__(self, main_app, file_id, eso_file_header):
+    def __init__(self, main_app, std_file_header, tot_file_header):
         super().__init__()
         self.setRootIsDecorated(True)
         self.setUniformRowHeights(True)
@@ -37,13 +37,15 @@ class View(QTreeView):
         self.setFocusPolicy(Qt.NoFocus)
 
         self.main_app = main_app
-        self.eso_file_header = eso_file_header
-        self._file_id = file_id
+        self.std_file_header = std_file_header
+        self.tot_file_header = tot_file_header
 
         self._initialized = False
         self._settings = {"interval": None,
                           "tree_key": None,
-                          "units": None}
+                          "units": None,
+                          "totals": None}
+
         self._view_settings = None
         self._scrollbar_position = 0
 
@@ -52,9 +54,11 @@ class View(QTreeView):
         self.collapsed.connect(self.handle_collapsed)
         self.pressed.connect(self.handle_drag_attempt)
 
-    @property
-    def file_id(self):
-        return self._file_id
+    def get_file_id(self, totals):
+        """ Get file id based on 'totals' request. """
+        std_id = self.std_file_header.id_
+        tot_id = self.tot_file_header.id_
+        return tot_id if totals else std_id
 
     def filter_view(self, filter_str):
         """ Filter the model using given string. """
@@ -64,13 +68,14 @@ class View(QTreeView):
 
         # Expand all items when filter is applied
         self.expand_all()
-        self._set_first_col_spanned()
+        self.set_first_col_spanned()
 
-    def store_settings(self, interval, tree_key, units):
+    def store_settings(self, interval, tree_key, units, totals):
         """ Store intermediate settings. """
         self._settings = {"interval": interval,
                           "tree_key": tree_key,
-                          "units": units}
+                          "units": units,
+                          "totals": totals}
 
     def expand_all(self):
         """ Expand all nested nodes. """
@@ -80,7 +85,7 @@ class View(QTreeView):
         """ Collapse all nested nodes. """
         self.collapseAll()
 
-    def _set_first_col_spanned(self):
+    def set_first_col_spanned(self):
         """ Set parent row to be spanned over all columns. """
         model = self.model()
         for i in range(model.rowCount()):
@@ -102,25 +107,24 @@ class View(QTreeView):
         self.setModel(proxy_model)
 
         # define view appearance and behaviour
-        self._set_header_labels(view_order)
-        self._set_first_col_spanned()
+        self.set_header_labels(view_order)
+        self.set_first_col_spanned()
 
-    def _shuffle_columns(self, order):
+    def reshuffle_columns(self, order):
         """ Reset column positions to match last visual appearance. """
         header = self.header()
-
         for i, nm in enumerate(order):
-            vis_names = self._get_visual_names()
+            vis_names = self.get_visual_names()
             j = vis_names.index(nm)
             if i != j:
                 header.moveSection(j, i)
 
     def update_sort_order(self, name, order):
         """ Set header order. """
-        log_ix = self._get_logical_index(name)
+        log_ix = self.get_logical_index(name)
         self.header().setSortIndicator(log_ix, order)
 
-    def _expand_items(self, expanded_set):
+    def expand_items(self, expanded_set):
         """ Expand items which were previously expanded (on other models). """
         model = self.model()
         for i in range(model.rowCount()):
@@ -130,19 +134,17 @@ class View(QTreeView):
                 if data in expanded_set:
                     self.expand(ix)
 
-    def _update_selection(self, current_selection, key):
+    def update_selection(self, current_selection, key):
         """ Select previously selected items when the model changes. """
         # Clear the container
         self.main_app.clear_current_selection()
 
-        # Find matching items and return selection
+        # Find matching items and select items on new model
         proxy_selection = self.model().find_match(current_selection, key)
-        # Select items on the new model
         self.select_items(proxy_selection)
 
         # Update main app outputs
-        proxy_indexes = proxy_selection.indexes()
-        self.update_app_outputs(proxy_indexes)
+        self.update_app_outputs(proxy_selection.indexes())
 
     def update_scroll_position(self):
         """ Update the slider position. """
@@ -151,22 +153,20 @@ class View(QTreeView):
 
     def update_view_appearance(self, view_settings):
         """ Update the model appearance to be consistent with last view. """
-        sort_order = view_settings["order"]
+        name, order = view_settings["order"]
         expanded_items = view_settings["expanded"]
         view_order = view_settings["header"]
         widths = self.main_app.stored_view_settings["widths"]
 
         self.update_resize_behaviour()
         self.resize_header(widths)
-        self.update_sort_order(*sort_order)
+        self.update_sort_order(name, order)
 
         if expanded_items:
-            self._expand_items(expanded_items)
+            self.expand_items(expanded_items)
 
         # it's required to adjust columns order to match the last applied order
-        # the problematic part is updating tree structure as the logical indexes
-        # change which causes the order to be broken
-        self._shuffle_columns(view_order)
+        self.reshuffle_columns(view_order)
         self.update_scroll_position()
 
     def disconnect_actions(self):
@@ -177,12 +177,12 @@ class View(QTreeView):
         """ Connect specific signals. """
         self.verticalScrollBar().valueChanged.connect(self.slider_moved)
 
-    def update_view_model(self, is_tree, interval, view_settings,
+    def update_view_model(self, totals, is_tree, interval, view_settings,
                           units_settings, select=None):
         """
         Set the model and define behaviour of the tree view.
         """
-        eso_file_header = self.eso_file_header
+        file_header = self.tot_file_header if totals else self.std_file_header
 
         view_order = view_settings["header"]
         tree_key = view_order[0] if is_tree else None
@@ -190,31 +190,32 @@ class View(QTreeView):
         # Only update the model if the settings have changed
         conditions = [tree_key != self._settings["tree_key"],
                       interval != self._settings["interval"],
-                      units_settings != self._settings["units"], ]
+                      units_settings != self._settings["units"],
+                      totals != self._settings["totals"]]
 
         if any(conditions):
             self.disconnect_actions()
-            self.build_view_model(eso_file_header, units_settings,
+            self.build_view_model(file_header, units_settings,
                                   tree_key, view_order, interval)
 
             # Store current sorting key and interval
-            self.store_settings(interval, tree_key, units_settings)
+            self.store_settings(interval, tree_key, units_settings, totals)
             self.reconnect_actions()
 
         # clean up selection as this will be handled based on
         # currently selected list of items stored in main app
         self.clear_selection()
         if select:
-            self._update_selection(select, view_order[0])
+            self.update_selection(select, view_order[0])
 
         self.update_view_appearance(view_settings)
 
         if not self._initialized:
             # create header actions only when view is created
-            self._create_header_actions()
+            self.create_header_actions()
             self._initialized = True
 
-    def _set_header_labels(self, view_order):
+    def set_header_labels(self, view_order):
         """ Assign header labels. """
         model = self.model().sourceModel()
         model.setHorizontalHeaderLabels(view_order)
@@ -237,7 +238,7 @@ class View(QTreeView):
         header = self.header()
 
         # both logical and visual indexes are ordered as 'key', 'variable', 'units'
-        log_ixs = self._get_logical_ixs()
+        log_ixs = self.get_logical_ixs()
         vis_ixs = [self.header().visualIndex(i) for i in log_ixs]
 
         # units column size is always fixed
@@ -255,59 +256,56 @@ class View(QTreeView):
         header.setSectionResizeMode(stretch, QHeaderView.Stretch)
         header.setSectionResizeMode(interactive, QHeaderView.Interactive)
 
-    def _get_logical_names(self):
+    def get_logical_names(self):
         """ Get names sorted by logical index. """
         model = self.model()
         num = model.columnCount()
         names = [model.headerData(i, Qt.Horizontal).lower() for i in range(num)]
         return names
 
-    def _get_visual_names(self):
+    def get_visual_names(self):
         """ Return sorted column names (by visual index). """
         num = self.model().columnCount()
-        names = self._get_logical_names()
         vis_ixs = [self.header().visualIndex(i) for i in range(num)]
 
-        z = list(zip(names, vis_ixs))
+        z = list(zip(self.get_logical_names(), vis_ixs))
         z.sort(key=lambda x: x[1])
         sorted_names = list(zip(*z))[0]
         return sorted_names
 
-    def _get_logical_index(self, name):
+    def get_logical_index(self, name):
         """ Get a logical index of a given section title. """
-        names = self._get_logical_names()
-        return names.index(name)
+        return self.get_logical_names().index(name)
 
-    def _get_logical_ixs(self):
+    def get_logical_ixs(self):
         """ Return logical positions of header labels. """
-        names = self._get_logical_names()
+        names = self.get_logical_names()
         return (names.index("key"),
                 names.index("variable"),
                 names.index("units"))
 
-    def _sort_order_changed(self, log_ix, order):
+    def sort_order_changed(self, log_ix, order):
         """ Store current sorting order in main app. """
         name = self.model().headerData(log_ix, Qt.Horizontal)
         self.main_app.update_sort_order(name, order)
 
-    def _view_resized(self):
+    def view_resized(self):
         """ Store interactive section width in the main app. """
         header = self.header()
 
-        for i in range(3):
+        for i in range(header.count()):
             if header.sectionResizeMode(i) == header.Interactive:
                 width = header.sectionSize(i)
                 self.main_app.update_section_widths("interactive", width)
 
-    def _section_moved(self, _logical_ix, old_visual_ix, new_visual_ix):
+    def section_moved(self, _logical_ix, old_visual_ix, new_visual_ix):
         """ Handle updating the model when first column changed. """
-        names = self._get_visual_names()
+        names = self.get_visual_names()
         self.main_app.update_sections_order(names)
 
         if (new_visual_ix == 0 or old_visual_ix == 0) and self.main_app.is_tree():
             # need to update view as section has been moved
             # onto first position and tree key is applied
-            print("Updating view")
             self.main_app.build_view()
             self.update_sort_order(names[0], Qt.AscendingOrder)
 
@@ -316,16 +314,16 @@ class View(QTreeView):
         widths = self.main_app.stored_view_settings["widths"]
         self.resize_header(widths)
 
-    def _create_header_actions(self):
+    def create_header_actions(self):
         """ Create header actions. """
         # When the file is loaded for the first time, the header does not
         # contain required data to use 'view_resized' method.
         # Due to this, the action needs to be created only after the model
-        # and its header has been created.
+        # and its header have been created.
         self.header().setFirstSectionMovable(True)
-        self.header().sectionResized.connect(self._view_resized)
-        self.header().sortIndicatorChanged.connect(self._sort_order_changed)
-        self.header().sectionMoved.connect(self._section_moved)
+        self.header().sectionResized.connect(self.view_resized)
+        self.header().sortIndicatorChanged.connect(self.sort_order_changed)
+        self.header().sectionMoved.connect(self.section_moved)
 
     def slider_moved(self, val):
         """ Handle moving view slider. """
@@ -359,7 +357,6 @@ class View(QTreeView):
 
     def handle_selection_change(self):
         """ Extract output information from the current selection. """
-        print("Selection changed")
         proxy_model = self.model()
         selection_model = self.selectionModel()
         proxy_rows = selection_model.selectedRows()
@@ -403,7 +400,6 @@ class View(QTreeView):
 
         if outputs:
             self.main_app.populate_current_selection(outputs)
-
         else:
             self.main_app.clear_current_selection()
 
@@ -411,8 +407,10 @@ class View(QTreeView):
         """ Select all children of the parent row. """
         first_ix = source_index.child(0, 0)
         last_ix = source_index.child((source_item.rowCount() - 1), 0)
+
         selection = QItemSelection(first_ix, last_ix)
         proxy_selection = self.model().mapSelectionFromSource(selection)
+
         self.select_items(proxy_selection)
 
     def clear_selection(self):
@@ -421,16 +419,18 @@ class View(QTreeView):
 
     def deselect_item(self, proxy_index):
         """ Select an item programmatically. """
-        self.selectionModel().select(proxy_index, QItemSelectionModel.Deselect | QItemSelectionModel.Rows)
+        self.selectionModel().select(proxy_index, QItemSelectionModel.Deselect |
+                                     QItemSelectionModel.Rows)
 
     def select_item(self, proxy_index):
         """ Select an item programmatically. """
-        self.selectionModel().select(proxy_index, QItemSelectionModel.Select | QItemSelectionModel.Rows)
+        self.selectionModel().select(proxy_index, QItemSelectionModel.Select |
+                                     QItemSelectionModel.Rows)
 
     def select_items(self, proxy_selection):
         """ Select items given by given selection (model indexes). """
-        self.selectionModel().select(proxy_selection,
-                                     QItemSelectionModel.Select | QItemSelectionModel.Rows)
+        self.selectionModel().select(proxy_selection, QItemSelectionModel.Select |
+                                     QItemSelectionModel.Rows)
 
     def handle_collapsed(self, index):
         """ Deselect the row when node collapses."""
@@ -499,7 +499,7 @@ class ViewModel(QStandardItemModel):
 
         else:
             # create a tree like structure
-            tree_header = EsoFileHeader.tree_header(header, tree_key)
+            tree_header = FileHeader.tree_header(header, tree_key)
             self._append_tree_rows(tree_header, root)
 
 

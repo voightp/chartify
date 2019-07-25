@@ -2,6 +2,7 @@ from PySide2.QtCore import QThread, Signal
 
 from eso_reader.monitor import DefaultMonitor
 from eso_reader.eso_file import EsoFile
+from eso_reader.building_eso_file import BuildingEsoFile
 
 
 # noinspection PyUnresolvedReferences
@@ -56,7 +57,8 @@ class MonitorThread(QThread):
                 5: do_not_report,  # intervals finished
                 6: do_not_report,  # output cls finished
                 7: do_not_report,  # tree finished
-                8: send_finished,
+                8: do_not_report,  # file processing finished
+                9: send_finished,  # building totals generated
                 100: send_update_progress_bar,
             }
 
@@ -65,7 +67,7 @@ class MonitorThread(QThread):
 
 # noinspection PyUnresolvedReferences
 class EsoFileWatcher(QThread):
-    loaded = Signal(int, EsoFile)
+    loaded = Signal(int, EsoFile, BuildingEsoFile)
 
     def __init__(self, file_queue):
         super().__init__()
@@ -73,8 +75,8 @@ class EsoFileWatcher(QThread):
 
     def run(self):
         while True:
-            id, eso_file = self.file_queue.get()
-            self.loaded.emit(id, eso_file)
+            id_, std_file, tot_file = self.file_queue.get()
+            self.loaded.emit(id_, std_file, tot_file)
 
 
 class PipeEcho(QThread):
@@ -98,6 +100,9 @@ class GuiMonitor(DefaultMonitor):
         self.queue = queue
         self.id = id
         self.send_message(0, "Waiting")
+
+    def building_totals_finished(self):
+        self.send_message(9, "Totals produced!")
 
     def calculate_steps(self):
         chunk_size = 10000
