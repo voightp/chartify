@@ -78,7 +78,7 @@ class TabWidget(QTabWidget):
     def close_all_tabs(self):
         wgts = [self.widget(i) for i in range(self.count())]
         self.clear()
-        self.drop_btn.setVisible(False)
+        self.drop_btn.setVisible(True)
         return wgts
 
 
