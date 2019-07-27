@@ -860,7 +860,7 @@ class MainWindow(QtWidgets.QMainWindow):
         """ Apply a filter when the filter text is edited. """
         filter_string = self.filter_line_edit.text()
         print("Filtering: {}".format(filter_string))
-        if not self.tab_widget_empty():
+        if not self.tab_wgt.is_empty():
             self.current_eso_file.filter_view(filter_string)
 
     def text_edited(self):
