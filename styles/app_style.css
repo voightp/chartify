@@ -96,7 +96,7 @@ QToolButton {
     height: 40px;
     border: 1px solid rgb(198,198,198);
     background-color: white;
-    color: rgba(140,140,140,1);
+    color: rgba(112,112,112,1);
     font-size: 11px;
     margin: 2px;
 }
@@ -117,9 +117,10 @@ QToolButton:hover:checked {
 }
 
 QToolButton:disabled {
-    color:  rgba(140,140,140,1);
-    border-color: rgba(0, 0, 0, 0.1);
-    background-color: rgba(0, 0, 0, 0.08);
+    border-color: rgba(112, 112, 112, 0.5);
+    background-color: transparent;
+    color: rgba(112, 112, 112, 0.5);
+    border-style: dashed;
 }
 
 QToolButton:hover {
