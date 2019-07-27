@@ -14,7 +14,7 @@ from PySide2.QtGui import QKeySequence, QIcon, QPixmap, QFontDatabase, QFont, QC
 from eso_file_header import FileHeader
 from icons import Pixmap, text_to_pixmap
 from progress_widget import StatusBar, ProgressContainer
-from widgets import LineEdit, DropFrame
+from widgets import LineEdit, DropFrame, TabWidget
 
 from buttons import TitledButton, IntervalButton, ToggleButton, MenuButton
 from functools import partial
@@ -76,8 +76,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.central_layout.addWidget(self.central_splitter)
 
         # ~~~~ Left hand area ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.left_main_wgt = DropFrame(self.central_splitter,
-                                       callbacks={"load_eso_files": self._load_eso_files})
+        self.left_main_wgt = DropFrame(self.central_splitter)
         self.left_main_wgt.setObjectName("leftMainWgt")
         self.left_main_layout = QHBoxLayout(self.left_main_wgt)
         self.central_splitter.addWidget(self.left_main_wgt)
@@ -138,8 +137,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.left_main_layout.addWidget(self.view_wgt)
 
         # ~~~~ Left hand Tab widget  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.tab_wgt = QTabWidget(self.view_wgt)
-        self.set_up_tab_wgt()
+        self.tab_wgt = TabWidget(self.view_wgt)
         self.view_layout.addWidget(self.tab_wgt)
 
         # ~~~~ Left hand Tab Tools  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -295,15 +293,12 @@ class MainWindow(QtWidgets.QMainWindow):
     @property
     def current_eso_file(self):
         """ A currently selected eso file. """
-        return self.tab_wgt.currentWidget()
+        return self.tab_wgt.get_current_widget()
 
     @property
     def all_eso_files(self):
         """ A list of all loaded eso files. """
-        tab_widget = self.tab_wgt
-        count = tab_widget.count()
-        widgets = [tab_widget.widget(i) for i in range(count)]
-        return widgets
+        return self.tab_wgt.get_all_widgets()
 
     # TODO debug to find memory leaks
     def report_sizes(self):
@@ -381,10 +376,6 @@ class MainWindow(QtWidgets.QMainWindow):
         elif event.key() == Qt.Key_Delete:
             return
 
-    def tab_widget_empty(self):
-        """ Check if there's at least one loaded file. """
-        return self.tab_wgt.count() <= 0
-
     def all_eso_files_requested(self):
         """ Check if results from all eso files are requested. """
         btn = self.all_eso_files_btn
@@ -419,7 +410,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.tab_wgt.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
         self.tab_wgt.setMinimumWidth(400)
-        self.tab_wgt.setTabPosition(QTabWidget.North)
 
         self.view_wgt.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Expanding)
         self.view_layout.setContentsMargins(0, 0, 0, 0)
@@ -443,13 +433,6 @@ class MainWindow(QtWidgets.QMainWindow):
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)  # this sets toolbar icon on win 7
 
         self.setWindowIcon(QPixmap("./icons/twotone_pie_chart.png"))
-
-    def set_up_tab_wgt(self):
-        """ Set up appearance and behaviour of the tab widget. """
-        # ~~~~ Tab widget set up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.tab_wgt.setUsesScrollButtons(True)
-        self.tab_wgt.setTabsClosable(True)
-        self.tab_wgt.setMovable(True)
 
     def set_initial_layout(self):
         """ Define an app layout when there isn't any file loaded. """
@@ -884,16 +867,15 @@ class MainWindow(QtWidgets.QMainWindow):
         """ Delay firing a text edited event. """
         self.timer.start(200)
 
-    def remove_eso_file(self, index):
+    def remove_eso_file(self, wgt):
         """ Delete current eso file. """
-        wgt = self.tab_wgt.widget(index)
         std_id_ = wgt.std_file_header.id_
         tot_id_ = wgt.tot_file_header.id_
 
-        self.remove_file_from_ui(index, wgt)
+        wgt.deleteLater()
         self.delete_files_from_db(std_id_, tot_id_)
 
-        if self.tab_wgt.count() == 0:
+        if self.tab_wgt.is_empty():
             self.building_totals_btn.setEnabled(False)
 
         if self.tab_wgt.count() <= 1:
@@ -917,12 +899,6 @@ class MainWindow(QtWidgets.QMainWindow):
         except KeyError:
             print("Cannot delete the eso file: id '{}',\n"
                   "File was not found in database.".format(file_id))
-
-    def remove_file_from_ui(self, index, wgt):
-        """ Delete the content of the file with given index. """
-        # delete the widget and remove the tab
-        wgt.deleteLater()
-        self.tab_wgt.removeTab(index)
 
     def _available_intervals(self):
         """ Get available intervals for the current eso file. """
@@ -952,7 +928,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def tab_changed(self, index):
         """ Update view when tabChanged event is fired. """
         print("Tab changed {}".format(index))
-        if not self.tab_widget_empty():
+        if index != -1:
             self.update_interval_buttons_state()
             self.build_view()
             self.populate_intervals_group()
@@ -977,6 +953,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # ~~~~ View Actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.expand_all_btn.clicked.connect(self.expand_all)
         self.collapse_all_btn.clicked.connect(self.collapse_all)
+        self.left_main_wgt.fileDropped.connect(self._load_eso_files)
 
         # ~~~~ Options Actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.custom_units_toggle.stateChanged.connect(self.units_settings_toggled)
@@ -992,8 +969,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.filter_line_edit.textEdited.connect(self.text_edited)
 
         # ~~~~ Tab actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.tab_wgt.tabCloseRequested.connect(self.remove_eso_file)
+        self.tab_wgt.tabClosed.connect(self.remove_eso_file)
         self.tab_wgt.currentChanged.connect(self.tab_changed)
+        self.tab_wgt.fileLoadRequested.connect(self.load_files)
 
     def update_sections_order(self, order):
         """ Store current view header order. """
@@ -1044,14 +1022,14 @@ class MainWindow(QtWidgets.QMainWindow):
         self.add_file_to_db(tot_id_, std_file)
 
         eso_file_widget = View(self, std_file_header, tot_file_header)
-        self.tab_wgt.addTab(eso_file_widget, std_file.file_name)
+        self.tab_wgt.add_tab(eso_file_widget, std_file.file_name)
 
-        # enable all eso file results btn if it's suitable
+        # enable all eso file results btn if there's multiple files
         if self.tab_wgt.count() > 1:
             self.all_eso_files_btn.setEnabled(True)
 
         # enable all eso file results btn if it's suitable
-        if self.tab_wgt.count() > 0:
+        if not self.tab_wgt.is_empty():
             self.building_totals_btn.setEnabled(True)
 
     def all_files_ids(self):
@@ -1149,11 +1127,11 @@ class MainWindow(QtWidgets.QMainWindow):
     def close_all_tabs(self):
         """ Delete all the content. """
         ids = []
-        for _ in range(self.tab_wgt.count()):
-            wgt = self.tab_wgt.widget(0)
-            ids.append(wgt.std_file_header.id_)
-            ids.append(wgt.tot_file_header.id_)
-            self.remove_file_from_ui(0, wgt)
+        wgts = self.tab_wgt.close_all_tabs()
+        for i in range(len(wgts)):
+            ids.append(wgts[i].std_file_header.id_)
+            ids.append(wgts[i].tot_file_header.id_)
+            wgts[i].deleteLater()
 
         self.delete_files_from_db(*ids)
         self.set_initial_layout()

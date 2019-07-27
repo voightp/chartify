@@ -188,6 +188,16 @@ QToolButton#expandButton:hover {
     background-color: rgba(255,255,255,0.15)
   }
 
+  QToolButton#dropButton {
+      background: transparent;
+      border: none;
+      height: 100px;
+      width: 150px;
+  }
+
+  QToolButton#dropButton:hover {
+      background: transparent;
+  }
 MenuButton {
     border: 0px;
     width: 36px;
