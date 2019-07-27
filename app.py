@@ -368,7 +368,7 @@ class MainWindow(QtWidgets.QMainWindow):
         """ Manage keyboard events. """
         if event.key() == Qt.Key_Escape:
 
-            if not self.tab_widget_empty():
+            if not self.tab_wgt.is_empty():
                 self.current_eso_file.clear_selection()
 
             self.clear_current_selection()
