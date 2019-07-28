@@ -142,7 +142,7 @@ class TitledButton(QFrame):
             act.setChecked(True)
 
 
-class IntervalButton(QToolButton):
+class ToolsButton(QToolButton):
     """
     A predefined button to be used when selecting
     intervals.
@@ -152,20 +152,19 @@ class IntervalButton(QToolButton):
     title : str
         A title on the button.
     args
-        Args passed to 'super' QtoolButton class.
+        Args passed to 'super' QToolButton class.
     kwargs
-        Kwargs passed to 'super' QtoolButton class.
+        Kwargs passed to 'super' QToolButton class.
 
     """
 
-    def __init__(self, title, icon, *args, **kwargs):
+    def __init__(self, title, icon, *args, checkable=False, **kwargs):
         super().__init__(*args, **kwargs)
-        self.setEnabled(False)
         self.setIcon(icon)
         self.setText(title)
         self.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
-        self.setCheckable(True)
-        self.setAutoExclusive(True)
+        self.setCheckable(checkable)
+        self.setIconSize(QSize(20, 20))
 
 
 class ToggleButton(QFrame):
