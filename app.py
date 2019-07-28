@@ -1114,12 +1114,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def export_xlsx(self):
         """ Export selected variables data to xlsx. """
-        df = self.results_df()
         file_pth, _ = QFileDialog.getSaveFileName(self, "Save variable to .xlsx", "", "*.xlsx")
         if file_pth:
+            df = self.results_df()
             df.to_excel(file_pth)
-
-        df.to_excel("C:/users/vojte/desktop/test.xlsx")
 
     def close_all_tabs(self):
         """ Delete all the content. """
