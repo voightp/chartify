@@ -1087,7 +1087,11 @@ class MainWindow(QtWidgets.QMainWindow):
         rate_to_energy, units_system, energy, power = self.get_units_settings()
         rate_to_energy_dct = {self.get_selected_interval(): rate_to_energy}
 
-        files = [v for k, v in self.database.items() if k in ids]
+        if len(ids) == 1:
+            files = self.database[ids[0]]
+        else:
+            files = [v for k, v in self.database.items() if k in ids]
+
         df = get_results(files, variables, rate_units=power,
                          energy_units=energy, add_file_name="column",
                          rate_to_energy_dct=rate_to_energy_dct)
@@ -1111,6 +1115,10 @@ class MainWindow(QtWidgets.QMainWindow):
     def export_xlsx(self):
         """ Export selected variables data to xlsx. """
         df = self.results_df()
+        file_pth, _ = QFileDialog.getSaveFileName(self, "Save variable to .xlsx", "", "*.xlsx")
+        if file_pth:
+            df.to_excel(file_pth)
+
         df.to_excel("C:/users/vojte/desktop/test.xlsx")
 
     def close_all_tabs(self):
