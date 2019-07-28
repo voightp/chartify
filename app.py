@@ -36,7 +36,7 @@ from multiprocessing import Manager, cpu_count, Pipe, Process
 from view_widget import View
 from chart_widgets import MyWebView
 from random import randint
-from threads import PipeEcho, MonitorThread, EsoFileWatcher, GuiMonitor
+from threads import MonitorThread, EsoFileWatcher, GuiMonitor
 
 HEIGHT_THRESHOLD = 650
 
@@ -1116,8 +1116,15 @@ class MainWindow(QtWidgets.QMainWindow):
         """ Export selected variables data to xlsx. """
         file_pth, _ = QFileDialog.getSaveFileName(self, "Save variable to .xlsx", "", "*.xlsx")
         if file_pth:
+            import time
+            s = time.perf_counter()
             df = self.results_df()
+            e = time.perf_counter()
+            print("Fetching results: {}".format((e-s)))
+            s = time.perf_counter()
             df.to_excel(file_pth)
+            e = time.perf_counter()
+            print("Printing file: {}".format((e - s)))
 
     def close_all_tabs(self):
         """ Delete all the content. """

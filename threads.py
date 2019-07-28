@@ -79,21 +79,6 @@ class EsoFileWatcher(QThread):
             self.loaded.emit(id_, std_file, tot_file)
 
 
-class PipeEcho(QThread):
-    output_requested = Signal()
-
-    def __init__(self, pipe):
-        super().__init__()
-        self.pipe = pipe
-
-    def run(self):
-        while True:
-            message = self.pipe.recv()
-            if message:
-                print("Message '{}' received.".format(message))
-                self.output_requested.emit()
-
-
 class GuiMonitor(DefaultMonitor):
     def __init__(self, path, id, queue):
         super().__init__(path)
