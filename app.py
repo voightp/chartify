@@ -1122,7 +1122,7 @@ class MainWindow(QtWidgets.QMainWindow):
             e = time.perf_counter()
             print("Fetching results: {}".format((e-s)))
             s = time.perf_counter()
-            df.to_excel(file_pth)
+            # df.to_excel(file_pth)
             e = time.perf_counter()
             print("Printing file: {}".format((e - s)))
 
