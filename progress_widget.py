@@ -87,7 +87,7 @@ class ProgressContainer(QWidget):
             # can still be being processed on machines with
             # number of cpu greater than max_active_jobs
             vals = [v.rel_value for v in self.visible_files if not isinstance(v, SummaryFile)]
-            return any(map(lambda x: x < (file.rel_value + 1), vals))
+            return any(map(lambda x: x < (file.rel_value + 3), vals))
 
         return pos != i
 
