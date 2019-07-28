@@ -16,7 +16,7 @@ from icons import Pixmap, text_to_pixmap
 from progress_widget import StatusBar, ProgressContainer
 from widgets import LineEdit, DropFrame, TabWidget
 
-from buttons import TitledButton, IntervalButton, ToggleButton, MenuButton
+from buttons import TitledButton, ToolsButton, ToggleButton, MenuButton
 from functools import partial
 import traceback
 import sys
@@ -96,8 +96,13 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.outputs_group = QGroupBox("Outputs", self.toolbar_wgt)
         self.outputs_group.setObjectName("outputsGroup")
-        self.building_totals_btn = QToolButton(self.toolbar_wgt)
-        self.all_eso_files_btn = QToolButton(self.toolbar_wgt)
+        self.totals_btn = ToolsButton("totals", QPixmap("icons/building_grey.png"),
+                                      checkable=True, parent=self.outputs_group)
+        self.totals_btn.setEnabled(False)
+
+        self.all_files_btn = ToolsButton("all files", QPixmap("icons/all_files_grey.png"),
+                                         checkable=True, parent=self.toolbar_wgt)
+        self.all_files_btn.setEnabled(False)
         self.set_up_outputs_btns()
         self.toolbar_layout.addWidget(self.outputs_group)
 
@@ -291,12 +296,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.toggle_css()
 
     @property
-    def current_eso_file(self):
+    def current_file(self):
         """ A currently selected eso file. """
         return self.tab_wgt.get_current_widget()
 
     @property
-    def all_eso_files(self):
+    def all_files(self):
         """ A list of all loaded eso files. """
         return self.tab_wgt.get_all_widgets()
 
@@ -369,16 +374,16 @@ class MainWindow(QtWidgets.QMainWindow):
         if event.key() == Qt.Key_Escape:
 
             if not self.tab_wgt.is_empty():
-                self.current_eso_file.clear_selection()
+                self.current_file.clear_selection()
 
             self.clear_current_selection()
 
         elif event.key() == Qt.Key_Delete:
             return
 
-    def all_eso_files_requested(self):
+    def all_files_requested(self):
         """ Check if results from all eso files are requested. """
-        btn = self.all_eso_files_btn
+        btn = self.all_files_btn
         return btn.isChecked() and btn.isEnabled()
 
     def get_selected_interval(self):
@@ -436,8 +441,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def set_initial_layout(self):
         """ Define an app layout when there isn't any file loaded. """
-        self.all_eso_files_btn.setEnabled(False)
-        self.building_totals_btn.setEnabled(False)
+        self.all_files_btn.setEnabled(False)
+        self.totals_btn.setEnabled(False)
 
         self.disable_interval_btns()
         self.populate_intervals_group(hide_disabled=False)
@@ -510,8 +515,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def populate_outputs_group(self):
         """ Populate outputs buttons. """
-        outputs_btns = [self.building_totals_btn,
-                        self.all_eso_files_btn]
+        outputs_btns = [self.totals_btn,
+                        self.all_files_btn]
 
         self._populate_group(self.outputs_group, outputs_btns)
 
@@ -542,16 +547,8 @@ class MainWindow(QtWidgets.QMainWindow):
         outputs_btns_layout.setContentsMargins(0, 0, 0, 0)
         outputs_btns_layout.setAlignment(Qt.AlignTop)
 
-        self.building_totals_btn.setText("totals")
-        self.building_totals_btn.setCheckable(True)
-        self.building_totals_btn.setEnabled(False)
-        outputs_btns_layout.addWidget(self.building_totals_btn)
-
-        # ~~~~ Generate all eso files button ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.all_eso_files_btn.setText("all files")
-        self.all_eso_files_btn.setCheckable(True)
-        self.all_eso_files_btn.setEnabled(False)
-        outputs_btns_layout.addWidget(self.all_eso_files_btn)
+        outputs_btns_layout.addWidget(self.totals_btn)
+        outputs_btns_layout.addWidget(self.all_files_btn)
 
         self.populate_outputs_group()
 
@@ -570,8 +567,10 @@ class MainWindow(QtWidgets.QMainWindow):
         color = QColor(112, 112, 112)
 
         for k, v in ids.items():
-            btn = IntervalButton(k, text_to_pixmap(v, font, color), parent=p)
-            btn.setIconSize(QSize(20, 20))
+            pix = text_to_pixmap(v, font, color)
+            btn = ToolsButton(k, pix, checkable=True, parent=p)
+            btn.setAutoExclusive(True)
+            btn.setEnabled(False)
             self.interval_btns[k] = btn
 
         self.populate_intervals_group(hide_disabled=False)
@@ -672,7 +671,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def building_totals(self):
         """ Check if building totals are requested. """
-        return self.building_totals_btn.isChecked()
+        return self.totals_btn.isChecked()
 
     def is_tree(self):
         """ Check if tree structure is requested. """
@@ -691,7 +690,7 @@ class MainWindow(QtWidgets.QMainWindow):
         interval = self.get_selected_interval()
         units_settings = self.get_units_settings()
 
-        eso_file_widget = self.current_eso_file
+        eso_file_widget = self.current_file
         selection = self.selected
         view_settings = self.stored_view_settings
 
@@ -848,20 +847,20 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def expand_all(self):
         """ Expand all tree view items. """
-        if self.current_eso_file:
-            self.current_eso_file.expand_all()
+        if self.current_file:
+            self.current_file.expand_all()
 
     def collapse_all(self):
         """ Collapse all tree view items. """
-        if self.current_eso_file:
-            self.current_eso_file.collapse_all()
+        if self.current_file:
+            self.current_file.collapse_all()
 
     def _filter_view(self):
         """ Apply a filter when the filter text is edited. """
         filter_string = self.filter_line_edit.text()
         print("Filtering: {}".format(filter_string))
         if not self.tab_wgt.is_empty():
-            self.current_eso_file.filter_view(filter_string)
+            self.current_file.filter_view(filter_string)
 
     def text_edited(self):
         """ Delay firing a text edited event. """
@@ -876,11 +875,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.delete_files_from_db(std_id_, tot_id_)
 
         if self.tab_wgt.is_empty():
-            self.building_totals_btn.setEnabled(False)
+            self.totals_btn.setEnabled(False)
 
         if self.tab_wgt.count() <= 1:
             # only one file is available
-            self.all_eso_files_btn.setEnabled(False)
+            self.all_files_btn.setEnabled(False)
 
     def disable_interval_btns(self):
         """ Disable all interval buttons. """
@@ -902,7 +901,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _available_intervals(self):
         """ Get available intervals for the current eso file. """
-        intervals = self.current_eso_file.std_file_header.available_intervals
+        intervals = self.current_file.std_file_header.available_intervals
         return intervals
 
     def update_interval_buttons_state(self):
@@ -948,7 +947,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # ~~~~ Options buttons actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.export_xlsx_btn.clicked.connect(self.export_xlsx)
-        self.building_totals_btn.clicked.connect(self.switch_totals)
+        self.totals_btn.clicked.connect(self.switch_totals)
 
         # ~~~~ View Actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.expand_all_btn.clicked.connect(self.expand_all)
@@ -998,10 +997,6 @@ class MainWindow(QtWidgets.QMainWindow):
         if remove:
             expanded_set.remove(remove)
 
-    def get_current_file_id(self):
-        """ Return an id of the currently selected file. """
-        return self.current_eso_file.get_file_id(self.building_totals())
-
     def add_file_to_db(self, file_id, eso_file):
         """ Add processed eso file to the database. """
         try:
@@ -1026,25 +1021,20 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # enable all eso file results btn if there's multiple files
         if self.tab_wgt.count() > 1:
-            self.all_eso_files_btn.setEnabled(True)
+            self.all_files_btn.setEnabled(True)
 
         # enable all eso file results btn if it's suitable
         if not self.tab_wgt.is_empty():
-            self.building_totals_btn.setEnabled(True)
-
-    def all_files_ids(self):
-        """ Return ids of all loaded eso files. """
-        files = self.all_eso_files
-        ids = [file.file_id for file in files]
-        return ids
+            self.totals_btn.setEnabled(True)
 
     def get_files_ids(self):
         """ Return current file id or ids for all files based on 'all files btn' state. """
-        if self.all_eso_files_requested():
-            return self.all_files_ids()
+        tots = self.building_totals()
+        if self.all_files_requested():
+            return [f.get_file_id(tots) for f in self.all_files]
 
-        file_id = self.get_current_file_id()
-        return [file_id]
+        id_ = self.current_file.get_file_id(tots)
+        return [id_]
 
     def generate_variables(self, outputs):
         """ Create an output request using required 'Variable' class. """
