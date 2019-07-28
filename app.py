@@ -1164,11 +1164,11 @@ def kill_child_processes(parent_pid):
             continue
 
 
-def load_file(path, **kwargs):
+def load_file(path, monitor=None, suppress_errors=False):
     """ Process eso file. """
-    std_file = EsoFile(path, **kwargs)
+    std_file = EsoFile(path, monitor=monitor, suppress_errors=suppress_errors)
     tot_file = BuildingEsoFile(std_file)
-    kwargs["monitor"].building_totals_finished()
+    monitor.building_totals_finished()
     return std_file, tot_file
 
 
