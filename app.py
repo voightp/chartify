@@ -1033,8 +1033,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.all_files_requested():
             return [f.get_file_id(tots) for f in self.all_files]
 
-        id_ = self.current_file.get_file_id(tots)
-        return [id_]
+        return [self.current_file.get_file_id(tots)]
 
     def generate_variables(self, outputs):
         """ Create an output request using required 'Variable' class. """
