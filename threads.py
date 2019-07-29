@@ -1,7 +1,7 @@
-from PySide2.QtCore import QThread, Signal
+from PySide2.QtCore import QThread, Signal, QRunnable
 
 from eso_reader.monitor import DefaultMonitor
-from eso_reader.eso_file import EsoFile
+from eso_reader.eso_file import EsoFile, get_results
 from eso_reader.building_eso_file import BuildingEsoFile
 
 
@@ -122,3 +122,15 @@ class GuiMonitor(DefaultMonitor):
             print("Cannot find file!\n{}".format(e))
         except BrokenPipeError:
             print("App is being closed, cannot send message!")
+
+
+class ResultsFetcher(QRunnable):
+    def __init__(self, func, *args, **kwargs):
+        super().__init__()
+        self.func = func
+        self.args = args
+        self.kwargs = kwargs
+
+    def run(self):
+        # TODO catch fetch exceptions, emit signal to handle results
+        df = self.func(*self.args, **self.kwargs)

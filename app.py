@@ -36,7 +36,7 @@ from multiprocessing import Manager, cpu_count, Pipe, Process
 from view_widget import View
 from chart_widgets import MyWebView
 from random import randint
-from threads import MonitorThread, EsoFileWatcher, GuiMonitor
+from threads import MonitorThread, EsoFileWatcher, GuiMonitor, ResultsFetcher
 
 HEIGHT_THRESHOLD = 650
 
@@ -221,6 +221,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.pool = create_pool()
         self.watcher_thread.start()
+
+        self.results_fetcher = QThreadPool()
 
         # ~~~~ Timer ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # Timer to delay firing of the 'text_edited' event
@@ -1000,7 +1002,6 @@ class MainWindow(QtWidgets.QMainWindow):
     def add_file_to_db(self, file_id, eso_file):
         """ Add processed eso file to the database. """
         try:
-            print("Adding file: '{}', id '{}' into database.".format(eso_file.file_name, file_id))
             self.database[file_id] = eso_file
 
         except BrokenPipeError:
@@ -1092,11 +1093,11 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             files = [v for k, v in self.database.items() if k in ids]
 
-        df = get_results(files, variables, rate_units=power,
-                         energy_units=energy, add_file_name="column",
-                         rate_to_energy_dct=rate_to_energy_dct)
+        worker = ResultsFetcher(get_results, files, variables, rate_units=power,
+                                energy_units=energy, add_file_name="column",
+                                rate_to_energy_dct=rate_to_energy_dct)
 
-        return df
+        self.results_fetcher.start(worker)
 
     # TODO review these when handling results
     def single_file_results(self, request):
@@ -1114,11 +1115,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def export_xlsx(self):
         """ Export selected variables data to xlsx. """
-        import time
-        s = time.perf_counter()
-        df = self.results_df()
-        e = time.perf_counter()
-        print("Fetching results: {}".format((e - s)))
+        self.results_df()
 
         # file_pth, _ = QFileDialog.getSaveFileName(self, "Save variable to .xlsx", "", "*.xlsx")
         # if file_pth:
