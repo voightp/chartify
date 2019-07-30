@@ -1,6 +1,6 @@
 from PySide2.QtWidgets import QTreeView, QAbstractItemView, QHeaderView
 from PySide2.QtCore import Qt, QSortFilterProxyModel, QItemSelectionModel, QItemSelection, QItemSelectionRange, \
-    QMimeData
+    QMimeData, Signal, QObject
 from PySide2.QtGui import QDrag, QPixmap
 
 from PySide2.QtGui import QStandardItemModel, QStandardItem
@@ -8,6 +8,14 @@ from esopie.eso_file_header import FileHeader
 
 
 class View(QTreeView):
+    selectionCleared = Signal()
+    selectionPopulated = Signal(list)
+    sortOrderChanged = Signal(str, QObject)
+    viewResized = Signal(str, int)
+    viewUpdateRequired = Signal()
+    sectionMoved = Signal(list)
+    expandedRemoved = Signal(str)
+    expandedAdded = Signal(str)
 
     def __init__(self, main_app, std_file_header, tot_file_header):
         super().__init__()
@@ -128,7 +136,7 @@ class View(QTreeView):
     def update_selection(self, current_selection, key):
         """ Select previously selected items when the model changes. """
         # Clear the container
-        self.main_app.clear_current_selection()
+        self.selectionCleared.emit()
 
         # Find matching items and select items on new model
         proxy_selection = self.model().find_match(current_selection, key)
@@ -139,15 +147,14 @@ class View(QTreeView):
 
     def update_scroll_position(self):
         """ Update the slider position. """
-        val = self._scrollbar_position
-        self.verticalScrollBar().setValue(val)
+        self.verticalScrollBar().setValue(self._scrollbar_position)
 
     def update_view_appearance(self, view_settings):
         """ Update the model appearance to be consistent with last view. """
         name, order = view_settings["order"]
         expanded_items = view_settings["expanded"]
         view_order = view_settings["header"]
-        widths = self.main_app.stored_view_settings["widths"]
+        widths = view_settings["widths"]
 
         self.update_resize_behaviour()
         self.resize_header(widths)
@@ -278,7 +285,7 @@ class View(QTreeView):
     def sort_order_changed(self, log_ix, order):
         """ Store current sorting order in main app. """
         name = self.model().headerData(log_ix, Qt.Horizontal)
-        self.main_app.update_sort_order(name, order)
+        self.sortOrderChanged(name, order)
 
     def view_resized(self):
         """ Store interactive section width in the main app. """
@@ -287,17 +294,18 @@ class View(QTreeView):
         for i in range(header.count()):
             if header.sectionResizeMode(i) == header.Interactive:
                 width = header.sectionSize(i)
-                self.main_app.update_section_widths("interactive", width)
+                self.viewResized.emit("interactive", width)
 
     def section_moved(self, _logical_ix, old_visual_ix, new_visual_ix):
         """ Handle updating the model when first column changed. """
         names = self.get_visual_names()
-        self.main_app.update_sections_order(names)
+        is_tree = self._settings["tree_key"]
+        self.sectionMoved.emit(names)
 
-        if (new_visual_ix == 0 or old_visual_ix == 0) and self.main_app.is_tree():
+        if (new_visual_ix == 0 or old_visual_ix == 0) and is_tree:
             # need to update view as section has been moved
             # onto first position and tree key is applied
-            self.main_app.build_view()
+            self.viewUpdateRequired.emit()
             self.update_sort_order(names[0], Qt.AscendingOrder)
 
         self.update_resize_behaviour()
@@ -355,7 +363,7 @@ class View(QTreeView):
 
         if not proxy_rows:
             # break if there isn't any valid variable
-            self.main_app.clear_current_selection()
+            self.selectionCleared.emit()
             return
 
         # handle a case in which expanded parent node is clicked
@@ -390,9 +398,9 @@ class View(QTreeView):
             outputs.append(data)
 
         if outputs:
-            self.main_app.populate_current_selection(outputs)
+            self.selectionPopulated.emit(outputs)
         else:
-            self.main_app.clear_current_selection()
+            self.selectionCleared.emit()
 
     def select_children(self, source_item, source_index):
         """ Select all children of the parent row. """
@@ -428,14 +436,14 @@ class View(QTreeView):
         proxy_model = self.model()
         if proxy_model.hasChildren(index):
             name = proxy_model.data(index)
-            self.main_app.update_expanded_set(remove=name)
+            self.expandedRemoved.emit(name)
 
     def handle_expanded(self, index):
         """ Deselect the row when node is expanded. """
         proxy_model = self.model()
         if proxy_model.hasChildren(index):
             name = proxy_model.data(index)
-            self.main_app.update_expanded_set(add=name)
+            self.expandedAdded.emit(name)
 
 
 class ViewModel(QStandardItemModel):

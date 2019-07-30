@@ -17,6 +17,7 @@ from esopie.progress_widget import StatusBar, ProgressContainer
 from esopie.widgets import LineEdit, DropFrame, TabWidget
 from esopie.buttons import TitledButton, ToolsButton, ToggleButton, MenuButton
 from esopie.toolbar import Toolbar
+from esopie.view_tools import ViewTools
 from functools import partial
 
 from eso_reader.constants import TS, D, H, M, A, RP
@@ -30,16 +31,82 @@ from esopie.view_widget import View
 from random import randint
 from esopie.threads import EsoFileWatcher, GuiMonitor, ResultsFetcher
 
-HEIGHT_THRESHOLD = 650
 
-DEFAULTS = {
-    "tree_view": True,
-}
+def create_pool():
+    """ Create a new process pool. """
+    n_cores = cpu_count()
+    workers = (n_cores - 1) if n_cores > 1 else 1
+    return loky.get_reusable_executor(max_workers=workers)
+
+
+def kill_pool():
+    """ Shutdown the process pool. """
+    loky.get_reusable_executor().shutdown(wait=False, kill_workers=True)
+
+
+def generate_ids(used_ids, n=1, max_id=99999):
+    """ Create a list with unique ids. """
+    ids = []
+    while True:
+        id = randint(1, max_id)
+        if id not in used_ids and id not in ids:
+            ids.append(id)
+            if len(ids) == n:
+                break
+    return ids
+
+
+def kill_child_processes(parent_pid):
+    """ Terminate all running child processes. """
+    try:
+        parent = psutil.Process(parent_pid)
+    except psutil.NoSuchProcess:
+        return
+    children = parent.children(recursive=True)
+    for p in children:
+        try:
+            p.terminate()
+        except psutil.NoSuchProcess:
+            continue
+
+
+def load_file(path, monitor=None, suppress_errors=False):
+    """ Process eso file. """
+    std_file = EsoFile(path, monitor=monitor, suppress_errors=suppress_errors)
+    tot_file = BuildingEsoFile(std_file)
+    monitor.building_totals_finished()
+    return std_file, tot_file
+
+
+def wait_for_results(id_, monitor, queue, future):
+    """ Put loaded file into the queue and clean up the pool. """
+    try:
+        std_file, tot_file = future.result()
+        queue.put((id_, std_file, tot_file))
+
+    except IncompleteFile:
+        print("File '{}' is not complete -"
+              " processing failed.".format(monitor.path))
+        monitor.processing_failed("Processing failed!")
+
+    except BrokenPipeError:
+        print("The application is being closed - "
+              "catching broken pipe.")
+
+    except loky.process_executor.BrokenProcessPool:
+        print("The application is being closed - "
+              "catching broken process pool executor.")
+
+
+def install_fonts(pth, database):
+    files = os.listdir(pth)
+    for file in files:
+        p = os.path.join(pth, file)
+        database.addApplicationFont(p)
 
 
 # noinspection PyPep8Naming,PyUnresolvedReferences
 class MainWindow(QMainWindow):
-    resized = Signal()
     # todo create color schemes
     background_color = {"r": 255, "g": 255, "b": 255}
     primary_color = {"r": 112, "g": 112, "b": 112}
@@ -80,23 +147,7 @@ class MainWindow(QMainWindow):
         self.view_layout.addWidget(self.tab_wgt)
 
         # ~~~~ Left hand Tab Tools  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.view_tools_wgt = QFrame(self.view_wgt)
-        self.view_tools_wgt.setObjectName("viewTools")
-
-        self.tree_view_btn = QToolButton(self.view_tools_wgt)
-        self.tree_view_btn.setObjectName("treeButton")
-
-        self.collapse_all_btn = QToolButton(self.view_tools_wgt)
-        self.collapse_all_btn.setObjectName("collapseButton")
-
-        self.expand_all_btn = QToolButton(self.view_tools_wgt)
-        self.expand_all_btn.setObjectName("expandButton")
-
-        self.filter_icon = QLabel(self.view_tools_wgt)
-        self.filter_icon.setPixmap(QPixmap("../icons/filter_list_white.png"))
-        self.filter_line_edit = LineEdit(self.view_tools_wgt)
-
-        self.set_up_view_tools()
+        self.view_tools_wgt = ViewTools(self.view_wgt)
         self.view_layout.addWidget(self.view_tools_wgt)
 
         # ~~~~ Right hand area ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -110,7 +161,7 @@ class MainWindow(QMainWindow):
         self.right_main_layout.addWidget(self.main_chart_widget)
 
         # ~~~~ Actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.create_ui_actions()
+        self.connect_ui_actions()
 
         # ~~~~ Intermediate settings ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.stored_view_settings = {"widths": {"interactive": 200,
@@ -129,8 +180,8 @@ class MainWindow(QMainWindow):
         self.status_bar = StatusBar(self)
         self.setStatusBar(self.status_bar)
 
-        self.progress_container = ProgressContainer(self.status_bar, self.progress_queue)
-        self.status_bar.addWidget(self.progress_container)
+        self.progress_cont = ProgressContainer(self.status_bar, self.progress_queue)
+        self.status_bar.addWidget(self.progress_cont)
 
         self.swap_btn = QToolButton(self)
         self.swap_btn.clicked.connect(self.mirror)
@@ -144,19 +195,13 @@ class MainWindow(QMainWindow):
 
         # ~~~~ Monitoring threads ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # TODO PASSING THE DATA TO DASH APP
-        self.watcher_thread = EsoFileWatcher(self.file_queue)
-        self.watcher_thread.loaded.connect(self.on_file_loaded)
+        self.watcher = EsoFileWatcher(self.file_queue)
+        self.watcher.loaded.connect(self.on_file_loaded)
 
         self.pool = create_pool()
-        self.watcher_thread.start()
+        self.watcher.start()
 
         self.results_fetcher = QThreadPool()
-
-        # ~~~~ Timer ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        # Timer to delay firing of the 'text_edited' event
-        self.timer = QTimer()
-        self.timer.setSingleShot(True)
-        self.timer.timeout.connect(self._filter_view)
 
         # ~~~~ Menus ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.mini_menu = QWidget(self.toolbar)
@@ -166,7 +211,7 @@ class MainWindow(QMainWindow):
         self.toolbar.layout.insertWidget(0, self.mini_menu)
 
         load_file_act = QAction(QIcon("../icons/add_file_grey.png"), "Load file | files", self)
-        load_file_act.triggered.connect(self.load_files)
+        load_file_act.triggered.connect(self.get_files_from_os)
         close_all_act = QAction(QIcon("../icons/remove_grey.png"), "Close all files", self)
         close_all_act.triggered.connect(self.close_all_tabs)
         file_menu = QMenu(self)
@@ -175,7 +220,7 @@ class MainWindow(QMainWindow):
         icon_size = QSize(25, 25)
         load_file_btn = MenuButton(QIcon("../icons/file_grey.png"), "Load file | files", self)
         load_file_btn.setIconSize(icon_size)
-        load_file_btn.clicked.connect(self.load_files)
+        load_file_btn.clicked.connect(self.get_files_from_os)
         load_file_btn.setStatusTip("Open eso file or files")
         load_file_btn.setMenu(file_menu)
         self.mini_menu_layout.addWidget(load_file_btn)
@@ -249,12 +294,12 @@ class MainWindow(QMainWindow):
         summary.print_(sum1)
         print("DB size", asizeof.asizeof(self.database))
         print("Executor size", asizeof.asizeof(self.pool))
-        print("Monitor thread", asizeof.asizeof(self.progress_container.monitor_thread))
-        print("Watcher thread", asizeof.asizeof(self.watcher_thread))
+        print("Monitor thread", asizeof.asizeof(self.progress_cont.monitor_thread))
+        print("Watcher thread", asizeof.asizeof(self.watcher))
 
     def load_dummy(self):
         """ Load a dummy file. """
-        self._load_eso_files(["tests/eplusout.eso"])
+        self.load_files(["tests/eplusout.eso"])
 
     def mirror(self):
         """ Mirror the layout. """
@@ -273,31 +318,26 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event):
         """ Shutdown all the background stuff. """
-        self.watcher_thread.terminate()
-        self.progress_container.monitor_thread.terminate()
+        self.watcher.terminate()
+        self.progress_cont.monitor_thread.terminate()
         self.manager.shutdown()
 
         kill_child_processes(os.getpid())
-
-    def resizeEvent(self, event):
-        """ Handle window behaviour when on resize. """
-        self.resized.emit()
-        return super(MainWindow, self).resizeEvent(event)
 
     def populate_current_selection(self, outputs):
         """ Store current selection in main app. """
         self.selected = outputs
 
-        # enable export xlsx function TODO
-        self.export_xlsx_btn.setEnabled(True)
+        # enable export xlsx function TODO handle enabling of all tools
+        self.toolbar.export_xlsx_btn.setEnabled(True)
 
     def clear_current_selection(self):
         """ Handle behaviour when no variables are selected. """
         self.selected = None
 
         # disable export xlsx as there are no
-        # variables to be exported TODO
-        self.export_xlsx_btn.setEnabled(False)
+        # variables to be exported TODO handle enabling of all tools
+        self.toolbar.export_xlsx_btn.setEnabled(False)
 
     def keyPressEvent(self, event):
         """ Manage keyboard events. """
@@ -310,11 +350,6 @@ class MainWindow(QMainWindow):
 
         elif event.key() == Qt.Key_Delete:
             return
-
-    def all_files_requested(self):
-        """ Check if results from all eso files are requested. """
-        btn = self.all_files_btn
-        return btn.isChecked() and btn.isEnabled()
 
     def get_selected_interval(self):
         """ Get currently selected interval buttons. """
@@ -362,102 +397,24 @@ class MainWindow(QMainWindow):
 
         self.setWindowIcon(QPixmap("../icons/twotone_pie_chart.png"))
 
-    def set_initial_layout(self):
-        """ Define an app layout when there isn't any file loaded. """
-        self.all_files_btn.setEnabled(False)
-        self.totals_btn.setEnabled(False)
+    def all_files_requested(self):
+        """ Check if results from all eso files are requested. """
+        btn = self.toolbar.all_files_btn
+        return btn.isChecked() and btn.isEnabled()
 
-        self.disable_interval_btns()
-        self.populate_intervals_group(hide_disabled=False)
-        self.populate_units_group()
-        self.populate_outputs_group()
-        self.populate_tools_group()
-
-    def hide_disabled(self, wgts):
-        """ Hide disabled widgets from the interface. """
-        enabled, disabled = self.filter_disabled(wgts)
-
-        for wgt in disabled:
-            wgt.hide()
-
-        return enabled
-
-    @staticmethod
-    def filter_disabled(wgts):
-        """ Take a list and split it to 'enabled', 'disabled' sub-lists. """
-        enabled = []
-        disabled = []
-
-        for wgt in wgts:
-            if wgt.isEnabled():
-                enabled.append(wgt)
-            else:
-                disabled.append(wgt)
-
-        return enabled, disabled
-
-    @staticmethod
-    def show_widgets(wgts):
-        """ Display given widgets. """
-        for wgt in wgts:
-            wgt.show()
-
-    def set_up_view_tools(self):
-        """ Create tools, settings and search line for the view. """
-        # ~~~~ Widget to hold tree view tools ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        view_tools_layout = QHBoxLayout(self.view_tools_wgt)
-        view_tools_layout.setSpacing(6)
-        view_tools_layout.setContentsMargins(0, 0, 0, 0)
-
-        # ~~~~ Widget to hold tree view buttons ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        btn_widget = QWidget(self.view_tools_wgt)
-        btn_layout = QHBoxLayout(btn_widget)
-        btn_layout.setSpacing(0)
-        btn_layout.setContentsMargins(0, 0, 0, 0)
-
-        # ~~~~ Add view buttons ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        btn_layout.addWidget(self.expand_all_btn)
-        btn_layout.addWidget(self.collapse_all_btn)
-        btn_layout.addWidget(self.tree_view_btn)
-
-        # ~~~~ Create view search line edit ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.filter_line_edit.setPlaceholderText("filter...")
-        self.filter_line_edit.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-        self.filter_line_edit.setFixedWidth(160)
-
-        # ~~~~ Set up tree button  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.tree_view_btn.setCheckable(True)
-
-        is_checked = DEFAULTS["tree_view"]
-        self.tree_view_btn.setChecked(is_checked)
-        self.handle_col_ex_btns(is_checked)
-
-        spacer = QSpacerItem(1, 1, QSizePolicy.Expanding, QSizePolicy.Minimum)
-
-        # ~~~~ Add child widgets to treeTools layout ~~~~~~~~~~~~~~~~~~~~~~~~
-        view_tools_layout.addWidget(self.filter_icon)
-        view_tools_layout.addWidget(self.filter_line_edit)
-        view_tools_layout.addItem(spacer)
-        view_tools_layout.addWidget(btn_widget)
-
-    def building_totals(self):
+    def totals_requested(self):
         """ Check if building totals are requested. """
-        return self.totals_btn.isChecked()
+        return self.toolbar.totals_btn.isChecked()
 
-    def is_tree(self):
+    def tree_requested(self):
         """ Check if tree structure is requested. """
-        return self.tree_view_btn.isChecked()
-
-    def handle_col_ex_btns(self, enabled):
-        """ Enable / disable 'collapse all' / 'expand all' buttons. """
-        self.collapse_all_btn.setEnabled(enabled)
-        self.expand_all_btn.setEnabled(enabled)
+        return self.toolbar.tree_view_btn.isChecked()
 
     def build_view(self):
         """ Create a new model when the tab or the interval has changed. """
         # retrieve required inputs from the interface
-        is_tree = self.is_tree()
-        totals = self.building_totals()
+        is_tree = self.tree_requested()
+        totals = self.totals_requested()
         interval = self.get_selected_interval()
         units_settings = self.get_units_settings()
 
@@ -478,27 +435,6 @@ class MainWindow(QMainWindow):
         if self.filter_line_edit.text():
             self._filter_view()
 
-    def update_layout(self):
-        """ Update window layout accordingly to window size. """
-        # TODO Review if suitable
-        # here can be a code to update toolbar layout when main window is resized
-        # new_cols = 2 if self.height() < HEIGHT_THRESHOLD else 1
-        # if new_cols != self.n_toolbar_cols:
-        #     self.n_toolbar_cols = new_cols
-        #     self.populate_intervals_group()
-        #     self.populate_units_group()
-        #     self.populate_settings_group()
-        pass
-
-    def tree_btn_toggled(self, checked):
-        """ Update view when view type is changed. """
-        self.tree_view_btn.setProperty("checked", checked)
-
-        # collapse and expand all buttons are not relevant for plain view
-        self.handle_col_ex_btns(checked)
-
-        self.build_view()
-
     def expand_all(self):
         """ Expand all tree view items. """
         if self.current_file:
@@ -512,7 +448,6 @@ class MainWindow(QMainWindow):
     def _filter_view(self):
         """ Apply a filter when the filter text is edited. """
         filter_string = self.filter_line_edit.text()
-        print("Filtering: {}".format(filter_string))
         if not self.tab_wgt.is_empty():
             self.current_file.filter_view(filter_string)
 
@@ -535,13 +470,6 @@ class MainWindow(QMainWindow):
             # only one file is available
             self.all_files_btn.setEnabled(False)
 
-    def disable_interval_btns(self):
-        """ Disable all interval buttons. """
-        for btn in self.interval_btns.values():
-            btn.setHidden(False)
-            btn.setChecked(False)
-            btn.setEnabled(False)
-
     def delete_files_from_db(self, *args):
         """ Delete the eso file from the database. """
         try:
@@ -555,8 +483,7 @@ class MainWindow(QMainWindow):
 
     def _available_intervals(self):
         """ Get available intervals for the current eso file. """
-        intervals = self.current_file.std_file_header.available_intervals
-        return intervals
+        return self.current_file.std_file_header.available_intervals
 
     def update_interval_buttons_state(self):
         """ Deactivate interval buttons if they are not applicable. """
@@ -590,16 +517,13 @@ class MainWindow(QMainWindow):
             # there aren't any widgets available
             self.set_initial_layout()
 
-    def create_ui_actions(self):
+    def connect_ui_actions(self):
         """ Create actions which depend on user actions """
-        # ~~~~ Resize window ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.resized.connect(self.update_layout)
-
         # ~~~~ View Actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.expand_all_btn.clicked.connect(self.expand_all)
         self.collapse_all_btn.clicked.connect(self.collapse_all)
-        self.left_main_wgt.fileDropped.connect(self._load_eso_files)
         self.tree_view_btn.clicked.connect(self.tree_btn_toggled)
+        self.left_main_wgt.fileDropped.connect(self.load_files)
 
         # ~~~~ Filter action ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.filter_line_edit.textEdited.connect(self.text_edited)
@@ -607,7 +531,10 @@ class MainWindow(QMainWindow):
         # ~~~~ Tab actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.tab_wgt.tabClosed.connect(self.remove_eso_file)
         self.tab_wgt.currentChanged.connect(self.tab_changed)
-        self.tab_wgt.fileLoadRequested.connect(self.load_files)
+        self.tab_wgt.fileLoadRequested.connect(self.get_files_from_os)
+
+        # ~~~~ Settings actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.toolbar.settingsChanged.connect(self.build_view)
 
     def update_sections_order(self, order):
         """ Store current view header order. """
@@ -625,14 +552,15 @@ class MainWindow(QMainWindow):
         """ Clear previously stored expanded items set. """
         self.stored_view_settings["expanded"].clear()
 
-    def update_expanded_set(self, add=None, remove=None):
+    def remove_expanded_item(self, name):
         """ Handle populating and removing items from 'expanded' set. """
         expanded_set = self.stored_view_settings["expanded"]
+        expanded_set.remove(name)
 
-        if add:
-            expanded_set.add(add)
-        if remove:
-            expanded_set.remove(remove)
+    def add_expanded_item(self, name):
+        """ Handle populating and removing items from 'expanded' set. """
+        expanded_set = self.stored_view_settings["expanded"]
+        expanded_set.add(name)
 
     def add_file_to_db(self, file_id, eso_file):
         """ Add processed eso file to the database. """
@@ -652,20 +580,29 @@ class MainWindow(QMainWindow):
         tot_file_header = FileHeader(tot_id_, tot_file.header_dct)
         self.add_file_to_db(tot_id_, std_file)
 
-        eso_file_widget = View(self, std_file_header, tot_file_header)
-        self.tab_wgt.add_tab(eso_file_widget, std_file.file_name)
+        file_wgt = View(self, std_file_header, tot_file_header)
+        file_wgt.selectionCleared.connect(self.clear_current_selection)
+        file_wgt.selectionPopulated.connect(self.populate_current_selection)
+        file_wgt.sortOrderChanged.connect(self.update_sort_order)
+        file_wgt.viewResized.connect(self.update_section_widths)
+        file_wgt.viewUpdateRequired.connect(self.build_view)
+        file_wgt.sectionMoved.connect(self.update_sections_order)
+        file_wgt.expandedRemoved.connect(self.remove_expanded_item)
+        file_wgt.expandedAdded.connect(self.add_expanded_item)
+
+        self.tab_wgt.add_tab(file_wgt, std_file.file_name)
 
         # enable all eso file results btn if there's multiple files
         if self.tab_wgt.count() > 1:
-            self.all_files_btn.setEnabled(True)
+            self.toolbar.all_files_btn.setEnabled(True)
 
         # enable all eso file results btn if it's suitable
         if not self.tab_wgt.is_empty():
-            self.totals_btn.setEnabled(True)
+            self.toolbar.totals_btn.setEnabled(True)
 
     def get_files_ids(self):
         """ Return current file id or ids for all files based on 'all files btn' state. """
-        tots = self.building_totals()
+        tots = self.totals_requested()
         if self.all_files_requested():
             return [f.get_file_id(tots) for f in self.all_files]
 
@@ -693,7 +630,7 @@ class MainWindow(QMainWindow):
 
         return ids, variables
 
-    def _load_eso_files(self, eso_file_paths):
+    def load_files(self, eso_file_paths):
         """ Start eso file processing. """
         progress_queue = self.progress_queue
         file_queue = self.file_queue
@@ -711,11 +648,11 @@ class MainWindow(QMainWindow):
             future = self.pool.submit(load_file, path, monitor=monitor, suppress_errors=False)
             future.add_done_callback(partial(wait_for_results, id_, monitor, file_queue))
 
-    def load_files(self):
+    def get_files_from_os(self):
         """ Select eso files from explorer and start processing. """
         file_pths, _ = QFileDialog.getOpenFileNames(self, "Load Eso File", "", "*.eso")
         if file_pths:
-            self._load_eso_files(file_pths)
+            self.load_files(file_pths)
 
     def results_df(self):
         """ Get output values for given variables. """
@@ -744,10 +681,6 @@ class MainWindow(QMainWindow):
         esoFiles.sort(key=lambda x: x.file_name)
         return get_results(esoFiles, requestList)
 
-    def switch_totals(self):
-        """ Toggle standard outputs and totals. """
-        self.build_view()
-
     def export_xlsx(self):
         """ Export selected variables data to xlsx. """
         self.results_df()
@@ -775,79 +708,6 @@ class MainWindow(QMainWindow):
 
         self.delete_files_from_db(*ids)
         self.set_initial_layout()
-
-
-def create_pool():
-    """ Create a new process pool. """
-    n_cores = cpu_count()
-    workers = (n_cores - 1) if n_cores > 1 else 1
-    return loky.get_reusable_executor(max_workers=workers)
-
-
-def kill_pool():
-    """ Shutdown the process pool. """
-    loky.get_reusable_executor().shutdown(wait=False, kill_workers=True)
-
-
-def generate_ids(used_ids, n=1, max_id=99999):
-    """ Create a list with unique ids. """
-    ids = []
-    while True:
-        id = randint(1, max_id)
-        if id not in used_ids and id not in ids:
-            ids.append(id)
-            if len(ids) == n:
-                break
-    return ids
-
-
-def kill_child_processes(parent_pid):
-    """ Terminate all running child processes. """
-    try:
-        parent = psutil.Process(parent_pid)
-    except psutil.NoSuchProcess:
-        return
-    children = parent.children(recursive=True)
-    for p in children:
-        try:
-            p.terminate()
-        except psutil.NoSuchProcess:
-            continue
-
-
-def load_file(path, monitor=None, suppress_errors=False):
-    """ Process eso file. """
-    std_file = EsoFile(path, monitor=monitor, suppress_errors=suppress_errors)
-    tot_file = BuildingEsoFile(std_file)
-    monitor.building_totals_finished()
-    return std_file, tot_file
-
-
-def wait_for_results(id_, monitor, queue, future):
-    """ Put loaded file into the queue and clean up the pool. """
-    try:
-        std_file, tot_file = future.result()
-        queue.put((id_, std_file, tot_file))
-
-    except IncompleteFile:
-        print("File '{}' is not complete -"
-              " processing failed.".format(monitor.path))
-        monitor.processing_failed("Processing failed!")
-
-    except BrokenPipeError:
-        print("The application is being closed - "
-              "catching broken pipe.")
-
-    except loky.process_executor.BrokenProcessPool:
-        print("The application is being closed - "
-              "catching broken process pool executor.")
-
-
-def install_fonts(pth, db):
-    files = os.listdir(pth)
-    for file in files:
-        p = os.path.join(pth, file)
-        db.addApplicationFont(p)
 
 
 if __name__ == "__main__":

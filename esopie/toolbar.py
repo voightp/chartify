@@ -42,11 +42,65 @@ DEFAULTS = {
 }
 
 
+def remove_children(layout):
+    """ Remove all children of the interface. """
+    for _ in range(layout.count()):
+        wgt = layout.itemAt(0).widget()
+        layout.removeWidget(wgt)
+
+
+def populate_grid_layout(layout, wgts, n_cols):
+    """ Place given widgets on a specified layout with 'n' columns. """
+    # render only enabled buttons
+    n_rows = (len(wgts) if len(wgts) % 2 == 0 else len(wgts) + 1) // n_cols
+    ixs = [(x, y) for x in range(n_rows) for y in range(n_cols)]
+
+    for btn, ix in zip(wgts, ixs):
+        layout.addWidget(btn, *ix)
+
+    # if layout.count() == 0: # TODO decide whether hide unused groups
+    #     layout.parentWidget().hide()
+    #
+    # else:
+    #     layout.parentWidget().show()
+
+
+def hide_disabled_wgts(wgts):
+    """ Hide disabled widgets from the interface. """
+    enabled, disabled = filter_disabled(wgts)
+
+    for wgt in disabled:
+        wgt.hide()
+
+    return enabled
+
+
+def filter_disabled(wgts):
+    """ Take a list and split it to 'enabled', 'disabled' sub-lists. """
+    enabled = []
+    disabled = []
+
+    for wgt in wgts:
+        if wgt.isEnabled():
+            enabled.append(wgt)
+        else:
+            disabled.append(wgt)
+
+    return enabled, disabled
+
+
+def show_wgts(wgts):
+    """ Display given widgets. """
+    for wgt in wgts:
+        wgt.show()
+
+
 class Toolbar(QFrame):
     """ 
     A class to represent an application toolbar.
     
     """
+    settingsChanged = Signal()
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -127,56 +181,33 @@ class Toolbar(QFrame):
         self.layout.setSpacing(0)
         self.layout.setAlignment(Qt.AlignTop)
 
-    @staticmethod
-    def remove_children(layout):
-        """ Remove all children of the interface. """
-        for _ in range(layout.count()):
-            wgt = layout.itemAt(0).widget()
-            layout.removeWidget(wgt)
-
-    @staticmethod
-    def populate_grid_layout(layout, wgts, n_cols):
-        """ Place given widgets on a specified layout with 'n' columns. """
-        # render only enabled buttons
-        n_rows = (len(wgts) if len(wgts) % 2 == 0 else len(wgts) + 1) // n_cols
-        ixs = [(x, y) for x in range(n_rows) for y in range(n_cols)]
-
-        for btn, ix in zip(wgts, ixs):
-            layout.addWidget(btn, *ix)
-
-        # if layout.count() == 0: # TODO decide whether hide unused groups
-        #     layout.parentWidget().hide()
-        #
-        # else:
-        #     layout.parentWidget().show()
-
-    def _populate_group(self, group, widgets, hide_disabled=False, n_cols=2):
+    def populate_group(self, group, widgets, hide_disabled=False, n_cols=2):
         """ Populate given group with given widgets. """
         layout = group.layout()
-        self.remove_children(layout)
+        remove_children(layout)
 
         if hide_disabled:
-            widgets = self.hide_disabled(widgets)
-            self.show_widgets(widgets)
+            widgets = hide_disabled_wgts(widgets)
+            show_wgts(widgets)
 
-        self.populate_grid_layout(layout, widgets, n_cols)
+        populate_grid_layout(layout, widgets, n_cols)
 
     def populate_outputs_group(self):
         """ Populate outputs buttons. """
         outputs_btns = [self.totals_btn,
                         self.all_files_btn]
 
-        self._populate_group(self.outputs_group, outputs_btns)
+        self.populate_group(self.outputs_group, outputs_btns)
 
     def populate_intervals_group(self, hide_disabled=True):
         """ Populate interval buttons based on a current state. """
         btns = self.interval_btns.values()
-        self._populate_group(self.intervals_group, btns, hide_disabled=hide_disabled)
+        self.populate_group(self.intervals_group, btns, hide_disabled=hide_disabled)
 
     def populate_tools_group(self):
         """ Populate tools group layout. """
         tools_btns = [self.export_xlsx_btn, ]
-        self._populate_group(self.tools_group, tools_btns)
+        self.populate_group(self.tools_group, tools_btns)
 
     def populate_units_group(self):
         """ Populate units group layout. """
@@ -185,7 +216,7 @@ class Toolbar(QFrame):
                 self.units_system_btn,
                 self.rate_to_energy_btn]
 
-        self._populate_group(self.units_group, btns)
+        self.populate_group(self.units_group, btns)
 
     def set_up_outputs_btns(self):
         """ Create interval buttons and a parent container. """
@@ -277,6 +308,24 @@ class Toolbar(QFrame):
         self.export_xlsx_btn.setText("Save xlsx")
         self.export_xlsx_btn.setCheckable(False)
 
+        self.populate_tools_group()
+
+    def disable_interval_btns(self):
+        """ Disable all interval buttons. """
+        for btn in self.interval_btns.values():
+            btn.setHidden(False)
+            btn.setChecked(False)
+            btn.setEnabled(False)
+
+    def set_initial_layout(self):
+        """ Define an app layout when there isn't any file loaded. """
+        self.all_files_btn.setEnabled(False)
+        self.totals_btn.setEnabled(False)
+
+        self.disable_interval_btns()
+        self.populate_intervals_group(hide_disabled=False)
+        self.populate_units_group()
+        self.populate_outputs_group()
         self.populate_tools_group()
 
     def interval_changed(self):
@@ -375,22 +424,26 @@ class Toolbar(QFrame):
         self.toggle_units(dt)
 
         if changed:
-            self.build_view()
+            self.settingsChanged.emit()
 
     def power_units_changed(self, act):
         """ Update view when energy units are changed. """
         changed = self.power_units_btn.update_state(act)
 
         if changed:
-            self.build_view()
+            self.settingsChanged.emit()
 
     def energy_units_changed(self, act):
         """ Update view when energy units are changed. """
         changed = self.energy_units_btn.update_state(act)
 
         if changed:
-            self.build_view()
+            self.settingsChanged.emit()
 
     def rate_to_energy_toggled(self):
         """ Update view when rate_to_energy changes. """
-        self.build_view()
+        self.settingsChanged.emit()
+
+    def switch_totals(self):
+        """ Toggle standard outputs and totals. """
+        self.settingsChanged.emit()
