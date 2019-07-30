@@ -10,14 +10,9 @@ from esopie.eso_file_header import FileHeader
 class View(QTreeView):
     selectionCleared = Signal()
     selectionPopulated = Signal(list)
-    sortOrderChanged = Signal(str, QObject)
-    viewResized = Signal(str, int)
-    viewUpdateRequired = Signal()
-    sectionMoved = Signal(list)
-    expandedRemoved = Signal(str)
-    expandedAdded = Signal(str)
+    updateView = Signal()
 
-    def __init__(self, main_app, std_file_header, tot_file_header):
+    def __init__(self, std_file_header, tot_file_header, callbacks):
         super().__init__()
         self.setRootIsDecorated(True)
         self.setUniformRowHeights(True)
@@ -35,9 +30,9 @@ class View(QTreeView):
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         self.setFocusPolicy(Qt.NoFocus)
 
-        self.main_app = main_app
         self.std_file_header = std_file_header
         self.tot_file_header = tot_file_header
+        self.callbacks = callbacks
 
         self._initialized = False
         self._settings = {"interval": None,
@@ -143,7 +138,7 @@ class View(QTreeView):
         self.select_items(proxy_selection)
 
         # Update main app outputs
-        self.update_app_outputs(proxy_selection.indexes())
+        self.get_items(proxy_selection.indexes())# TODO redo item selection
 
     def update_scroll_position(self):
         """ Update the slider position. """
@@ -176,7 +171,7 @@ class View(QTreeView):
         self.verticalScrollBar().valueChanged.connect(self.slider_moved)
 
     def update_view_model(self, totals, is_tree, interval, view_settings,
-                          units_settings, select=None):
+                          units_settings, select=None, filter_str=""):
         """
         Set the model and define behaviour of the tree view.
         """
@@ -202,9 +197,12 @@ class View(QTreeView):
 
         # clean up selection as this will be handled based on
         # currently selected list of items stored in main app
-        self.clear_selection()
+        self.clear_selected()
         if select:
             self.update_selection(select, view_order[0])
+
+        if filter_str:
+            self.filter_view(filter_str)
 
         self.update_view_appearance(view_settings)
 
@@ -246,7 +244,6 @@ class View(QTreeView):
         if vis_ixs[0] > vis_ixs[1]:
             stretch = log_ixs[0]
             interactive = log_ixs[1]
-
         else:
             stretch = log_ixs[1]
             interactive = log_ixs[0]
@@ -285,7 +282,7 @@ class View(QTreeView):
     def sort_order_changed(self, log_ix, order):
         """ Store current sorting order in main app. """
         name = self.model().headerData(log_ix, Qt.Horizontal)
-        self.sortOrderChanged(name, order)
+        self.callbacks[1]("order", (name, order))
 
     def view_resized(self):
         """ Store interactive section width in the main app. """
@@ -294,23 +291,25 @@ class View(QTreeView):
         for i in range(header.count()):
             if header.sectionResizeMode(i) == header.Interactive:
                 width = header.sectionSize(i)
-                self.viewResized.emit("interactive", width)
+                widths = self.callbacks[0]("widths")
+                widths["interactive"] = width
+                self.callbacks[1]("widths", widths)
 
     def section_moved(self, _logical_ix, old_visual_ix, new_visual_ix):
         """ Handle updating the model when first column changed. """
         names = self.get_visual_names()
         is_tree = self._settings["tree_key"]
-        self.sectionMoved.emit(names)
+        self.callbacks[1]("header", names)
 
         if (new_visual_ix == 0 or old_visual_ix == 0) and is_tree:
             # need to update view as section has been moved
             # onto first position and tree key is applied
-            self.viewUpdateRequired.emit()
+            self.updateView.emit()
             self.update_sort_order(names[0], Qt.AscendingOrder)
 
         self.update_resize_behaviour()
 
-        widths = self.main_app.stored_view_settings["widths"]
+        widths = self.callbacks[0]("widths")
         self.resize_header(widths)
 
     def create_header_actions(self):
@@ -336,7 +335,7 @@ class View(QTreeView):
     def handle_drag_attempt(self):
         """ Handle pressing the view item or items. """
         # update selection
-        self.handle_selection_change()
+        outputs = self.selection_changed()
         file_ids, variables = self.fetch_request()
 
         if not variables:
@@ -354,7 +353,7 @@ class View(QTreeView):
         drag.exec_(Qt.CopyAction)
         # create a drag object with pixmap
 
-    def handle_selection_change(self):
+    def selection_changed(self):
         """ Extract output information from the current selection. """
         proxy_model = self.model()
         selection_model = self.selectionModel()
@@ -385,9 +384,10 @@ class View(QTreeView):
 
         # updated selection
         proxy_rows = selection_model.selectedRows()
-        self.update_app_outputs(proxy_rows)
 
-    def update_app_outputs(self, proxy_indexes):
+        return self.get_items(proxy_rows)
+
+    def get_items(self, proxy_indexes):
         """ Update outputs in the main app. """
         outputs = []
         proxy_model = self.model()
@@ -412,7 +412,7 @@ class View(QTreeView):
 
         self.select_items(proxy_selection)
 
-    def clear_selection(self):
+    def clear_selected(self):
         """ Clear all selected rows. """
         self.selectionModel().clearSelection()  # Note that this emits selectionChanged signal
 
@@ -436,14 +436,18 @@ class View(QTreeView):
         proxy_model = self.model()
         if proxy_model.hasChildren(index):
             name = proxy_model.data(index)
-            self.expandedRemoved.emit(name)
+            exp = self.callbacks[0]("expanded")
+            exp.remove(name)
+            self.callbacks[1]("expanded", exp)
 
     def handle_expanded(self, index):
         """ Deselect the row when node is expanded. """
         proxy_model = self.model()
         if proxy_model.hasChildren(index):
             name = proxy_model.data(index)
-            self.expandedAdded.emit(name)
+            exp = self.callbacks[0]("expanded")
+            exp.add(name)
+            self.callbacks[1]("expanded", exp)
 
 
 class ViewModel(QStandardItemModel):

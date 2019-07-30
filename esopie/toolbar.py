@@ -1,33 +1,12 @@
-import sys
-import os
-import ctypes
-import loky
-import psutil
+from PySide2.QtWidgets import (QVBoxLayout, QGridLayout, QToolButton,
+                               QGroupBox, QSpacerItem, QSizePolicy, QMenu, QFrame)
+from PySide2.QtCore import QSize, Qt, Signal
+from PySide2.QtGui import QPixmap, QFont, QColor
 
-from PySide2.QtWidgets import (QWidget, QSplitter, QHBoxLayout, QVBoxLayout, QGridLayout, QToolButton, QLabel,
-                               QGroupBox, QAction, QFileDialog, QSpacerItem, QSizePolicy, QApplication, QMenu, QFrame,
-                               QMainWindow)
-from PySide2.QtCore import QSize, Qt, QThreadPool, Signal, QTimer
-from PySide2.QtWebEngineWidgets import QWebEngineView, QWebEngineSettings
-from PySide2.QtGui import QIcon, QPixmap, QFontDatabase, QFont, QColor
-
-from esopie.eso_file_header import FileHeader
 from esopie.icons import Pixmap, text_to_pixmap
-from esopie.progress_widget import StatusBar, ProgressContainer
-from esopie.widgets import LineEdit, DropFrame, TabWidget
 from esopie.buttons import TitledButton, ToolsButton, ToggleButton, MenuButton
-from functools import partial
 
 from eso_reader.constants import TS, D, H, M, A, RP
-from eso_reader.eso_file import EsoFile, get_results, IncompleteFile
-from eso_reader.building_eso_file import BuildingEsoFile
-from eso_reader.mini_classes import Variable
-
-from queue import Queue
-from multiprocessing import Manager, cpu_count
-from esopie.view_widget import View
-from random import randint
-from esopie.threads import EsoFileWatcher, GuiMonitor, ResultsFetcher
 
 si_energy_units = ["Wh", "kWh", "MWh", "J", "MJ", "GJ"]
 si_power_units = ["W", "kW", "MW"]
@@ -57,12 +36,6 @@ def populate_grid_layout(layout, wgts, n_cols):
 
     for btn, ix in zip(wgts, ixs):
         layout.addWidget(btn, *ix)
-
-    # if layout.count() == 0: # TODO decide whether hide unused groups
-    #     layout.parentWidget().hide()
-    #
-    # else:
-    #     layout.parentWidget().show()
 
 
 def hide_disabled_wgts(wgts):
@@ -95,12 +68,24 @@ def show_wgts(wgts):
         wgt.show()
 
 
+def populate_group(group, widgets, hide_disabled=False, n_cols=2):
+    """ Populate given group with given widgets. """
+    layout = group.layout()
+    remove_children(layout)
+
+    if hide_disabled:
+        widgets = hide_disabled_wgts(widgets)
+        show_wgts(widgets)
+
+    populate_grid_layout(layout, widgets, n_cols)
+
+
 class Toolbar(QFrame):
     """ 
     A class to represent an application toolbar.
     
     """
-    settingsChanged = Signal()
+    updateView = Signal()
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -181,33 +166,22 @@ class Toolbar(QFrame):
         self.layout.setSpacing(0)
         self.layout.setAlignment(Qt.AlignTop)
 
-    def populate_group(self, group, widgets, hide_disabled=False, n_cols=2):
-        """ Populate given group with given widgets. """
-        layout = group.layout()
-        remove_children(layout)
-
-        if hide_disabled:
-            widgets = hide_disabled_wgts(widgets)
-            show_wgts(widgets)
-
-        populate_grid_layout(layout, widgets, n_cols)
-
     def populate_outputs_group(self):
         """ Populate outputs buttons. """
         outputs_btns = [self.totals_btn,
                         self.all_files_btn]
 
-        self.populate_group(self.outputs_group, outputs_btns)
+        populate_group(self.outputs_group, outputs_btns)
 
     def populate_intervals_group(self, hide_disabled=True):
         """ Populate interval buttons based on a current state. """
         btns = self.interval_btns.values()
-        self.populate_group(self.intervals_group, btns, hide_disabled=hide_disabled)
+        populate_group(self.intervals_group, btns, hide_disabled=hide_disabled)
 
     def populate_tools_group(self):
         """ Populate tools group layout. """
         tools_btns = [self.export_xlsx_btn, ]
-        self.populate_group(self.tools_group, tools_btns)
+        populate_group(self.tools_group, tools_btns)
 
     def populate_units_group(self):
         """ Populate units group layout. """
@@ -216,7 +190,7 @@ class Toolbar(QFrame):
                 self.units_system_btn,
                 self.rate_to_energy_btn]
 
-        self.populate_group(self.units_group, btns)
+        populate_group(self.units_group, btns)
 
     def set_up_outputs_btns(self):
         """ Create interval buttons and a parent container. """
@@ -337,7 +311,33 @@ class Toolbar(QFrame):
             b = interval not in [TS, H]
             self.rate_to_energy_btn.setEnabled(b)
 
-        self.build_view()
+        self.updateView.emit()
+
+    def get_selected_interval(self):
+        btns = self.interval_btns
+        try:
+            return next(k for k, btn in btns.items() if btn.isChecked())
+        except StopIteration:
+            pass
+
+    def update_intervals_state(self, available_intervals):
+        """ Deactivate interval buttons if they are not applicable. """
+        selected_interval = self.get_selected_interval()
+        all_btns_dct = self.interval_btns
+
+        for key, btn in all_btns_dct.items():
+            if key in available_intervals:
+                btn.setEnabled(True)
+            else:
+                # interval is not applicable for current eso file
+                btn.setEnabled(False)
+                btn.setChecked(False)
+
+        # when there isn't any previously selected interval applicable,
+        # the first available button is selected
+        if selected_interval not in available_intervals:
+            btn = next(btn for btn in all_btns_dct.values() if btn.isEnabled())
+            btn.setChecked(True)
 
     def get_units_settings(self):
         """ Get currently selected units. """
@@ -424,26 +424,26 @@ class Toolbar(QFrame):
         self.toggle_units(dt)
 
         if changed:
-            self.settingsChanged.emit()
+            self.updateView.emit()
 
     def power_units_changed(self, act):
         """ Update view when energy units are changed. """
         changed = self.power_units_btn.update_state(act)
 
         if changed:
-            self.settingsChanged.emit()
+            self.updateView.emit()
 
     def energy_units_changed(self, act):
         """ Update view when energy units are changed. """
         changed = self.energy_units_btn.update_state(act)
 
         if changed:
-            self.settingsChanged.emit()
+            self.updateView.emit()
 
     def rate_to_energy_toggled(self):
         """ Update view when rate_to_energy changes. """
-        self.settingsChanged.emit()
+        self.updateView.emit()
 
     def switch_totals(self):
         """ Toggle standard outputs and totals. """
-        self.settingsChanged.emit()
+        self.updateView.emit()

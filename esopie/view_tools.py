@@ -1,33 +1,9 @@
-import sys
-import os
-import ctypes
-import loky
-import psutil
+from PySide2.QtWidgets import (QWidget, QHBoxLayout, QToolButton, QLabel,
+                               QSpacerItem, QSizePolicy, QFrame, )
+from PySide2.QtCore import Qt, Signal, QTimer
+from PySide2.QtGui import QIcon, QPixmap
 
-from PySide2.QtWidgets import (QWidget, QSplitter, QHBoxLayout, QVBoxLayout, QGridLayout, QToolButton, QLabel,
-                               QGroupBox, QAction, QFileDialog, QSpacerItem, QSizePolicy, QApplication, QMenu, QFrame,
-                               QMainWindow)
-from PySide2.QtCore import QSize, Qt, QThreadPool, Signal, QTimer
-from PySide2.QtWebEngineWidgets import QWebEngineView, QWebEngineSettings
-from PySide2.QtGui import QIcon, QPixmap, QFontDatabase, QFont, QColor
-
-from esopie.eso_file_header import FileHeader
-from esopie.icons import Pixmap, text_to_pixmap
-from esopie.progress_widget import StatusBar, ProgressContainer
-from esopie.widgets import LineEdit, DropFrame, TabWidget
-from esopie.buttons import TitledButton, ToolsButton, ToggleButton, MenuButton
-from functools import partial
-
-from eso_reader.constants import TS, D, H, M, A, RP
-from eso_reader.eso_file import EsoFile, get_results, IncompleteFile
-from eso_reader.building_eso_file import BuildingEsoFile
-from eso_reader.mini_classes import Variable
-
-from queue import Queue
-from multiprocessing import Manager, cpu_count
-from esopie.view_widget import View
-from random import randint
-from esopie.threads import EsoFileWatcher, GuiMonitor, ResultsFetcher
+from esopie.widgets import LineEdit
 
 
 class ViewTools(QFrame):
@@ -35,7 +11,10 @@ class ViewTools(QFrame):
     A class to represent an application toolbar.
 
     """
-    settingsChanged = Signal()
+    updateView = Signal()
+    filterView = Signal(str)
+    expandViewItems = Signal()
+    collapseViewItems = Signal()
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -59,7 +38,13 @@ class ViewTools(QFrame):
         # Timer to delay firing of the 'text_edited' event
         self.timer = QTimer()
         self.timer.setSingleShot(True)
-        self.timer.timeout.connect(self._filter_view)
+        self.timer.timeout.connect(self.request_filter)
+
+        # ~~~~ Filter action ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.filter_line_edit.textEdited.connect(self.text_edited)
+        self.expand_all_btn.clicked.connect(self.expandViewItems.emit)
+        self.collapse_all_btn.clicked.connect(self.collapseViewItems.emit)
+        self.tree_view_btn.clicked.connect(self.tree_btn_toggled)
 
         self.set_up_view_tools()
 
@@ -107,4 +92,13 @@ class ViewTools(QFrame):
         # collapse and expand all buttons are not relevant for plain view
         self.collapse_all_btn.setEnabled(checked)
         self.expand_all_btn.setEnabled(checked)
-        self.settingsChanged.emit()
+        self.updateView.emit()
+
+    def text_edited(self):
+        """ Delay firing a text edited event. """
+        self.timer.start(200)
+
+    def request_filter(self):
+        """ Apply a filter when the filter text is edited. """
+        filter_string = self.filter_line_edit.text()
+        self.filterView.emit(filter_string)

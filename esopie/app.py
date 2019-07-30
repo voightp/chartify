@@ -4,23 +4,21 @@ import ctypes
 import loky
 import psutil
 
-from PySide2.QtWidgets import (QWidget, QSplitter, QHBoxLayout, QVBoxLayout, QGridLayout, QToolButton, QLabel,
-                               QGroupBox, QAction, QFileDialog, QSpacerItem, QSizePolicy, QApplication, QMenu, QFrame,
-                               QMainWindow)
-from PySide2.QtCore import QSize, Qt, QThreadPool, Signal, QTimer
+from PySide2.QtWidgets import (QWidget, QSplitter, QHBoxLayout, QVBoxLayout, QToolButton, QAction, QFileDialog,
+                               QSizePolicy, QApplication, QMenu, QFrame, QMainWindow)
+from PySide2.QtCore import QSize, Qt, QThreadPool
 from PySide2.QtWebEngineWidgets import QWebEngineView, QWebEngineSettings
-from PySide2.QtGui import QIcon, QPixmap, QFontDatabase, QFont, QColor
+from PySide2.QtGui import QIcon, QPixmap, QFontDatabase
 
 from esopie.eso_file_header import FileHeader
 from esopie.icons import Pixmap, text_to_pixmap
 from esopie.progress_widget import StatusBar, ProgressContainer
-from esopie.widgets import LineEdit, DropFrame, TabWidget
-from esopie.buttons import TitledButton, ToolsButton, ToggleButton, MenuButton
+from esopie.widgets import DropFrame, TabWidget
+from esopie.buttons import MenuButton
 from esopie.toolbar import Toolbar
 from esopie.view_tools import ViewTools
 from functools import partial
 
-from eso_reader.constants import TS, D, H, M, A, RP
 from eso_reader.eso_file import EsoFile, get_results, IncompleteFile
 from eso_reader.building_eso_file import BuildingEsoFile
 from eso_reader.mini_classes import Variable
@@ -134,6 +132,7 @@ class MainWindow(QMainWindow):
 
         # ~~~~ Left hand Tools Widget ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.toolbar = Toolbar(self.left_main_wgt)
+        self.toolbar.updateView.connect(self.build_view)
         self.left_main_layout.addWidget(self.toolbar)
 
         # ~~~~ Left hand View widget  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -148,6 +147,11 @@ class MainWindow(QMainWindow):
 
         # ~~~~ Left hand Tab Tools  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.view_tools_wgt = ViewTools(self.view_wgt)
+        self.view_tools_wgt.filterView.connect(self.on_filter_request)
+        self.view_tools_wgt.updateView.connect(self.build_view)
+        self.view_tools_wgt.expandViewItems.connect(self.expand_all)
+        self.view_tools_wgt.collapseViewItems.connect(self.collapse_all)
+
         self.view_layout.addWidget(self.view_tools_wgt)
 
         # ~~~~ Right hand area ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -280,42 +284,6 @@ class MainWindow(QMainWindow):
         """ A list of all loaded eso files. """
         return self.tab_wgt.get_all_widgets()
 
-    # TODO debug to find memory leaks
-    def report_sizes(self):
-        from pympler import asizeof
-        from pympler import summary
-        from pympler import muppy
-        import threading
-        import multiprocessing
-        print("Active threads", threading.active_count())
-        print("Active processes", multiprocessing.active_children())
-        all_objects = muppy.get_objects()
-        sum1 = summary.summarize(all_objects)
-        summary.print_(sum1)
-        print("DB size", asizeof.asizeof(self.database))
-        print("Executor size", asizeof.asizeof(self.pool))
-        print("Monitor thread", asizeof.asizeof(self.progress_cont.monitor_thread))
-        print("Watcher thread", asizeof.asizeof(self.watcher))
-
-    def load_dummy(self):
-        """ Load a dummy file. """
-        self.load_files(["tests/eplusout.eso"])
-
-    def mirror(self):
-        """ Mirror the layout. """
-        self.central_splitter.insertWidget(0, self.central_splitter.widget(1))
-
-    def turn_off_css(self):
-        """ Turn the CSS on and off. """
-        self.setStyleSheet("")
-
-    def toggle_css(self):
-        """ Turn the CSS on and off. """
-        with open("../styles/app_style.css", "r") as file:
-            cont = file.read()
-
-        self.setStyleSheet(cont)
-
     def closeEvent(self, event):
         """ Shutdown all the background stuff. """
         self.watcher.terminate()
@@ -324,40 +292,23 @@ class MainWindow(QMainWindow):
 
         kill_child_processes(os.getpid())
 
-    def populate_current_selection(self, outputs):
-        """ Store current selection in main app. """
-        self.selected = outputs
-
-        # enable export xlsx function TODO handle enabling of all tools
-        self.toolbar.export_xlsx_btn.setEnabled(True)
-
-    def clear_current_selection(self):
-        """ Handle behaviour when no variables are selected. """
-        self.selected = None
-
-        # disable export xlsx as there are no
-        # variables to be exported TODO handle enabling of all tools
-        self.toolbar.export_xlsx_btn.setEnabled(False)
-
     def keyPressEvent(self, event):
         """ Manage keyboard events. """
         if event.key() == Qt.Key_Escape:
 
             if not self.tab_wgt.is_empty():
-                self.current_file.clear_selection()
+                self.current_file.clear_selected()
 
             self.clear_current_selection()
 
         elif event.key() == Qt.Key_Delete:
             return
 
-    def get_selected_interval(self):
-        """ Get currently selected interval buttons. """
-        btns = self.interval_btns
-        try:
-            return next(k for k, btn in btns.items() if btn.isChecked())
-        except StopIteration:
-            pass
+    def load_icons(self):
+        myappid = 'foo'  # arbitrary string
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)  # this sets toolbar icon on win 7
+
+        self.setWindowIcon(QPixmap("../icons/twotone_pie_chart.png"))
 
     def set_up_base_ui(self):
         """ Set up appearance of main widgets. """
@@ -391,11 +342,60 @@ class MainWindow(QMainWindow):
         self.main_chart_layout.setContentsMargins(0, 0, 0, 0)
         self.main_chart_widget.setMinimumWidth(400)
 
-    def load_icons(self):
-        myappid = 'foo'  # arbitrary string
-        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)  # this sets toolbar icon on win 7
+    # TODO debug to find memory leaks
+    def report_sizes(self):
+        from pympler import asizeof
+        from pympler import summary
+        from pympler import muppy
+        import threading
+        import multiprocessing
+        print("Active threads", threading.active_count())
+        print("Active processes", multiprocessing.active_children())
+        all_objects = muppy.get_objects()
+        sum1 = summary.summarize(all_objects)
+        summary.print_(sum1)
+        print("DB size", asizeof.asizeof(self.database))
+        print("Executor size", asizeof.asizeof(self.pool))
+        print("Monitor thread", asizeof.asizeof(self.progress_cont.monitor_thread))
+        print("Watcher thread", asizeof.asizeof(self.watcher))
 
-        self.setWindowIcon(QPixmap("../icons/twotone_pie_chart.png"))
+    def load_dummy(self):
+        """ Load a dummy file. """
+        self.load_files(["../tests/eplusout.eso"])
+
+    def mirror(self):
+        """ Mirror the layout. """
+        self.central_splitter.insertWidget(0, self.central_splitter.widget(1))
+
+    def turn_off_css(self):
+        """ Turn the CSS on and off. """
+        self.setStyleSheet("")
+
+    def toggle_css(self):
+        """ Turn the CSS on and off. """
+        with open("../styles/app_style.css", "r") as file:
+            cont = file.read()
+
+        self.setStyleSheet(cont)
+
+    def populate_current_selection(self, outputs):
+        """ Store current selection in main app. """
+        self.selected = outputs
+
+        # enable export xlsx function TODO handle enabling of all tools
+        self.toolbar.export_xlsx_btn.setEnabled(True)
+
+    def clear_current_selection(self):
+        """ Handle behaviour when no variables are selected. """
+        self.selected = None
+
+        # disable export xlsx as there are no
+        # variables to be exported TODO handle enabling of all tools
+        self.toolbar.export_xlsx_btn.setEnabled(False)
+
+    def get_current_interval(self):
+        """ Get currently selected interval buttons. """
+        return self.toolbar.get_selected_interval()
 
     def all_files_requested(self):
         """ Check if results from all eso files are requested. """
@@ -406,17 +406,22 @@ class MainWindow(QMainWindow):
         """ Check if building totals are requested. """
         return self.toolbar.totals_btn.isChecked()
 
+    def get_filter_str(self):
+        """ Get current filter string. """
+        return self.view_tools_wgt.filter_line_edit.text()
+
     def tree_requested(self):
         """ Check if tree structure is requested. """
-        return self.toolbar.tree_view_btn.isChecked()
+        return self.view_tools_wgt.tree_view_btn.isChecked()
 
     def build_view(self):
         """ Create a new model when the tab or the interval has changed. """
         # retrieve required inputs from the interface
         is_tree = self.tree_requested()
         totals = self.totals_requested()
-        interval = self.get_selected_interval()
-        units_settings = self.get_units_settings()
+        interval = self.get_current_interval()
+        units_settings = self.toolbar.get_units_settings()
+        filter_str = self.get_filter_str()
 
         eso_file_widget = self.current_file
         selection = self.selected
@@ -428,12 +433,7 @@ class MainWindow(QMainWindow):
 
         # update the current widget
         eso_file_widget.update_view_model(totals, is_tree, interval, view_settings,
-                                          units_settings, select=selection)
-
-        # check if some filtering is applied,
-        # if yes, update the model accordingly
-        if self.filter_line_edit.text():
-            self._filter_view()
+                                          units_settings, select=selection, filter_str=filter_str)
 
     def expand_all(self):
         """ Expand all tree view items. """
@@ -445,16 +445,6 @@ class MainWindow(QMainWindow):
         if self.current_file:
             self.current_file.collapse_all()
 
-    def _filter_view(self):
-        """ Apply a filter when the filter text is edited. """
-        filter_string = self.filter_line_edit.text()
-        if not self.tab_wgt.is_empty():
-            self.current_file.filter_view(filter_string)
-
-    def text_edited(self):
-        """ Delay firing a text edited event. """
-        self.timer.start(200)
-
     def remove_eso_file(self, wgt):
         """ Delete current eso file. """
         std_id_ = wgt.std_file_header.id_
@@ -464,11 +454,11 @@ class MainWindow(QMainWindow):
         self.delete_files_from_db(std_id_, tot_id_)
 
         if self.tab_wgt.is_empty():
-            self.totals_btn.setEnabled(False)
+            self.toolbar.totals_btn.setEnabled(False)
 
         if self.tab_wgt.count() <= 1:
             # only one file is available
-            self.all_files_btn.setEnabled(False)
+            self.toolbar.all_files_btn.setEnabled(False)
 
     def delete_files_from_db(self, *args):
         """ Delete the eso file from the database. """
@@ -481,86 +471,47 @@ class MainWindow(QMainWindow):
             print("Cannot delete the eso file: id '{}',\n"
                   "File was not found in database.".format(file_id))
 
-    def _available_intervals(self):
+    def get_available_intervals(self):
         """ Get available intervals for the current eso file. """
         return self.current_file.std_file_header.available_intervals
 
-    def update_interval_buttons_state(self):
-        """ Deactivate interval buttons if they are not applicable. """
-        available_intervals = self._available_intervals()
-        selected_interval = self.get_selected_interval()
-        all_btns_dct = self.interval_btns
-
-        for key, btn in all_btns_dct.items():
-            if key in available_intervals:
-                btn.setEnabled(True)
-            else:
-                # interval is not applicable for current eso file
-                btn.setEnabled(False)
-                btn.setChecked(False)
-
-        # when there isn't any previously selected interval applicable,
-        # the first available button is selected
-        if selected_interval not in available_intervals:
-            btn = next(btn for btn in all_btns_dct.values() if btn.isEnabled())
-            btn.setChecked(True)
-
-    def tab_changed(self, index):
+    def on_tab_changed(self, index):
         """ Update view when tabChanged event is fired. """
         print("Tab changed {}".format(index))
         if index != -1:
-            self.update_interval_buttons_state()
+            intervals = self.get_available_intervals()
+            self.toolbar.update_intervals_state(intervals)
             self.build_view()
-            self.populate_intervals_group()
+            self.toolbar.populate_intervals_group()
 
         else:
             # there aren't any widgets available
-            self.set_initial_layout()
+            self.toolbar.set_initial_layout()
+
+    def on_filter_request(self, filter_string):
+        if not self.tab_wgt.is_empty():
+            self.current_file.filter_view(filter_string)
 
     def connect_ui_actions(self):
         """ Create actions which depend on user actions """
         # ~~~~ View Actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.expand_all_btn.clicked.connect(self.expand_all)
-        self.collapse_all_btn.clicked.connect(self.collapse_all)
-        self.tree_view_btn.clicked.connect(self.tree_btn_toggled)
         self.left_main_wgt.fileDropped.connect(self.load_files)
-
-        # ~~~~ Filter action ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.filter_line_edit.textEdited.connect(self.text_edited)
 
         # ~~~~ Tab actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.tab_wgt.tabClosed.connect(self.remove_eso_file)
-        self.tab_wgt.currentChanged.connect(self.tab_changed)
+        self.tab_wgt.currentChanged.connect(self.on_tab_changed)
         self.tab_wgt.fileLoadRequested.connect(self.get_files_from_os)
 
         # ~~~~ Settings actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.toolbar.settingsChanged.connect(self.build_view)
+        self.toolbar.updateView.connect(self.build_view)
 
-    def update_sections_order(self, order):
-        """ Store current view header order. """
-        self.stored_view_settings["header"] = order
+    def get_view_settings(self, key):
+        """ Get intermediate view settings. """
+        return self.stored_view_settings[key]
 
-    def update_sort_order(self, name, new_order):
-        """ Store current column vertical sorting. """
-        self.stored_view_settings["order"] = (name, new_order)
-
-    def update_section_widths(self, key, width):
-        """ Store current column widths. """
-        self.stored_view_settings["widths"][key] = width
-
-    def clear_expanded_set(self):
-        """ Clear previously stored expanded items set. """
-        self.stored_view_settings["expanded"].clear()
-
-    def remove_expanded_item(self, name):
-        """ Handle populating and removing items from 'expanded' set. """
-        expanded_set = self.stored_view_settings["expanded"]
-        expanded_set.remove(name)
-
-    def add_expanded_item(self, name):
-        """ Handle populating and removing items from 'expanded' set. """
-        expanded_set = self.stored_view_settings["expanded"]
-        expanded_set.add(name)
+    def store_view_settings(self, key, value):
+        """ Store intermediate view settings. """
+        self.stored_view_settings[key] = value
 
     def add_file_to_db(self, file_id, eso_file):
         """ Add processed eso file to the database. """
@@ -580,16 +531,10 @@ class MainWindow(QMainWindow):
         tot_file_header = FileHeader(tot_id_, tot_file.header_dct)
         self.add_file_to_db(tot_id_, std_file)
 
-        file_wgt = View(self, std_file_header, tot_file_header)
+        callbacks = [self.get_view_settings, self.store_view_settings]
+        file_wgt = View(std_file_header, tot_file_header, callbacks)
         file_wgt.selectionCleared.connect(self.clear_current_selection)
         file_wgt.selectionPopulated.connect(self.populate_current_selection)
-        file_wgt.sortOrderChanged.connect(self.update_sort_order)
-        file_wgt.viewResized.connect(self.update_section_widths)
-        file_wgt.viewUpdateRequired.connect(self.build_view)
-        file_wgt.sectionMoved.connect(self.update_sections_order)
-        file_wgt.expandedRemoved.connect(self.remove_expanded_item)
-        file_wgt.expandedAdded.connect(self.add_expanded_item)
-
         self.tab_wgt.add_tab(file_wgt, std_file.file_name)
 
         # enable all eso file results btn if there's multiple files
@@ -611,7 +556,7 @@ class MainWindow(QMainWindow):
     def generate_variables(self, outputs):
         """ Create an output request using required 'Variable' class. """
         request_lst = []
-        interval = self.get_selected_interval()
+        interval = self.get_current_interval()
         for item in outputs:
             req = Variable(interval, *item)
             request_lst.append(req)
@@ -658,7 +603,7 @@ class MainWindow(QMainWindow):
         """ Get output values for given variables. """
         ids, variables = self.current_request()
         rate_to_energy, units_system, energy, power = self.get_units_settings()
-        rate_to_energy_dct = {self.get_selected_interval(): rate_to_energy}
+        rate_to_energy_dct = {self.get_current_interval(): rate_to_energy}
 
         if len(ids) == 1:
             files = self.database[ids[0]]
