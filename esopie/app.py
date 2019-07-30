@@ -16,6 +16,7 @@ from esopie.icons import Pixmap, text_to_pixmap
 from esopie.progress_widget import StatusBar, ProgressContainer
 from esopie.widgets import LineEdit, DropFrame, TabWidget
 from esopie.buttons import TitledButton, ToolsButton, ToggleButton, MenuButton
+from esopie.toolbar import Toolbar
 from functools import partial
 
 from eso_reader.constants import TS, D, H, M, A, RP
@@ -32,22 +33,14 @@ from esopie.threads import EsoFileWatcher, GuiMonitor, ResultsFetcher
 HEIGHT_THRESHOLD = 650
 
 DEFAULTS = {
-    "units_system": "SI",
-    "energy_units": "kWh",
-    "power_units": "kW",
     "tree_view": True,
 }
-
-si_energy_units = ["Wh", "kWh", "MWh", "J", "MJ", "GJ"]
-si_power_units = ["W", "kW", "MW"]
-
-ip_energy_units = ["Btu", "kBtu", "MBtu"]
-ip_power_units = ["Btu/h", "kBtu/h", "MBtu/h", "W"]
 
 
 # noinspection PyPep8Naming,PyUnresolvedReferences
 class MainWindow(QMainWindow):
     resized = Signal()
+    # todo create color schemes
     background_color = {"r": 255, "g": 255, "b": 255}
     primary_color = {"r": 112, "g": 112, "b": 112}
     secondary_color = {"r": 112, "g": 112, "b": 112}
@@ -73,58 +66,8 @@ class MainWindow(QMainWindow):
         self.central_splitter.addWidget(self.left_main_wgt)
 
         # ~~~~ Left hand Tools Widget ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.toolbar_wgt = QFrame(self.left_main_wgt)
-        self.toolbar_wgt.setObjectName("toolbar")
-        self.toolbar_layout = QVBoxLayout(self.toolbar_wgt)
-        self.left_main_layout.addWidget(self.toolbar_wgt)
-
-        # ~~~~ Left hand Tools Items ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.interval_btns = {}
-        self.intervals_group = QGroupBox("Intervals", self.toolbar_wgt)
-        self.intervals_group.setObjectName("intervalsGroup")
-        self.set_up_interval_btns()
-        self.toolbar_layout.addWidget(self.intervals_group)
-
-        self.outputs_group = QGroupBox("Outputs", self.toolbar_wgt)
-        self.outputs_group.setObjectName("outputsGroup")
-        self.totals_btn = ToolsButton("totals", QPixmap("icons/building_grey.png"),
-                                      checkable=True, parent=self.outputs_group)
-        self.totals_btn.setEnabled(False)
-
-        self.all_files_btn = ToolsButton("all files", QPixmap("icons/all_files_grey.png"),
-                                         checkable=True, parent=self.toolbar_wgt)
-        self.all_files_btn.setEnabled(False)
-        self.set_up_outputs_btns()
-        self.toolbar_layout.addWidget(self.outputs_group)
-
-        self.tools_group = QGroupBox("Tools", self.toolbar_wgt)
-        self.tools_group.setObjectName("toolsGroup")
-        self.export_xlsx_btn = QToolButton(self.tools_group)
-        self.set_up_tools()
-        self.toolbar_layout.addWidget(self.tools_group)
-
-        self.custom_units_toggle = ToggleButton(self.toolbar_wgt)
-        self.custom_units_toggle.setText("Units")
-        self.custom_units_toggle.setChecked(True)
-        self.toolbar_layout.addWidget(self.custom_units_toggle)
-
-        self.units_group = QFrame(self.toolbar_wgt)
-        self.units_group.setObjectName("unitsGroup")
-        self.energy_units_btn = None
-        self.power_units_btn = None
-        self.units_system_btn = None
-        self.rate_to_energy_btn = None
-        self.set_up_units()
-        self.toolbar_layout.addWidget(self.units_group)
-
-        spacer = QSpacerItem(1, 1, QSizePolicy.Minimum, QSizePolicy.Expanding)
-        self.toolbar_layout.addSpacerItem(spacer)
-
-        self.settings_btn = MenuButton(Pixmap("icons/gear_black.png", **self.primary_color), "Settings",
-                                       self.toolbar_wgt)
-        self.settings_btn.setObjectName("settingsButton")
-        self.settings_btn.setIconSize(QSize(40, 40))
-        self.toolbar_layout.addWidget(self.settings_btn)
+        self.toolbar = Toolbar(self.left_main_wgt)
+        self.left_main_layout.addWidget(self.toolbar)
 
         # ~~~~ Left hand View widget  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.view_wgt = QFrame(self.left_main_wgt)
@@ -150,7 +93,7 @@ class MainWindow(QMainWindow):
         self.expand_all_btn.setObjectName("expandButton")
 
         self.filter_icon = QLabel(self.view_tools_wgt)
-        self.filter_icon.setPixmap(QPixmap("./icons/filter_list_white.png"))
+        self.filter_icon.setPixmap(QPixmap("../icons/filter_list_white.png"))
         self.filter_line_edit = LineEdit(self.view_tools_wgt)
 
         self.set_up_view_tools()
@@ -175,12 +118,6 @@ class MainWindow(QMainWindow):
                                      "order": ("variable", Qt.AscendingOrder),
                                      "header": ("variable", "key", "units"),
                                      "expanded": set()}
-
-        self._units_settings = {"units_system": "",
-                                "power_units": "",
-                                "energy_units": "",
-                                "rate_to_energy": False}
-
         self.selected = None
 
         # ~~~~ Queues ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -198,7 +135,7 @@ class MainWindow(QMainWindow):
         self.swap_btn = QToolButton(self)
         self.swap_btn.clicked.connect(self.mirror)
         self.swap_btn.setObjectName("swapButton")
-        self.swap_btn.setIcon(Pixmap("./icons/swap_black.png", **self.primary_color))
+        self.swap_btn.setIcon(Pixmap("../icons/swap_black.png", **self.primary_color))
         self.status_bar.addPermanentWidget(self.swap_btn)
 
         # ~~~~ Database ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -222,34 +159,34 @@ class MainWindow(QMainWindow):
         self.timer.timeout.connect(self._filter_view)
 
         # ~~~~ Menus ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.mini_menu = QWidget(self.toolbar_wgt)
+        self.mini_menu = QWidget(self.toolbar)
         self.mini_menu_layout = QHBoxLayout(self.mini_menu)
         self.mini_menu_layout.setContentsMargins(0, 0, 0, 0)
         self.mini_menu_layout.setSpacing(0)
-        self.toolbar_layout.insertWidget(0, self.mini_menu)
+        self.toolbar.layout.insertWidget(0, self.mini_menu)
 
-        load_file_act = QAction(QIcon("./icons/add_file_grey.png"), "Load file | files", self)
+        load_file_act = QAction(QIcon("../icons/add_file_grey.png"), "Load file | files", self)
         load_file_act.triggered.connect(self.load_files)
-        close_all_act = QAction(QIcon("./icons/remove_grey.png"), "Close all files", self)
+        close_all_act = QAction(QIcon("../icons/remove_grey.png"), "Close all files", self)
         close_all_act.triggered.connect(self.close_all_tabs)
         file_menu = QMenu(self)
         file_menu.addActions([load_file_act, close_all_act])
 
         icon_size = QSize(25, 25)
-        load_file_btn = MenuButton(QIcon("icons/file_grey.png"), "Load file | files", self)
+        load_file_btn = MenuButton(QIcon("../icons/file_grey.png"), "Load file | files", self)
         load_file_btn.setIconSize(icon_size)
         load_file_btn.clicked.connect(self.load_files)
         load_file_btn.setStatusTip("Open eso file or files")
         load_file_btn.setMenu(file_menu)
         self.mini_menu_layout.addWidget(load_file_btn)
 
-        save_all = MenuButton(QIcon("icons/save_grey.png"), "Save", self)
+        save_all = MenuButton(QIcon("../icons/save_grey.png"), "Save", self)
         save_all.setIconSize(icon_size)
         save_all.clicked.connect(lambda: print("NEEDS FUNCTION TO SAVE"))
         save_all.setStatusTip("Save current project")
         self.mini_menu_layout.addWidget(save_all)
 
-        about = MenuButton(QIcon("icons/help_grey.png"), "Save", self)
+        about = MenuButton(QIcon("../icons/help_grey.png"), "Save", self)
         about.setIconSize(icon_size)
         about.clicked.connect(lambda: print("NEEDS FUNCTION TO SAVE"))
         about.setStatusTip("About")
@@ -257,7 +194,7 @@ class MainWindow(QMainWindow):
 
         # TODO reload css button (temporary)
         mn = QMenu(self)
-        self.settings_btn.setMenu(mn)
+        self.toolbar.settings_btn.setMenu(mn)
 
         css = QAction("C", self)
         css.triggered.connect(self.toggle_css)
@@ -329,7 +266,7 @@ class MainWindow(QMainWindow):
 
     def toggle_css(self):
         """ Turn the CSS on and off. """
-        with open("styles/app_style.css", "r") as file:
+        with open("../styles/app_style.css", "r") as file:
             cont = file.read()
 
         self.setStyleSheet(cont)
@@ -399,13 +336,6 @@ class MainWindow(QMainWindow):
         self.left_main_layout.setSpacing(0)
         self.left_main_layout.setContentsMargins(0, 0, 0, 0)
 
-        self.toolbar_wgt.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
-        self.toolbar_layout.setContentsMargins(0, 0, 0, 0)
-        self.toolbar_layout.setSpacing(0)
-        self.toolbar_layout.setAlignment(Qt.AlignTop)
-
-        self.intervals_group.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
-
         self.tab_wgt.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
         self.tab_wgt.setMinimumWidth(400)
 
@@ -430,7 +360,7 @@ class MainWindow(QMainWindow):
         myappid = 'foo'  # arbitrary string
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)  # this sets toolbar icon on win 7
 
-        self.setWindowIcon(QPixmap("./icons/twotone_pie_chart.png"))
+        self.setWindowIcon(QPixmap("../icons/twotone_pie_chart.png"))
 
     def set_initial_layout(self):
         """ Define an app layout when there isn't any file loaded. """
@@ -471,158 +401,6 @@ class MainWindow(QMainWindow):
         """ Display given widgets. """
         for wgt in wgts:
             wgt.show()
-
-    @staticmethod
-    def remove_children(layout):
-        """ Remove all children of the interface. """
-        for _ in range(layout.count()):
-            wgt = layout.itemAt(0).widget()
-            layout.removeWidget(wgt)
-
-    @staticmethod
-    def populate_grid_layout(layout, wgts, n_cols):
-        """ Place given widgets on a specified layout with 'n' columns. """
-        # render only enabled buttons
-        n_rows = (len(wgts) if len(wgts) % 2 == 0 else len(wgts) + 1) // n_cols
-        ixs = [(x, y) for x in range(n_rows) for y in range(n_cols)]
-
-        for btn, ix in zip(wgts, ixs):
-            layout.addWidget(btn, *ix)
-
-        # if layout.count() == 0: # TODO decide whether hide unused groups
-        #     layout.parentWidget().hide()
-        #
-        # else:
-        #     layout.parentWidget().show()
-
-    def _populate_group(self, group, widgets, hide_disabled=False, n_cols=2):
-        """ Populate given group with given widgets. """
-        layout = group.layout()
-        self.remove_children(layout)
-
-        if hide_disabled:
-            widgets = self.hide_disabled(widgets)
-            self.show_widgets(widgets)
-
-        self.populate_grid_layout(layout, widgets, n_cols)
-
-    def populate_outputs_group(self):
-        """ Populate outputs buttons. """
-        outputs_btns = [self.totals_btn,
-                        self.all_files_btn]
-
-        self._populate_group(self.outputs_group, outputs_btns)
-
-    def populate_intervals_group(self, hide_disabled=True):
-        """ Populate interval buttons based on a current state. """
-        btns = self.interval_btns.values()
-        self._populate_group(self.intervals_group, btns, hide_disabled=hide_disabled)
-
-    def populate_tools_group(self):
-        """ Populate tools group layout. """
-        tools_btns = [self.export_xlsx_btn, ]
-        self._populate_group(self.tools_group, tools_btns)
-
-    def populate_units_group(self):
-        """ Populate units group layout. """
-        btns = [self.energy_units_btn,
-                self.power_units_btn,
-                self.units_system_btn,
-                self.rate_to_energy_btn]
-
-        self._populate_group(self.units_group, btns)
-
-    def set_up_outputs_btns(self):
-        """ Create interval buttons and a parent container. """
-        # ~~~~ Layout to hold interval buttons ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        outputs_btns_layout = QGridLayout(self.outputs_group)
-        outputs_btns_layout.setSpacing(0)
-        outputs_btns_layout.setContentsMargins(0, 0, 0, 0)
-        outputs_btns_layout.setAlignment(Qt.AlignTop)
-
-        outputs_btns_layout.addWidget(self.totals_btn)
-        outputs_btns_layout.addWidget(self.all_files_btn)
-
-        self.populate_outputs_group()
-
-    def set_up_interval_btns(self):
-        """ Create interval buttons and a parent container. """
-        # ~~~~ Layout to hold interval buttons ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        interval_btns_layout = QGridLayout(self.intervals_group)
-        interval_btns_layout.setSpacing(0)
-        interval_btns_layout.setContentsMargins(0, 0, 0, 0)
-        interval_btns_layout.setAlignment(Qt.AlignTop)
-
-        # ~~~~ Generate interval buttons ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        p = self.intervals_group
-        ids = {TS: "TS", H: "H", D: "D", M: "M", A: "A", RP: "RP"}
-        font = QFont("Roboto", 40)
-        color = QColor(112, 112, 112)
-
-        for k, v in ids.items():
-            pix = text_to_pixmap(v, font, color)
-            btn = ToolsButton(k, pix, checkable=True, parent=p)
-            btn.setAutoExclusive(True)
-            btn.setEnabled(False)
-            self.interval_btns[k] = btn
-
-        self.populate_intervals_group(hide_disabled=False)
-
-    def set_up_units(self):
-        """ Set up units options. . """
-        # ~~~~ Layout to hold options  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        units_layout = QGridLayout(self.units_group)
-        units_layout.setSpacing(0)
-        units_layout.setContentsMargins(0, 0, 0, 0)
-        units_layout.setAlignment(Qt.AlignLeft)
-
-        # ~~~~ Energy units set up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        energy_units_menu = QMenu(self)
-        items = si_energy_units + ip_energy_units
-        ix = items.index(DEFAULTS["energy_units"])
-        self.energy_units_btn = TitledButton(self.units_group, fill_space=True,
-                                             title="energy", menu=energy_units_menu,
-                                             items=items, data=items, def_act_ix=ix)
-
-        # ~~~~ Power units set up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        power_units_menu = QMenu(self)
-        items = list(dict.fromkeys(si_power_units + ip_power_units))  # remove duplicate 'W'
-        ix = items.index(DEFAULTS["power_units"])
-        self.power_units_btn = TitledButton(self.units_group, fill_space=True,
-                                            title="power", menu=power_units_menu,
-                                            items=items, data=items, def_act_ix=ix)
-
-        # ~~~~ Units system set up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        units_system_menu = QMenu(self)
-        items = ["SI", "IP"]
-        ix = items.index(DEFAULTS["units_system"])
-        self.units_system_btn = TitledButton(self.units_group, fill_space=True,
-                                             title="system", menu=units_system_menu,
-                                             items=items, data=items, def_act_ix=ix)
-        self.toggle_units(DEFAULTS["units_system"])
-
-        # ~~~~ Units system set up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.rate_to_energy_btn = QToolButton(self.units_group)
-        self.rate_to_energy_btn.setCheckable(True)
-        self.rate_to_energy_btn.setObjectName("rateToEnergyBtn")
-        self.rate_to_energy_btn.setText("rate to\n energy")
-
-        self.populate_units_group()
-
-    def set_up_tools(self):
-        """ Create a general set of tools. """
-        # ~~~~ Layout to hold tools settings ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        tools_layout = QGridLayout(self.tools_group)
-        tools_layout.setSpacing(0)
-        tools_layout.setContentsMargins(0, 0, 0, 0)
-        tools_layout.setAlignment(Qt.AlignTop)
-
-        # ~~~~ Generate export xlsx button ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.export_xlsx_btn.setEnabled(False)
-        self.export_xlsx_btn.setText("Save xlsx")
-        self.export_xlsx_btn.setCheckable(False)
-
-        self.populate_tools_group()
 
     def set_up_view_tools(self):
         """ Create tools, settings and search line for the view. """
@@ -711,123 +489,6 @@ class MainWindow(QMainWindow):
         #     self.populate_units_group()
         #     self.populate_settings_group()
         pass
-
-    def interval_changed(self):
-        """ Update view when an interval is changed. """
-        # handle changing the state on rate_to_energy_btn
-        # as this is allowed only for daily+ intervals
-        if self.custom_units_toggle.isChecked():
-            interval = self.get_selected_interval()
-            b = interval not in [TS, H]
-            self.rate_to_energy_btn.setEnabled(b)
-
-        # create a new view
-        self.build_view()
-
-    def get_units_settings(self):
-        """ Get currently selected units. """
-        btn = self.rate_to_energy_btn
-        rate_to_energy = btn.isEnabled() and btn.isChecked()
-
-        units_system = self.units_system_btn.data()
-        energy_units = self.energy_units_btn.data()
-        power_units = self.power_units_btn.data()
-
-        return rate_to_energy, units_system, energy_units, power_units
-
-    def store_units_settings(self):
-        """ Store intermediate units settings. """
-        self._units_settings["energy_units"] = self.energy_units_btn.data()
-        self._units_settings["power_units"] = self.power_units_btn.data()
-        self._units_settings["units_system"] = self.units_system_btn.data()
-        self._units_settings["rate_to_energy"] = self.rate_to_energy_btn.isEnabled()
-
-    def restore_units_settings(self):
-        """ Restore units settings. """
-        data = self._units_settings["units_system"]
-        act = self.units_system_btn.get_action(data=data)
-        self.units_system_btn.update_state_internally(act)
-
-        data = self._units_settings["energy_units"]
-        act = self.energy_units_btn.get_action(data=data)
-        self.energy_units_btn.update_state_internally(act)
-
-        data = self._units_settings["power_units"]
-        act = self.power_units_btn.get_action(data=data)
-        self.power_units_btn.update_state_internally(act)
-
-        self.build_view()
-
-    def enable_units_buttons(self, enable):
-        """ Enable or disable units settings buttons. """
-        self.units_system_btn.setEnabled(enable)
-        self.energy_units_btn.setEnabled(enable)
-        self.power_units_btn.setEnabled(enable)
-        self.rate_to_energy_btn.setEnabled(enable)
-
-    def reset_units_to_default(self):
-        """ Reset units to E+ default. """
-        act = self.units_system_btn.get_action(data="SI")
-        self.units_system_btn.update_state_internally(act)
-
-        act = self.energy_units_btn.get_action(data="J")
-        self.energy_units_btn.update_state_internally(act)
-
-        act = self.power_units_btn.get_action(data="W")
-        self.power_units_btn.update_state_internally(act)
-
-        self.build_view()
-
-    def units_settings_toggled(self, state):
-        """ Update units settings when custom units toggled. """
-        if state == 0:
-            self.store_units_settings()
-            self.reset_units_to_default()
-            self.enable_units_buttons(False)
-        else:
-            self.restore_units_settings()
-            self.enable_units_buttons(True)
-
-    def toggle_units(self, units_system):
-        """ Handle displaying allowed units for given units system. """
-        if units_system == "IP":
-            en_acts = ip_energy_units
-            pw_acts = ip_power_units
-
-        else:
-            en_acts = si_energy_units
-            pw_acts = si_power_units
-
-        self.energy_units_btn.filter_visible_actions(en_acts)
-        self.power_units_btn.filter_visible_actions(pw_acts)
-
-    def units_system_changed(self, act):
-        """ Update view when energy units are changed. """
-        changed = self.units_system_btn.update_state(act)
-
-        dt = act.data()
-        self.toggle_units(dt)
-
-        if changed:
-            self.build_view()
-
-    def power_units_changed(self, act):
-        """ Update view when energy units are changed. """
-        changed = self.power_units_btn.update_state(act)
-
-        if changed:
-            self.build_view()
-
-    def energy_units_changed(self, act):
-        """ Update view when energy units are changed. """
-        changed = self.energy_units_btn.update_state(act)
-
-        if changed:
-            self.build_view()
-
-    def rate_to_energy_toggled(self):
-        """ Update view when rate_to_energy changes. """
-        self.build_view()
 
     def tree_btn_toggled(self, checked):
         """ Update view when view type is changed. """
@@ -934,28 +595,11 @@ class MainWindow(QMainWindow):
         # ~~~~ Resize window ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.resized.connect(self.update_layout)
 
-        # ~~~~ Interval buttons actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        btns = self.interval_btns.values()
-        _ = [btn.clicked.connect(self.interval_changed) for btn in btns]
-
-        # ~~~~ Options buttons actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.export_xlsx_btn.clicked.connect(self.export_xlsx)
-        self.totals_btn.clicked.connect(self.switch_totals)
-
         # ~~~~ View Actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.expand_all_btn.clicked.connect(self.expand_all)
         self.collapse_all_btn.clicked.connect(self.collapse_all)
         self.left_main_wgt.fileDropped.connect(self._load_eso_files)
-
-        # ~~~~ Options Actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.custom_units_toggle.stateChanged.connect(self.units_settings_toggled)
-        self.rate_to_energy_btn.clicked.connect(self.rate_to_energy_toggled)
-
-        # ~~~~ Settings Actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.tree_view_btn.clicked.connect(self.tree_btn_toggled)
-        self.energy_units_btn.menu().triggered.connect(self.energy_units_changed)
-        self.power_units_btn.menu().triggered.connect(self.power_units_changed)
-        self.units_system_btn.menu().triggered.connect(self.units_system_changed)
 
         # ~~~~ Filter action ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.filter_line_edit.textEdited.connect(self.text_edited)
@@ -1210,7 +854,7 @@ if __name__ == "__main__":
     sys_argv = sys.argv
     app = QApplication()
     db = QFontDatabase()
-    install_fonts("./resources", db)
+    install_fonts("../resources", db)
 
     db.addApplicationFont("./resources/Roboto-Regular.ttf")
     mainWindow = MainWindow()

@@ -46,7 +46,7 @@ QLabel {
 }
 
 QLabel#filterIcon {
-    image: url("./icons/filter_list_white.png");
+    image: url("../icons/filter_list_white.png");
 }
 
 QStatusBar {
@@ -129,7 +129,7 @@ QToolButton:hover {
 }
 
 QToolButton#collapseButton {
-    image: url(icons/unfold_less_white.png);
+    image: url("../icons/unfold_less_white.png");
     width: 23;
     height: 18;
     border: 1px solid white ;
@@ -155,7 +155,7 @@ QToolButton#collapseButton:hover {
   }
 
  QToolButton#expandButton {
-    image: url(icons/unfold_more_white.png);
+    image: url("../icons/unfold_more_white.png");
     width: 23;
     height: 18;
     border: 1px solid white ;
@@ -178,11 +178,11 @@ QToolButton#expandButton:hover {
     border: 1px solid white ;
     background: transparent;
     margin: 2px;
-    image: url(icons/plain_view_white.png);
+    image: url("../icons/plain_view_white.png");
   }
 
   QToolButton#treeButton:checked {
-    image: url(icons/tree_view_white.png);
+    image: url("../icons/tree_view_white.png");
   }
 
  QToolButton#treeButton:hover {
@@ -212,7 +212,7 @@ MenuButton {
  }
 
  MenuButton::menu-indicator {
-    image: url(icons/plus_grey.png);
+    image: url("../icons/plus_grey.png");
     margin: 3px;
     width: 10px;
     height: 10px;
@@ -234,7 +234,7 @@ TitledButton QToolButton {
 }
 
 TitledButton QToolButton::menu-indicator {
-    image: url(icons/expand_more_grey.png);
+    image: url("../icons/expand_more_grey.png");
     margin: 1px;
     width: 12px;
     height: 12px;
@@ -267,7 +267,7 @@ QLabel#buttonTitle:disabled {
 }
 
 ProgressWidget QPushButton {
-    image: url(icons/remove_red.png);
+    image: url("../icons/remove_red.png");
     margin-bottom: 2px;
 }
 
@@ -308,19 +308,19 @@ QTabBar::scroller {
 }
 
 QTabBar QToolButton::left-arrow {
-    image: url("./icons/chevron_left_white.png");
+    image: url("../icons/chevron_left_white.png");
 }
 
 QTabBar QToolButton::left-arrow:disabled {
-    image: url("icons/transparent.png");
+    image: url("../icons/transparent.png");
 }
 
 QTabBar QToolButton::right-arrow {
-    image: url("icons/chevron_right_white.png");
+    image: url("../icons/chevron_right_white.png");
 }
 
 QTabBar QToolButton::right-arrow:disabled {
-    image: url("icons/transparent.png");
+    image: url("../icons/transparent.png");
 }
 
 QTabBar QToolButton:disabled {
@@ -379,15 +379,15 @@ QTabBar::tab:selected {
 }
 
 QTabBar::close-button {
-    image: url(icons/remove_white.png);
+    image: url("../icons/remove_white.png");
 }
 
 QTabBar::close-button:selected {
-    image: url(icons/remove_red.png);
+    image: url("../icons/remove_red.png");
 }
 
 QTabBar::close-button:hover {
-    image: url(icons/remove_light_red.png);
+    image: url("../icons/remove_light_red.png");
 }
 
 QTabBar::tab:first:selected {
@@ -421,7 +421,7 @@ QHeaderView::section:checked {
 /* style the sort indicator */
 QHeaderView::down-arrow {
   color: rgb(112,112,112);
-  image: url(icons/expand_less.png);
+  image: url("../icons/expand_less.png");
   width: 12px;
   height: 12px;
   subcontrol-position: right;
@@ -430,7 +430,7 @@ QHeaderView::down-arrow {
 
 QHeaderView::up-arrow {
   color: rgb(112,112,112);
-  image: url(icons/expand_more.png);
+  image: url("../icons/expand_more.png");
   width: 12px;
   height: 12px;
 }
@@ -474,11 +474,11 @@ QTreeView::branch:has-children {
 }
 
 QTreeView::branch:has-children:closed {
-    image: url(icons/plus_grey.png);
+    image: url("../icons/plus_grey.png");
 }
 
 QTreeView::branch:has-children:open {
-    image: url(icons/minus_grey.png);
+    image: url("../icons/minus_grey.png");
 }
 
 QScrollBar:vertical {
@@ -574,7 +574,7 @@ QMenu::indicator {
 }
 
 QMenu::indicator:non-exclusive:checked {
-  image: url("./icons/check_white.png");
+  image: url("../icons/check_white.png");
 }
 
 

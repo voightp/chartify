@@ -38,7 +38,7 @@ class TabWidget(QTabWidget):
         self.drop_btn.setObjectName("dropButton")
         self.drop_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
         self.drop_btn.setText("Choose a file or drag it here!")
-        self.drop_btn.setIcon(QPixmap("icons/drop_file_grey.png"))
+        self.drop_btn.setIcon(QPixmap("../icons/drop_file_grey.png"))
         self.drop_btn.setIconSize(QSize(50, 50))
         layout.addWidget(self.drop_btn)
 
