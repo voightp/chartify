@@ -1,42 +1,33 @@
-from PySide2 import QtCore, QtGui, QtWidgets
-from PySide2.QtWidgets import QWidget, QTabWidget, QTreeView, QSplitter, QHBoxLayout, QVBoxLayout, \
-    QGridLayout, \
-    QToolButton, QSizePolicy, QLayout, QLabel, QGroupBox, QRadioButton, QToolBar, QMenuBar, QAction, \
-    QFileDialog, \
-    QDialog, QProgressBar, QFormLayout, QAbstractItemView, QSlider, QSpacerItem, QSizePolicy, \
-    QLineEdit, QComboBox, \
-    QMdiArea, QHeaderView, QTableView, QApplication, QScrollArea, QStatusBar, QMenu, QFrame, QTextEdit, QPushButton
-from PySide2.QtCore import QSize, Qt, QThreadPool, QThread, QObject, Signal, \
-    QSortFilterProxyModel, QModelIndex, \
-    QItemSelectionModel, QRegExp, QUrl, QTimer, QFile
-from PySide2.QtWebEngineWidgets import QWebEnginePage, QWebEngineView, QWebEngineSettings
-from PySide2.QtGui import QKeySequence, QIcon, QPixmap, QFontDatabase, QFont, QColor
-from eso_file_header import FileHeader
-from icons import Pixmap, text_to_pixmap
-from progress_widget import StatusBar, ProgressContainer
-from widgets import LineEdit, DropFrame, TabWidget
-
-from buttons import TitledButton, ToolsButton, ToggleButton, MenuButton
-from functools import partial
-import traceback
 import sys
 import os
 import ctypes
 import loky
 import psutil
 
+from PySide2.QtWidgets import (QWidget, QSplitter, QHBoxLayout, QVBoxLayout, QGridLayout, QToolButton, QLabel,
+                               QGroupBox, QAction, QFileDialog, QSpacerItem, QSizePolicy, QApplication, QMenu, QFrame,
+                               QMainWindow)
+from PySide2.QtCore import QSize, Qt, QThreadPool, Signal, QTimer
+from PySide2.QtWebEngineWidgets import QWebEngineView, QWebEngineSettings
+from PySide2.QtGui import QIcon, QPixmap, QFontDatabase, QFont, QColor
+
+from esopie.eso_file_header import FileHeader
+from esopie.icons import Pixmap, text_to_pixmap
+from esopie.progress_widget import StatusBar, ProgressContainer
+from esopie.widgets import LineEdit, DropFrame, TabWidget
+from esopie.buttons import TitledButton, ToolsButton, ToggleButton, MenuButton
+from functools import partial
+
 from eso_reader.constants import TS, D, H, M, A, RP
 from eso_reader.eso_file import EsoFile, get_results, IncompleteFile
 from eso_reader.building_eso_file import BuildingEsoFile
 from eso_reader.mini_classes import Variable
-import eso_reader.misc_os as misc_os
-from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
+
 from queue import Queue
-from multiprocessing import Manager, cpu_count, Pipe, Process
-from view_widget import View
-from chart_widgets import MyWebView
+from multiprocessing import Manager, cpu_count
+from esopie.view_widget import View
 from random import randint
-from threads import MonitorThread, EsoFileWatcher, GuiMonitor, ResultsFetcher
+from esopie.threads import EsoFileWatcher, GuiMonitor, ResultsFetcher
 
 HEIGHT_THRESHOLD = 650
 
@@ -55,7 +46,7 @@ ip_power_units = ["Btu/h", "kBtu/h", "MBtu/h", "W"]
 
 
 # noinspection PyPep8Naming,PyUnresolvedReferences
-class MainWindow(QtWidgets.QMainWindow):
+class MainWindow(QMainWindow):
     resized = Signal()
     background_color = {"r": 255, "g": 255, "b": 255}
     primary_color = {"r": 112, "g": 112, "b": 112}
@@ -402,7 +393,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.central_layout.setContentsMargins(0, 0, 0, 0)
 
         # ~~~~ Main left side ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        left_side_size_policy = QtWidgets.QSizePolicy()
+        left_side_size_policy = QSizePolicy()
         left_side_size_policy.setHorizontalStretch(0)
         self.left_main_wgt.setSizePolicy(left_side_size_policy)
         self.left_main_layout.setSpacing(0)
@@ -425,7 +416,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.view_tools_wgt.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
 
         # ~~~~ Main right side ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        right_side_size_policy = QtWidgets.QSizePolicy()
+        right_side_size_policy = QSizePolicy()
         right_side_size_policy.setHorizontalStretch(1)
         self.right_main_wgt.setSizePolicy(right_side_size_policy)
         self.right_main_layout.setSpacing(0)

@@ -1,9 +1,8 @@
-from PySide2.QtWidgets import QWidget, QToolButton, QApplication, QVBoxLayout, QHBoxLayout, QLabel, \
+from PySide2.QtWidgets import QToolButton, QVBoxLayout, QHBoxLayout, QLabel, \
     QSizePolicy, QFrame, \
-    QAction, QCheckBox, QSlider
-from PySide2.QtCore import QSize, Qt, Signal, QSize
-from widgets import update_appearance
-import sys
+    QAction, QSlider
+from PySide2.QtCore import Qt, Signal, QSize
+from esopie.widgets import update_appearance
 
 
 class TitledButton(QFrame):

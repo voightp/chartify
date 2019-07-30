@@ -1,9 +1,7 @@
-from PySide2 import QtCore
-from PySide2.QtWidgets import QWidget, QLabel, QProgressBar, QFormLayout, QStatusBar, QVBoxLayout, QSizePolicy, \
+from PySide2.QtWidgets import QWidget, QLabel, QProgressBar, QStatusBar, QVBoxLayout, QSizePolicy, \
     QPushButton, QHBoxLayout
 from PySide2.QtCore import Signal, Qt
-from threads import MonitorThread
-from queue import Queue
+from esopie.threads import MonitorThread
 
 
 class StatusBar(QStatusBar):
