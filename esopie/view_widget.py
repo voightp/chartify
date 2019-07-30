@@ -1,19 +1,10 @@
-import sys
-from PySide2 import QtCore, QtGui, QtWidgets
-from PySide2.QtWidgets import QWidget, QTabWidget, QTreeView, QSplitter, QHBoxLayout, QVBoxLayout, \
-    QGridLayout, QToolButton, QSizePolicy, QLayout, QLabel, QGroupBox, QRadioButton, QToolBar, \
-    QMenuBar, QAction, \
-    QFileDialog, QDialog, QProgressBar, QFormLayout, QAbstractItemView, QSlider, QSpacerItem, \
-    QSizePolicy, QLineEdit, QComboBox, QMdiArea, QHeaderView, QTableView, QApplication, QScrollArea
-from PySide2.QtCore import QSize, Qt, QThreadPool, QThread, QObject, Signal, \
-    QSortFilterProxyModel, QModelIndex, QItemSelectionModel, QRegExp, QUrl, QAbstractItemModel, \
-    QItemSelection, QTimer, QItemSelectionRange, QSignalBlocker, QMimeData, QMimeType, QByteArray
+from PySide2.QtWidgets import QTreeView, QAbstractItemView, QHeaderView
+from PySide2.QtCore import Qt, QSortFilterProxyModel, QItemSelectionModel, QItemSelection, QItemSelectionRange, \
+    QMimeData
 from PySide2.QtGui import QDrag, QPixmap
-import pickle
 
-from PySide2.QtGui import QStandardItemModel, QStandardItem, QFont
-from eso_file_header import FileHeader
-from functools import partial
+from PySide2.QtGui import QStandardItemModel, QStandardItem
+from esopie.eso_file_header import FileHeader
 
 
 class View(QTreeView):
