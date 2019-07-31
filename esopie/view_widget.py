@@ -40,7 +40,6 @@ class View(QTreeView):
                           "units": None,
                           "totals": None}
 
-        self._view_settings = None
         self._scrollbar_position = 0
 
         self.verticalScrollBar().valueChanged.connect(self.slider_moved)
@@ -200,7 +199,7 @@ class View(QTreeView):
 
         if not self._initialized:
             # create header actions only when view is created
-            self.create_header_actions()
+            self.initialize_header()
             self._initialized = True
 
     def set_header_labels(self, view_order):
@@ -271,12 +270,12 @@ class View(QTreeView):
                 names.index("variable"),
                 names.index("units"))
 
-    def sort_order_changed(self, log_ix, order):
+    def on_sort_order_changed(self, log_ix, order):
         """ Store current sorting order in main app. """
         name = self.model().headerData(log_ix, Qt.Horizontal)
         self.callbacks[1]("order", (name, order))
 
-    def view_resized(self):
+    def on_view_resized(self):
         """ Store interactive section width in the main app. """
         header = self.header()
 
@@ -287,7 +286,7 @@ class View(QTreeView):
                 widths["interactive"] = width
                 self.callbacks[1]("widths", widths)
 
-    def section_moved(self, _logical_ix, old_visual_ix, new_visual_ix):
+    def on_section_moved(self, _logical_ix, old_visual_ix, new_visual_ix):
         """ Handle updating the model when first column changed. """
         names = self.get_visual_names()
         is_tree = self._settings["tree_key"]
@@ -304,16 +303,16 @@ class View(QTreeView):
         widths = self.callbacks[0]("widths")
         self.resize_header(widths)
 
-    def create_header_actions(self):
+    def initialize_header(self):
         """ Create header actions. """
         # When the file is loaded for the first time, the header does not
         # contain required data to use 'view_resized' method.
         # Due to this, the action needs to be created only after the model
         # and its header have been created.
         self.header().setFirstSectionMovable(True)
-        self.header().sectionResized.connect(self.view_resized)
-        self.header().sortIndicatorChanged.connect(self.sort_order_changed)
-        self.header().sectionMoved.connect(self.section_moved)
+        self.header().sectionResized.connect(self.on_view_resized)
+        self.header().sortIndicatorChanged.connect(self.on_sort_order_changed)
+        self.header().sectionMoved.connect(self.on_section_moved)
 
     def slider_moved(self, val):
         """ Handle moving view slider. """
@@ -338,7 +337,7 @@ class View(QTreeView):
 
         mimeData = QMimeData()
         mimeData.setText("HELLO FROM MAIN APP")
-        pixmap = QPixmap("./icons/input.png")
+        pixmap = QPixmap("../icons/input.png")
         drag = QDrag(self)
         drag.setMimeData(mimeData)
         drag.setPixmap(pixmap)

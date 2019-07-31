@@ -147,7 +147,7 @@ class MainWindow(QMainWindow):
 
         # ~~~~ Left hand Tab Tools  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.view_tools_wgt = ViewTools(self.view_wgt)
-        self.view_tools_wgt.filterView.connect(self.on_filter_request)
+        self.view_tools_wgt.filterView.connect(self.filter_view)
         self.view_tools_wgt.updateView.connect(self.build_view)
         self.view_tools_wgt.expandViewItems.connect(self.expand_all)
         self.view_tools_wgt.collapseViewItems.connect(self.collapse_all)
@@ -378,21 +378,6 @@ class MainWindow(QMainWindow):
 
         self.setStyleSheet(cont)
 
-    def populate_current_selection(self, outputs):
-        """ Store current selection in main app. """
-        self.selected = outputs
-
-        # enable export xlsx function TODO handle enabling of all tools
-        self.toolbar.export_xlsx_btn.setEnabled(True)
-
-    def clear_current_selection(self):
-        """ Handle behaviour when no variables are selected. """
-        self.selected = None
-
-        # disable export xlsx as there are no
-        # variables to be exported TODO handle enabling of all tools
-        self.toolbar.export_xlsx_btn.setEnabled(False)
-
     def get_current_interval(self):
         """ Get currently selected interval buttons. """
         return self.toolbar.get_selected_interval()
@@ -477,7 +462,6 @@ class MainWindow(QMainWindow):
 
     def on_tab_changed(self, index):
         """ Update view when tabChanged event is fired. """
-        print("Tab changed {}".format(index))
         if index != -1:
             intervals = self.get_available_intervals()
             self.toolbar.update_intervals_state(intervals)
@@ -488,7 +472,7 @@ class MainWindow(QMainWindow):
             # there aren't any widgets available
             self.toolbar.set_initial_layout()
 
-    def on_filter_request(self, filter_string):
+    def filter_view(self, filter_string):
         if not self.tab_wgt.is_empty():
             self.current_file.filter_view(filter_string)
 
@@ -520,6 +504,21 @@ class MainWindow(QMainWindow):
 
         except BrokenPipeError:
             print("Application has been closed - catching broken pipe!")
+
+    def populate_current_selection(self, outputs):
+        """ Store current selection in main app. """
+        self.selected = outputs
+
+        # enable export xlsx function TODO handle enabling of all tools
+        self.toolbar.export_xlsx_btn.setEnabled(True)
+
+    def clear_current_selection(self):
+        """ Handle behaviour when no variables are selected. """
+        self.selected = None
+
+        # disable export xlsx as there are no
+        # variables to be exported TODO handle enabling of all tools
+        self.toolbar.export_xlsx_btn.setEnabled(False)
 
     def on_file_loaded(self, id_, std_file, tot_file):
         """ Add eso file into 'tab' widget. """
