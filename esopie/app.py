@@ -438,12 +438,12 @@ class MainWindow(QMainWindow):
     def expand_all(self):
         """ Expand all tree view items. """
         if self.current_file:
-            self.current_file.expand_all()
+            self.current_file.expandAll()
 
     def collapse_all(self):
         """ Collapse all tree view items. """
         if self.current_file:
-            self.current_file.collapse_all()
+            self.current_file.collapseAll()
 
     def remove_eso_file(self, wgt):
         """ Delete current eso file. """

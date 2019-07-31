@@ -71,14 +71,6 @@ class View(QTreeView):
                           "units": units,
                           "totals": totals}
 
-    def expand_all(self):
-        """ Expand all nested nodes. """
-        self.expandAll()
-
-    def collapse_all(self):
-        """ Collapse all nested nodes. """
-        self.collapseAll()
-
     def set_first_col_spanned(self):
         """ Set parent row to be spanned over all columns. """
         model = self.model()
@@ -138,7 +130,7 @@ class View(QTreeView):
         self.select_items(proxy_selection)
 
         # Update main app outputs
-        self.get_items(proxy_selection.indexes())# TODO redo item selection
+        self.get_items(proxy_selection.indexes())  # TODO redo item selection
 
     def update_scroll_position(self):
         """ Update the slider position. """
