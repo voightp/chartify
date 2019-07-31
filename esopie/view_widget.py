@@ -11,7 +11,6 @@ class View(QTreeView):
     selectionCleared = Signal()
     selectionPopulated = Signal(list)
     updateView = Signal()
-    dragAttempted = Signal(list)
 
     def __init__(self, std_file_header, tot_file_header, callbacks):
         super().__init__()
@@ -119,6 +118,9 @@ class View(QTreeView):
                 data = model.data(ix)
                 if data in expanded_set:
                     self.expand(ix)
+                else:
+                    # make sure that
+                    self.collapse(ix)
 
     def update_selection(self, current_selection, key):
         """ Select previously selected items when the model changes. """
@@ -426,8 +428,11 @@ class View(QTreeView):
         if proxy_model.hasChildren(index):
             name = proxy_model.data(index)
             exp = self.callbacks[0]("expanded")
-            exp.remove(name)
-            self.callbacks[1]("expanded", exp)
+            try:
+                exp.remove(name)
+                self.callbacks[1]("expanded", exp)
+            except KeyError:
+                pass
 
     def handle_expanded(self, index):
         """ Deselect the row when node is expanded. """
