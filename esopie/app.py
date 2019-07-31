@@ -132,7 +132,6 @@ class MainWindow(QMainWindow):
 
         # ~~~~ Left hand Tools Widget ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.toolbar = Toolbar(self.left_main_wgt)
-        self.toolbar.updateView.connect(self.build_view)
         self.left_main_layout.addWidget(self.toolbar)
 
         # ~~~~ Left hand View widget  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -147,11 +146,6 @@ class MainWindow(QMainWindow):
 
         # ~~~~ Left hand Tab Tools  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.view_tools_wgt = ViewTools(self.view_wgt)
-        self.view_tools_wgt.filterView.connect(self.filter_view)
-        self.view_tools_wgt.updateView.connect(self.build_view)
-        self.view_tools_wgt.expandViewItems.connect(self.expand_all)
-        self.view_tools_wgt.collapseViewItems.connect(self.collapse_all)
-
         self.view_layout.addWidget(self.view_tools_wgt)
 
         # ~~~~ Right hand area ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -215,7 +209,7 @@ class MainWindow(QMainWindow):
         self.toolbar.layout.insertWidget(0, self.mini_menu)
 
         load_file_act = QAction(QIcon("../icons/add_file_grey.png"), "Load file | files", self)
-        load_file_act.triggered.connect(self.get_files_from_os)
+        load_file_act.triggered.connect(self.load_files_from_os)
         close_all_act = QAction(QIcon("../icons/remove_grey.png"), "Close all files", self)
         close_all_act.triggered.connect(self.close_all_tabs)
         file_menu = QMenu(self)
@@ -224,7 +218,7 @@ class MainWindow(QMainWindow):
         icon_size = QSize(25, 25)
         load_file_btn = MenuButton(QIcon("../icons/file_grey.png"), "Load file | files", self)
         load_file_btn.setIconSize(icon_size)
-        load_file_btn.clicked.connect(self.get_files_from_os)
+        load_file_btn.clicked.connect(self.load_files_from_os)
         load_file_btn.setStatusTip("Open eso file or files")
         load_file_btn.setMenu(file_menu)
         self.mini_menu_layout.addWidget(load_file_btn)
@@ -420,31 +414,6 @@ class MainWindow(QMainWindow):
         eso_file_widget.update_view_model(totals, is_tree, interval, view_settings,
                                           units_settings, select=selection, filter_str=filter_str)
 
-    def expand_all(self):
-        """ Expand all tree view items. """
-        if self.current_file:
-            self.current_file.expandAll()
-
-    def collapse_all(self):
-        """ Collapse all tree view items. """
-        if self.current_file:
-            self.current_file.collapseAll()
-
-    def remove_eso_file(self, wgt):
-        """ Delete current eso file. """
-        std_id_ = wgt.std_file_header.id_
-        tot_id_ = wgt.tot_file_header.id_
-
-        wgt.deleteLater()
-        self.delete_files_from_db(std_id_, tot_id_)
-
-        if self.tab_wgt.is_empty():
-            self.toolbar.totals_btn.setEnabled(False)
-
-        if self.tab_wgt.count() <= 1:
-            # only one file is available
-            self.toolbar.all_files_btn.setEnabled(False)
-
     def delete_files_from_db(self, *args):
         """ Delete the eso file from the database. """
         try:
@@ -456,38 +425,17 @@ class MainWindow(QMainWindow):
             print("Cannot delete the eso file: id '{}',\n"
                   "File was not found in database.".format(file_id))
 
-    def get_available_intervals(self):
-        """ Get available intervals for the current eso file. """
-        return self.current_file.std_file_header.available_intervals
+    def close_all_tabs(self):
+        """ Delete all the content. """
+        ids = []
+        wgts = self.tab_wgt.close_all_tabs()
+        for i in range(len(wgts)):
+            ids.append(wgts[i].std_file_header.id_)
+            ids.append(wgts[i].tot_file_header.id_)
+            wgts[i].deleteLater()
 
-    def on_tab_changed(self, index):
-        """ Update view when tabChanged event is fired. """
-        if index != -1:
-            intervals = self.get_available_intervals()
-            self.toolbar.update_intervals_state(intervals)
-            self.build_view()
-            self.toolbar.populate_intervals_group()
-
-        else:
-            # there aren't any widgets available
-            self.toolbar.set_initial_layout()
-
-    def filter_view(self, filter_string):
-        if not self.tab_wgt.is_empty():
-            self.current_file.filter_view(filter_string)
-
-    def connect_ui_actions(self):
-        """ Create actions which depend on user actions """
-        # ~~~~ View Actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.left_main_wgt.fileDropped.connect(self.load_files)
-
-        # ~~~~ Tab actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.tab_wgt.tabClosed.connect(self.remove_eso_file)
-        self.tab_wgt.currentChanged.connect(self.on_tab_changed)
-        self.tab_wgt.fileLoadRequested.connect(self.get_files_from_os)
-
-        # ~~~~ Settings actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.toolbar.updateView.connect(self.build_view)
+        self.delete_files_from_db(*ids)
+        self.toolbar.set_initial_layout()
 
     def get_view_settings(self, key):
         """ Get intermediate view settings. """
@@ -520,22 +468,29 @@ class MainWindow(QMainWindow):
         # variables to be exported TODO handle enabling of all tools
         self.toolbar.export_xlsx_btn.setEnabled(False)
 
+    def create_view_wgt(self, std_file_header, tot_file_header):
+        """ Create a 'View' widget and connect its actions. """
+        callbacks = [self.get_view_settings, self.store_view_settings]
+        wgt = View(std_file_header, tot_file_header, callbacks)
+
+        wgt.selectionCleared.connect(self.clear_current_selection)
+        wgt.selectionPopulated.connect(self.populate_current_selection)
+        wgt.updateView.connect(self.build_view)
+        return wgt
+
     def on_file_loaded(self, id_, std_file, tot_file):
         """ Add eso file into 'tab' widget. """
-        std_id_ = f"s{id_}"
-        std_file_header = FileHeader(std_id_, std_file.header_dct)
-        self.add_file_to_db(std_id_, std_file)
+        std_id = f"s{id_}"
+        tot_id = f"t{id_}"
 
-        tot_id_ = f"t{id_}"
-        tot_file_header = FileHeader(tot_id_, tot_file.header_dct)
-        self.add_file_to_db(tot_id_, std_file)
+        std_file_header = FileHeader(std_id, std_file.header_dct)
+        tot_file_header = FileHeader(tot_id, tot_file.header_dct)
 
-        callbacks = [self.get_view_settings, self.store_view_settings]
-        file_wgt = View(std_file_header, tot_file_header, callbacks)
-        file_wgt.selectionCleared.connect(self.clear_current_selection)
-        file_wgt.selectionPopulated.connect(self.populate_current_selection)
-        file_wgt.updateView.connect(self.build_view)
-        self.tab_wgt.add_tab(file_wgt, std_file.file_name)
+        self.add_file_to_db(std_id, std_file)
+        self.add_file_to_db(tot_id, std_file)
+
+        wgt = self.create_view_wgt(std_file_header, tot_file_header)
+        self.tab_wgt.add_tab(wgt, std_file.file_name)
 
         # enable all eso file results btn if there's multiple files
         if self.tab_wgt.count() > 1:
@@ -544,6 +499,92 @@ class MainWindow(QMainWindow):
         # enable all eso file results btn if it's suitable
         if not self.tab_wgt.is_empty():
             self.toolbar.totals_btn.setEnabled(True)
+
+    def filter_view(self, filter_string):
+        """ Filter current view. """
+        if not self.tab_wgt.is_empty():
+            self.current_file.filter_view(filter_string)
+
+    def expand_all(self):
+        """ Expand all tree view items. """
+        if self.current_file:
+            self.current_file.expandAll()
+
+    def collapse_all(self):
+        """ Collapse all tree view items. """
+        if self.current_file:
+            self.current_file.collapseAll()
+
+    def remove_eso_file(self, wgt):
+        """ Delete current eso file. """
+        std_id_ = wgt.std_file_header.id_
+        tot_id_ = wgt.tot_file_header.id_
+
+        wgt.deleteLater()
+        self.delete_files_from_db(std_id_, tot_id_)
+
+        if self.tab_wgt.is_empty():
+            self.toolbar.totals_btn.setEnabled(False)
+
+        if self.tab_wgt.count() <= 1:
+            self.toolbar.all_files_btn.setEnabled(False)
+
+    def get_available_intervals(self):
+        """ Get available intervals for the current eso file. """
+        return self.current_file.std_file_header.available_intervals
+
+    def on_tab_changed(self, index):
+        """ Update view when tabChanged event is fired. """
+        if index != -1:
+            intervals = self.get_available_intervals()
+            self.toolbar.update_intervals_state(intervals)
+            self.build_view()
+            self.toolbar.populate_intervals_group()
+
+        else:
+            # there aren't any widgets available
+            self.toolbar.set_initial_layout()
+
+    def load_files(self, eso_file_paths):
+        """ Start eso file processing. """
+        progress_queue = self.progress_queue
+        file_queue = self.file_queue
+
+        used_ids = self.database.keys()
+        n = len(eso_file_paths)
+        ids = generate_ids(used_ids, n=n)
+
+        for path in eso_file_paths:
+            # create a monitor to report progress on the ui
+            id_ = ids.pop(0)
+            monitor = GuiMonitor(path, id_, progress_queue)
+
+            # create a new process to load eso file
+            future = self.pool.submit(load_file, path, monitor=monitor, suppress_errors=False)
+            future.add_done_callback(partial(wait_for_results, id_, monitor, file_queue))
+
+    def load_files_from_os(self):
+        """ Select eso files from explorer and start processing. """
+        file_pths, _ = QFileDialog.getOpenFileNames(self, "Load Eso File", "", "*.eso")
+        if file_pths:
+            self.load_files(file_pths)
+
+    def connect_ui_actions(self):
+        """ Create actions which depend on user actions """
+        # ~~~~ View Actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.left_main_wgt.fileDropped.connect(self.load_files)
+        self.view_tools_wgt.filterView.connect(self.filter_view)
+        self.view_tools_wgt.updateView.connect(self.build_view)
+        self.view_tools_wgt.expandViewItems.connect(self.expand_all)
+        self.view_tools_wgt.collapseViewItems.connect(self.collapse_all)
+
+        # ~~~~ Tab actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.tab_wgt.tabClosed.connect(self.remove_eso_file)
+        self.tab_wgt.currentChanged.connect(self.on_tab_changed)
+        self.tab_wgt.fileLoadRequested.connect(self.load_files_from_os)
+
+        # ~~~~ Settings actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.toolbar.updateView.connect(self.build_view)
 
     def get_files_ids(self):
         """ Return current file id or ids for all files based on 'all files btn' state. """
@@ -575,30 +616,6 @@ class MainWindow(QMainWindow):
 
         return ids, variables
 
-    def load_files(self, eso_file_paths):
-        """ Start eso file processing. """
-        progress_queue = self.progress_queue
-        file_queue = self.file_queue
-
-        used_ids = self.database.keys()
-        n = len(eso_file_paths)
-        ids = generate_ids(used_ids, n=n)
-
-        for path in eso_file_paths:
-            # create a monitor to report progress on the ui
-            id_ = ids.pop(0)
-            monitor = GuiMonitor(path, id_, progress_queue)
-
-            # create a new process to load eso file
-            future = self.pool.submit(load_file, path, monitor=monitor, suppress_errors=False)
-            future.add_done_callback(partial(wait_for_results, id_, monitor, file_queue))
-
-    def get_files_from_os(self):
-        """ Select eso files from explorer and start processing. """
-        file_pths, _ = QFileDialog.getOpenFileNames(self, "Load Eso File", "", "*.eso")
-        if file_pths:
-            self.load_files(file_pths)
-
     def results_df(self):
         """ Get output values for given variables. """
         ids, variables = self.get_current_request()
@@ -616,16 +633,6 @@ class MainWindow(QMainWindow):
 
         self.results_fetcher.start(worker)
 
-    # TODO review these when handling results
-    def single_file_results(self, request):
-        return get_results(self.currentEsoFileWidget.esoFile, request)
-
-    def multiple_files_results(self, requestList):
-        esoFiles = [esoFileWidget.esoFile for esoFileWidget in
-                    self.esoFileWidgets]
-        esoFiles.sort(key=lambda x: x.file_name)
-        return get_results(esoFiles, requestList)
-
     def export_xlsx(self):
         """ Export selected variables data to xlsx. """
         self.results_df()
@@ -641,18 +648,6 @@ class MainWindow(QMainWindow):
         #     # df.to_excel(file_pth)
         #     e = time.perf_counter()
         #     print("Printing file: {}".format((e - s)))
-
-    def close_all_tabs(self):
-        """ Delete all the content. """
-        ids = []
-        wgts = self.tab_wgt.close_all_tabs()
-        for i in range(len(wgts)):
-            ids.append(wgts[i].std_file_header.id_)
-            ids.append(wgts[i].tot_file_header.id_)
-            wgts[i].deleteLater()
-
-        self.delete_files_from_db(*ids)
-        self.set_initial_layout()
 
 
 if __name__ == "__main__":
