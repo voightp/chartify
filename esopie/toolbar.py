@@ -81,24 +81,27 @@ def populate_group(group, widgets, hide_disabled=False, n_cols=2):
 
 
 class Toolbar(QFrame):
-    """ 
+    """
     A class to represent an application toolbar.
-    
+
     """
     updateView = Signal()
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
         self.setObjectName("toolbar")
         self.layout = QVBoxLayout(self)
 
-        self._units_settings = {"units_system": "",
+        self.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout.setSpacing(0)
+        self.layout.setAlignment(Qt.AlignTop)
+
+        self._units_settings = {"energy_units": "",
                                 "power_units": "",
-                                "energy_units": "",
+                                "units_system": "",
                                 "rate_to_energy": False}
 
-        # ~~~~ Left hand Tools Items ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.interval_btns = {}
         self.intervals_group = QGroupBox("Intervals", self)
         self.intervals_group.setObjectName("intervalsGroup")
@@ -139,32 +142,21 @@ class Toolbar(QFrame):
 
         spacer = QSpacerItem(1, 1, QSizePolicy.Minimum, QSizePolicy.Expanding)
         self.layout.addSpacerItem(spacer)
+
         self.settings_btn = MenuButton(QPixmap("../icons/gear_grey.png", ), "Settings", self)
         self.settings_btn.setObjectName("settingsButton")
         self.settings_btn.setIconSize(QSize(40, 40))
         self.layout.addWidget(self.settings_btn)
 
-        # ~~~~ Interval buttons actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        btns = self.interval_btns.values()
-        _ = [btn.clicked.connect(self.interval_changed) for btn in btns]
+        self.connect_actions()
 
-        # # ~~~~ Options buttons actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        # self.export_xlsx_btn.clicked.connect(self.export_xlsx)
-        # self.totals_btn.clicked.connect(self.switch_totals)
-        #
-        # # ~~~~ Options Actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        # self.custom_units_toggle.stateChanged.connect(self.units_settings_toggled)
-        # self.rate_to_energy_btn.clicked.connect(self.rate_to_energy_toggled)
-        #
-        # # ~~~~ Settings Actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        # self.energy_units_btn.menu().triggered.connect(self.energy_units_changed)
-        # self.power_units_btn.menu().triggered.connect(self.power_units_changed)
-        # self.units_system_btn.menu().triggered.connect(self.units_system_changed)
-
-        self.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
-        self.layout.setContentsMargins(0, 0, 0, 0)
-        self.layout.setSpacing(0)
-        self.layout.setAlignment(Qt.AlignTop)
+    @property
+    def units_btns(self):
+        """ A shorthand to get all units buttons."""
+        return [self.energy_units_btn,
+                self.power_units_btn,
+                self.units_system_btn,
+                self.rate_to_energy_btn]
 
     def all_files_requested(self):
         """ Check if results from all eso files are requested. """
@@ -194,12 +186,7 @@ class Toolbar(QFrame):
 
     def populate_units_group(self):
         """ Populate units group layout. """
-        btns = [self.energy_units_btn,
-                self.power_units_btn,
-                self.units_system_btn,
-                self.rate_to_energy_btn]
-
-        populate_group(self.units_group, btns)
+        populate_group(self.units_group, self.units_btns)
 
     def set_up_outputs_btns(self):
         """ Create interval buttons and a parent container. """
@@ -361,56 +348,61 @@ class Toolbar(QFrame):
 
     def store_units_settings(self):
         """ Store intermediate units settings. """
-        self._units_settings["energy_units"] = self.energy_units_btn.data()
-        self._units_settings["power_units"] = self.power_units_btn.data()
-        self._units_settings["units_system"] = self.units_system_btn.data()
-        self._units_settings["rate_to_energy"] = self.rate_to_energy_btn.isEnabled()
+        settings = ["energy_units", "power_units", "units_system"]
+        btns = self.units_btns
+        rt_ene_btn = btns.pop(3)
+
+        for s, btn in zip(settings, btns):
+            self._units_settings[s] = btn.data()
+
+        checked = rt_ene_btn.isChecked()
+        self._units_settings["rate_to_energy"] = checked
 
     def restore_units_settings(self):
         """ Restore units settings. """
-        data = self._units_settings["units_system"]
-        act = self.units_system_btn.get_action(data=data)
-        self.units_system_btn.update_state_internally(act)
+        btns = self.units_btns[:3]
 
-        data = self._units_settings["energy_units"]
-        act = self.energy_units_btn.get_action(data=data)
-        self.energy_units_btn.update_state_internally(act)
+        for s, btn in zip(self._units_settings.keys(), btns):
+            data = self._units_settings[s]
+            act = btn.get_action(data=data)
+            btn.update_state_internally(act)
 
-        data = self._units_settings["power_units"]
-        act = self.power_units_btn.get_action(data=data)
-        self.power_units_btn.update_state_internally(act)
+        enabled = self._units_settings["rate_to_energy"]
+        self.rate_to_energy_btn.setEnabled(enabled)
 
-        self.build_view()
-
-    def enable_units_buttons(self, enable):
+    def enable_units_buttons(self, enabled):
         """ Enable or disable units settings buttons. """
-        self.units_system_btn.setEnabled(enable)
-        self.energy_units_btn.setEnabled(enable)
-        self.power_units_btn.setEnabled(enable)
-        self.rate_to_energy_btn.setEnabled(enable)
+        for btn in self.units_btns:
+            btn.setEnabled(enabled)
 
     def reset_units_to_default(self):
         """ Reset units to E+ default. """
-        act = self.units_system_btn.get_action(data="SI")
-        self.units_system_btn.update_state_internally(act)
+        data = ["J", "W", "SI"]
+        btns = self.units_btns[:3]
 
-        act = self.energy_units_btn.get_action(data="J")
-        self.energy_units_btn.update_state_internally(act)
-
-        act = self.power_units_btn.get_action(data="W")
-        self.power_units_btn.update_state_internally(act)
-
-        self.build_view()
+        for dt, btn in zip(data, btns):
+            act = btn.get_action(data=dt)
+            btn.update_state_internally(act)
 
     def units_settings_toggled(self, state):
         """ Update units settings when custom units toggled. """
-        if state == 0:
+        disabled = state == 0
+        if disabled:
             self.store_units_settings()
             self.reset_units_to_default()
-            self.enable_units_buttons(False)
         else:
             self.restore_units_settings()
-            self.enable_units_buttons(True)
+
+        self.enable_units_buttons(not disabled)
+        self.updateView.emit()
+
+    def rate_to_energy_toggled(self):
+        """ Update view when rate_to_energy changes. """
+        self.updateView.emit()
+
+    def totals_toggled(self):
+        """ Toggle standard outputs and totals. """
+        self.updateView.emit()
 
     def toggle_units(self, units_system):
         """ Handle displaying allowed units for given units system. """
@@ -449,10 +441,21 @@ class Toolbar(QFrame):
         if changed:
             self.updateView.emit()
 
-    def rate_to_energy_toggled(self):
-        """ Update view when rate_to_energy changes. """
-        self.updateView.emit()
+    def connect_actions(self):
+        """ Connect toolbar actions. """
+        # ~~~~ Interval buttons actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        btns = self.interval_btns.values()
+        _ = [btn.clicked.connect(self.interval_changed) for btn in btns]
 
-    def switch_totals(self):
-        """ Toggle standard outputs and totals. """
-        self.updateView.emit()
+        # ~~~~ Options buttons actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # self.export_xlsx_btn.clicked.connect(self.export_xlsx)
+        self.totals_btn.clicked.connect(self.totals_toggled)
+
+        # ~~~~ Options Actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.custom_units_toggle.stateChanged.connect(self.units_settings_toggled)
+        self.rate_to_energy_btn.clicked.connect(self.rate_to_energy_toggled)
+
+        # ~~~~ Settings Actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.energy_units_btn.menu().triggered.connect(self.energy_units_changed)
+        self.power_units_btn.menu().triggered.connect(self.power_units_changed)
+        self.units_system_btn.menu().triggered.connect(self.units_system_changed)
