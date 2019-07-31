@@ -60,7 +60,7 @@ class View(QTreeView):
         model.setFilterFixedString(filter_str)
 
         # Expand all items when filter is applied
-        self.expand_all()
+        self.expandAll()
         self.set_first_col_spanned()
 
     def store_settings(self, interval, tree_key, units, totals):
