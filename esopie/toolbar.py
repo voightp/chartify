@@ -166,6 +166,15 @@ class Toolbar(QFrame):
         self.layout.setSpacing(0)
         self.layout.setAlignment(Qt.AlignTop)
 
+    def all_files_requested(self):
+        """ Check if results from all eso files are requested. """
+        btn = self.all_files_btn
+        return btn.isChecked() and btn.isEnabled()
+
+    def totals_requested(self):
+        """ Check if results from all eso files are requested. """
+        return self.totals_btn.isChecked()
+
     def populate_outputs_group(self):
         """ Populate outputs buttons. """
         outputs_btns = [self.totals_btn,

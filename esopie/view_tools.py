@@ -48,6 +48,14 @@ class ViewTools(QFrame):
 
         self.set_up_view_tools()
 
+    def tree_requested(self):
+        """ Check if tree structure is requested. """
+        return self.tree_view_btn.isChecked()
+
+    def get_filter_str(self):
+        """ Get current filter string. """
+        return self.filter_line_edit.text()
+
     def set_up_view_tools(self):
         """ Create tools, settings and search line for the view. """
         # ~~~~ Widget to hold tree view tools ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -382,30 +382,32 @@ class MainWindow(QMainWindow):
         """ Get currently selected interval buttons. """
         return self.toolbar.get_selected_interval()
 
+    def get_units_settings(self):
+        """ Get current units settings. """
+        return self.toolbar.get_units_settings()
+
     def all_files_requested(self):
         """ Check if results from all eso files are requested. """
-        btn = self.toolbar.all_files_btn
-        return btn.isChecked() and btn.isEnabled()
+        return self.toolbar.all_files_requested()
 
     def totals_requested(self):
         """ Check if building totals are requested. """
-        return self.toolbar.totals_btn.isChecked()
+        return self.toolbar.totals_requested()
 
     def get_filter_str(self):
         """ Get current filter string. """
-        return self.view_tools_wgt.filter_line_edit.text()
+        return self.view_tools_wgt.get_filter_str()
 
     def tree_requested(self):
         """ Check if tree structure is requested. """
-        return self.view_tools_wgt.tree_view_btn.isChecked()
+        return self.view_tools_wgt.tree_requested()
 
     def build_view(self):
         """ Create a new model when the tab or the interval has changed. """
-        # retrieve required inputs from the interface
         is_tree = self.tree_requested()
         totals = self.totals_requested()
         interval = self.get_current_interval()
-        units_settings = self.toolbar.get_units_settings()
+        units_settings = self.get_units_settings()
         filter_str = self.get_filter_str()
 
         eso_file_widget = self.current_file
@@ -413,10 +415,8 @@ class MainWindow(QMainWindow):
         view_settings = self.stored_view_settings
 
         if not eso_file_widget:
-            # do not update the view as there is no file
             return
 
-        # update the current widget
         eso_file_widget.update_view_model(totals, is_tree, interval, view_settings,
                                           units_settings, select=selection, filter_str=filter_str)
 
@@ -534,6 +534,7 @@ class MainWindow(QMainWindow):
         file_wgt = View(std_file_header, tot_file_header, callbacks)
         file_wgt.selectionCleared.connect(self.clear_current_selection)
         file_wgt.selectionPopulated.connect(self.populate_current_selection)
+        file_wgt.updateView.connect(self.build_view)
         self.tab_wgt.add_tab(file_wgt, std_file.file_name)
 
         # enable all eso file results btn if there's multiple files
@@ -561,7 +562,7 @@ class MainWindow(QMainWindow):
             request_lst.append(req)
         return request_lst
 
-    def current_request(self):
+    def get_current_request(self):
         """ Get a currently selected output variables information. """
         outputs = self.selected
         ids = self.get_files_ids()
@@ -600,7 +601,7 @@ class MainWindow(QMainWindow):
 
     def results_df(self):
         """ Get output values for given variables. """
-        ids, variables = self.current_request()
+        ids, variables = self.get_current_request()
         rate_to_energy, units_system, energy, power = self.get_units_settings()
         rate_to_energy_dct = {self.get_current_interval(): rate_to_energy}
 
