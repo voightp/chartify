@@ -113,8 +113,8 @@ class TitledButton(QFrame):
         acts = self.button.menu().actions()
 
         if self.data() not in acts_dt:
-            a = self.get_action(data=acts_dt[0])
-            self.update_state_internally(a)
+            act = self.get_action(data=acts_dt[0])
+            self.update_state_internally(act)
 
         for act in acts:
             act.setVisible(act.data() in acts_dt)
