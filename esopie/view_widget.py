@@ -11,6 +11,7 @@ class View(QTreeView):
     selectionCleared = Signal()
     selectionPopulated = Signal(list)
     updateView = Signal()
+    dragAttempted = Signal(list)
 
     def __init__(self, std_file_header, tot_file_header, callbacks):
         super().__init__()
@@ -129,7 +130,7 @@ class View(QTreeView):
         self.select_items(proxy_selection)
 
         # Update main app outputs
-        self.get_items(proxy_selection.indexes())  # TODO redo item selection
+        self.get_items_data(proxy_selection.indexes())
 
     def update_scroll_position(self):
         """ Update the slider position. """
@@ -320,31 +321,29 @@ class View(QTreeView):
 
     def fetch_request(self):
         """ Get currently requested outputs. """
-        file_ids, variables = self.main_app.current_request()
+        file_ids, variables = self.main_app.get_current_request()
         return file_ids, variables
 
     def handle_drag_attempt(self):
         """ Handle pressing the view item or items. """
-        # update selection
-        outputs = self.selection_changed()
-        file_ids, variables = self.fetch_request()
+        outputs = self.handle_selection()
 
-        if not variables:
+        if not outputs:
             return
 
-        print("HANDLING DRAG!\n{}".format(file_ids))
-        print(variables)
+        print("HANDLING DRAG!\n\t{}".format("\n\t".join([" | ".join(var) for var in outputs])))
 
-        mimeData = QMimeData()
-        mimeData.setText("HELLO FROM MAIN APP")
-        pixmap = QPixmap("../icons/input.png")
+        mime_dt = QMimeData()
+        mime_dt.setText("HELLO FROM MAIN APP")
+        pix = QPixmap("../icons/input.png")
+
         drag = QDrag(self)
-        drag.setMimeData(mimeData)
-        drag.setPixmap(pixmap)
+        drag.setMimeData(mime_dt)
+        drag.setPixmap(pix)
         drag.exec_(Qt.CopyAction)
         # create a drag object with pixmap
 
-    def selection_changed(self):
+    def handle_selection(self):
         """ Extract output information from the current selection. """
         proxy_model = self.model()
         selection_model = self.selectionModel()
@@ -373,17 +372,14 @@ class View(QTreeView):
                 # included in output variable data
                 self.deselect_item(index)
 
-        # updated selection
-        proxy_rows = selection_model.selectedRows()
+        return self.get_items_data(selection_model.selectedRows())
 
-        return self.get_items(proxy_rows)
-
-    def get_items(self, proxy_indexes):
+    def get_items_data(self, proxy_rows):
         """ Update outputs in the main app. """
         outputs = []
         proxy_model = self.model()
 
-        for index in proxy_indexes:
+        for index in proxy_rows:
             item = proxy_model.item_from_index(index)
             data = item.data(Qt.UserRole)
             outputs.append(data)
@@ -392,6 +388,8 @@ class View(QTreeView):
             self.selectionPopulated.emit(outputs)
         else:
             self.selectionCleared.emit()
+
+        return outputs
 
     def select_children(self, source_item, source_index):
         """ Select all children of the parent row. """
