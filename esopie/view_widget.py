@@ -376,6 +376,7 @@ class View(QTreeView):
                 # included in output variable data
                 self.deselect_item(index)
 
+        proxy_rows = selection_model.selectedRows()  # needs to be called again to get updated selection
         outputs = [proxy_model.data_from_index(index) for index in proxy_rows]
         self.store_outputs(outputs)
 
