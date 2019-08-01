@@ -348,14 +348,12 @@ class Toolbar(QFrame):
 
     def store_units_settings(self):
         """ Store intermediate units settings. """
-        settings = ["energy_units", "power_units", "units_system"]
-        btns = self.units_btns
-        rt_ene_btn = btns.pop(3)
+        btns = self.units_btns[:3]
 
-        for s, btn in zip(settings, btns):
+        for s, btn in zip(self._units_settings.keys(), btns):
             self._units_settings[s] = btn.data()
 
-        checked = rt_ene_btn.isChecked()
+        checked = self.rate_to_energy_btn.isChecked()
         self._units_settings["rate_to_energy"] = checked
 
     def restore_units_settings(self):
