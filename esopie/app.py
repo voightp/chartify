@@ -612,25 +612,15 @@ class MainWindow(QMainWindow):
 
         return [self.current_file.get_file_id(tots)]
 
-    def generate_variables(self, outputs):
-        """ Create an output request using required 'Variable' class. """
-        request_lst = []
-        interval = self.get_current_interval()
-        for item in outputs:
-            req = Variable(interval, *item)
-            request_lst.append(req)
-        return request_lst
-
     def get_current_request(self):
         """ Get a currently selected output variables information. """
         outputs = self.selected
         ids = self.get_files_ids()
+        interval = self.get_current_interval()
         variables = None
 
-        # add an interval information into the request
-        # create 'request items' using 'Variable' namedtuple
         if outputs:
-            variables = self.generate_variables(outputs)
+            variables = [Variable(interval, *item) for item in outputs]
 
         return ids, variables
 
