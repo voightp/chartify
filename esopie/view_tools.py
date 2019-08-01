@@ -12,7 +12,7 @@ class ViewTools(QFrame):
 
     """
     updateView = Signal()
-    filterView = Signal(str)
+    filterViewItems = Signal(str)
     expandViewItems = Signal()
     collapseViewItems = Signal()
 
@@ -109,4 +109,4 @@ class ViewTools(QFrame):
     def request_filter(self):
         """ Apply a filter when the filter text is edited. """
         filter_string = self.filter_line_edit.text()
-        self.filterView.emit(filter_string)
+        self.filterViewItems.emit(filter_string)

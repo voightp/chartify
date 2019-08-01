@@ -559,7 +559,7 @@ class MainWindow(QMainWindow):
         """ Create actions which depend on user actions """
         # ~~~~ View Actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.left_main_wgt.fileDropped.connect(self.load_files)
-        self.view_tools_wgt.filterView.connect(self.filter_view)
+        self.view_tools_wgt.filterViewItems.connect(self.filter_view)
         self.view_tools_wgt.updateView.connect(self.build_view)
         self.view_tools_wgt.expandViewItems.connect(self.expand_all)
         self.view_tools_wgt.collapseViewItems.connect(self.collapse_all)
