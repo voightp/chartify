@@ -86,6 +86,10 @@ class Toolbar(QFrame):
 
     """
     updateView = Signal()
+    xlsxRequested = Signal()
+    sumRequested = Signal()
+    meanRequested = Signal()
+    removeRequested = Signal()
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -123,6 +127,9 @@ class Toolbar(QFrame):
         self.tools_group = QGroupBox("Tools", self)
         self.tools_group.setObjectName("toolsGroup")
         self.export_xlsx_btn = QToolButton(self.tools_group)
+        self.sum_vars_btn = QToolButton(self.tools_group)
+        self.mean_vars_btn = QToolButton(self.tools_group)
+        self.remove_vars_btn = QToolButton(self.tools_group)
         self.set_up_tools()
         self.layout.addWidget(self.tools_group)
 
@@ -181,7 +188,8 @@ class Toolbar(QFrame):
 
     def populate_tools_group(self):
         """ Populate tools group layout. """
-        tools_btns = [self.export_xlsx_btn, ]
+        tools_btns = [self.export_xlsx_btn, self.sum_vars_btn,
+                      self.mean_vars_btn, self.remove_vars_btn]
         populate_group(self.tools_group, tools_btns)
 
     def populate_units_group(self):
@@ -273,10 +281,25 @@ class Toolbar(QFrame):
         tools_layout.setContentsMargins(0, 0, 0, 0)
         tools_layout.setAlignment(Qt.AlignTop)
 
-        # ~~~~ Generate export xlsx button ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # ~~~~ Export xlsx button ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.export_xlsx_btn.setEnabled(False)
-        self.export_xlsx_btn.setText("Save xlsx")
+        self.export_xlsx_btn.setText("save xlsx")
         self.export_xlsx_btn.setCheckable(False)
+
+        # ~~~~ Sum variables button ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.sum_vars_btn.setEnabled(False)
+        self.sum_vars_btn.setText("sum")
+        self.sum_vars_btn.setCheckable(False)
+
+        # ~~~~ Mean variables button ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.mean_vars_btn.setEnabled(False)
+        self.mean_vars_btn.setText("mean")
+        self.mean_vars_btn.setCheckable(False)
+
+        # ~~~~ Remove variables button ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.remove_vars_btn.setEnabled(False)
+        self.remove_vars_btn.setText("remove")
+        self.remove_vars_btn.setCheckable(False)
 
         self.populate_tools_group()
 
@@ -446,7 +469,10 @@ class Toolbar(QFrame):
         _ = [btn.clicked.connect(self.interval_changed) for btn in btns]
 
         # ~~~~ Options buttons actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        # self.export_xlsx_btn.clicked.connect(self.export_xlsx)
+        self.export_xlsx_btn.clicked.connect(self.xlsxRequested.emit)
+        self.mean_vars_btn.clicked.connect(self.meanRequested.emit)
+        self.remove_vars_btn.clicked.connect(self.removeRequested.emit)
+        self.sum_vars_btn.clicked.connect(self.sumRequested.emit)
         self.totals_btn.clicked.connect(self.totals_toggled)
 
         # ~~~~ Options Actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

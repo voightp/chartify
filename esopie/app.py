@@ -555,6 +555,34 @@ class MainWindow(QMainWindow):
         if file_pths:
             self.load_files(file_pths)
 
+    def export_xlsx(self):
+        """ Export selected variables data to xlsx. """
+        self.results_df()
+
+        # file_pth, _ = QFileDialog.getSaveFileName(self, "Save variable to .xlsx", "", "*.xlsx")
+        # if file_pth:
+        #     import time
+        #     s = time.perf_counter()
+        #     df = self.results_df()
+        #     e = time.perf_counter()
+        #     print("Fetching results: {}".format((e-s)))
+        #     s = time.perf_counter()
+        #     # df.to_excel(file_pth)
+        #     e = time.perf_counter()
+        #     print("Printing file: {}".format((e - s)))
+
+    def add_mean_var(self):
+        """ Create a new 'mean' variable. """
+        pass
+
+    def add_summed_var(self):
+        """ Create a new 'summed' variable. """
+        pass
+
+    def remove_vars(self):
+        """ Remove variables from a file. """
+        pass
+
     def connect_ui_actions(self):
         """ Create actions which depend on user actions """
         # ~~~~ View Actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -569,8 +597,12 @@ class MainWindow(QMainWindow):
         self.tab_wgt.currentChanged.connect(self.on_tab_changed)
         self.tab_wgt.fileLoadRequested.connect(self.load_files_from_os)
 
-        # ~~~~ Settings actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # ~~~~ Outputs actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.toolbar.updateView.connect(self.build_view)
+        self.toolbar.xlsxRequested.connect(self.export_xlsx)
+        self.toolbar.meanRequested.connect(self.add_mean_var)
+        self.toolbar.removeRequested.connect(self.remove_vars)
+        self.toolbar.sumRequested.connect(self.add_summed_var)
 
     def get_files_ids(self):
         """ Return current file id or ids for all files based on 'all files btn' state. """
@@ -618,22 +650,6 @@ class MainWindow(QMainWindow):
                                 rate_to_energy_dct=rate_to_energy_dct)
 
         self.results_fetcher.start(worker)
-
-    def export_xlsx(self):
-        """ Export selected variables data to xlsx. """
-        self.results_df()
-
-        # file_pth, _ = QFileDialog.getSaveFileName(self, "Save variable to .xlsx", "", "*.xlsx")
-        # if file_pth:
-        #     import time
-        #     s = time.perf_counter()
-        #     df = self.results_df()
-        #     e = time.perf_counter()
-        #     print("Fetching results: {}".format((e-s)))
-        #     s = time.perf_counter()
-        #     # df.to_excel(file_pth)
-        #     e = time.perf_counter()
-        #     print("Printing file: {}".format((e - s)))
 
 
 if __name__ == "__main__":
