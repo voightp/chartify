@@ -162,11 +162,6 @@ class MainWindow(QMainWindow):
         self.connect_ui_actions()
 
         # ~~~~ Intermediate settings ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.stored_view_settings = {"widths": {"interactive": 200,
-                                                "fixed": 70},
-                                     "order": ("variable", Qt.AscendingOrder),
-                                     "header": ("variable", "key", "units"),
-                                     "expanded": set()}
         self.selected = None
 
         # ~~~~ Queues ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -406,13 +401,12 @@ class MainWindow(QMainWindow):
 
         eso_file_widget = self.current_file
         selection = self.selected
-        view_settings = self.stored_view_settings
 
         if not eso_file_widget:
             return
 
-        eso_file_widget.update_view_model(totals, is_tree, interval, view_settings,
-                                          units_settings, select=selection, filter_str=filter_str)
+        eso_file_widget.update_view_model(totals, is_tree, interval, units_settings,
+                                          select=selection, filter_str=filter_str)
 
     def delete_files_from_db(self, *args):
         """ Delete the eso file from the database. """
@@ -436,14 +430,6 @@ class MainWindow(QMainWindow):
 
         self.delete_files_from_db(*ids)
         self.toolbar.set_initial_layout()
-
-    def get_view_settings(self, key):
-        """ Get intermediate view settings. """
-        return self.stored_view_settings[key]
-
-    def store_view_settings(self, key, value):
-        """ Store intermediate view settings. """
-        self.stored_view_settings[key] = value
 
     def add_file_to_db(self, file_id, eso_file):
         """ Add processed eso file to the database. """
@@ -470,8 +456,7 @@ class MainWindow(QMainWindow):
 
     def create_view_wgt(self, std_file_header, tot_file_header):
         """ Create a 'View' widget and connect its actions. """
-        callbacks = [self.get_view_settings, self.store_view_settings]
-        wgt = View(std_file_header, tot_file_header, callbacks)
+        wgt = View(std_file_header, tot_file_header)
 
         wgt.selectionCleared.connect(self.clear_current_selection)
         wgt.selectionPopulated.connect(self.populate_current_selection)

@@ -12,7 +12,13 @@ class View(QTreeView):
     selectionPopulated = Signal(list)
     updateView = Signal()
 
-    def __init__(self, std_file_header, tot_file_header, callbacks):
+    settings = {"widths": {"interactive": 200,
+                           "fixed": 70},
+                "order": ("variable", Qt.AscendingOrder),
+                "header": ("variable", "key", "units"),
+                "expanded": set()}
+
+    def __init__(self, std_file_header, tot_file_header):
         super().__init__()
         self.setRootIsDecorated(True)
         self.setUniformRowHeights(True)
@@ -32,13 +38,12 @@ class View(QTreeView):
 
         self.std_file_header = std_file_header
         self.tot_file_header = tot_file_header
-        self.callbacks = callbacks
 
         self._initialized = False
-        self._settings = {"interval": None,
-                          "tree_key": None,
-                          "units": None,
-                          "totals": None}
+        self.temp_settings = {"interval": None,
+                              "tree_key": None,
+                              "units": None,
+                              "totals": None}
 
         self._scrollbar_position = 0
 
@@ -65,10 +70,10 @@ class View(QTreeView):
 
     def store_settings(self, interval, tree_key, units, totals):
         """ Store intermediate settings. """
-        self._settings = {"interval": interval,
-                          "tree_key": tree_key,
-                          "units": units,
-                          "totals": totals}
+        self.temp_settings = {"interval": interval,
+                              "tree_key": tree_key,
+                              "units": units,
+                              "totals": totals}
 
     def set_first_col_spanned(self):
         """ Set parent row to be spanned over all columns. """
@@ -164,21 +169,22 @@ class View(QTreeView):
         """ Connect specific signals. """
         self.verticalScrollBar().valueChanged.connect(self.slider_moved)
 
-    def update_view_model(self, totals, is_tree, interval, view_settings,
+    def update_view_model(self, totals, is_tree, interval,
                           units_settings, select=None, filter_str=""):
         """
         Set the model and define behaviour of the tree view.
         """
         file_header = self.tot_file_header if totals else self.std_file_header
 
+        view_settings = self.settings
         view_order = view_settings["header"]
         tree_key = view_order[0] if is_tree else None
 
         # Only update the model if the settings have changed
-        conditions = [tree_key != self._settings["tree_key"],
-                      interval != self._settings["interval"],
-                      units_settings != self._settings["units"],
-                      totals != self._settings["totals"]]
+        conditions = [tree_key != self.temp_settings["tree_key"],
+                      interval != self.temp_settings["interval"],
+                      units_settings != self.temp_settings["units"],
+                      totals != self.temp_settings["totals"]]
 
         if any(conditions):
             self.disconnect_actions()
@@ -276,7 +282,7 @@ class View(QTreeView):
     def on_sort_order_changed(self, log_ix, order):
         """ Store current sorting order in main app. """
         name = self.model().headerData(log_ix, Qt.Horizontal)
-        self.callbacks[1]("order", (name, order))
+        self.settings["order"] = (name, order)
 
     def on_view_resized(self):
         """ Store interactive section width in the main app. """
@@ -285,15 +291,13 @@ class View(QTreeView):
         for i in range(header.count()):
             if header.sectionResizeMode(i) == header.Interactive:
                 width = header.sectionSize(i)
-                widths = self.callbacks[0]("widths")
-                widths["interactive"] = width
-                self.callbacks[1]("widths", widths)
+                self.settings["widths"]["interactive"] = width
 
     def on_section_moved(self, _logical_ix, old_visual_ix, new_visual_ix):
         """ Handle updating the model when first column changed. """
         names = self.get_visual_names()
-        is_tree = self._settings["tree_key"]
-        self.callbacks[1]("header", names)
+        is_tree = self.temp_settings["tree_key"]
+        self.settings["header"] = names
 
         if (new_visual_ix == 0 or old_visual_ix == 0) and is_tree:
             # need to update view as section has been moved
@@ -302,9 +306,7 @@ class View(QTreeView):
             self.update_sort_order(names[0], Qt.AscendingOrder)
 
         self.update_resize_behaviour()
-
-        widths = self.callbacks[0]("widths")
-        self.resize_header(widths)
+        self.resize_header(self.settings["widths"])
 
     def initialize_header(self):
         """ Create header actions. """
@@ -427,10 +429,9 @@ class View(QTreeView):
         proxy_model = self.model()
         if proxy_model.hasChildren(index):
             name = proxy_model.data(index)
-            exp = self.callbacks[0]("expanded")
+            exp = self.settings["expanded"]
             try:
                 exp.remove(name)
-                self.callbacks[1]("expanded", exp)
             except KeyError:
                 pass
 
@@ -439,9 +440,8 @@ class View(QTreeView):
         proxy_model = self.model()
         if proxy_model.hasChildren(index):
             name = proxy_model.data(index)
-            exp = self.callbacks[0]("expanded")
+            exp = self.settings["expanded"]
             exp.add(name)
-            self.callbacks[1]("expanded", exp)
 
 
 class ViewModel(QStandardItemModel):
