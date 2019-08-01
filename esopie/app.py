@@ -441,6 +441,7 @@ class MainWindow(QMainWindow):
 
     def populate_current_selection(self, outputs):
         """ Store current selection in main app. """
+        print("STORING!\n\t{}".format("\n\t".join([" | ".join(var) for var in outputs])))
         self.selected = outputs
 
         # enable export xlsx function TODO handle enabling of all tools
