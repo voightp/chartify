@@ -129,26 +129,27 @@ class View(QTreeView):
 
     def update_selection(self, current_selection, key):
         """ Select previously selected items when the model changes. """
-        # Clear the container
-        self.selectionCleared.emit()
+        proxy_model = self.model()
 
-        # Find matching items and select items on new model
-        proxy_selection = self.model().find_match(current_selection, key)
+        # Find matching items and select items on a new model
+        proxy_selection = proxy_model.find_match(current_selection, key)
         self.select_items(proxy_selection)
 
-        # Update main app outputs
-        self.get_items_data(proxy_selection.indexes())
+        proxy_rows = proxy_selection.indexes()
+        outputs = [proxy_model.data_from_index(index) for index in proxy_rows]
+
+        self.store_outputs(outputs)
 
     def update_scroll_position(self):
         """ Update the slider position. """
         self.verticalScrollBar().setValue(self._scrollbar_position)
 
-    def update_view_appearance(self, view_settings):
+    def update_view_appearance(self):
         """ Update the model appearance to be consistent with last view. """
-        name, order = view_settings["order"]
-        expanded_items = view_settings["expanded"]
-        view_order = view_settings["header"]
-        widths = view_settings["widths"]
+        name, order = self.settings["order"]
+        expanded_items = self.settings["expanded"]
+        view_order = self.settings["header"]
+        widths = self.settings["widths"]
 
         self.update_resize_behaviour()
         self.resize_header(widths)
@@ -176,8 +177,7 @@ class View(QTreeView):
         """
         file_header = self.tot_file_header if totals else self.std_file_header
 
-        view_settings = self.settings
-        view_order = view_settings["header"]
+        view_order = self.settings["header"]
         tree_key = view_order[0] if is_tree else None
 
         # Only update the model if the settings have changed
@@ -204,7 +204,7 @@ class View(QTreeView):
         if filter_str:
             self.filter_view(filter_str)
 
-        self.update_view_appearance(view_settings)
+        self.update_view_appearance()
 
         if not self._initialized:
             # create header actions only when view is created
@@ -330,7 +330,7 @@ class View(QTreeView):
 
     def handle_drag_attempt(self):
         """ Handle pressing the view item or items. """
-        outputs = self.handle_selection()
+        outputs = self.get_outputs()
 
         if not outputs:
             return
@@ -338,7 +338,7 @@ class View(QTreeView):
         print("HANDLING DRAG!\n\t{}".format("\n\t".join([" | ".join(var) for var in outputs])))
 
         mime_dt = QMimeData()
-        mime_dt.setText("HELLO FROM MAIN APP")
+        mime_dt.setText("HELLO FROM PIE")
         pix = QPixmap("../icons/input.png")
 
         drag = QDrag(self)
@@ -347,7 +347,7 @@ class View(QTreeView):
         drag.exec_(Qt.CopyAction)
         # create a drag object with pixmap
 
-    def handle_selection(self):
+    def get_outputs(self):
         """ Extract output information from the current selection. """
         proxy_model = self.model()
         selection_model = self.selectionModel()
@@ -376,24 +376,17 @@ class View(QTreeView):
                 # included in output variable data
                 self.deselect_item(index)
 
-        return self.get_items_data(selection_model.selectedRows())
+        outputs = [proxy_model.data_from_index(index) for index in proxy_rows]
+        self.store_outputs(outputs)
 
-    def get_items_data(self, proxy_rows):
+        return outputs
+
+    def store_outputs(self, outputs):
         """ Update outputs in the main app. """
-        outputs = []
-        proxy_model = self.model()
-
-        for index in proxy_rows:
-            item = proxy_model.item_from_index(index)
-            data = item.data(Qt.UserRole)
-            outputs.append(data)
-
         if outputs:
             self.selectionPopulated.emit(outputs)
         else:
             self.selectionCleared.emit()
-
-        return outputs
 
     def select_children(self, source_item, source_index):
         """ Select all children of the parent row. """
@@ -504,6 +497,11 @@ class FilterModel(QSortFilterProxyModel):
     def __init__(self):
         super().__init__()
 
+    def data_from_index(self, index):
+        """ Get item data from source model. """
+        item = self.item_from_index(index)
+        return item.data(Qt.UserRole)
+
     def item_from_index(self, index):
         """ Get item from source model. """
         source_index = self.mapToSource(index)
@@ -576,13 +574,11 @@ class FilterModel(QSortFilterProxyModel):
                 num_child_rows = self.rowCount(p_ix)
                 for j in range(num_child_rows):
                     ix = self.index(j, 0, p_ix)
-                    item = self.item_from_index(ix)
-                    var = item.data(Qt.UserRole)
+                    var = self.data_from_index(ix)
                     if var in current_selection:
                         self.append_item(selection, ix)
             else:
-                item = self.item_from_index(p_ix)
-                var = item.data(Qt.UserRole)
+                var = self.data_from_index(p_ix)
                 if var in current_selection:
                     self.append_item(selection, p_ix)
 
