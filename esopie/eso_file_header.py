@@ -1,4 +1,5 @@
 from collections import defaultdict, namedtuple
+from eso_reader.mini_classes import HeaderVariable
 
 
 class FileHeader:
@@ -59,16 +60,21 @@ class FileHeader:
 
         return dct
 
-    def _variables(self, interval):
-        """ Return a list of header variables for a given interval. """
-        return list(self.header_dct[interval].values())
+    def remove_header_variables(self, variables):
+        """ Remove header variables from the header. """
+        pass  # TODO this needs to be specified
+
+    def add_header_variable(self, variable):
+        """ Add a new variable (from 'Variable' class). """
+        interval, key, variable, units = variable
+        self.header_dct[interval] = HeaderVariable(key, variable, units)
 
     def get_header_iterator(self, units_settings, view_order, interval):
         """ Return data - proxy paired list of tuples. """
-        header = self._variables(interval)
-        proxy = self.create_proxy(header, units_settings, view_order)
+        variables = list(self.header_dct[interval].values())
+        proxy = self.create_proxy(variables, units_settings, view_order)
 
-        return zip(header, proxy)
+        return zip(variables, proxy)
 
 
 def convert_energy(units, energy_units):
