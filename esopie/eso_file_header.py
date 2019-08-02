@@ -64,10 +64,10 @@ class FileHeader:
         """ Remove header variables from the header. """
         pass  # TODO this needs to be specified
 
-    def add_header_variable(self, variable):
+    def add_variable(self, id_, variable):
         """ Add a new variable (from 'Variable' class). """
         interval, key, variable, units = variable
-        self.header_dct[interval] = HeaderVariable(key, variable, units)
+        self.header_dct[interval][id_] = HeaderVariable(key, variable, units)
 
     def get_header_iterator(self, units_settings, view_order, interval):
         """ Return data - proxy paired list of tuples. """

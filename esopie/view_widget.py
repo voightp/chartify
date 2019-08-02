@@ -18,7 +18,7 @@ class View(QTreeView):
                 "header": ("variable", "key", "units"),
                 "expanded": set()}
 
-    def __init__(self, id_,std_file_header, tot_file_header):
+    def __init__(self, id_, std_file_header, tot_file_header):
         super().__init__()
         self.setRootIsDecorated(True)
         self.setUniformRowHeights(True)
@@ -58,6 +58,11 @@ class View(QTreeView):
         std_id = self.std_file_header.id_
         tot_id = self.tot_file_header.id_
         return tot_id if totals else std_id
+
+    def add_header_variable(self, id_, variable, totals):
+        """ Add a new variable (from 'Variable' class) into file header. """
+        header = self.std_file_header if not totals else self.tot_file_header
+        header.add_variable(id_, variable)
 
     def filter_view(self, filter_str):
         """ Filter the model using given string. """
@@ -171,8 +176,8 @@ class View(QTreeView):
         """ Connect specific signals. """
         self.verticalScrollBar().valueChanged.connect(self.slider_moved)
 
-    def update_view_model(self, totals, is_tree, interval,
-                          units_settings, select=None, filter_str=""):
+    def update_view_model(self, totals, is_tree, interval, units_settings,
+                          force=False, select=None, filter_str=""):
         """
         Set the model and define behaviour of the tree view.
         """
@@ -187,7 +192,7 @@ class View(QTreeView):
                       units_settings != self.temp_settings["units"],
                       totals != self.temp_settings["totals"]]
 
-        if any(conditions):
+        if any(conditions) or force:
             self.disconnect_actions()
             self.build_view_model(file_header, units_settings,
                                   tree_key, view_order, interval)

@@ -264,12 +264,12 @@ class MainWindow(QMainWindow):
         self.toggle_css()
 
     @property
-    def current_file(self):
+    def current_view_wgt(self):
         """ A currently selected eso file. """
         return self.tab_wgt.get_current_widget()
 
     @property
-    def all_files(self):
+    def all_view_wgts(self):
         """ A list of all loaded eso files. """
         return self.tab_wgt.get_all_widgets()
 
@@ -286,7 +286,7 @@ class MainWindow(QMainWindow):
         if event.key() == Qt.Key_Escape:
 
             if not self.tab_wgt.is_empty():
-                self.current_file.clear_selected()
+                self.current_view_wgt.clear_selected()
 
             self.clear_current_selection()
 
@@ -391,7 +391,7 @@ class MainWindow(QMainWindow):
         """ Check if tree structure is requested. """
         return self.view_tools_wgt.tree_requested()
 
-    def build_view(self):
+    def build_view(self, force=False):
         """ Create a new model when the tab or the interval has changed. """
         is_tree = self.tree_requested()
         totals = self.totals_requested()
@@ -399,25 +399,53 @@ class MainWindow(QMainWindow):
         units_settings = self.get_units_settings()
         filter_str = self.get_filter_str()
 
-        eso_file_widget = self.current_file
+        eso_file_widget = self.current_view_wgt
         selection = self.selected
 
         if not eso_file_widget:
             return
 
         eso_file_widget.update_view_model(totals, is_tree, interval, units_settings,
-                                          select=selection, filter_str=filter_str)
+                                          force=force, select=selection, filter_str=filter_str)
 
-    def delete_files_from_db(self, *args):
+    def get_used_ids_from_db(self):
+        """ Get a list of already used set ids. """
+        return self.database.keys()
+
+    def delete_sets_from_db(self, *args):
         """ Delete the eso file from the database. """
         try:
             for id_ in args:
-                print("Deleting file id: '{}' from database.".format(self.database[id_]))
+                print(f"Deleting file id: '{id_}' from database.")
                 del self.database[id_]
 
         except KeyError:
             print("Cannot delete the eso file: id '{}',\n"
                   "File was not found in database.".format(file_id))
+
+    def get_files_from_db(self, *args):
+        """ Fetch eso files from the database. """
+        files = []
+
+        for set_id, file_dct in self.database.items():
+            try:
+                f = next(f for f_id, f in file_dct.items() if f_id in args)
+                files.append(f)
+            except StopIteration:
+                pass
+
+        if len(args) != len(files):
+            diff = set(args).difference(set(files))
+            print("Cannot find '{}' files in db!".format(", ".join(list(diff))))
+
+        return files
+
+    def add_set_to_db(self, id_, file_set):
+        """ Add processed eso file to the database. """
+        try:
+            self.database[id_] = file_set
+        except BrokenPipeError:
+            print("Application has been closed - catching broken pipe!")
 
     def close_all_tabs(self):
         """ Delete all the content. """
@@ -428,16 +456,8 @@ class MainWindow(QMainWindow):
             ids.append(wgts[i].tot_file_header.id_)
             wgts[i].deleteLater()
 
-        self.delete_files_from_db(*ids)
+        self.delete_sets_from_db(*ids)
         self.toolbar.set_initial_layout()
-
-    def add_file_to_db(self, file_id, eso_file):
-        """ Add processed eso file to the database. """
-        try:
-            self.database[file_id] = eso_file
-
-        except BrokenPipeError:
-            print("Application has been closed - catching broken pipe!")
 
     def populate_current_selection(self, outputs):
         """ Store current selection in main app. """
@@ -446,6 +466,11 @@ class MainWindow(QMainWindow):
 
         # enable export xlsx function TODO handle enabling of all tools
         self.toolbar.export_xlsx_btn.setEnabled(True)
+        self.toolbar.remove_vars_btn.setEnabled(True)
+
+        if len(outputs) > 1:
+            self.toolbar.sum_vars_btn.setEnabled(True)
+            self.toolbar.mean_vars_btn.setEnabled(True)
 
     def clear_current_selection(self):
         """ Handle behaviour when no variables are selected. """
@@ -454,14 +479,18 @@ class MainWindow(QMainWindow):
         # disable export xlsx as there are no
         # variables to be exported TODO handle enabling of all tools
         self.toolbar.export_xlsx_btn.setEnabled(False)
+        self.toolbar.remove_vars_btn.setEnabled(False)
+        self.toolbar.sum_vars_btn.setEnabled(False)
+        self.toolbar.mean_vars_btn.setEnabled(False)
 
-    def create_view_wgt(self, std_file_header, tot_file_header):
+    def create_view_wgt(self, id_, std_file_header, tot_file_header):
         """ Create a 'View' widget and connect its actions. """
-        wgt = View(std_file_header, tot_file_header)
+        wgt = View(id_, std_file_header, tot_file_header)
 
         wgt.selectionCleared.connect(self.clear_current_selection)
         wgt.selectionPopulated.connect(self.populate_current_selection)
         wgt.updateView.connect(self.build_view)
+
         return wgt
 
     def on_file_loaded(self, id_, std_file, tot_file):
@@ -469,13 +498,15 @@ class MainWindow(QMainWindow):
         std_id = f"s{id_}"
         tot_id = f"t{id_}"
 
-        std_file_header = FileHeader(std_id, std_file.header_dct)
-        tot_file_header = FileHeader(tot_id, tot_file.header_dct)
+        std_header = FileHeader(std_id, std_file.header_dct)
+        tot_header = FileHeader(tot_id, tot_file.header_dct)
 
-        self.add_file_to_db(std_id, std_file)
-        self.add_file_to_db(tot_id, std_file)
+        file_set = {std_id: std_file,
+                    tot_id: tot_file}
 
-        wgt = self.create_view_wgt(std_file_header, tot_file_header)
+        self.add_set_to_db(id_, file_set)
+
+        wgt = self.create_view_wgt(id_, std_header, tot_header)
         self.tab_wgt.add_tab(wgt, std_file.file_name)
 
         # enable all eso file results btn if there's multiple files
@@ -489,17 +520,17 @@ class MainWindow(QMainWindow):
     def filter_view(self, filter_string):
         """ Filter current view. """
         if not self.tab_wgt.is_empty():
-            self.current_file.filter_view(filter_string)
+            self.current_view_wgt.filter_view(filter_string)
 
     def expand_all(self):
         """ Expand all tree view items. """
-        if self.current_file:
-            self.current_file.expandAll()
+        if self.current_view_wgt:
+            self.current_view_wgt.expandAll()
 
     def collapse_all(self):
         """ Collapse all tree view items. """
-        if self.current_file:
-            self.current_file.collapseAll()
+        if self.current_view_wgt:
+            self.current_view_wgt.collapseAll()
 
     def remove_eso_file(self, wgt):
         """ Delete current eso file. """
@@ -507,7 +538,7 @@ class MainWindow(QMainWindow):
         tot_id_ = wgt.tot_file_header.id_
 
         wgt.deleteLater()
-        self.delete_files_from_db(std_id_, tot_id_)
+        self.delete_sets_from_db(std_id_, tot_id_)
 
         if self.tab_wgt.is_empty():
             self.toolbar.totals_btn.setEnabled(False)
@@ -517,7 +548,7 @@ class MainWindow(QMainWindow):
 
     def get_available_intervals(self):
         """ Get available intervals for the current eso file. """
-        return self.current_file.std_file_header.available_intervals
+        return self.current_view_wgt.std_file_header.available_intervals
 
     def on_tab_changed(self, index):
         """ Update view when tabChanged event is fired. """
@@ -536,7 +567,7 @@ class MainWindow(QMainWindow):
         progress_queue = self.progress_queue
         file_queue = self.file_queue
 
-        used_ids = self.database.keys()
+        used_ids = self.get_used_ids_from_db()
         n = len(eso_file_paths)
         ids = generate_ids(used_ids, n=n)
 
@@ -571,13 +602,33 @@ class MainWindow(QMainWindow):
         #     e = time.perf_counter()
         #     print("Printing file: {}".format((e - s)))
 
+    def add_new_var(self, func):
+        """ Add a new variable to the file. """
+        variables = self.get_current_request()
+        totals = self.totals_requested()
+        views = [self.current_view_wgt] if not totals else self.all_view_wgts
+
+        for view in views:
+            file_id = view.get_file_id(totals)
+            file = self.get_files_from_db(file_id)[0]  # files are always returned as list
+
+            if isinstance(file, list):
+                file = file[0]
+
+            var_id = file.aggregate_variables(variables, func, key_name="Custom Key",
+                                              variable_name="Custom Variable", part_match=False)
+            var = file.get_variables_by_id(var_id)[0]  # vars are always returned as list
+            view.add_header_variable(var_id, var, totals)
+
+        self.build_view(force=True)
+
     def add_mean_var(self):
         """ Create a new 'mean' variable. """
-        pass
+        self.add_new_var("mean")
 
     def add_summed_var(self):
         """ Create a new 'summed' variable. """
-        pass
+        self.add_new_var("sum")
 
     def remove_vars(self):
         """ Remove variables from a file. """
@@ -604,36 +655,34 @@ class MainWindow(QMainWindow):
         self.toolbar.removeRequested.connect(self.remove_vars)
         self.toolbar.sumRequested.connect(self.add_summed_var)
 
-    def get_files_ids(self):
-        """ Return current file id or ids for all files based on 'all files btn' state. """
-        tots = self.totals_requested()
-        if self.all_files_requested():
-            return [f.get_file_id(tots) for f in self.all_files]
+    def get_current_file_ids(self):
+        """ Return current file id or ids based on 'all files btn' state. """
+        totals = self.totals_requested()
 
-        return [self.current_file.get_file_id(tots)]
+        if self.all_files_requested():
+            return [f.get_file_id(totals) for f in self.all_view_wgts]
+
+        return [self.current_view_wgt.get_file_id(totals)]
 
     def get_current_request(self):
         """ Get a currently selected output variables information. """
         outputs = self.selected
-        ids = self.get_files_ids()
         interval = self.get_current_interval()
         variables = None
 
         if outputs:
             variables = [Variable(interval, *item) for item in outputs]
 
-        return ids, variables
+        return variables
 
     def results_df(self):
         """ Get output values for given variables. """
-        ids, variables = self.get_current_request()
+        variables = self.get_current_request()
         rate_to_energy, units_system, energy, power = self.get_units_settings()
         rate_to_energy_dct = {self.get_current_interval(): rate_to_energy}
 
-        if len(ids) == 1:
-            files = self.database[ids[0]]
-        else:
-            files = [v for k, v in self.database.items() if k in ids]
+        ids = self.get_current_file_ids()
+        files = self.get_files_from_db(*ids)
 
         worker = ResultsFetcher(get_results, files, variables, rate_units=power,
                                 energy_units=energy, add_file_name="column",
