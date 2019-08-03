@@ -391,7 +391,7 @@ class MainWindow(QMainWindow):
         """ Check if tree structure is requested. """
         return self.view_tools_wgt.tree_requested()
 
-    def build_view(self, force=False):
+    def build_view(self, all_views=False, force=False):
         """ Create a new model when the tab or the interval has changed. """
         is_tree = self.tree_requested()
         totals = self.totals_requested()
@@ -399,14 +399,15 @@ class MainWindow(QMainWindow):
         units_settings = self.get_units_settings()
         filter_str = self.get_filter_str()
 
-        eso_file_widget = self.current_view_wgt
+        views = self.all_view_wgts if all_views else [self.current_view_wgt]
         selection = self.selected
 
-        if not eso_file_widget:
+        if not views:
             return
 
-        eso_file_widget.update_view_model(totals, is_tree, interval, units_settings,
-                                          force=force, select=selection, filter_str=filter_str)
+        for view in views:
+            view.update_model(totals, is_tree, interval, units_settings,
+                              force=force, select=selection, filter_str=filter_str)
 
     def get_used_ids_from_db(self):
         """ Get a list of already used set ids. """
@@ -606,21 +607,20 @@ class MainWindow(QMainWindow):
         """ Add a new variable to the file. """
         variables = self.get_current_request()
         totals = self.totals_requested()
-        views = [self.current_view_wgt] if not totals else self.all_view_wgts
+        all_views = self.all_files_requested()
+        views = self.all_view_wgts if all_views else [self.current_view_wgt]
 
         for view in views:
             file_id = view.get_file_id(totals)
             file = self.get_files_from_db(file_id)[0]  # files are always returned as list
 
-            if isinstance(file, list):
-                file = file[0]
-
             var_id = file.aggregate_variables(variables, func, key_name="Custom Key",
                                               variable_name="Custom Variable", part_match=False)
-            var = file.get_variables_by_id(var_id)[0]  # vars are always returned as list
-            view.add_header_variable(var_id, var, totals)
+            if var_id:
+                var = file.get_variables_by_id(var_id)[0]  # vars are always returned as list
+                view.add_header_variable(var_id, var, totals)
 
-        self.build_view(force=True)
+        self.build_view(all_views=all_views, force=True)
 
     def add_mean_var(self):
         """ Create a new 'mean' variable. """

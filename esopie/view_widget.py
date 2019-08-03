@@ -89,8 +89,8 @@ class View(QTreeView):
             if model.hasChildren(ix):
                 self.setFirstColumnSpanned(i, self.rootIndex(), True)
 
-    def build_view_model(self, eso_file_header, units_settings,
-                         tree_key, view_order, interval):
+    def build_model(self, eso_file_header, units_settings,
+                    tree_key, view_order, interval):
         """
         Create a model and set up its appearance.
         """
@@ -176,8 +176,8 @@ class View(QTreeView):
         """ Connect specific signals. """
         self.verticalScrollBar().valueChanged.connect(self.slider_moved)
 
-    def update_view_model(self, totals, is_tree, interval, units_settings,
-                          force=False, select=None, filter_str=""):
+    def update_model(self, totals, is_tree, interval, units_settings,
+                     force=False, select=None, filter_str=""):
         """
         Set the model and define behaviour of the tree view.
         """
@@ -194,8 +194,8 @@ class View(QTreeView):
 
         if any(conditions) or force:
             self.disconnect_actions()
-            self.build_view_model(file_header, units_settings,
-                                  tree_key, view_order, interval)
+            self.build_model(file_header, units_settings,
+                             tree_key, view_order, interval)
 
             # Store current sorting key and interval
             self.store_settings(interval, tree_key, units_settings, totals)
