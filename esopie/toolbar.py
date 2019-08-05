@@ -90,6 +90,7 @@ class Toolbar(QFrame):
     sumRequested = Signal()
     meanRequested = Signal()
     removeRequested = Signal()
+    totalsChanged = Signal(bool)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -421,9 +422,9 @@ class Toolbar(QFrame):
         """ Update view when rate_to_energy changes. """
         self.updateView.emit()
 
-    def totals_toggled(self):
+    def totals_toggled(self, checked):
         """ Toggle standard outputs and totals. """
-        self.updateView.emit()
+        self.totalsChanged.emit(checked)
 
     def toggle_units(self, units_system):
         """ Handle displaying allowed units for given units system. """

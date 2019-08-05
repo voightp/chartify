@@ -1,5 +1,5 @@
 from collections import defaultdict, namedtuple
-from eso_reader.mini_classes import HeaderVariable
+from eso_reader.mini_classes import HeaderVariable, Variable
 
 
 class FileHeader:
@@ -45,16 +45,18 @@ class FileHeader:
         """ Restore hidden variables visibility. """
         for interval, ids in self.hidden.items():
             for id_ in ids:
-                var = self.hidden[interval].pop(id_)
-                self.header_dct[interval] = var
+                var = self.hidden[interval][id_]
+                self.header_dct[interval][id_] = var
+
+        self.hidden = defaultdict(dict)
 
     def remove_hidden_variables(self):
         """ Remove hidden variables. """
         variables = []
         for interval, ids in self.hidden.items():
             for id_ in ids:
-                var = self.hidden[interval].pop(id_)
-                variables.append(var)
+                var = self.hidden[interval][id_]
+                variables.append(Variable(interval, *var))
 
         self.hidden = defaultdict(dict)
         return variables
@@ -64,7 +66,7 @@ class FileHeader:
         for interval, ids in groups.items():
             for id_ in ids:
                 var = self.header_dct[interval].pop(id_)
-                self.hidden[interval] = var
+                self.hidden[interval][id_] = var
                 # TODO check what happens if all the variables are hidden
 
     def remove_variables(self, groups):
