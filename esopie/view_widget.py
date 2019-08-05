@@ -456,18 +456,18 @@ class ViewModel(QStandardItemModel):
     @staticmethod
     def set_status_tip(item, var):
         """ Parse variable to create a status tip. """
-        tip = "{}  |  {}  |  {}".format(var.variable, var.key, var.units)
+        tip = f"{var.key}  |  {var.variable}  |  {var.units}"
         item.setStatusTip(tip)
 
     def _append_rows(self, header_iterator, parent, tree=False):
         """ Add rows to the model. """
         for data, proxy in header_iterator:
-            if tree:
-                proxy = [None, proxy[1], proxy[2]]
-            row = [QStandardItem(item) for item in proxy]
+            proxy_dt = [None, proxy[1], proxy[2]] if tree else proxy
+
+            row = [QStandardItem(item) for item in proxy_dt]
             row[0].setData(data, Qt.UserRole)  # First item in row holds all the information
 
-            _ = [self.set_status_tip(item, data) for item in row]
+            _ = [self.set_status_tip(item, proxy) for item in row]
             parent.appendRow(row)
 
     def _append_tree_rows(self, tree_header, root):
