@@ -329,11 +329,6 @@ class View(QTreeView):
         """ Handle moving view slider. """
         self._scrollbar_position = val
 
-    def fetch_request(self):
-        """ Get currently requested outputs. """
-        file_ids, variables = self.main_app.get_current_request()
-        return file_ids, variables
-
     def handle_drag_attempt(self):
         """ Handle pressing the view item or items. """
         outputs = self.get_outputs()
