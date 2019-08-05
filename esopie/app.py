@@ -648,16 +648,6 @@ class MainWindow(QMainWindow):
 
         self.build_view()
 
-    def add_mean_var(self):
-        """ Create a new 'mean' variable. """
-        variables = self.get_current_request()
-        self.apply_tools_func(self.add_new_var, variables, "mean")
-
-    def add_summed_var(self):
-        """ Create a new 'summed' variable. """
-        variables = self.get_current_request()
-        self.apply_tools_func(self.add_new_var, variables, "sum")
-
     def dump_vars(self, view, variables, remove=False):
         """ Hide or remove the """
         file_id = view.get_file_id()
@@ -689,6 +679,16 @@ class MainWindow(QMainWindow):
         for view in self.current_view_wgts:
             view.remove_hidden_header_variables()
 
+    def add_mean_var(self):
+        """ Create a new 'mean' variable. """
+        variables = self.get_current_request()
+        self.apply_tools_func(self.add_new_var, variables, "mean")
+
+    def add_summed_var(self):
+        """ Create a new 'summed' variable. """
+        variables = self.get_current_request()
+        self.apply_tools_func(self.add_new_var, variables, "sum")
+
     def remove_vars(self):
         """ Remove variables from a file. """
         variables = self.get_current_request()
@@ -698,28 +698,6 @@ class MainWindow(QMainWindow):
         """ Temporarily hide variables. """
         variables = self.get_current_request()
         self.apply_tools_func(self.dump_vars, variables)
-
-    def connect_ui_actions(self):
-        """ Create actions which depend on user actions """
-        # ~~~~ View Actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.left_main_wgt.fileDropped.connect(self.load_files)
-        self.view_tools_wgt.filterViewItems.connect(self.filter_view)
-        self.view_tools_wgt.updateView.connect(self.build_view)
-        self.view_tools_wgt.expandViewItems.connect(self.expand_all)
-        self.view_tools_wgt.collapseViewItems.connect(self.collapse_all)
-
-        # ~~~~ Tab actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.tab_wgt.tabClosed.connect(self.remove_eso_file)
-        self.tab_wgt.currentChanged.connect(self.on_tab_changed)
-        self.tab_wgt.fileLoadRequested.connect(self.load_files_from_os)
-
-        # ~~~~ Outputs actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.toolbar.updateView.connect(self.build_view)
-        self.toolbar.xlsxRequested.connect(self.export_xlsx)
-        self.toolbar.meanRequested.connect(self.add_mean_var)
-        self.toolbar.removeRequested.connect(self.remove_vars)
-        self.toolbar.sumRequested.connect(self.add_summed_var)
-        self.toolbar.totalsChanged.connect(self.on_totals_change)
 
     def get_current_file_ids(self):
         """ Return current file id or ids based on 'all files btn' state. """
@@ -753,6 +731,28 @@ class MainWindow(QMainWindow):
                                 rate_to_energy_dct=rate_to_energy_dct)
 
         self.thread_pool.start(worker)
+
+    def connect_ui_actions(self):
+        """ Create actions which depend on user actions """
+        # ~~~~ View Actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.left_main_wgt.fileDropped.connect(self.load_files)
+        self.view_tools_wgt.filterViewItems.connect(self.filter_view)
+        self.view_tools_wgt.updateView.connect(self.build_view)
+        self.view_tools_wgt.expandViewItems.connect(self.expand_all)
+        self.view_tools_wgt.collapseViewItems.connect(self.collapse_all)
+
+        # ~~~~ Tab actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.tab_wgt.tabClosed.connect(self.remove_eso_file)
+        self.tab_wgt.currentChanged.connect(self.on_tab_changed)
+        self.tab_wgt.fileLoadRequested.connect(self.load_files_from_os)
+
+        # ~~~~ Outputs actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.toolbar.updateView.connect(self.build_view)
+        self.toolbar.xlsxRequested.connect(self.export_xlsx)
+        self.toolbar.meanRequested.connect(self.add_mean_var)
+        self.toolbar.removeRequested.connect(self.remove_vars)
+        self.toolbar.sumRequested.connect(self.add_summed_var)
+        self.toolbar.totalsChanged.connect(self.on_totals_change)
 
 
 if __name__ == "__main__":

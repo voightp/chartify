@@ -315,6 +315,7 @@ class Toolbar(QFrame):
         """ Define an app layout when there isn't any file loaded. """
         self.all_files_btn.setEnabled(False)
         self.totals_btn.setEnabled(False)
+        self.rate_to_energy_btn.setEnabled(True)
 
         self.disable_interval_btns()
         self.populate_intervals_group(hide_disabled=False)
@@ -322,15 +323,19 @@ class Toolbar(QFrame):
         self.populate_outputs_group()
         self.populate_tools_group()
 
-    def interval_changed(self):
-        """ Update view when an interval is changed. """
+    def update_rate_ene_state(self):
+        """ Enable or disable rate to energy button. """
         # handle changing the state on rate_to_energy_btn
         # as this is allowed only for daily+ intervals
         if self.custom_units_toggle.isChecked():
-            interval = self.get_selected_interval()
-            b = interval not in [TS, H]
+            b = self.get_selected_interval() not in [TS, H]
             self.rate_to_energy_btn.setEnabled(b)
+        else:
+            self.rate_to_energy_btn.setEnabled(False)
 
+    def interval_changed(self):
+        """ Update view when an interval is changed. """
+        self.update_rate_ene_state()
         self.updateView.emit()
 
     def get_selected_interval(self):
@@ -358,6 +363,8 @@ class Toolbar(QFrame):
         if selected_interval not in available_intervals:
             btn = next(btn for btn in all_btns_dct.values() if btn.isEnabled())
             btn.setChecked(True)
+
+        self.update_rate_ene_state()
 
     def get_units_settings(self):
         """ Get currently selected units. """
@@ -389,13 +396,15 @@ class Toolbar(QFrame):
             act = btn.get_action(data=data)
             btn.update_state_internally(act)
 
-        enabled = self._units_settings["rate_to_energy"]
-        self.rate_to_energy_btn.setEnabled(enabled)
+        checked = self._units_settings["rate_to_energy"]
+        self.rate_to_energy_btn.setChecked(checked)
 
     def enable_units_buttons(self, enabled):
         """ Enable or disable units settings buttons. """
-        for btn in self.units_btns:
+        for btn in self.units_btns[:3]:
             btn.setEnabled(enabled)
+
+        self.update_rate_ene_state()
 
     def reset_units_to_default(self):
         """ Reset units to E+ default. """
@@ -405,6 +414,9 @@ class Toolbar(QFrame):
         for dt, btn in zip(data, btns):
             act = btn.get_action(data=dt)
             btn.update_state_internally(act)
+
+        self.rate_to_energy_btn.setEnabled(False)
+        self.rate_to_energy_btn.setChecked(False)
 
     def units_settings_toggled(self, state):
         """ Update units settings when custom units toggled. """
