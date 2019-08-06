@@ -6,7 +6,7 @@ import psutil
 
 from PySide2.QtWidgets import (QWidget, QSplitter, QHBoxLayout, QVBoxLayout, QToolButton, QAction, QFileDialog,
                                QSizePolicy, QApplication, QMenu, QFrame, QMainWindow)
-from PySide2.QtCore import QSize, Qt, QThreadPool
+from PySide2.QtCore import QSize, Qt, QThreadPool, QCoreApplication, QSettings, QPoint
 from PySide2.QtWebEngineWidgets import QWebEngineView, QWebEngineSettings
 from PySide2.QtGui import QIcon, QPixmap, QFontDatabase
 
@@ -111,11 +111,16 @@ class MainWindow(QMainWindow):
     primary_color = {"r": 112, "g": 112, "b": 112}
     secondary_color = {"r": 112, "g": 112, "b": 112}
 
+    QCoreApplication.setOrganizationName("piecompany")
+    QCoreApplication.setOrganizationDomain("piecomp.foo")
+    QCoreApplication.setApplicationName("piepie")
+
     def __init__(self):
         super(MainWindow, self).__init__()
+        settings = QSettings()
         # ~~~~ Main Window setup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.setGeometry(50, 50, 800, 600)
-        self.setWindowTitle("eso pie")
+        self.setWindowTitle("pie pie")
+        self.read_settings()
 
         # ~~~~ Main Window widgets ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.central_wgt = QWidget(self)
@@ -296,8 +301,22 @@ class MainWindow(QMainWindow):
         """ A list of all loaded eso files. """
         return self.tab_wgt.get_all_widgets()
 
+    def read_settings(self):
+        """ Apply application settings. """
+        settings = QSettings()
+        self.resize(settings.value("MainWindow/size", QSize(800, 600)))
+        self.move(settings.value("MainWindow/pos", QPoint(50, 50)))
+
+    def store_settings(self):
+        """ Store application settings. """
+        settings = QSettings()
+        settings.setValue("MainWindow/size", self.size())
+        settings.setValue("MainWindow/pos", self.pos())
+
     def closeEvent(self, event):
         """ Shutdown all the background stuff. """
+        self.store_settings()
+
         self.watcher.terminate()
         self.progress_cont.monitor_thread.terminate()
         self.manager.shutdown()
