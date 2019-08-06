@@ -1,6 +1,7 @@
 from PySide2.QtWidgets import QTreeView, QAbstractItemView, QHeaderView
-from PySide2.QtCore import Qt, QSortFilterProxyModel, QItemSelectionModel, QItemSelection, QItemSelectionRange, \
-    QMimeData, Signal, QObject
+from PySide2.QtCore import (Qt, QSortFilterProxyModel, QItemSelectionModel,
+                            QItemSelection, QItemSelectionRange, QMimeData,
+                            Signal, QObject)
 from PySide2.QtGui import QDrag, QPixmap
 
 from PySide2.QtGui import QStandardItemModel, QStandardItem
@@ -123,12 +124,14 @@ class View(QTreeView):
             if model.hasChildren(ix):
                 self.setFirstColumnSpanned(i, self.rootIndex(), True)
 
-    def build_model(self, header, units_settings, tree_key, view_order, interval):
+    def build_model(self, header, units_settings,
+                    tree_key, view_order, interval):
         """
         Create a model and set up its appearance.
         """
         model = ViewModel()
-        model.populate_data(header, units_settings, tree_key, view_order, interval)
+        model.populate_data(header, units_settings,
+                            tree_key, view_order, interval)
 
         proxy_model = FilterModel()
         proxy_model.setSourceModel(model)
@@ -227,7 +230,8 @@ class View(QTreeView):
 
         if any(conditions):
             self.disconnect_actions()
-            self.build_model(header, units_settings, tree_key, view_order, interval)
+            self.build_model(header, units_settings,
+                             tree_key, view_order, interval)
 
             # Store current sorting key and interval
             self.store_settings(interval, tree_key, units_settings, totals)
@@ -271,7 +275,8 @@ class View(QTreeView):
         """ Define resizing behaviour. """
         header = self.header()
 
-        # both logical and visual indexes are ordered as 'key', 'variable', 'units'
+        # both logical and visual indexes are ordered
+        # as 'key', 'variable', 'units'
         log_ixs = self.get_logical_ixs()
         vis_ixs = [self.header().visualIndex(i) for i in log_ixs]
 
@@ -293,8 +298,8 @@ class View(QTreeView):
         """ Get names sorted by logical index. """
         model = self.model()
         num = model.columnCount()
-        names = [model.headerData(i, Qt.Horizontal).lower() for i in range(num)]
-        return names
+        nms = [model.headerData(i, Qt.Horizontal).lower() for i in range(num)]
+        return nms
 
     def get_visual_names(self):
         """ Return sorted column names (by visual index). """
@@ -368,7 +373,8 @@ class View(QTreeView):
         if not outputs:
             return
 
-        print("HANDLING DRAG!\n\t{}".format("\n\t".join([" | ".join(var) for var in outputs])))
+        outputs_str_lst = [" | ".join(var) for var in outputs]
+        print("HANDLING DRAG!\n\t{}".format("\n\t".join(outputs_str_lst)))
 
         mime_dt = QMimeData()
         mime_dt.setText("HELLO FROM PIE")
@@ -402,14 +408,17 @@ class View(QTreeView):
             if source_item.hasChildren():
                 expanded = self.isExpanded(index)
 
-                if expanded and not any(map(lambda x: x.parent() == source_index, rows)):
+                cond = any(map(lambda x: x.parent() == source_index, rows))
+                if expanded and not cond:
                     self.select_children(source_item, source_index)
 
                 # deselect all the parent nodes as these should not be
                 # included in output variable data
                 self.deselect_item(index)
 
-        proxy_rows = selection_model.selectedRows()  # needs to be called again to get updated selection
+        # needs to be called again to get updated selection
+        proxy_rows = selection_model.selectedRows()
+
         outputs = [proxy_model.data_from_index(index) for index in proxy_rows]
         self.store_outputs(outputs)
 
@@ -435,21 +444,24 @@ class View(QTreeView):
     def clear_selected(self):
         """ Clear all selected rows. """
         self.selectionCleared.emit()
-        self.selectionModel().clearSelection()  # Note that this emits selectionChanged signal
+        self.selectionModel().clearSelection()
 
     def deselect_item(self, proxy_index):
         """ Select an item programmatically. """
-        self.selectionModel().select(proxy_index, QItemSelectionModel.Deselect |
+        self.selectionModel().select(proxy_index,
+                                     QItemSelectionModel.Deselect |
                                      QItemSelectionModel.Rows)
 
     def select_item(self, proxy_index):
         """ Select an item programmatically. """
-        self.selectionModel().select(proxy_index, QItemSelectionModel.Select |
+        self.selectionModel().select(proxy_index,
+                                     QItemSelectionModel.Select |
                                      QItemSelectionModel.Rows)
 
     def select_items(self, proxy_selection):
         """ Select items given by given selection (model indexes). """
-        self.selectionModel().select(proxy_selection, QItemSelectionModel.Select |
+        self.selectionModel().select(proxy_selection,
+                                     QItemSelectionModel.Select |
                                      QItemSelectionModel.Rows)
 
     def handle_collapsed(self, index):
@@ -493,7 +505,9 @@ class ViewModel(QStandardItemModel):
             proxy_dt = [None, proxy[1], proxy[2]] if tree else proxy
 
             row = [QStandardItem(item) for item in proxy_dt]
-            row[0].setData(data, Qt.UserRole)  # First item in row holds all the information
+
+            # first item in row holds all the information
+            row[0].setData(data, Qt.UserRole)
 
             _ = [self.set_status_tip(item, proxy) for item in row]
             parent.appendRow(row)
@@ -512,10 +526,12 @@ class ViewModel(QStandardItemModel):
                 root.appendRow(parent)
                 self._append_rows(variables, parent, tree=True)
 
-    def populate_data(self, header, units_settings, tree_key, view_order, interval):
+    def populate_data(self, header, units_settings, tree_key, view_order,
+                      interval):
         """ Feed the model with output variables. """
         root = self.invisibleRootItem()
-        header = header.get_header_iterator(units_settings, view_order, interval)
+        header = header.get_header_iterator(units_settings, view_order,
+                                            interval)
 
         if not tree_key:
             # tree like structure is not being used
@@ -565,7 +581,8 @@ class FilterModel(QSortFilterProxyModel):
         ix1 = source_model.index(source_row, 1, source_parent)
 
         if self.sourceModel().data(ix1) is None:
-            return False  # Exclude parent nodes (these are enabled due to recursive filter)
+            # exclude parent nodes (these are enabled due to recursive filter)
+            return False
 
         else:
             item = source_model.itemFromIndex(ix0)
@@ -589,9 +606,9 @@ class FilterModel(QSortFilterProxyModel):
         """ Check if output variables are available in a new model. """
         selection = QItemSelection()
 
-        # create a list which holds parent parts of currently selected items
-        # if the part of variable does not match, than the variable (or any children)
-        # will not be selected
+        # create a list which holds parent parts of currently
+        # selected items, if the part of variable does not match,
+        # than the variable (or any children) will not be selected
         quick_check = [var.__getattribute__(key) for var in current_selection]
 
         num_rows = self.rowCount()

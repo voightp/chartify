@@ -4,9 +4,11 @@ import ctypes
 import loky
 import psutil
 
-from PySide2.QtWidgets import (QWidget, QSplitter, QHBoxLayout, QVBoxLayout, QToolButton, QAction, QFileDialog,
-                               QSizePolicy, QApplication, QMenu, QFrame, QMainWindow)
-from PySide2.QtCore import QSize, Qt, QThreadPool, QCoreApplication, QSettings, QPoint
+from PySide2.QtWidgets import (QWidget, QSplitter, QHBoxLayout, QVBoxLayout,
+                               QToolButton, QAction, QFileDialog, QSizePolicy,
+                               QApplication, QMenu, QFrame, QMainWindow)
+from PySide2.QtCore import (QSize, Qt, QThreadPool, QCoreApplication, QSettings,
+                            QPoint)
 from PySide2.QtWebEngineWidgets import QWebEngineView, QWebEngineSettings
 from PySide2.QtGui import QIcon, QPixmap, QFontDatabase
 
@@ -28,7 +30,8 @@ from queue import Queue
 from multiprocessing import Manager, cpu_count
 from esopie.view_widget import View
 from random import randint
-from esopie.threads import EsoFileWatcher, GuiMonitor, ResultsFetcher, IterWorker
+from esopie.threads import (EsoFileWatcher, GuiMonitor, ResultsFetcher,
+                            IterWorker)
 
 
 def create_pool():
@@ -117,11 +120,11 @@ class MainWindow(QMainWindow):
 
     def __init__(self):
         super(MainWindow, self).__init__()
-        # ~~~~ Main Window setup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # ~~~~ Main Window setup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.setWindowTitle("pie pie")
         self.read_settings()
 
-        # ~~~~ Main Window widgets ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # ~~~~ Main Window widgets ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.central_wgt = QWidget(self)
         self.central_layout = QHBoxLayout(self.central_wgt)
         self.setCentralWidget(self.central_wgt)
@@ -129,62 +132,65 @@ class MainWindow(QMainWindow):
         self.central_splitter.setOrientation(Qt.Horizontal)
         self.central_layout.addWidget(self.central_splitter)
 
-        # ~~~~ Left hand area ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # ~~~~ Left hand area ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.left_main_wgt = DropFrame(self.central_splitter)
         self.left_main_wgt.setObjectName("leftMainWgt")
         self.left_main_layout = QHBoxLayout(self.left_main_wgt)
         self.central_splitter.addWidget(self.left_main_wgt)
 
-        # ~~~~ Left hand Tools Widget ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # ~~~~ Left hand Tools Widget ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.toolbar = Toolbar(self.left_main_wgt)
         self.left_main_layout.addWidget(self.toolbar)
 
-        # ~~~~ Left hand View widget  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # ~~~~ Left hand View widget  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.view_wgt = QFrame(self.left_main_wgt)
         self.view_wgt.setObjectName("viewWidget")
         self.view_layout = QVBoxLayout(self.view_wgt)
         self.left_main_layout.addWidget(self.view_wgt)
 
-        # ~~~~ Left hand Tab widget  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # ~~~~ Left hand Tab widget  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.tab_wgt = TabWidget(self.view_wgt)
         self.view_layout.addWidget(self.tab_wgt)
 
-        # ~~~~ Left hand Tab Tools  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # ~~~~ Left hand Tab Tools  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.view_tools_wgt = ViewTools(self.view_wgt)
         self.view_layout.addWidget(self.view_tools_wgt)
 
-        # ~~~~ Right hand area ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # ~~~~ Right hand area ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.right_main_wgt = QWidget(self.central_splitter)
         self.right_main_layout = QHBoxLayout(self.right_main_wgt)
         self.central_splitter.addWidget(self.right_main_wgt)
 
-        # ~~~~ Right hand Chart Area ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # ~~~~ Right hand Chart Area ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.main_chart_widget = QWidget(self.right_main_wgt)
         self.main_chart_layout = QHBoxLayout(self.main_chart_widget)
         self.right_main_layout.addWidget(self.main_chart_widget)
 
-        # ~~~~ Actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # ~~~~ Actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.connect_ui_actions()
 
-        # ~~~~ Intermediate settings ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # ~~~~ Intermediate settings ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.selected = None
 
-        # ~~~~ Queues ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # ~~~~ Queues ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.file_queue = Queue()
         self.manager = Manager()
         self.progress_queue = self.manager.Queue()
 
-        # ~~~~ Status bar ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # ~~~~ Status bar ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.status_bar = StatusBar(self)
         self.setStatusBar(self.status_bar)
 
-        self.progress_cont = ProgressContainer(self.status_bar, self.progress_queue)
+        self.progress_cont = ProgressContainer(self.status_bar,
+                                               self.progress_queue)
         self.status_bar.addWidget(self.progress_cont)
 
         self.swap_btn = QToolButton(self)
         self.swap_btn.clicked.connect(self.mirror)
         self.swap_btn.setObjectName("swapButton")
-        self.swap_btn.setIcon(Pixmap("../icons/swap_black.png", **self.primary_color))
+
+        pix = Pixmap("../icons/swap_black.png", **self.primary_color)
+        self.swap_btn.setIcon(pix)
         self.status_bar.addPermanentWidget(self.swap_btn)
 
         # ~~~~ Database ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -208,12 +214,15 @@ class MainWindow(QMainWindow):
         self.mini_menu_layout.setSpacing(0)
         self.toolbar.layout.insertWidget(0, self.mini_menu)
 
-        load_file_act = QAction(QIcon("../icons/add_file_grey.png"), "Load file | files", self)
+        load_file_act = QAction(QIcon("../icons/add_file_grey.png"),
+                                "Load file | files", self)
         load_file_act.triggered.connect(self.load_files_from_os)
-        close_all_act = QAction(QIcon("../icons/remove_grey.png"), "Close all files", self)
+        close_all_act = QAction(QIcon("../icons/remove_grey.png"),
+                                "Close all files", self)
         close_all_act.triggered.connect(self.close_all_tabs)
         remove_hidden_act = QAction("Remove hidden variables", self)
         remove_hidden_act.triggered.connect(self.remove_hidden_vars)
+
         show_hidden_act = QAction("Show hidden variables", self)
         show_hidden_act.triggered.connect(self.show_hidden_vars)
         remove_act = QAction("Remove variables", self)
@@ -222,10 +231,13 @@ class MainWindow(QMainWindow):
         hide_act.triggered.connect(self.hide_vars)
 
         file_menu = QMenu(self)
-        file_menu.addActions([load_file_act, close_all_act, remove_hidden_act, show_hidden_act, remove_act, hide_act])
+        acts = [load_file_act, close_all_act, remove_hidden_act,
+                show_hidden_act, remove_act, hide_act]
+        file_menu.addActions(acts)
 
         icon_size = QSize(25, 25)
-        load_file_btn = MenuButton(QIcon("../icons/file_grey.png"), "Load file | files", self)
+        load_file_btn = MenuButton(QIcon("../icons/file_grey.png"),
+                                   "Load file | files", self)
         load_file_btn.setIconSize(icon_size)
         load_file_btn.clicked.connect(self.load_files_from_os)
         load_file_btn.setStatusTip("Open eso file or files")
@@ -263,8 +275,10 @@ class MainWindow(QMainWindow):
         mn.addActions([css, no_css, memory, dummy])
 
         self.chart_area = QWebEngineView(self)
-        self.chart_area.settings().setAttribute(QWebEngineSettings.JavascriptCanAccessClipboard,
-                                                True)
+        # TODO create custom chart area
+        settings = QWebEngineSettings.JavascriptCanAccessClipboard
+        self.chart_area.settings().setAttribute(settings, True)
+
         self.main_chart_layout.addWidget(self.chart_area)
         # self.chart_area.setContextMenuPolicy(Qt.CustomContextMenu)
         self.chart_area.setAcceptDrops(True)
@@ -319,7 +333,7 @@ class MainWindow(QMainWindow):
         self.store_settings()
 
         self.watcher.terminate()
-        self.progress_cont.monitor_thread.terminate()
+        self.progress_cont.monitor.terminate()
         self.manager.shutdown()
 
         kill_child_processes(os.getpid())
@@ -336,7 +350,8 @@ class MainWindow(QMainWindow):
 
     def load_icons(self):
         myappid = 'foo'  # arbitrary string
-        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)  # this sets toolbar icon on win 7
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(
+            myappid)  # this sets toolbar icon on win 7
 
         self.setWindowIcon(QPixmap("../icons/twotone_pie_chart.png"))
 
@@ -359,7 +374,8 @@ class MainWindow(QMainWindow):
         self.view_layout.setContentsMargins(0, 0, 0, 0)
         self.view_layout.setSpacing(0)
 
-        self.view_tools_wgt.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+        self.view_tools_wgt.setSizePolicy(QSizePolicy.Minimum,
+                                          QSizePolicy.Fixed)
 
         # ~~~~ Main right side ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         right_side_size_policy = QSizePolicy()
@@ -368,7 +384,8 @@ class MainWindow(QMainWindow):
         self.right_main_layout.setSpacing(0)
         self.right_main_layout.setContentsMargins(0, 0, 0, 0)
 
-        self.main_chart_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.main_chart_widget.setSizePolicy(QSizePolicy.Expanding,
+                                             QSizePolicy.Expanding)
         self.main_chart_layout.setContentsMargins(0, 0, 0, 0)
         self.main_chart_widget.setMinimumWidth(400)
 
@@ -386,7 +403,8 @@ class MainWindow(QMainWindow):
         summary.print_(sum1)
         print("DB size", asizeof.asizeof(self.database))
         print("Executor size", asizeof.asizeof(self.pool))
-        print("Monitor thread", asizeof.asizeof(self.progress_cont.monitor_thread))
+        print("Monitor thread",
+              asizeof.asizeof(self.progress_cont.monitor))
         print("Watcher thread", asizeof.asizeof(self.watcher))
 
     def load_dummy(self):
@@ -395,7 +413,8 @@ class MainWindow(QMainWindow):
 
     def mirror(self):
         """ Mirror the layout. """
-        self.central_splitter.insertWidget(0, self.central_splitter.widget(1))
+        wgt = self.central_splitter.widget(1)
+        self.central_splitter.insertWidget(0, wgt)
 
     def turn_off_css(self):
         """ Turn the CSS on and off. """
@@ -472,7 +491,8 @@ class MainWindow(QMainWindow):
 
         if len(args) != len(files):
             diff = set(args).difference(set(files))
-            print("Cannot find '{}' files in db!".format(", ".join(list(diff))))
+            diff_str = ", ".join(list(diff))
+            print(f"Cannot find '{diff_str}' files in db!")
 
         return files
 
@@ -496,7 +516,10 @@ class MainWindow(QMainWindow):
 
     def populate_current_selection(self, outputs):
         """ Store current selection in main app. """
-        print("STORING!\n\t{}".format("\n\t".join([" | ".join(var) for var in outputs])))
+        out_str = [" | ".join(var) for var in outputs]
+        print("STORING!\n\t{}".format("\n\t".join(out_str)))
+
+        # store current selection in the main app
         self.selected = outputs
 
         # always enable remove and export buttons
@@ -609,12 +632,16 @@ class MainWindow(QMainWindow):
             monitor = GuiMonitor(path, id_, progress_queue)
 
             # create a new process to load eso file
-            future = self.pool.submit(load_file, path, monitor=monitor, suppress_errors=False)
-            future.add_done_callback(partial(wait_for_results, id_, monitor, file_queue))
+            future = self.pool.submit(load_file, path, monitor=monitor,
+                                      suppress_errors=False)
+
+            func = partial(wait_for_results, id_, monitor, file_queue)
+            future.add_done_callback(func)
 
     def load_files_from_os(self):
         """ Select eso files from explorer and start processing. """
-        file_pths, _ = QFileDialog.getOpenFileNames(self, "Load Eso File", "", "*.eso")
+        file_pths, _ = QFileDialog.getOpenFileNames(self, "Load Eso File",
+                                                    "", "*.eso")
         if file_pths:
             self.load_files(file_pths)
 
@@ -637,12 +664,17 @@ class MainWindow(QMainWindow):
     def add_new_var(self, view, variables, func):
         """ Add a new variable to the file. """
         file_id = view.get_file_id()
-        file = self.get_files_from_db(file_id)[0]  # files are always returned as list
 
-        var_id = file.aggregate_variables(variables, func, key_name="Custom Key",
-                                          variable_name="Custom Variable", part_match=False)
+        # files are always returned as list
+        file = self.get_files_from_db(file_id)[0]
+
+        var_id = file.aggregate_variables(variables, func,
+                                          key_name="Custom Key",
+                                          variable_name="Custom Variable",
+                                          part_match=False)
         if var_id:
-            var = file.get_variables_by_id(var_id)[0]  # vars are always returned as list
+            # vars are always returned as list
+            var = file.get_variables_by_id(var_id)[0]
             view.add_header_variable(var_id, var)
             view.set_next_update_forced()
 
@@ -668,7 +700,8 @@ class MainWindow(QMainWindow):
     def dump_vars(self, view, variables, remove=False):
         """ Hide or remove the """
         file_id = view.get_file_id()
-        file = self.get_files_from_db(file_id)[0]  # files are always returned as list
+        file = self.get_files_from_db(file_id)[
+            0]  # files are always returned as list
 
         groups = file.find_pairs(variables)
 
@@ -743,11 +776,12 @@ class MainWindow(QMainWindow):
         ids = self.get_current_file_ids()
         files = self.get_files_from_db(*ids)
 
-        worker = ResultsFetcher(get_results, files, variables, rate_units=power,
-                                energy_units=energy, add_file_name="column",
-                                rate_to_energy_dct=rate_to_energy_dct)
+        args = (get_results, files, variables)
+        kwargs = ddict(rate_units=power, energy_units=energy,
+                       add_file_name="column",
+                       rate_to_energy_dct=rate_to_energy_dct)
 
-        self.thread_pool.start(worker)
+        self.thread_pool.start(ResultsFetcher(*args, **kwargs))
 
     def connect_ui_actions(self):
         """ Create actions which depend on user actions """
