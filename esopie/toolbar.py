@@ -1,6 +1,6 @@
 from PySide2.QtWidgets import (QVBoxLayout, QGridLayout, QToolButton,
                                QGroupBox, QSpacerItem, QSizePolicy, QMenu, QFrame)
-from PySide2.QtCore import QSize, Qt, Signal
+from PySide2.QtCore import QSize, Qt, Signal, QSettings
 from PySide2.QtGui import QPixmap, QFont, QColor
 
 from esopie.icons import Pixmap, text_to_pixmap
@@ -13,12 +13,6 @@ si_power_units = ["W", "kW", "MW"]
 
 ip_energy_units = ["Btu", "kBtu", "MBtu"]
 ip_power_units = ["Btu/h", "kBtu/h", "MBtu/h", "W"]
-
-DEFAULTS = {
-    "units_system": "SI",
-    "energy_units": "kWh",
-    "power_units": "kW",
-}
 
 
 def remove_children(layout):
@@ -174,6 +168,17 @@ class Toolbar(QFrame):
                 self.sum_vars_btn,
                 self.mean_vars_btn]
 
+    def store_settings(self):
+        """ Store toolbar settings. """
+        settings = QSettings()
+
+        settings.setValue("Toolbar/energyUnits", self.energy_units_btn.data())
+        settings.setValue("Toolbar/powerUnits", self.power_units_btn.data())
+        settings.setValue("Toolbar/unitsSystem", self.units_system_btn.data())
+
+        checked = self.rate_to_energy_btn.isChecked()
+        settings.setValue("Toolbar/rateToEnergy", int(checked))
+
     def all_files_requested(self):
         """ Check if results from all eso files are requested. """
         btn = self.all_files_btn
@@ -241,6 +246,7 @@ class Toolbar(QFrame):
 
     def set_up_units(self):
         """ Set up units options. . """
+        settings = QSettings()
         # ~~~~ Layout to hold options  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         units_layout = QGridLayout(self.units_group)
         units_layout.setSpacing(0)
@@ -250,33 +256,35 @@ class Toolbar(QFrame):
         # ~~~~ Energy units set up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         energy_units_menu = QMenu(self)
         items = si_energy_units + ip_energy_units
-        ix = items.index(DEFAULTS["energy_units"])
+        dt = settings.value("Toolbar/energyUnits", "kWh")
         self.energy_units_btn = TitledButton(self.units_group, fill_space=True,
                                              title="energy", menu=energy_units_menu,
-                                             items=items, data=items, def_act_ix=ix)
+                                             items=items, data=items, def_act_dt=dt)
 
         # ~~~~ Power units set up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         power_units_menu = QMenu(self)
         items = list(dict.fromkeys(si_power_units + ip_power_units))  # remove duplicate 'W'
-        ix = items.index(DEFAULTS["power_units"])
+        dt = settings.value("Toolbar/powerUnits", "kW")
         self.power_units_btn = TitledButton(self.units_group, fill_space=True,
                                             title="power", menu=power_units_menu,
-                                            items=items, data=items, def_act_ix=ix)
+                                            items=items, data=items, def_act_dt=dt)
 
         # ~~~~ Units system set up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         units_system_menu = QMenu(self)
         items = ["SI", "IP"]
-        ix = items.index(DEFAULTS["units_system"])
+        dt = settings.value("Toolbar/unitsSystem", "SI")
         self.units_system_btn = TitledButton(self.units_group, fill_space=True,
                                              title="system", menu=units_system_menu,
-                                             items=items, data=items, def_act_ix=ix)
-        self.toggle_units(DEFAULTS["units_system"])
+                                             items=items, data=items, def_act_dt=dt)
+        self.toggle_units(dt)
 
         # ~~~~ Units system set up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.rate_to_energy_btn = QToolButton(self.units_group)
         self.rate_to_energy_btn.setCheckable(True)
         self.rate_to_energy_btn.setObjectName("rateToEnergyBtn")
         self.rate_to_energy_btn.setText("rate to\n energy")
+        checked = settings.value("Toolbar/rateToEnergy", 0)
+        self.rate_to_energy_btn.setChecked(bool(checked))
 
         self.populate_units_group()
 

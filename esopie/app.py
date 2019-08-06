@@ -313,6 +313,8 @@ class MainWindow(QMainWindow):
         settings.setValue("MainWindow/size", self.size())
         settings.setValue("MainWindow/pos", self.pos())
 
+        self.toolbar.store_settings()
+
     def closeEvent(self, event):
         """ Shutdown all the background stuff. """
         self.store_settings()
