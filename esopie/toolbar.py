@@ -395,22 +395,22 @@ class Toolbar(QFrame):
 
     def store_units_settings(self):
         """ Store intermediate units settings. """
-        btns = self.units_btns[:3]
-
-        for s, btn in zip(self.temp_settings.keys(), btns):
-            self.temp_settings[s] = btn.data()
+        self.temp_settings["energy_units"] = self.energy_units_btn.data()
+        self.temp_settings["power_units"] = self.power_units_btn.data()
+        self.temp_settings["units_system"] = self.units_system_btn.data()
 
         checked = self.rate_to_energy_btn.isChecked()
         self.temp_settings["rate_to_energy"] = checked
 
     def restore_units_settings(self):
         """ Restore units settings. """
-        btns = self.units_btns[:3]
+        ene = self.temp_settings["energy_units"]
+        pw = self.temp_settings["power_units"]
+        us = self.temp_settings["units_system"]
 
-        for s, btn in zip(self.temp_settings.keys(), btns):
-            data = self.temp_settings[s]
-            act = btn.get_action(data=data)
-            btn.update_state_internally(act)
+        self.energy_units_btn.update_state_internally(ene)
+        self.power_units_btn.update_state_internally(pw)
+        self.units_system_btn.update_state_internally(us)
 
         checked = self.temp_settings["rate_to_energy"]
         self.rate_to_energy_btn.setChecked(checked)
@@ -424,12 +424,9 @@ class Toolbar(QFrame):
 
     def reset_units_to_default(self):
         """ Reset units to E+ default. """
-        data = ["J", "W", "SI"]
-        btns = self.units_btns[:3]
-
-        for dt, btn in zip(data, btns):
-            act = btn.get_action(data=dt)
-            btn.update_state_internally(act)
+        self.energy_units_btn.update_state_internally("J")
+        self.power_units_btn.update_state_internally("W")
+        self.units_system_btn.update_state_internally("SI")
 
         self.rate_to_energy_btn.setEnabled(False)
         self.rate_to_energy_btn.setChecked(False)

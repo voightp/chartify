@@ -113,8 +113,7 @@ class TitledButton(QFrame):
         acts = self.button.menu().actions()
 
         if self.data() not in acts_dt:
-            act = self.get_action(data=acts_dt[0])
-            self.update_state_internally(act)
+            self.update_state_internally(acts_dt[0])
 
         for act in acts:
             act.setVisible(act.data() in acts_dt)
@@ -133,8 +132,9 @@ class TitledButton(QFrame):
 
         return changed
 
-    def update_state_internally(self, act):
+    def update_state_internally(self, dt):
         """ Handle changing buttons state when handling internally. """
+        act = self.get_action(data=dt)
         changed = self.update_state(act)
 
         if changed:
