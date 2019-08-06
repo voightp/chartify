@@ -27,7 +27,7 @@ from queue import Queue
 from multiprocessing import Manager, cpu_count
 from esopie.view_widget import View
 from random import randint
-from esopie.threads import EsoFileWatcher, GuiMonitor, ResultsFetcher
+from esopie.threads import EsoFileWatcher, GuiMonitor, ResultsFetcher, IterWorker
 
 
 def create_pool():
@@ -194,7 +194,7 @@ class MainWindow(QMainWindow):
         self.pool = create_pool()
         self.watcher.start()
 
-        self.results_fetcher = QThreadPool()
+        self.thread_pool = QThreadPool()
 
         # ~~~~ Menus ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.mini_menu = QWidget(self.toolbar)
@@ -207,8 +207,17 @@ class MainWindow(QMainWindow):
         load_file_act.triggered.connect(self.load_files_from_os)
         close_all_act = QAction(QIcon("../icons/remove_grey.png"), "Close all files", self)
         close_all_act.triggered.connect(self.close_all_tabs)
+        remove_hidden_act = QAction("Remove hidden variables", self)
+        remove_hidden_act.triggered.connect(self.remove_hidden_vars)
+        show_hidden_act = QAction("Show hidden variables", self)
+        show_hidden_act.triggered.connect(self.show_hidden_vars)
+        remove_act = QAction("Remove variables", self)
+        remove_act.triggered.connect(self.remove_vars)
+        hide_act = QAction("Hide variables", self)
+        hide_act.triggered.connect(self.hide_vars)
+
         file_menu = QMenu(self)
-        file_menu.addActions([load_file_act, close_all_act])
+        file_menu.addActions([load_file_act, close_all_act, remove_hidden_act, show_hidden_act, remove_act, hide_act])
 
         icon_size = QSize(25, 25)
         load_file_btn = MenuButton(QIcon("../icons/file_grey.png"), "Load file | files", self)
@@ -267,6 +276,19 @@ class MainWindow(QMainWindow):
     def current_view_wgt(self):
         """ A currently selected eso file. """
         return self.tab_wgt.get_current_widget()
+
+    @property
+    def current_view_wgts(self):
+        """ A currently selected eso file. """
+        all_ = self.all_files_requested()
+        return self.all_view_wgts if all_ else [self.current_view_wgt]
+
+    @property
+    def all_other_view_wgts(self):
+        """ A currently selected eso file. """
+        all_ = self.current_view_wgts
+        all_.remove(self.current_view_wgt)
+        return all_
 
     @property
     def all_view_wgts(self):
@@ -379,10 +401,6 @@ class MainWindow(QMainWindow):
         """ Check if results from all eso files are requested. """
         return self.toolbar.all_files_requested()
 
-    def totals_requested(self):
-        """ Check if building totals are requested. """
-        return self.toolbar.totals_requested()
-
     def get_filter_str(self):
         """ Get current filter string. """
         return self.view_tools_wgt.get_filter_str()
@@ -391,23 +409,21 @@ class MainWindow(QMainWindow):
         """ Check if tree structure is requested. """
         return self.view_tools_wgt.tree_requested()
 
-    def build_view(self, all_views=False, force=False):
+    def build_view(self):
         """ Create a new model when the tab or the interval has changed. """
         is_tree = self.tree_requested()
-        totals = self.totals_requested()
         interval = self.get_current_interval()
         units_settings = self.get_units_settings()
         filter_str = self.get_filter_str()
 
-        views = self.all_view_wgts if all_views else [self.current_view_wgt]
+        view = self.current_view_wgt
         selection = self.selected
 
-        if not views:
+        if not view:
             return
 
-        for view in views:
-            view.update_model(totals, is_tree, interval, units_settings,
-                              force=force, select=selection, filter_str=filter_str)
+        view.update_model(is_tree, interval, units_settings,
+                          select=selection, filter_str=filter_str)
 
     def get_used_ids_from_db(self):
         """ Get a list of already used set ids. """
@@ -421,8 +437,8 @@ class MainWindow(QMainWindow):
                 del self.database[id_]
 
         except KeyError:
-            print("Cannot delete the eso file: id '{}',\n"
-                  "File was not found in database.".format(file_id))
+            print(f"Cannot delete the eso file: id '{file_id}',"
+                  f"\nFile was not found in database.")
 
     def get_files_from_db(self, *args):
         """ Fetch eso files from the database. """
@@ -453,8 +469,7 @@ class MainWindow(QMainWindow):
         ids = []
         wgts = self.tab_wgt.close_all_tabs()
         for i in range(len(wgts)):
-            ids.append(wgts[i].std_file_header.id_)
-            ids.append(wgts[i].tot_file_header.id_)
+            ids.append(wgts[i].id_)
             wgts[i].deleteLater()
 
         self.delete_sets_from_db(*ids)
@@ -535,11 +550,10 @@ class MainWindow(QMainWindow):
 
     def remove_eso_file(self, wgt):
         """ Delete current eso file. """
-        std_id_ = wgt.std_file_header.id_
-        tot_id_ = wgt.tot_file_header.id_
+        id_ = wgt.id_
 
         wgt.deleteLater()
-        self.delete_sets_from_db(std_id_, tot_id_)
+        self.delete_sets_from_db(id_)
 
         if self.tab_wgt.is_empty():
             self.toolbar.totals_btn.setEnabled(False)
@@ -549,7 +563,7 @@ class MainWindow(QMainWindow):
 
     def get_available_intervals(self):
         """ Get available intervals for the current eso file. """
-        return self.current_view_wgt.std_file_header.available_intervals
+        return self.current_view_wgt.file_header.available_intervals
 
     def on_tab_changed(self, index):
         """ Update view when tabChanged event is fired. """
@@ -603,66 +617,94 @@ class MainWindow(QMainWindow):
         #     e = time.perf_counter()
         #     print("Printing file: {}".format((e - s)))
 
-    def add_new_var(self, func):
+    def add_new_var(self, view, variables, func):
         """ Add a new variable to the file. """
-        variables = self.get_current_request()
-        totals = self.totals_requested()
-        all_views = self.all_files_requested()
-        views = self.all_view_wgts if all_views else [self.current_view_wgt]
+        file_id = view.get_file_id()
+        file = self.get_files_from_db(file_id)[0]  # files are always returned as list
 
-        for view in views:
-            file_id = view.get_file_id(totals)
-            file = self.get_files_from_db(file_id)[0]  # files are always returned as list
+        var_id = file.aggregate_variables(variables, func, key_name="Custom Key",
+                                          variable_name="Custom Variable", part_match=False)
+        if var_id:
+            var = file.get_variables_by_id(var_id)[0]  # vars are always returned as list
+            view.add_header_variable(var_id, var)
+            view.set_next_update_forced()
 
-            var_id = file.aggregate_variables(variables, func, key_name="Custom Key",
-                                              variable_name="Custom Variable", part_match=False)
-            if var_id:
-                var = file.get_variables_by_id(var_id)[0]  # vars are always returned as list
-                view.add_header_variable(var_id, var, totals)
+    def on_totals_change(self, change):
+        """ Switch current views to 'totals' and back. """
+        View.totals = change  # update class variable to request totals
+        self.build_view()
 
-        self.build_view(all_views=all_views, force=True)
+    def apply_tools_func(self, func, *args, **kwargs):
+        """ A wrapper to apply functions to current views. """
+        # apply function to the current widget
+        view = self.current_view_wgt
+        func(view, *args, **kwargs)
+
+        # apply function to all other widgets asynchronously
+        others = self.all_other_view_wgts
+        if others:
+            w = IterWorker(func, others, *args, **kwargs)
+            self.thread_pool.start(w)
+
+        self.build_view()
+
+    def dump_vars(self, view, variables, remove=False):
+        """ Hide or remove the """
+        file_id = view.get_file_id()
+        file = self.get_files_from_db(file_id)[0]  # files are always returned as list
+
+        groups = file.find_pairs(variables)
+
+        if not groups:
+            return
+
+        if remove:
+            view.remove_header_variables(groups)
+            file.remove_outputs(variables)
+        else:
+            view.hide_header_variables(groups)
+
+        view.set_next_update_forced()
+
+    def show_hidden_vars(self):
+        """ Show previously hidden variables. """
+        for view in self.current_view_wgts:
+            view.show_hidden_header_variables()
+            view.set_next_update_forced()
+
+        self.build_view()
+
+    def remove_hidden_vars(self):
+        """ Remove hidden variables. """
+        for view in self.current_view_wgts:
+            view.remove_hidden_header_variables()
 
     def add_mean_var(self):
         """ Create a new 'mean' variable. """
-        self.add_new_var("mean")
+        variables = self.get_current_request()
+        self.apply_tools_func(self.add_new_var, variables, "mean")
 
     def add_summed_var(self):
         """ Create a new 'summed' variable. """
-        self.add_new_var("sum")
+        variables = self.get_current_request()
+        self.apply_tools_func(self.add_new_var, variables, "sum")
 
     def remove_vars(self):
         """ Remove variables from a file. """
-        pass
+        variables = self.get_current_request()
+        self.apply_tools_func(self.dump_vars, variables, remove=True)
 
-    def connect_ui_actions(self):
-        """ Create actions which depend on user actions """
-        # ~~~~ View Actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.left_main_wgt.fileDropped.connect(self.load_files)
-        self.view_tools_wgt.filterViewItems.connect(self.filter_view)
-        self.view_tools_wgt.updateView.connect(self.build_view)
-        self.view_tools_wgt.expandViewItems.connect(self.expand_all)
-        self.view_tools_wgt.collapseViewItems.connect(self.collapse_all)
-
-        # ~~~~ Tab actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.tab_wgt.tabClosed.connect(self.remove_eso_file)
-        self.tab_wgt.currentChanged.connect(self.on_tab_changed)
-        self.tab_wgt.fileLoadRequested.connect(self.load_files_from_os)
-
-        # ~~~~ Outputs actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.toolbar.updateView.connect(self.build_view)
-        self.toolbar.xlsxRequested.connect(self.export_xlsx)
-        self.toolbar.meanRequested.connect(self.add_mean_var)
-        self.toolbar.removeRequested.connect(self.remove_vars)
-        self.toolbar.sumRequested.connect(self.add_summed_var)
+    def hide_vars(self):
+        """ Temporarily hide variables. """
+        variables = self.get_current_request()
+        self.apply_tools_func(self.dump_vars, variables)
 
     def get_current_file_ids(self):
         """ Return current file id or ids based on 'all files btn' state. """
-        totals = self.totals_requested()
-
         if self.all_files_requested():
-            return [f.get_file_id(totals) for f in self.all_view_wgts]
+            return [f.get_file_id() for f in self.all_view_wgts]
 
-        return [self.current_view_wgt.get_file_id(totals)]
+        return [self.current_view_wgt.get_file_id()]
 
     def get_current_request(self):
         """ Get a currently selected output variables information. """
@@ -688,7 +730,29 @@ class MainWindow(QMainWindow):
                                 energy_units=energy, add_file_name="column",
                                 rate_to_energy_dct=rate_to_energy_dct)
 
-        self.results_fetcher.start(worker)
+        self.thread_pool.start(worker)
+
+    def connect_ui_actions(self):
+        """ Create actions which depend on user actions """
+        # ~~~~ View Actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.left_main_wgt.fileDropped.connect(self.load_files)
+        self.view_tools_wgt.filterViewItems.connect(self.filter_view)
+        self.view_tools_wgt.updateView.connect(self.build_view)
+        self.view_tools_wgt.expandViewItems.connect(self.expand_all)
+        self.view_tools_wgt.collapseViewItems.connect(self.collapse_all)
+
+        # ~~~~ Tab actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.tab_wgt.tabClosed.connect(self.remove_eso_file)
+        self.tab_wgt.currentChanged.connect(self.on_tab_changed)
+        self.tab_wgt.fileLoadRequested.connect(self.load_files_from_os)
+
+        # ~~~~ Outputs actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.toolbar.updateView.connect(self.build_view)
+        self.toolbar.xlsxRequested.connect(self.export_xlsx)
+        self.toolbar.meanRequested.connect(self.add_mean_var)
+        self.toolbar.removeRequested.connect(self.remove_vars)
+        self.toolbar.sumRequested.connect(self.add_summed_var)
+        self.toolbar.totalsChanged.connect(self.on_totals_change)
 
 
 if __name__ == "__main__":

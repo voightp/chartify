@@ -11,6 +11,7 @@ class View(QTreeView):
     selectionCleared = Signal()
     selectionPopulated = Signal(list)
     updateView = Signal()
+    totals = False
 
     settings = {"widths": {"interactive": 200,
                            "fixed": 70},
@@ -37,14 +38,17 @@ class View(QTreeView):
         self.setFocusPolicy(Qt.NoFocus)
 
         self.id_ = id_
-        self.std_file_header = std_file_header
-        self.tot_file_header = tot_file_header
+        self.headers = {
+            "standard": std_file_header,
+            "totals": tot_file_header
+        }
 
         self._initialized = False
         self.temp_settings = {"interval": None,
                               "tree_key": None,
                               "units": None,
-                              "totals": None}
+                              "totals": None,
+                              "force_update": False}
 
         self._scrollbar_position = 0
 
@@ -53,16 +57,37 @@ class View(QTreeView):
         self.collapsed.connect(self.handle_collapsed)
         self.pressed.connect(self.handle_drag_attempt)
 
-    def get_file_id(self, totals):
-        """ Get file id based on 'totals' request. """
-        std_id = self.std_file_header.id_
-        tot_id = self.tot_file_header.id_
-        return tot_id if totals else std_id
+    @property
+    def file_header(self):
+        """ Current file header. """
+        key = "totals" if self.totals else "standard"
+        return self.headers[key]
 
-    def add_header_variable(self, id_, variable, totals):
+    def get_file_id(self):
+        """ Get file id based on 'totals' request. """
+        return self.file_header.id_
+
+    def show_hidden_header_variables(self):
+        """ Remove all hidden variables from the file. """
+        for v in self.headers.values():
+            v.show_hidden_variables()
+
+    def remove_hidden_header_variables(self):
+        """ Remove all hidden variables from the file. """
+        for v in self.headers.values():
+            v.remove_hidden_variables()
+
+    def remove_header_variables(self, groups):
+        """ Remove variables from the file. """
+        self.file_header.remove_variables(groups)
+
+    def hide_header_variables(self, groups):
+        """ Temporarily hide a variable from the file. """
+        self.file_header.hide_variables(groups)
+
+    def add_header_variable(self, id_, variable):
         """ Add a new variable (from 'Variable' class) into file header. """
-        header = self.std_file_header if not totals else self.tot_file_header
-        header.add_variable(id_, variable)
+        self.file_header.add_variable(id_, variable)
 
     def filter_view(self, filter_str):
         """ Filter the model using given string. """
@@ -74,12 +99,17 @@ class View(QTreeView):
         self.expandAll()
         self.set_first_col_spanned()
 
+    def set_next_update_forced(self):
+        """ Notify the view that it needs to be updated. """
+        self.temp_settings["force_update"] = True
+
     def store_settings(self, interval, tree_key, units, totals):
         """ Store intermediate settings. """
         self.temp_settings = {"interval": interval,
                               "tree_key": tree_key,
                               "units": units,
-                              "totals": totals}
+                              "totals": totals,
+                              "force_update": False}
 
     def set_first_col_spanned(self):
         """ Set parent row to be spanned over all columns. """
@@ -89,14 +119,12 @@ class View(QTreeView):
             if model.hasChildren(ix):
                 self.setFirstColumnSpanned(i, self.rootIndex(), True)
 
-    def build_model(self, eso_file_header, units_settings,
-                    tree_key, view_order, interval):
+    def build_model(self, header, units_settings, tree_key, view_order, interval):
         """
         Create a model and set up its appearance.
         """
         model = ViewModel()
-        model.populate_data(eso_file_header, units_settings,
-                            tree_key, view_order, interval)
+        model.populate_data(header, units_settings, tree_key, view_order, interval)
 
         proxy_model = FilterModel()
         proxy_model.setSourceModel(model)
@@ -176,13 +204,13 @@ class View(QTreeView):
         """ Connect specific signals. """
         self.verticalScrollBar().valueChanged.connect(self.slider_moved)
 
-    def update_model(self, totals, is_tree, interval, units_settings,
-                     force=False, select=None, filter_str=""):
+    def update_model(self, is_tree, interval, units_settings,
+                     select=None, filter_str=""):
         """
         Set the model and define behaviour of the tree view.
         """
-        file_header = self.tot_file_header if totals else self.std_file_header
-
+        header = self.file_header
+        totals = self.totals
         view_order = self.settings["header"]
         tree_key = view_order[0] if is_tree else None
 
@@ -190,12 +218,12 @@ class View(QTreeView):
         conditions = [tree_key != self.temp_settings["tree_key"],
                       interval != self.temp_settings["interval"],
                       units_settings != self.temp_settings["units"],
-                      totals != self.temp_settings["totals"]]
+                      self.totals != self.temp_settings["totals"],
+                      self.temp_settings["force_update"]]
 
-        if any(conditions) or force:
+        if any(conditions):
             self.disconnect_actions()
-            self.build_model(file_header, units_settings,
-                             tree_key, view_order, interval)
+            self.build_model(header, units_settings, tree_key, view_order, interval)
 
             # Store current sorting key and interval
             self.store_settings(interval, tree_key, units_settings, totals)
@@ -328,11 +356,6 @@ class View(QTreeView):
     def slider_moved(self, val):
         """ Handle moving view slider. """
         self._scrollbar_position = val
-
-    def fetch_request(self):
-        """ Get currently requested outputs. """
-        file_ids, variables = self.main_app.get_current_request()
-        return file_ids, variables
 
     def handle_drag_attempt(self):
         """ Handle pressing the view item or items. """
@@ -484,10 +507,10 @@ class ViewModel(QStandardItemModel):
                 root.appendRow(parent)
                 self._append_rows(variables, parent, tree=True)
 
-    def populate_data(self, eso_file_header, units_settings, tree_key, view_order, interval):
+    def populate_data(self, header, units_settings, tree_key, view_order, interval):
         """ Feed the model with output variables. """
         root = self.invisibleRootItem()
-        header = eso_file_header.get_header_iterator(units_settings, view_order, interval)
+        header = header.get_header_iterator(units_settings, view_order, interval)
 
         if not tree_key:
             # tree like structure is not being used

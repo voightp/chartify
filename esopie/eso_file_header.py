@@ -1,5 +1,5 @@
 from collections import defaultdict, namedtuple
-from eso_reader.mini_classes import HeaderVariable
+from eso_reader.mini_classes import HeaderVariable, Variable
 
 
 class FileHeader:
@@ -23,31 +23,12 @@ class FileHeader:
     def __init__(self, id_, header_dct):
         self.header_dct = header_dct
         self.id_ = id_
+        self.hidden = defaultdict(dict)
 
     @property
     def available_intervals(self):
         """ Get a list of available intervals. """
         return self.header_dct.keys()
-
-    @staticmethod
-    def create_proxy(header, units_settings, view_order):
-        """ Create a list of proxy variables. """
-        rate_to_energy, units_system, energy_units, power_units = units_settings
-        ProxyHeaderVariable = namedtuple("ProxyHeaderVariable", list(view_order))
-        proxy_header = []
-
-        for var in header:
-            units = var.units
-
-            if units in ["W", "W/m2"]:
-                units = handle_rate_to_energy(units, rate_to_energy)
-
-            proxy_units = convert_units(units, units_system, energy_units, power_units)
-            proxy = ProxyHeaderVariable(key=var.key, variable=var.variable, units=proxy_units)
-
-            proxy_header.append(proxy)
-
-        return proxy_header
 
     @classmethod
     def tree_header(cls, header_iterator, tree_key):
@@ -60,9 +41,42 @@ class FileHeader:
 
         return dct
 
-    def remove_header_variables(self, variables):
+    def show_hidden_variables(self):
+        """ Restore hidden variables visibility. """
+        for interval, ids in self.hidden.items():
+            for id_ in ids:
+                var = self.hidden[interval][id_]
+                self.header_dct[interval][id_] = var
+
+        self.hidden = defaultdict(dict)
+
+    def remove_hidden_variables(self):
+        """ Remove hidden variables. """
+        variables = []
+        for interval, ids in self.hidden.items():
+            for id_ in ids:
+                var = self.hidden[interval][id_]
+                variables.append(Variable(interval, *var))
+
+        self.hidden = defaultdict(dict)
+        return variables
+
+    def hide_variables(self, groups):
+        """ Temporarily hide variables from the ui. """
+        for interval, ids in groups.items():
+            for id_ in ids:
+                var = self.header_dct[interval].pop(id_)
+                self.hidden[interval][id_] = var
+                # TODO check what happens if all the variables are hidden
+
+    def remove_variables(self, groups):
         """ Remove header variables from the header. """
-        pass  # TODO this needs to be specified
+        for interval, ids in groups.items():
+            for id_ in ids:
+                del self.header_dct[interval][id_]
+
+            if not self.header_dct[interval]:
+                del self.header_dct[interval]
 
     def add_variable(self, id_, variable):
         """ Add a new variable (from 'Variable' class). """
@@ -72,9 +86,22 @@ class FileHeader:
     def get_header_iterator(self, units_settings, view_order, interval):
         """ Return data - proxy paired list of tuples. """
         variables = list(self.header_dct[interval].values())
-        proxy = self.create_proxy(variables, units_settings, view_order)
 
-        return zip(variables, proxy)
+        rate_to_energy, units_system, energy_units, power_units = units_settings
+        ProxyHeaderVariable = namedtuple("ProxyHeaderVariable", list(view_order))
+        proxy_header = []
+
+        for var in variables:
+            units = var.units
+
+            if units in ["W", "W/m2"]:
+                units = handle_rate_to_energy(units, rate_to_energy)
+
+            proxy_units = convert_units(units, units_system, energy_units, power_units)
+            proxy = ProxyHeaderVariable(key=var.key, variable=var.variable, units=proxy_units)
+            proxy_header.append(proxy)
+
+        return zip(variables, proxy_header)
 
 
 def convert_energy(units, energy_units):
