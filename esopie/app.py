@@ -481,12 +481,10 @@ class MainWindow(QMainWindow):
         self.selected = outputs
 
         # enable export xlsx function TODO handle enabling of all tools
-        self.toolbar.export_xlsx_btn.setEnabled(True)
-        self.toolbar.remove_vars_btn.setEnabled(True)
+        self.toolbar.enable_tools_btns(True, ["sum", "mean"])
 
         if len(outputs) > 1:
-            self.toolbar.sum_vars_btn.setEnabled(True)
-            self.toolbar.mean_vars_btn.setEnabled(True)
+            self.toolbar.enable_tools_btns(True, ["xlsx", "remove"])
 
     def clear_current_selection(self):
         """ Handle behaviour when no variables are selected. """
@@ -494,10 +492,7 @@ class MainWindow(QMainWindow):
 
         # disable export xlsx as there are no
         # variables to be exported TODO handle enabling of all tools
-        self.toolbar.export_xlsx_btn.setEnabled(False)
-        self.toolbar.remove_vars_btn.setEnabled(False)
-        self.toolbar.sum_vars_btn.setEnabled(False)
-        self.toolbar.mean_vars_btn.setEnabled(False)
+        self.enable_tools_btns(False)
 
     def create_view_wgt(self, id_, std_file_header, tot_file_header):
         """ Create a 'View' widget and connect its actions. """

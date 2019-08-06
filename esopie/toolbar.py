@@ -166,6 +166,14 @@ class Toolbar(QFrame):
                 self.units_system_btn,
                 self.rate_to_energy_btn]
 
+    @property
+    def tools_btns(self):
+        """ A shorthand to get all tools buttons."""
+        return [self.export_xlsx_btn,
+                self.remove_vars_btn,
+                self.sum_vars_btn,
+                self.mean_vars_btn]
+
     def all_files_requested(self):
         """ Check if results from all eso files are requested. """
         btn = self.all_files_btn
@@ -189,9 +197,7 @@ class Toolbar(QFrame):
 
     def populate_tools_group(self):
         """ Populate tools group layout. """
-        tools_btns = [self.export_xlsx_btn, self.sum_vars_btn,
-                      self.mean_vars_btn, self.remove_vars_btn]
-        populate_group(self.tools_group, tools_btns)
+        populate_group(self.tools_group, self.tools_btns)
 
     def populate_units_group(self):
         """ Populate units group layout. """
@@ -310,6 +316,19 @@ class Toolbar(QFrame):
             btn.setHidden(False)
             btn.setChecked(False)
             btn.setEnabled(False)
+
+    def enable_tools_btns(self, enable=True, exclude=None):
+        """ Disable all tool buttons with given exceptions. """
+        exclude = [exclude] if isinstance(exclude, list) else exclude
+        pairs = [("sum", self.sum_vars_btn),
+                 ("mean", self.mean_vars_btn),
+                 ("remove", self.remove_vars_btn),
+                 ("xlsx", self.export_xlsx_btn)]
+
+        btns = [btn for s, btn in pairs if s not in exclude]
+
+        for btn in btns:
+            btn.setEnabled(enable)
 
     def set_initial_layout(self):
         """ Define an app layout when there isn't any file loaded. """
