@@ -319,7 +319,7 @@ class Toolbar(QFrame):
 
     def enable_tools_btns(self, enable=True, exclude=None):
         """ Disable all tool buttons with given exceptions. """
-        exclude = [exclude] if isinstance(exclude, list) else exclude
+        exclude = [exclude] if not isinstance(exclude, list) else exclude
         pairs = [("sum", self.sum_vars_btn),
                  ("mean", self.mean_vars_btn),
                  ("remove", self.remove_vars_btn),

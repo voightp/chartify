@@ -434,6 +434,7 @@ class View(QTreeView):
 
     def clear_selected(self):
         """ Clear all selected rows. """
+        self.selectionCleared.emit()
         self.selectionModel().clearSelection()  # Note that this emits selectionChanged signal
 
     def deselect_item(self, proxy_index):

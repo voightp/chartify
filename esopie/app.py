@@ -310,8 +310,6 @@ class MainWindow(QMainWindow):
             if not self.tab_wgt.is_empty():
                 self.current_view_wgt.clear_selected()
 
-            self.clear_current_selection()
-
         elif event.key() == Qt.Key_Delete:
             return
 
@@ -492,7 +490,7 @@ class MainWindow(QMainWindow):
 
         # disable export xlsx as there are no
         # variables to be exported TODO handle enabling of all tools
-        self.enable_tools_btns(False)
+        self.toolbar.enable_tools_btns(False)
 
     def create_view_wgt(self, id_, std_file_header, tot_file_header):
         """ Create a 'View' widget and connect its actions. """
@@ -568,6 +566,7 @@ class MainWindow(QMainWindow):
             self.toolbar.populate_intervals_group()
         else:
             # there aren't any widgets available
+            self.clear_current_selection()
             self.toolbar.set_initial_layout()
 
     def load_files(self, eso_file_paths):
