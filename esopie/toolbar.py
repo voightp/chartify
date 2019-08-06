@@ -168,6 +168,12 @@ class Toolbar(QFrame):
                 self.sum_vars_btn,
                 self.mean_vars_btn]
 
+    @property
+    def outputs_btns(self):
+        """ A shorthand to get all outputs buttons. """
+        return [self.totals_btn,
+                self.all_files_btn]
+
     def store_settings(self):
         """ Store toolbar settings. """
         settings = QSettings()
@@ -190,10 +196,7 @@ class Toolbar(QFrame):
 
     def populate_outputs_group(self):
         """ Populate outputs buttons. """
-        outputs_btns = [self.totals_btn,
-                        self.all_files_btn]
-
-        populate_group(self.outputs_group, outputs_btns)
+        populate_group(self.outputs_group, self.outputs_btns)
 
     def populate_intervals_group(self, hide_disabled=True):
         """ Populate interval buttons based on a current state. """
@@ -215,9 +218,6 @@ class Toolbar(QFrame):
         outputs_btns_layout.setSpacing(0)
         outputs_btns_layout.setContentsMargins(0, 0, 0, 0)
         outputs_btns_layout.setAlignment(Qt.AlignTop)
-
-        outputs_btns_layout.addWidget(self.totals_btn)
-        outputs_btns_layout.addWidget(self.all_files_btn)
 
         self.populate_outputs_group()
 
