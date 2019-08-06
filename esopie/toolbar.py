@@ -92,6 +92,11 @@ class Toolbar(QFrame):
     removeRequested = Signal()
     totalsChanged = Signal(bool)
 
+    temp_settings = {"energy_units": "",
+                     "power_units": "",
+                     "units_system": "",
+                     "rate_to_energy": False}
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setObjectName("toolbar")
@@ -101,11 +106,6 @@ class Toolbar(QFrame):
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(0)
         self.layout.setAlignment(Qt.AlignTop)
-
-        self._units_settings = {"energy_units": "",
-                                "power_units": "",
-                                "units_system": "",
-                                "rate_to_energy": False}
 
         self.interval_btns = {}
         self.intervals_group = QGroupBox("Intervals", self)
@@ -338,9 +338,6 @@ class Toolbar(QFrame):
 
         self.disable_interval_btns()
         self.populate_intervals_group(hide_disabled=False)
-        self.populate_units_group()
-        self.populate_outputs_group()
-        self.populate_tools_group()
 
     def update_rate_ene_state(self):
         """ Enable or disable rate to energy button. """
@@ -400,22 +397,22 @@ class Toolbar(QFrame):
         """ Store intermediate units settings. """
         btns = self.units_btns[:3]
 
-        for s, btn in zip(self._units_settings.keys(), btns):
-            self._units_settings[s] = btn.data()
+        for s, btn in zip(self.temp_settings.keys(), btns):
+            self.temp_settings[s] = btn.data()
 
         checked = self.rate_to_energy_btn.isChecked()
-        self._units_settings["rate_to_energy"] = checked
+        self.temp_settings["rate_to_energy"] = checked
 
     def restore_units_settings(self):
         """ Restore units settings. """
         btns = self.units_btns[:3]
 
-        for s, btn in zip(self._units_settings.keys(), btns):
-            data = self._units_settings[s]
+        for s, btn in zip(self.temp_settings.keys(), btns):
+            data = self.temp_settings[s]
             act = btn.get_action(data=data)
             btn.update_state_internally(act)
 
-        checked = self._units_settings["rate_to_energy"]
+        checked = self.temp_settings["rate_to_energy"]
         self.rate_to_energy_btn.setChecked(checked)
 
     def enable_units_buttons(self, enabled):
