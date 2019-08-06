@@ -35,7 +35,7 @@ class TitledButton(QFrame):
     title_name = "buttonTitle"
 
     def __init__(self, parent, fill_space=True, title="",
-                 menu=None, items=None, def_act_ix=0, data=None):
+                 menu=None, items=None, def_act_dt="", data=None):
         super().__init__(parent)
         self.button = QToolButton(self)
         self.button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
@@ -59,17 +59,29 @@ class TitledButton(QFrame):
         layout.addWidget(self.button)
 
         if menu and items:
-            actions = [QAction(text, menu, checkable=True) for text in items]
-            actions[def_act_ix].setChecked(True)
+            actions = []
+            for text in items:
+                act = QAction(text, menu)
+                act.setCheckable(True)
+                actions.append(act)
 
-            if data:
-                _ = [act.setData(d) for act, d in zip(actions, data)]
+            if not data:
+                data = items
+
+            _ = [act.setData(d) for act, d in zip(actions, data)]
+
+            if def_act_dt:
+                def_act = next(act for act in actions
+                               if act.data() == def_act_dt)
+            else:
+                def_act = actions[0]
+
+            def_act.setChecked(True)
 
             menu.addActions(actions)
-
             self.button.setMenu(menu)
             self.button.setPopupMode(QToolButton.InstantPopup)
-            self.button.setDefaultAction(actions[def_act_ix])
+            self.button.setDefaultAction(def_act)
 
     def menu(self):
         return self.button.menu()
