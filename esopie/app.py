@@ -561,18 +561,16 @@ class MainWindow(QMainWindow):
         if self.tab_wgt.count() <= 1:
             self.toolbar.all_files_btn.setEnabled(False)
 
-    def get_available_intervals(self):
-        """ Get available intervals for the current eso file. """
-        return self.current_view_wgt.file_header.available_intervals
-
     def on_tab_changed(self, index):
         """ Update view when tabChanged event is fired. """
         if index != -1:
-            intervals = self.get_available_intervals()
+            # update interval buttons state
+            intervals = self.current_view_wgt.get_available_intervals()
             self.toolbar.update_intervals_state(intervals)
+            # update the view
             self.build_view()
+            # hide or show interval buttons based on availability
             self.toolbar.populate_intervals_group()
-
         else:
             # there aren't any widgets available
             self.toolbar.set_initial_layout()

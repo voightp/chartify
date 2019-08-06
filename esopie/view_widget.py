@@ -63,6 +63,10 @@ class View(QTreeView):
         key = "totals" if self.totals else "standard"
         return self.headers[key]
 
+    def get_available_intervals(self):
+        """ Get currently available intervals. """
+        return self.file_header.available_intervals
+
     def get_file_id(self):
         """ Get file id based on 'totals' request. """
         return self.file_header.id_
