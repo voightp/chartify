@@ -640,10 +640,13 @@ class MainWindow(QMainWindow):
 
     def load_files_from_os(self):
         """ Select eso files from explorer and start processing. """
+        settings = QSettings()
+        pth = settings.value("loadPath", "")
         file_pths, _ = QFileDialog.getOpenFileNames(self, "Load Eso File",
-                                                    "", "*.eso")
+                                                    pth, "*.eso")
         if file_pths:
             self.load_files(file_pths)
+            settings.setValue("loadPath", file_pths[0])
 
     def export_xlsx(self):
         """ Export selected variables data to xlsx. """
