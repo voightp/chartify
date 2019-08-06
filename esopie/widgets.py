@@ -1,4 +1,5 @@
-from PySide2.QtWidgets import QSizePolicy, QLineEdit, QHBoxLayout, QTabWidget, QToolButton
+from PySide2.QtWidgets import QSizePolicy, QLineEdit, QHBoxLayout, QTabWidget, \
+    QToolButton
 from PySide2.QtCore import Qt, QFileInfo, Signal, QSize
 from PySide2.QtWidgets import QFrame
 from PySide2.QtGui import QPixmap

@@ -1,5 +1,6 @@
 from PySide2.QtWidgets import (QVBoxLayout, QGridLayout, QToolButton,
-                               QGroupBox, QSpacerItem, QSizePolicy, QMenu, QFrame)
+                               QGroupBox, QSpacerItem, QSizePolicy, QMenu,
+                               QFrame)
 from PySide2.QtCore import QSize, Qt, Signal, QSettings
 from PySide2.QtGui import QPixmap, QFont, QColor
 
@@ -101,24 +102,32 @@ class Toolbar(QFrame):
         self.layout.setSpacing(0)
         self.layout.setAlignment(Qt.AlignTop)
 
+        # ~~~~ Intervals group ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.interval_btns = {}
         self.intervals_group = QGroupBox("Intervals", self)
         self.intervals_group.setObjectName("intervalsGroup")
         self.set_up_interval_btns()
         self.layout.addWidget(self.intervals_group)
 
+        # ~~~~ Outputs group ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.outputs_group = QGroupBox("Outputs", self)
         self.outputs_group.setObjectName("outputsGroup")
-        self.totals_btn = ToolsButton("totals", QPixmap("../icons/building_grey.png"),
-                                      checkable=True, parent=self.outputs_group)
+
+        pix = QPixmap("../icons/building_grey.png")
+        self.totals_btn = ToolsButton("totals", pix,
+                                      checkable=True,
+                                      parent=self.outputs_group)
         self.totals_btn.setEnabled(False)
 
-        self.all_files_btn = ToolsButton("all files", QPixmap("../icons/all_files_grey.png"),
-                                         checkable=True, parent=self)
+        pix = QPixmap("../icons/all_files_grey.png")
+        self.all_files_btn = ToolsButton("all files", pix,
+                                         checkable=True,
+                                         parent=self)
         self.all_files_btn.setEnabled(False)
         self.set_up_outputs_btns()
         self.layout.addWidget(self.outputs_group)
 
+        # ~~~~ Tools group ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.tools_group = QGroupBox("Tools", self)
         self.tools_group.setObjectName("toolsGroup")
         self.export_xlsx_btn = QToolButton(self.tools_group)
@@ -128,16 +137,17 @@ class Toolbar(QFrame):
         self.set_up_tools()
         self.layout.addWidget(self.tools_group)
 
-        self.custom_units_toggle = ToggleButton(self)
-        self.custom_units_toggle.setText("Units")
-        self.custom_units_toggle.setChecked(True)
-        self.layout.addWidget(self.custom_units_toggle)
+        # ~~~~ Tools group ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.cust_un_toggle = ToggleButton(self)
+        self.cust_un_toggle.setText("Units")
+        self.cust_un_toggle.setChecked(True)
+        self.layout.addWidget(self.cust_un_toggle)
 
         self.units_group = QFrame(self)
         self.units_group.setObjectName("unitsGroup")
-        self.energy_units_btn = None
-        self.power_units_btn = None
-        self.units_system_btn = None
+        self.ene_un_btn = None
+        self.pw_un_btn = None
+        self.un_syst_btn = None
         self.rate_to_energy_btn = None
         self.set_up_units()
         self.layout.addWidget(self.units_group)
@@ -145,7 +155,9 @@ class Toolbar(QFrame):
         spacer = QSpacerItem(1, 1, QSizePolicy.Minimum, QSizePolicy.Expanding)
         self.layout.addSpacerItem(spacer)
 
-        self.settings_btn = MenuButton(QPixmap("../icons/gear_grey.png", ), "Settings", self)
+        # ~~~~ Settings group ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.settings_btn = MenuButton(QPixmap("../icons/gear_grey.png"),
+                                       "Settings", self)
         self.settings_btn.setObjectName("settingsButton")
         self.settings_btn.setIconSize(QSize(40, 40))
         self.layout.addWidget(self.settings_btn)
@@ -155,9 +167,9 @@ class Toolbar(QFrame):
     @property
     def units_btns(self):
         """ A shorthand to get all units buttons."""
-        return [self.energy_units_btn,
-                self.power_units_btn,
-                self.units_system_btn,
+        return [self.ene_un_btn,
+                self.pw_un_btn,
+                self.un_syst_btn,
                 self.rate_to_energy_btn]
 
     @property
@@ -178,9 +190,9 @@ class Toolbar(QFrame):
         """ Store toolbar settings. """
         settings = QSettings()
 
-        settings.setValue("Toolbar/energyUnits", self.energy_units_btn.data())
-        settings.setValue("Toolbar/powerUnits", self.power_units_btn.data())
-        settings.setValue("Toolbar/unitsSystem", self.units_system_btn.data())
+        settings.setValue("Toolbar/energyUnits", self.ene_un_btn.data())
+        settings.setValue("Toolbar/powerUnits", self.pw_un_btn.data())
+        settings.setValue("Toolbar/unitsSystem", self.un_syst_btn.data())
 
         checked = self.rate_to_energy_btn.isChecked()
         settings.setValue("Toolbar/rateToEnergy", int(checked))
@@ -213,7 +225,6 @@ class Toolbar(QFrame):
 
     def set_up_outputs_btns(self):
         """ Create interval buttons and a parent container. """
-        # ~~~~ Layout to hold interval buttons ~~~~~~~~~~~~~~~~~~~~~~~~~~~
         outputs_btns_layout = QGridLayout(self.outputs_group)
         outputs_btns_layout.setSpacing(0)
         outputs_btns_layout.setContentsMargins(0, 0, 0, 0)
@@ -223,13 +234,12 @@ class Toolbar(QFrame):
 
     def set_up_interval_btns(self):
         """ Create interval buttons and a parent container. """
-        # ~~~~ Layout to hold interval buttons ~~~~~~~~~~~~~~~~~~~~~~~~~~~
         interval_btns_layout = QGridLayout(self.intervals_group)
         interval_btns_layout.setSpacing(0)
         interval_btns_layout.setContentsMargins(0, 0, 0, 0)
         interval_btns_layout.setAlignment(Qt.AlignTop)
 
-        # ~~~~ Generate interval buttons ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # ~~~~ Interval buttons set up~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         p = self.intervals_group
         ids = {TS: "TS", H: "H", D: "D", M: "M", A: "A", RP: "RP"}
         font = QFont("Roboto", 40)
@@ -247,38 +257,38 @@ class Toolbar(QFrame):
     def set_up_units(self):
         """ Set up units options. . """
         settings = QSettings()
-        # ~~~~ Layout to hold options  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # ~~~~ Layout to hold options  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         units_layout = QGridLayout(self.units_group)
         units_layout.setSpacing(0)
         units_layout.setContentsMargins(0, 0, 0, 0)
         units_layout.setAlignment(Qt.AlignLeft)
 
-        # ~~~~ Energy units set up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        energy_units_menu = QMenu(self)
+        # ~~~~ Energy units set up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        en_un_menu = QMenu(self)
         items = si_energy_units + ip_energy_units
         dt = settings.value("Toolbar/energyUnits", "kWh")
-        self.energy_units_btn = TitledButton(self.units_group, fill_space=True,
-                                             title="energy", menu=energy_units_menu,
-                                             items=items, data=items, def_act_dt=dt)
+        self.ene_un_btn = TitledButton(self.units_group, fill_space=True,
+                                       title="energy", menu=en_un_menu,
+                                       items=items, data=items, def_act_dt=dt)
 
-        # ~~~~ Power units set up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        power_units_menu = QMenu(self)
-        items = list(dict.fromkeys(si_power_units + ip_power_units))  # remove duplicate 'W'
+        # ~~~~ Power units set up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        pw_un_menu = QMenu(self)
+        items = list(dict.fromkeys(si_power_units + ip_power_units))
         dt = settings.value("Toolbar/powerUnits", "kW")
-        self.power_units_btn = TitledButton(self.units_group, fill_space=True,
-                                            title="power", menu=power_units_menu,
-                                            items=items, data=items, def_act_dt=dt)
+        self.pw_un_btn = TitledButton(self.units_group, fill_space=True,
+                                      title="power", menu=pw_un_menu,
+                                      items=items, data=items, def_act_dt=dt)
 
-        # ~~~~ Units system set up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        units_system_menu = QMenu(self)
+        # ~~~~ Units system set up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        un_syst_menu = QMenu(self)
         items = ["SI", "IP"]
         dt = settings.value("Toolbar/unitsSystem", "SI")
-        self.units_system_btn = TitledButton(self.units_group, fill_space=True,
-                                             title="system", menu=units_system_menu,
-                                             items=items, data=items, def_act_dt=dt)
+        self.un_syst_btn = TitledButton(self.units_group, fill_space=True,
+                                        title="system", menu=un_syst_menu,
+                                        items=items, data=items, def_act_dt=dt)
         self.toggle_units(dt)
 
-        # ~~~~ Units system set up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # ~~~~ Rate to energy set up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.rate_to_energy_btn = QToolButton(self.units_group)
         self.rate_to_energy_btn.setCheckable(True)
         self.rate_to_energy_btn.setObjectName("rateToEnergyBtn")
@@ -296,22 +306,22 @@ class Toolbar(QFrame):
         tools_layout.setContentsMargins(0, 0, 0, 0)
         tools_layout.setAlignment(Qt.AlignTop)
 
-        # ~~~~ Export xlsx button ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # ~~~~ Export xlsx button ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.export_xlsx_btn.setEnabled(False)
         self.export_xlsx_btn.setText("save xlsx")
         self.export_xlsx_btn.setCheckable(False)
 
-        # ~~~~ Sum variables button ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # ~~~~ Sum variables button ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.sum_vars_btn.setEnabled(False)
         self.sum_vars_btn.setText("sum")
         self.sum_vars_btn.setCheckable(False)
 
-        # ~~~~ Mean variables button ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # ~~~~ Mean variables button ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.mean_vars_btn.setEnabled(False)
         self.mean_vars_btn.setText("mean")
         self.mean_vars_btn.setCheckable(False)
 
-        # ~~~~ Remove variables button ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # ~~~~ Remove variables button ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.remove_vars_btn.setEnabled(False)
         self.remove_vars_btn.setText("remove")
         self.remove_vars_btn.setCheckable(False)
@@ -351,7 +361,7 @@ class Toolbar(QFrame):
         """ Enable or disable rate to energy button. """
         # handle changing the state on rate_to_energy_btn
         # as this is allowed only for daily+ intervals
-        if self.custom_units_toggle.isChecked():
+        if self.cust_un_toggle.isChecked():
             b = self.get_selected_interval() not in [TS, H]
             self.rate_to_energy_btn.setEnabled(b)
         else:
@@ -395,17 +405,17 @@ class Toolbar(QFrame):
         btn = self.rate_to_energy_btn
         rate_to_energy = btn.isEnabled() and btn.isChecked()
 
-        units_system = self.units_system_btn.data()
-        energy_units = self.energy_units_btn.data()
-        power_units = self.power_units_btn.data()
+        units_system = self.un_syst_btn.data()
+        energy_units = self.ene_un_btn.data()
+        power_units = self.pw_un_btn.data()
 
         return rate_to_energy, units_system, energy_units, power_units
 
     def store_units_settings(self):
         """ Store intermediate units settings. """
-        self.temp_settings["energy_units"] = self.energy_units_btn.data()
-        self.temp_settings["power_units"] = self.power_units_btn.data()
-        self.temp_settings["units_system"] = self.units_system_btn.data()
+        self.temp_settings["energy_units"] = self.ene_un_btn.data()
+        self.temp_settings["power_units"] = self.pw_un_btn.data()
+        self.temp_settings["units_system"] = self.un_syst_btn.data()
 
         checked = self.rate_to_energy_btn.isChecked()
         self.temp_settings["rate_to_energy"] = checked
@@ -416,9 +426,9 @@ class Toolbar(QFrame):
         pw = self.temp_settings["power_units"]
         us = self.temp_settings["units_system"]
 
-        self.energy_units_btn.update_state_internally(ene)
-        self.power_units_btn.update_state_internally(pw)
-        self.units_system_btn.update_state_internally(us)
+        self.ene_un_btn.update_state_internally(ene)
+        self.pw_un_btn.update_state_internally(pw)
+        self.un_syst_btn.update_state_internally(us)
 
         checked = self.temp_settings["rate_to_energy"]
         self.rate_to_energy_btn.setChecked(checked)
@@ -432,9 +442,9 @@ class Toolbar(QFrame):
 
     def reset_units_to_default(self):
         """ Reset units to E+ default. """
-        self.energy_units_btn.update_state_internally("J")
-        self.power_units_btn.update_state_internally("W")
-        self.units_system_btn.update_state_internally("SI")
+        self.ene_un_btn.update_state_internally("J")
+        self.pw_un_btn.update_state_internally("W")
+        self.un_syst_btn.update_state_internally("SI")
 
         self.rate_to_energy_btn.setEnabled(False)
         self.rate_to_energy_btn.setChecked(False)
@@ -469,12 +479,12 @@ class Toolbar(QFrame):
             en_acts = si_energy_units
             pw_acts = si_power_units
 
-        self.energy_units_btn.filter_visible_actions(en_acts)
-        self.power_units_btn.filter_visible_actions(pw_acts)
+        self.ene_un_btn.filter_visible_actions(en_acts)
+        self.pw_un_btn.filter_visible_actions(pw_acts)
 
     def units_system_changed(self, act):
         """ Update view when energy units are changed. """
-        changed = self.units_system_btn.update_state(act)
+        changed = self.un_syst_btn.update_state(act)
 
         dt = act.data()
         self.toggle_units(dt)
@@ -484,14 +494,14 @@ class Toolbar(QFrame):
 
     def power_units_changed(self, act):
         """ Update view when energy units are changed. """
-        changed = self.power_units_btn.update_state(act)
+        changed = self.pw_un_btn.update_state(act)
 
         if changed:
             self.updateView.emit()
 
     def energy_units_changed(self, act):
         """ Update view when energy units are changed. """
-        changed = self.energy_units_btn.update_state(act)
+        changed = self.ene_un_btn.update_state(act)
 
         if changed:
             self.updateView.emit()
@@ -510,10 +520,10 @@ class Toolbar(QFrame):
         self.totals_btn.clicked.connect(self.totals_toggled)
 
         # ~~~~ Options Actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.custom_units_toggle.stateChanged.connect(self.units_settings_toggled)
+        self.cust_un_toggle.stateChanged.connect(self.units_settings_toggled)
         self.rate_to_energy_btn.clicked.connect(self.rate_to_energy_toggled)
 
         # ~~~~ Settings Actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.energy_units_btn.menu().triggered.connect(self.energy_units_changed)
-        self.power_units_btn.menu().triggered.connect(self.power_units_changed)
-        self.units_system_btn.menu().triggered.connect(self.units_system_changed)
+        self.ene_un_btn.menu().triggered.connect(self.energy_units_changed)
+        self.pw_un_btn.menu().triggered.connect(self.power_units_changed)
+        self.un_syst_btn.menu().triggered.connect(self.units_system_changed)

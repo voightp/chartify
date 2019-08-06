@@ -1,8 +1,10 @@
-from PySide2.QtWidgets import QWidget, QProgressBar, QHBoxLayout, QFrame, QSizePolicy, QGridLayout, \
+from PySide2.QtWidgets import QWidget, QProgressBar, QHBoxLayout, QFrame, \
+    QSizePolicy, QGridLayout, \
     QAction, QActionGroup, QMenu, QApplication
 from PySide2.QtWebEngineWidgets import QWebEnginePage, QWebEngineView
 import pandas as pd
-from PySide2.QtCore import QSize, Qt, QThreadPool, QThread, QObject, Signal, QSortFilterProxyModel, \
+from PySide2.QtCore import QSize, Qt, QThreadPool, QThread, QObject, Signal, \
+    QSortFilterProxyModel, \
     QModelIndex, \
     QItemSelectionModel, QRegExp, QUrl
 import pickle

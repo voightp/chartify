@@ -87,8 +87,11 @@ class FileHeader:
         """ Return data - proxy paired list of tuples. """
         variables = list(self.header_dct[interval].values())
 
-        rate_to_energy, units_system, energy_units, power_units = units_settings
-        ProxyHeaderVariable = namedtuple("ProxyHeaderVariable", list(view_order))
+        (rate_to_energy, units_system,
+         energy_units, power_units) = units_settings
+
+        order = list(view_order)
+        ProxyVariable = namedtuple("ProxyVariable", order)
         proxy_header = []
 
         for var in variables:
@@ -97,8 +100,12 @@ class FileHeader:
             if units in ["W", "W/m2"]:
                 units = handle_rate_to_energy(units, rate_to_energy)
 
-            proxy_units = convert_units(units, units_system, energy_units, power_units)
-            proxy = ProxyHeaderVariable(key=var.key, variable=var.variable, units=proxy_units)
+            proxy_units = convert_units(units, units_system,
+                                        energy_units, power_units)
+            proxy = ProxyVariable(key=var.key,
+                                  variable=var.variable,
+                                  units=proxy_units)
+
             proxy_header.append(proxy)
 
         return zip(variables, proxy_header)
@@ -201,7 +208,7 @@ def to_ip(units):
         units = table[request]
 
     except KeyError:
-        print("Cannot convert to IP, original units [{}] kept!".format(units))
+        print(f"Cannot convert to IP, original units [{units}] kept!")
         pass
 
     return units

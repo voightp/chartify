@@ -1,4 +1,5 @@
-from PySide2.QtWidgets import QWidget, QLabel, QProgressBar, QStatusBar, QVBoxLayout, QSizePolicy, \
+from PySide2.QtWidgets import QWidget, QLabel, QProgressBar, QStatusBar, \
+    QVBoxLayout, QSizePolicy, \
     QPushButton, QHBoxLayout
 from PySide2.QtCore import Signal, Qt
 from esopie.threads import MonitorThread
@@ -36,9 +37,9 @@ class ProgressContainer(QWidget):
         self.files = {}
 
         self.widgets = self.create_widgets()
-        self.monitor_thread = MonitorThread(queue)
+        self.monitor = MonitorThread(queue)
         self.connect_monitor_actions()
-        self.monitor_thread.start()
+        self.monitor.start()
 
     @property
     def sorted_files(self):
@@ -84,7 +85,8 @@ class ProgressContainer(QWidget):
             # widget is in pending section, although it
             # can still be being processed on machines with
             # number of cpu greater than max_active_jobs
-            vals = [v.rel_value for v in self.visible_files if not isinstance(v, SummaryFile)]
+            vals = [v.rel_value for v in self.visible_files
+                    if not isinstance(v, SummaryFile)]
             return any(map(lambda x: x < (file.rel_value + 3), vals))
 
         return pos != i
@@ -109,7 +111,8 @@ class ProgressContainer(QWidget):
         max_ = self.max_active_jobs
         n = len(files)
 
-        disp = files[0:max_] if n > max_ else files + [None for _ in range(n, max_)]
+        fill = [None for _ in range(n, max_)]
+        disp = files[0:max_] if n > max_ else files + fill
         if n > max_:
             n = n - max_ + 1
             sm = SummaryFile()
@@ -165,13 +168,13 @@ class ProgressContainer(QWidget):
 
     def connect_monitor_actions(self):
         """ Create monitor actions. """
-        self.monitor_thread.initialized.connect(self.add_file)
-        self.monitor_thread.started.connect(self.update_progress_text)
-        self.monitor_thread.progress_text_updated.connect(self.update_progress_text)
-        self.monitor_thread.progress_bar_updated.connect(self.update_file_progress)
-        self.monitor_thread.preprocess_finished.connect(self.set_max_value)
-        self.monitor_thread.finished.connect(self.remove_file)
-        self.monitor_thread.failed.connect(self.set_failed)
+        self.monitor.initialized.connect(self.add_file)
+        self.monitor.started.connect(self.update_progress_text)
+        self.monitor.progress_text_updated.connect(self.update_progress_text)
+        self.monitor.progress_bar_updated.connect(self.update_file_progress)
+        self.monitor.preprocess_finished.connect(self.set_max_value)
+        self.monitor.finished.connect(self.remove_file)
+        self.monitor.failed.connect(self.set_failed)
 
 
 class ProgressFile:
@@ -274,7 +277,8 @@ class ProgressWidget(QWidget):
 
         self.progress_bar = QProgressBar(wgt)
         self.progress_bar.setTextVisible(False)
-        self.progress_bar.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.progress_bar.setSizePolicy(QSizePolicy.Expanding,
+                                        QSizePolicy.Fixed)
         self.progress_bar.setFixedHeight(1)
 
         self.del_btn = QPushButton(wgt)
