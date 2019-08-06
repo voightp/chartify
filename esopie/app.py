@@ -22,6 +22,7 @@ from functools import partial
 from eso_reader.eso_file import EsoFile, get_results, IncompleteFile
 from eso_reader.building_eso_file import BuildingEsoFile
 from eso_reader.mini_classes import Variable
+from eso_reader.convertor import verify_units
 
 from queue import Queue
 from multiprocessing import Manager, cpu_count
@@ -478,11 +479,15 @@ class MainWindow(QMainWindow):
         print("STORING!\n\t{}".format("\n\t".join([" | ".join(var) for var in outputs])))
         self.selected = outputs
 
-        # enable export xlsx function TODO handle enabling of all tools
-        self.toolbar.enable_tools_btns(True, ["sum", "mean"])
+        # always enable remove and export buttons
+        self.toolbar.enable_tools_btns(True, exclude=["sum", "mean"])
 
-        if len(outputs) > 1:
-            self.toolbar.enable_tools_btns(True, ["xlsx", "remove"])
+        # check if variables can be aggregated
+        units = verify_units([var.units for var in outputs])
+        if len(outputs) > 1 and units:
+            self.toolbar.enable_tools_btns(True, exclude=["xlsx", "remove"])
+        else:
+            self.toolbar.enable_tools_btns(False, exclude=["xlsx", "remove"])
 
     def clear_current_selection(self):
         """ Handle behaviour when no variables are selected. """
