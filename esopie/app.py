@@ -258,7 +258,7 @@ class MainWindow(QMainWindow):
 
         # TODO reload css button (temporary)
         mn = QMenu(self)
-        self.toolbar.settings_btn.setMenu(mn)
+        self.toolbar.stngs_btn.setMenu(mn)
 
         css = QAction("C", self)
         css.triggered.connect(self.toggle_css)
