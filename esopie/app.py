@@ -107,11 +107,18 @@ def install_fonts(pth, database):
         database.addApplicationFont(p)
 
 
-def action_factory(icon, text, parent, func, shortcut=None):
+def act_factory(text, parent, func=None, icon_pth=None, shortcut=None):
     """ Wrapper to generate an action. """
-    act = QAction(icon, text, parent)
-    act.setShortcut(QKeySequence(shortcut))
-    act.triggered.connect(func)
+    act = QAction(text, parent)
+
+    if icon_pth:
+        act.setIcon(QIcon(icon_pth))
+
+    if func:
+        act.triggered.connect(func)
+
+    if shortcut:
+        act.setShortcut(QKeySequence(shortcut))
 
     return act
 
@@ -177,6 +184,7 @@ class MainWindow(QMainWindow):
 
         # ~~~~ Actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.connect_ui_actions()
+        self.setContextMenuPolicy(Qt.DefaultContextMenu)
 
         # ~~~~ Intermediate settings ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.selected = None
@@ -223,28 +231,30 @@ class MainWindow(QMainWindow):
         self.mini_menu_layout.setSpacing(0)
         self.toolbar.layout.insertWidget(0, self.mini_menu)
 
-        context_menu = QMenu(self)
-
-
         # ~~~~ Actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        load_file_act = action_factory(QIcon("../icons/add_file_grey.png"),
-                                       "Load file | files", self,
-                                       self.load_files_from_os, "Ctrl+L")
+        self.load_file_act = act_factory("Load file | files", self,
+                                         func=self.load_files_from_os,
+                                         icon_pth="../icons/add_file_grey.png",
+                                         shortcut="Ctrl+L")
 
-        close_all_act = action_factory(QIcon("../icons/remove_grey.png"),
-                                       "Close all", self,
-                                       self.close_all_tabs)
+        self.close_all_act = act_factory("Close all", self,
+                                         self.close_all_tabs,
+                                         icon_pth="../icons/remove_grey.png")
 
-        remove_act = action_factory(None, "Delete", self, self.remove_vars)
-        hide_act = action_factory(None, "Hide", self, self.hide_vars)
-        remove_hidden_act = action_factory(None, "Remove hidden", self,
-                                           self.remove_hidden_vars)
+        self.remove_act = act_factory("Delete", self,
+                                      func=self.remove_vars)
 
-        show_hidden_act = action_factory(None, "Show hidden", self,
-                                         self.show_hidden_vars)
+        self.hide_act = act_factory("Hide", self,
+                                    func=self.hide_vars)
+
+        self.remove_hidden_act = act_factory("Remove hidden", self,
+                                             func=self.remove_hidden_vars)
+
+        self.show_hidden_act = act_factory("Show hidden", self,
+                                           func=self.show_hidden_vars)
 
         sz = QSize(25, 25)
-        acts = [load_file_act, close_all_act]
+        acts = [self.load_file_act, self.close_all_act]
         load_file_btn = MenuButton(QIcon("../icons/file_grey.png"),
                                    "Load file | files", self,
                                    sz, self.load_files_from_os, acts)
@@ -354,6 +364,17 @@ class MainWindow(QMainWindow):
 
         elif event.key() == Qt.Key_Delete:
             return
+
+    def contextMenuEvent(self, event):
+        """ Manage context menu. """
+        actions = [self.remove_act,
+                   self.hide_act,
+                   self.show_hidden_act]
+
+        menu = QMenu(self)
+        menu.addActions(actions)
+
+        menu.exec_(self.mapToGlobal(event.pos()))
 
     def load_icons(self):
         myappid = 'foo'  # arbitrary string
