@@ -64,6 +64,14 @@ class View(QTreeView):
         key = "totals" if self.totals else "standard"
         return self.headers[key]
 
+    def mousePressEvent(self, event):
+        """ Handle mouse events. """
+        btn = event.button()
+        if btn == Qt.RightButton or btn == Qt.MiddleButton:
+            return
+        else:
+            super().mousePressEvent(event)
+
     def get_available_intervals(self):
         """ Get currently available intervals. """
         return self.file_header.available_intervals
