@@ -697,12 +697,16 @@ class MainWindow(QMainWindow):
         var_nm = "Custom Variable"
         key_nm = "Custom Key"
 
-        if all(map(lambda x: x == variables[0], variables)):
-            var_nm = variables[0]
+        if all(map(lambda x: x.variable == variables[0].variable, variables)):
+            var_nm = variables[0].variable
+
+        if all(map(lambda x: x.key == variables[0].key, variables)):
+            key_nm = variables[0].key
 
         # retrieve custom inputs from a user
         kwargs = {"variable name": var_nm,
                   "key name": key_nm}
+
         dialog = MulInputDialog(self, **kwargs)
         res = dialog.exec()
 
