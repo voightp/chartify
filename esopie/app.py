@@ -10,7 +10,7 @@ from PySide2.QtWidgets import (QWidget, QSplitter, QHBoxLayout, QVBoxLayout,
 from PySide2.QtCore import (QSize, Qt, QThreadPool, QCoreApplication, QSettings,
                             QPoint)
 from PySide2.QtWebEngineWidgets import QWebEngineView, QWebEngineSettings
-from PySide2.QtGui import QIcon, QPixmap, QFontDatabase
+from PySide2.QtGui import QIcon, QPixmap, QFontDatabase, QKeySequence
 
 from esopie.eso_file_header import FileHeader
 from esopie.icons import Pixmap, text_to_pixmap
@@ -107,6 +107,15 @@ def install_fonts(pth, database):
         database.addApplicationFont(p)
 
 
+def action_factory(icon, text, parent, func, shortcut=None):
+    """ Wrapper to generate an action. """
+    act = QAction(icon, text, parent)
+    act.setShortcut(QKeySequence(shortcut))
+    act.triggered.connect(func)
+
+    return act
+
+
 # noinspection PyPep8Naming,PyUnresolvedReferences
 class MainWindow(QMainWindow):
     # todo create color schemes
@@ -193,11 +202,11 @@ class MainWindow(QMainWindow):
         self.swap_btn.setIcon(pix)
         self.status_bar.addPermanentWidget(self.swap_btn)
 
-        # ~~~~ Database ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # ~~~~ Database ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # self.database = self.manager.dict() TODO simple dict might be sufficient
         self.database = {}
 
-        # ~~~~ Monitoring threads ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # ~~~~ Monitoring threads ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # TODO PASSING THE DATA TO DASH APP
         self.watcher = EsoFileWatcher(self.file_queue)
         self.watcher.loaded.connect(self.on_file_loaded)
@@ -207,53 +216,52 @@ class MainWindow(QMainWindow):
 
         self.thread_pool = QThreadPool()
 
-        # ~~~~ Menus ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # ~~~~ Menus ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.mini_menu = QWidget(self.toolbar)
         self.mini_menu_layout = QHBoxLayout(self.mini_menu)
         self.mini_menu_layout.setContentsMargins(0, 0, 0, 0)
         self.mini_menu_layout.setSpacing(0)
         self.toolbar.layout.insertWidget(0, self.mini_menu)
 
-        load_file_act = QAction(QIcon("../icons/add_file_grey.png"),
-                                "Load file | files", self)
-        load_file_act.triggered.connect(self.load_files_from_os)
-        close_all_act = QAction(QIcon("../icons/remove_grey.png"),
-                                "Close all files", self)
-        close_all_act.triggered.connect(self.close_all_tabs)
-        remove_hidden_act = QAction("Remove hidden variables", self)
-        remove_hidden_act.triggered.connect(self.remove_hidden_vars)
+        context_menu = QMenu(self)
 
-        show_hidden_act = QAction("Show hidden variables", self)
-        show_hidden_act.triggered.connect(self.show_hidden_vars)
-        remove_act = QAction("Remove variables", self)
-        remove_act.triggered.connect(self.remove_vars)
-        hide_act = QAction("Hide variables", self)
-        hide_act.triggered.connect(self.hide_vars)
-        file_menu = QMenu(self)
-        acts = [load_file_act, close_all_act, remove_hidden_act,
-                show_hidden_act, remove_act, hide_act]
-        file_menu.addActions(acts)
 
-        icon_size = QSize(25, 25)
+        # ~~~~ Actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        load_file_act = action_factory(QIcon("../icons/add_file_grey.png"),
+                                       "Load file | files", self,
+                                       self.load_files_from_os, "Ctrl+L")
+
+        close_all_act = action_factory(QIcon("../icons/remove_grey.png"),
+                                       "Close all", self,
+                                       self.close_all_tabs)
+
+        remove_act = action_factory(None, "Delete", self, self.remove_vars)
+        hide_act = action_factory(None, "Hide", self, self.hide_vars)
+        remove_hidden_act = action_factory(None, "Remove hidden", self,
+                                           self.remove_hidden_vars)
+
+        show_hidden_act = action_factory(None, "Show hidden", self,
+                                         self.show_hidden_vars)
+
+        sz = QSize(25, 25)
+        acts = [load_file_act, close_all_act]
         load_file_btn = MenuButton(QIcon("../icons/file_grey.png"),
-                                   "Load file | files", self)
-        load_file_btn.setIconSize(icon_size)
-        load_file_btn.clicked.connect(self.load_files_from_os)
-        load_file_btn.setStatusTip("Open eso file or files")
-        load_file_btn.setMenu(file_menu)
+                                   "Load file | files", self,
+                                   sz, self.load_files_from_os, acts)
+
         self.mini_menu_layout.addWidget(load_file_btn)
 
-        save_all = MenuButton(QIcon("../icons/save_grey.png"), "Save", self)
-        save_all.setIconSize(icon_size)
-        save_all.clicked.connect(lambda: print("NEEDS FUNCTION TO SAVE"))
-        save_all.setStatusTip("Save current project")
+        save_all = MenuButton(QIcon("../icons/save_grey.png"),
+                              "Save", self, sz,
+                              lambda: print("NEEDS FUNCTION TO SAVE"))
+
         self.mini_menu_layout.addWidget(save_all)
 
-        about = MenuButton(QIcon("../icons/help_grey.png"), "Save", self)
-        about.setIconSize(icon_size)
-        about.clicked.connect(lambda: print("NEEDS FUNCTION TO SAVE"))
-        about.setStatusTip("About")
-        self.mini_menu_layout.addWidget(about)
+        about_btn = MenuButton(QIcon("../icons/help_grey.png"),
+                               "Save", self, sz,
+                               lambda: print("NEEDS FUNCTION TO ABOUT"))
+
+        self.mini_menu_layout.addWidget(about_btn)
 
         # TODO reload css button (temporary)
         mn = QMenu(self)

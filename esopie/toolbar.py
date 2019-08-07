@@ -157,9 +157,8 @@ class Toolbar(QFrame):
 
         # ~~~~ Settings group ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.stngs_btn = MenuButton(QPixmap("../icons/gear_grey.png"),
-                                    "Settings", self)
-        self.stngs_btn.setObjectName("settingsButton")
-        self.stngs_btn.setIconSize(QSize(40, 40))
+                                    "Settings", self, QSize(40, 40))
+
         self.layout.addWidget(self.stngs_btn)
 
         self.connect_actions()

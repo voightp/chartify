@@ -1,5 +1,5 @@
 from PySide2.QtWidgets import (QToolButton, QVBoxLayout, QHBoxLayout, QLabel,
-                               QSizePolicy, QFrame, QAction, QSlider)
+                               QSizePolicy, QFrame, QAction, QSlider, QMenu)
 from PySide2.QtCore import Qt, Signal, QSize
 from esopie.misc_widgets import update_appearance
 
@@ -259,7 +259,16 @@ class MenuButton(QToolButton):
 
     """
 
-    def __init__(self, icon, text, parent):
+    def __init__(self, icon, text, parent, size, func=None, actions=None):
         super().__init__(parent)
         self.setIcon(icon)
         self.setText(text)
+        self.setIconSize(size)
+
+        if func:
+            self.clicked.connect(func)
+
+        if actions:
+            mn = QMenu(self)
+            mn.addActions(actions)
+            self.setMenu(mn)
