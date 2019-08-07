@@ -3,7 +3,7 @@ from PySide2.QtWidgets import (QWidget, QHBoxLayout, QToolButton, QLabel,
 from PySide2.QtCore import Qt, Signal, QTimer
 from PySide2.QtGui import QIcon, QPixmap
 
-from esopie.widgets import LineEdit
+from esopie.misc_widgets import LineEdit
 
 
 class ViewTools(QFrame):

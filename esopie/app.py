@@ -15,7 +15,7 @@ from PySide2.QtGui import QIcon, QPixmap, QFontDatabase
 from esopie.eso_file_header import FileHeader
 from esopie.icons import Pixmap, text_to_pixmap
 from esopie.progress_widget import StatusBar, ProgressContainer
-from esopie.widgets import DropFrame, TabWidget
+from esopie.misc_widgets import DropFrame, TabWidget
 from esopie.buttons import MenuButton
 from esopie.toolbar import Toolbar
 from esopie.view_tools import ViewTools

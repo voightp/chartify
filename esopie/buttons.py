@@ -1,7 +1,7 @@
 from PySide2.QtWidgets import (QToolButton, QVBoxLayout, QHBoxLayout, QLabel,
                                QSizePolicy, QFrame, QAction, QSlider)
 from PySide2.QtCore import Qt, Signal, QSize
-from esopie.widgets import update_appearance
+from esopie.misc_widgets import update_appearance
 
 
 class TitledButton(QFrame):
