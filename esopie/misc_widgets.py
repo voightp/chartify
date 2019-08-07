@@ -1,8 +1,10 @@
-from PySide2.QtWidgets import QSizePolicy, QLineEdit, QHBoxLayout, QTabWidget, \
-    QToolButton
+from PySide2.QtWidgets import (QSizePolicy, QLineEdit, QHBoxLayout, QTabWidget,
+                               QToolButton, QDialog, QFormLayout, QVBoxLayout,
+                               QDialogButtonBox, QWidget, QApplication,
+                               QPushButton)
 from PySide2.QtCore import Qt, QFileInfo, Signal, QSize
 from PySide2.QtWidgets import QFrame
-from PySide2.QtGui import QPixmap
+from PySide2.QtGui import QPixmap, QIcon
 from esopie.view_widget import View
 
 
@@ -160,3 +162,66 @@ class LineEdit(QFrame):
     def setPlaceholderText(self, text):
         """ Set LineEdit placeholder text. """
         self.line_edit.setPlaceholderText(text)
+
+
+class MulInputDialog(QDialog):
+    """
+    Dialog to allow user to specify text inputs.
+
+    Arbitrary number of rows can be defined as
+    k, v pairs using **kwargs.
+
+    QLineEdits can be accessed from the 'inputs'
+    attribute.
+
+    """
+
+    def __init__(self, parent, **kwargs):
+        super().__init__(parent, Qt.FramelessWindowHint)
+        self.line_edits = {}
+
+        main_layout = QVBoxLayout(self)
+        main_layout.setSpacing(0)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+
+        form = QWidget(self)
+        layout = QFormLayout(form)
+        main_layout.setSpacing(0)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.addWidget(form)
+
+        box = QDialogButtonBox(self)
+        self.ok_btn = QToolButton(self)  # TODO change colors
+        self.ok_btn.setIcon(QIcon("../icons/check_black.png"))
+        self.cancel_btn = QToolButton(self)
+        self.cancel_btn.setIcon(QIcon("../icons/remove_grey.png"))
+        box.addButton(self.ok_btn, QDialogButtonBox.AcceptRole)
+        box.addButton(self.cancel_btn, QDialogButtonBox.RejectRole)
+        box.accepted.connect(self.accept)
+        box.rejected.connect(self.reject)
+        main_layout.addWidget(box)
+
+        for k, v in kwargs.items():
+            inp = QLineEdit(self)
+            inp.textChanged.connect(self.verify_input)
+            self.line_edits[k] = inp
+            inp.setText(v)
+
+            layout.addRow(k, inp)
+
+    def get_inputs_dct(self):
+        """ Return current input text. """
+        return {k: v.text() for k, v in self.line_edits.items()}
+
+    def get_inputs_vals(self):
+        """ Return current input text. """
+        return [v.text() for v in self.line_edits.values()]
+
+    def verify_input(self):
+        """ Check if the line text is applicable. """
+        vals = self.get_inputs_vals()
+        if any(map(lambda x: not x or not x.strip(), vals)):
+            self.ok_btn.setEnabled(False)
+        else:
+            if not self.ok_btn.isEnabled():
+                self.ok_btn.setEnabled(True)

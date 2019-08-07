@@ -15,7 +15,7 @@ from PySide2.QtGui import QIcon, QPixmap, QFontDatabase
 from esopie.eso_file_header import FileHeader
 from esopie.icons import Pixmap, text_to_pixmap
 from esopie.progress_widget import StatusBar, ProgressContainer
-from esopie.misc_widgets import DropFrame, TabWidget
+from esopie.misc_widgets import DropFrame, TabWidget, MulInputDialog
 from esopie.buttons import MenuButton
 from esopie.toolbar import Toolbar
 from esopie.view_tools import ViewTools
@@ -229,7 +229,6 @@ class MainWindow(QMainWindow):
         remove_act.triggered.connect(self.remove_vars)
         hide_act = QAction("Hide variables", self)
         hide_act.triggered.connect(self.hide_vars)
-
         file_menu = QMenu(self)
         acts = [load_file_act, close_all_act, remove_hidden_act,
                 show_hidden_act, remove_act, hide_act]
@@ -666,14 +665,32 @@ class MainWindow(QMainWindow):
 
     def add_new_var(self, view, variables, func):
         """ Add a new variable to the file. """
+        var_nm = "Custom Variable"
+        key_nm = "Custom Key"
+
+        if all(map(lambda x: x == variables[0], variables)):
+            var_nm = variables[0]
+
+        # retrieve custom inputs from a user
+        kwargs = {"variable name": var_nm,
+                  "key name": key_nm}
+        dialog = MulInputDialog(self, **kwargs)
+        res = dialog.exec()
+
+        if res == 0:
+            return
+
+        var_nm = dialog.get_inputs_dct()["variable name"]
+        key_nm = dialog.get_inputs_dct()["key name"]
+
         file_id = view.get_file_id()
 
         # files are always returned as list
         file = self.get_files_from_db(file_id)[0]
 
         var_id = file.aggregate_variables(variables, func,
-                                          key_name="Custom Key",
-                                          variable_name="Custom Variable",
+                                          key_name=key_nm,
+                                          variable_name=var_nm,
                                           part_match=False)
         if var_id:
             # vars are always returned as list
