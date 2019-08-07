@@ -81,10 +81,9 @@ class Toolbar(QFrame):
 
     """
     updateView = Signal()
-    xlsxRequested = Signal()
     sumRequested = Signal()
     meanRequested = Signal()
-    removeRequested = Signal()
+
     totalsChanged = Signal(bool)
 
     temp_settings = {"energy_units": "",
@@ -130,10 +129,8 @@ class Toolbar(QFrame):
         # ~~~~ Tools group ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.tools_group = QGroupBox("Tools", self)
         self.tools_group.setObjectName("toolsGroup")
-        self.xlsx_btn = QToolButton(self.tools_group)
         self.sum_btn = QToolButton(self.tools_group)
         self.mean_btn = QToolButton(self.tools_group)
-        self.remove_btn = QToolButton(self.tools_group)
         self.set_up_tools()
         self.layout.addWidget(self.tools_group)
 
@@ -174,9 +171,7 @@ class Toolbar(QFrame):
     @property
     def tools_btns(self):
         """ A shorthand to get all tools buttons."""
-        return [self.xlsx_btn,
-                self.remove_btn,
-                self.sum_btn,
+        return [self.sum_btn,
                 self.mean_btn]
 
     @property
@@ -305,11 +300,6 @@ class Toolbar(QFrame):
         tools_layout.setContentsMargins(0, 0, 0, 0)
         tools_layout.setAlignment(Qt.AlignTop)
 
-        # ~~~~ Export xlsx button ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.xlsx_btn.setEnabled(False)
-        self.xlsx_btn.setText("save xlsx")
-        self.xlsx_btn.setCheckable(False)
-
         # ~~~~ Sum variables button ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.sum_btn.setEnabled(False)
         self.sum_btn.setText("sum")
@@ -319,11 +309,6 @@ class Toolbar(QFrame):
         self.mean_btn.setEnabled(False)
         self.mean_btn.setText("mean")
         self.mean_btn.setCheckable(False)
-
-        # ~~~~ Remove variables button ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.remove_btn.setEnabled(False)
-        self.remove_btn.setText("remove")
-        self.remove_btn.setCheckable(False)
 
         self.populate_tools_group()
 
@@ -338,9 +323,7 @@ class Toolbar(QFrame):
         """ Disable all tool buttons with given exceptions. """
         exclude = [exclude] if not isinstance(exclude, list) else exclude
         pairs = [("sum", self.sum_btn),
-                 ("mean", self.mean_btn),
-                 ("remove", self.remove_btn),
-                 ("xlsx", self.xlsx_btn)]
+                 ("mean", self.mean_btn)]
 
         btns = [btn for s, btn in pairs if s not in exclude]
 
@@ -512,9 +495,7 @@ class Toolbar(QFrame):
         _ = [btn.clicked.connect(self.interval_changed) for btn in btns]
 
         # ~~~~ Options buttons actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.xlsx_btn.clicked.connect(self.xlsxRequested.emit)
         self.mean_btn.clicked.connect(self.meanRequested.emit)
-        self.remove_btn.clicked.connect(self.removeRequested.emit)
         self.sum_btn.clicked.connect(self.sumRequested.emit)
         self.totals_btn.clicked.connect(self.totals_toggled)
 

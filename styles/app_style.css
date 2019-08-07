@@ -550,12 +550,17 @@ QMenu {
 
 QMenu::icon {
   margin: 0px;
+  padding: 0px 5px;
 }
 
 QMenu::item {
   background-color: white;
-  padding: 10px 24px 10px 20px;
+  padding: 10px 24px 10px 30px;
   border: 1px transparent white;
+}
+
+QMenu#contextMenu::item {
+  padding-left: 15px;
 }
 
 QMenu::item:selected {
@@ -565,6 +570,10 @@ QMenu::item:selected {
 QMenu::item:checked {
    background-color: rgb(255, 137, 100);
    color: white;
+}
+
+QMenu::item:disabled {
+    color: rgba(112,112,112,0.5);
 }
 
 QMenu::indicator {

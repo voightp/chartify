@@ -15,7 +15,7 @@ from PySide2.QtGui import QIcon, QPixmap, QFontDatabase, QKeySequence
 from esopie.eso_file_header import FileHeader
 from esopie.icons import Pixmap, text_to_pixmap
 from esopie.progress_widget import StatusBar, ProgressContainer
-from esopie.misc_widgets import DropFrame, TabWidget, MulInputDialog
+from esopie.misc_widgets import DropFrame, TabWidget, MulInputDialog, update_appearance
 from esopie.buttons import MenuButton
 from esopie.toolbar import Toolbar
 from esopie.view_tools import ViewTools
@@ -252,6 +252,11 @@ class MainWindow(QMainWindow):
 
         self.show_hidden_act = act_factory("Show hidden", self,
                                            func=self.show_hidden_vars)
+        # disable actions as these will be activated on selection
+        self.close_all_act.setEnabled(False)
+        self.remove_act.setEnabled(False)
+        self.hide_act.setEnabled(False)
+        self.show_hidden_act.setEnabled(False)
 
         sz = QSize(25, 25)
         acts = [self.load_file_act, self.close_all_act]
@@ -371,8 +376,11 @@ class MainWindow(QMainWindow):
                    self.hide_act,
                    self.show_hidden_act]
 
+        # available = [a for a in actions if a.isEnabled()] TODO decide if hide
+
         menu = QMenu(self)
-        menu.addActions(actions)
+        menu.setObjectName("contextMenu")
+        menu.addActions(available)
 
         menu.exec_(self.mapToGlobal(event.pos()))
 
@@ -542,7 +550,7 @@ class MainWindow(QMainWindow):
         self.delete_sets_from_db(*ids)
         self.toolbar.set_initial_layout()
 
-    def populate_current_selection(self, outputs):
+    def items_selected(self, outputs):
         """ Store current selection in main app. """
         out_str = [" | ".join(var) for var in outputs]
         print("STORING!\n\t{}".format("\n\t".join(out_str)))
@@ -553,6 +561,10 @@ class MainWindow(QMainWindow):
         # always enable remove and export buttons
         self.toolbar.enable_tools_btns(True, exclude=["sum", "mean"])
 
+        # handle actions availability
+        self.hide_act.setEnabled(True)
+        self.remove_act.setEnabled(True)
+
         # check if variables can be aggregated
         units = verify_units([var.units for var in outputs])
         if len(outputs) > 1 and units:
@@ -560,20 +572,23 @@ class MainWindow(QMainWindow):
         else:
             self.toolbar.enable_tools_btns(False, exclude=["xlsx", "remove"])
 
-    def clear_current_selection(self):
+    def selection_cleared(self):
         """ Handle behaviour when no variables are selected. """
         self.selected = None
 
-        # disable export xlsx as there are no
-        # variables to be exported TODO handle enabling of all tools
+        # handle actions availability
+        self.hide_act.setEnabled(False)
+        self.remove_act.setEnabled(False)
+
+        # disable export xlsx as there are no variables to be exported
         self.toolbar.enable_tools_btns(False)
 
     def create_view_wgt(self, id_, std_file_header, tot_file_header):
         """ Create a 'View' widget and connect its actions. """
         wgt = View(id_, std_file_header, tot_file_header)
 
-        wgt.selectionCleared.connect(self.clear_current_selection)
-        wgt.selectionPopulated.connect(self.populate_current_selection)
+        wgt.selectionCleared.connect(self.selection_cleared)
+        wgt.selectionPopulated.connect(self.items_selected)
         wgt.updateView.connect(self.build_view)
 
         return wgt
@@ -597,6 +612,7 @@ class MainWindow(QMainWindow):
         # enable all eso file results btn if there's multiple files
         if self.tab_wgt.count() > 1:
             self.toolbar.all_files_btn.setEnabled(True)
+            self.close_all_act.setEnabled(True)
 
         # enable all eso file results btn if it's suitable
         if not self.tab_wgt.is_empty():
@@ -629,6 +645,7 @@ class MainWindow(QMainWindow):
 
         if self.tab_wgt.count() <= 1:
             self.toolbar.all_files_btn.setEnabled(False)
+            self.close_all_act.setEnabled(False)
 
     def on_tab_changed(self, index):
         """ Update view when tabChanged event is fired. """
@@ -642,7 +659,7 @@ class MainWindow(QMainWindow):
             self.toolbar.populate_intervals_group()
         else:
             # there aren't any widgets available
-            self.clear_current_selection()
+            self.selection_cleared()
             self.toolbar.set_initial_layout()
 
     def load_files(self, eso_file_paths):
@@ -753,8 +770,7 @@ class MainWindow(QMainWindow):
     def dump_vars(self, view, variables, remove=False):
         """ Hide or remove the """
         file_id = view.get_file_id()
-        file = self.get_files_from_db(file_id)[
-            0]  # files are always returned as list
+        file = self.get_files_from_db(file_id)[0]
 
         groups = file.find_pairs(variables)
 
@@ -775,6 +791,7 @@ class MainWindow(QMainWindow):
             view.show_hidden_header_variables()
             view.set_next_update_forced()
 
+        self.show_hidden_act.setEnabled(False)
         self.build_view()
 
     def remove_hidden_vars(self):
@@ -801,6 +818,9 @@ class MainWindow(QMainWindow):
         """ Temporarily hide variables. """
         variables = self.get_current_request()
         self.apply_tools_func(self.dump_vars, variables)
+
+        # allow showing variables again
+        self.show_hidden_act.setEnabled(True)
 
     def get_current_file_ids(self):
         """ Return current file id or ids based on 'all files btn' state. """
@@ -852,9 +872,7 @@ class MainWindow(QMainWindow):
 
         # ~~~~ Outputs actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.toolbar.updateView.connect(self.build_view)
-        self.toolbar.xlsxRequested.connect(self.export_xlsx)
         self.toolbar.meanRequested.connect(self.add_mean_var)
-        self.toolbar.removeRequested.connect(self.remove_vars)
         self.toolbar.sumRequested.connect(self.add_summed_var)
         self.toolbar.totalsChanged.connect(self.on_totals_change)
 
