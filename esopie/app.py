@@ -3,6 +3,7 @@ import os
 import ctypes
 import loky
 import psutil
+import copy
 
 from PySide2.QtWidgets import (QWidget, QSplitter, QHBoxLayout, QVBoxLayout,
                                QToolButton, QAction, QFileDialog, QSizePolicy,
@@ -15,7 +16,7 @@ from PySide2.QtGui import QIcon, QPixmap, QFontDatabase, QKeySequence
 from esopie.eso_file_header import FileHeader
 from esopie.icons import Pixmap, text_to_pixmap
 from esopie.progress_widget import StatusBar, ProgressContainer
-from esopie.misc_widgets import DropFrame, TabWidget, MulInputDialog, update_appearance
+from esopie.misc_widgets import DropFrame, TabWidget, MulInputDialog, ConfirmationDialog
 from esopie.buttons import MenuButton
 from esopie.toolbar import Toolbar
 from esopie.view_tools import ViewTools
@@ -380,7 +381,7 @@ class MainWindow(QMainWindow):
 
         menu = QMenu(self)
         menu.setObjectName("contextMenu")
-        menu.addActions(available)
+        menu.addActions(actions)
 
         menu.exec_(self.mapToGlobal(event.pos()))
 
@@ -598,8 +599,12 @@ class MainWindow(QMainWindow):
         std_id = f"s{id_}"
         tot_id = f"t{id_}"
 
-        std_header = FileHeader(std_id, std_file.header_dct)
-        tot_header = FileHeader(tot_id, tot_file.header_dct)
+        # copy header dicts as view and file should be independent
+        std_header_dct = copy.deepcopy(std_file.header_dct)
+        tot_header_dct = copy.deepcopy(tot_file.header_dct)
+
+        std_header = FileHeader(std_id, std_header_dct)
+        tot_header = FileHeader(tot_id, tot_header_dct)
 
         file_set = {std_id: std_file,
                     tot_id: tot_file}
@@ -812,6 +817,11 @@ class MainWindow(QMainWindow):
     def remove_vars(self):
         """ Remove variables from a file. """
         variables = self.get_current_request()
+
+        dialog = ConfirmationDialog()
+        out = dialog.exec_()
+        print(out)
+
         self.apply_tools_func(self.dump_vars, variables, remove=True)
 
     def hide_vars(self):
