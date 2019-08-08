@@ -461,6 +461,7 @@ class MainWindow(QMainWindow):
 
     def toggle_css(self):
         """ Turn the CSS on and off. """
+        self.setStyleSheet("")
         with open("../styles/app_style.css", "r") as file:
             cont = file.read()
 
@@ -731,7 +732,7 @@ class MainWindow(QMainWindow):
         kwargs = {"variable name": var_nm,
                   "key name": key_nm}
 
-        dialog = MulInputDialog(self, **kwargs)
+        dialog = MulInputDialog("Enter details: ", self, **kwargs)
         res = dialog.exec()
 
         if res == 0:
@@ -827,9 +828,9 @@ class MainWindow(QMainWindow):
         nm = self.tab_wgt.tabText(self.tab_wgt.currentIndex())
 
         files = "all files" if all_ else f"file '{nm}'"
-        text = f"Following variables will be deleted from {files}. "
+        text = f"Following variables will be deleted from {files}: "
 
-        inf_text = "\n".join([" | ".join(var) for var in variables])
+        inf_text = "\n".join([" | ".join(var[1:3]) for var in variables])
 
         dialog = ConfirmationDialog(self, text, det_text=inf_text)
         res = dialog.exec_()

@@ -176,19 +176,24 @@ class MulInputDialog(QDialog):
 
     """
 
-    def __init__(self, parent, **kwargs):
+    def __init__(self, text, parent, **kwargs):
         super().__init__(parent, Qt.FramelessWindowHint)
         self.line_edits = {}
 
-        main_layout = QVBoxLayout(self)
-        main_layout.setSpacing(0)
-        main_layout.setContentsMargins(0, 0, 0, 0)
+        layout = QVBoxLayout(self)
+        layout.setSpacing(0)
+        layout.setContentsMargins(0, 0, 0, 0)
+        
+        main_text = QLabel(self)
+        main_text.setText(text)
+        main_text.setProperty("primary", "true")
+        layout.addWidget(main_text)
 
         form = QWidget(self)
-        layout = QFormLayout(form)
-        main_layout.setSpacing(0)
-        main_layout.setContentsMargins(0, 0, 0, 0)
-        main_layout.addWidget(form)
+        form_layout = QFormLayout(form)
+        layout.setSpacing(0)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(form)
 
         box = QDialogButtonBox(self)
         self.ok_btn = QToolButton(self)  # TODO change colors
@@ -199,7 +204,7 @@ class MulInputDialog(QDialog):
         box.addButton(self.cancel_btn, QDialogButtonBox.RejectRole)
         box.accepted.connect(self.accept)
         box.rejected.connect(self.reject)
-        main_layout.addWidget(box)
+        layout.addWidget(box)
 
         for k, v in kwargs.items():
             inp = QLineEdit(self)
@@ -207,7 +212,7 @@ class MulInputDialog(QDialog):
             self.line_edits[k] = inp
             inp.setText(v)
 
-            layout.addRow(k, inp)
+            form_layout.addRow(k, inp)
 
     def get_inputs_dct(self):
         """ Return current input text. """
