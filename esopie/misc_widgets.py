@@ -245,6 +245,7 @@ class ConfirmationDialog(QDialog):
 
         main_text = QLabel(self)
         main_text.setText(text)
+        main_text.setProperty("primary", "true")
         layout.addWidget(main_text)
 
         if inf_text:
@@ -260,9 +261,9 @@ class ConfirmationDialog(QDialog):
             layout.addWidget(area)
 
         box = QDialogButtonBox(self)
-        self.ok_btn = QToolButton(self)  # TODO change colors
+        self.ok_btn = QToolButton(box)  # TODO change colors
         self.ok_btn.setIcon(QIcon("../icons/check_black.png"))
-        self.cancel_btn = QToolButton(self)
+        self.cancel_btn = QToolButton(box)
         self.cancel_btn.setIcon(QIcon("../icons/remove_grey.png"))
         box.addButton(self.ok_btn, QDialogButtonBox.AcceptRole)
         box.addButton(self.cancel_btn, QDialogButtonBox.RejectRole)
