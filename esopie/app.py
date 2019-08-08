@@ -369,7 +369,9 @@ class MainWindow(QMainWindow):
                 self.current_view_wgt.clear_selected()
 
         elif event.key() == Qt.Key_Delete:
-            return
+            self.remove_vars()
+
+        # TODO handle loosing focus to chart area
 
     def contextMenuEvent(self, event):
         """ Manage context menu. """
@@ -818,9 +820,22 @@ class MainWindow(QMainWindow):
         """ Remove variables from a file. """
         variables = self.get_current_request()
 
-        dialog = ConfirmationDialog()
-        out = dialog.exec_()
-        print(out)
+        if not variables:
+            return
+
+        all_ = self.all_files_requested()
+        nm = self.tab_wgt.tabText(self.tab_wgt.currentIndex())
+
+        files = "all files" if all_ else f"file '{nm}'"
+        text = f"Following variables will be deleted from {files}. "
+
+        inf_text = "\n".join([" | ".join(var) for var in variables])
+
+        dialog = ConfirmationDialog(self, text, det_text=inf_text)
+        res = dialog.exec_()
+
+        if res == 0:
+            return
 
         self.apply_tools_func(self.dump_vars, variables, remove=True)
 

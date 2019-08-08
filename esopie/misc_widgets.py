@@ -1,7 +1,7 @@
 from PySide2.QtWidgets import (QSizePolicy, QLineEdit, QHBoxLayout, QTabWidget,
                                QToolButton, QDialog, QFormLayout, QVBoxLayout,
                                QDialogButtonBox, QWidget, QApplication,
-                               QPushButton)
+                               QPushButton, QMessageBox, QTextEdit, QLabel)
 from PySide2.QtCore import Qt, QFileInfo, Signal, QSize
 from PySide2.QtWidgets import QFrame
 from PySide2.QtGui import QPixmap, QIcon
@@ -225,3 +225,47 @@ class MulInputDialog(QDialog):
         else:
             if not self.ok_btn.isEnabled():
                 self.ok_btn.setEnabled(True)
+
+
+class ConfirmationDialog(QDialog):
+    """
+    A custom dialog to confirm user actions.
+
+    The dialog works as QMessageBox with a bit
+    more available customization.
+
+    """
+
+    def __init__(self, parent, text, inf_text=None, det_text=None):
+        super().__init__(parent, Qt.FramelessWindowHint)
+
+        layout = QVBoxLayout(self)
+        layout.setSpacing(0)
+        layout.setContentsMargins(0, 0, 0, 0)
+
+        main_text = QLabel(self)
+        main_text.setText(text)
+        layout.addWidget(main_text)
+
+        if inf_text:
+            label = QLabel(self)
+            label.setText(inf_text)
+            layout.addWidget(label)
+
+        if det_text:
+            area = QTextEdit(self)
+            area.setText(det_text)
+            area.setLineWrapMode(QTextEdit.NoWrap)
+            area.setTextInteractionFlags(Qt.NoTextInteraction)
+            layout.addWidget(area)
+
+        box = QDialogButtonBox(self)
+        self.ok_btn = QToolButton(self)  # TODO change colors
+        self.ok_btn.setIcon(QIcon("../icons/check_black.png"))
+        self.cancel_btn = QToolButton(self)
+        self.cancel_btn.setIcon(QIcon("../icons/remove_grey.png"))
+        box.addButton(self.ok_btn, QDialogButtonBox.AcceptRole)
+        box.addButton(self.cancel_btn, QDialogButtonBox.RejectRole)
+        box.accepted.connect(self.accept)
+        box.rejected.connect(self.reject)
+        layout.addWidget(box)
