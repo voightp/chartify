@@ -9,7 +9,7 @@ from PySide2.QtWidgets import (QWidget, QSplitter, QHBoxLayout, QVBoxLayout,
                                QToolButton, QAction, QFileDialog, QSizePolicy,
                                QApplication, QMenu, QFrame, QMainWindow)
 from PySide2.QtCore import (QSize, Qt, QThreadPool, QCoreApplication, QSettings,
-                            QPoint)
+                            QPoint, QUrl)
 from PySide2.QtWebEngineWidgets import QWebEngineView, QWebEngineSettings
 from PySide2.QtGui import QIcon, QPixmap, QFontDatabase, QKeySequence
 
@@ -139,7 +139,6 @@ class MainWindow(QMainWindow):
         super(MainWindow, self).__init__()
         # ~~~~ Main Window setup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.setWindowTitle("pie pie")
-        self.read_settings()
 
         # ~~~~ Main Window widgets ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.central_wgt = QWidget(self)
@@ -179,7 +178,7 @@ class MainWindow(QMainWindow):
         self.central_splitter.addWidget(self.right_main_wgt)
 
         # ~~~~ Right hand Chart Area ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.main_chart_widget = QWidget(self.right_main_wgt)
+        self.main_chart_widget = QFrame(self.right_main_wgt)
         self.main_chart_layout = QHBoxLayout(self.main_chart_widget)
         self.right_main_layout.addWidget(self.main_chart_widget)
 
@@ -297,22 +296,26 @@ class MainWindow(QMainWindow):
 
         mn.addActions([css, no_css, memory, dummy])
 
-        self.chart_area = QWebEngineView(self)
         # TODO create custom chart area
-        settings = QWebEngineSettings.JavascriptCanAccessClipboard
-        self.chart_area.settings().setAttribute(settings, True)
-
-        self.main_chart_layout.addWidget(self.chart_area)
+        # self.chart_area = QWebEngineView(self)
+        # settings = QWebEngineSettings.JavascriptCanAccessClipboard
+        # self.chart_area.settings().setAttribute(settings, True)
         # self.chart_area.setContextMenuPolicy(Qt.CustomContextMenu)
-        self.chart_area.setAcceptDrops(True)
-
-        self.url = "http://127.0.0.1:8080/"
+        # self.chart_area.setAcceptDrops(True)
+        # self.url = "http://127.0.0.1:8080/"
         # self.chart_area.load(QUrl(self.url))
+        # self.main_chart_layout.addWidget(self.chart_area)
+
+        self.dummy = QFrame(self.main_chart_widget)
+        self.main_chart_layout.addWidget(self.dummy)
 
         # ~~~~ Set up main widgets and layouts ~~~~~~~~~~~~~~~~~~~~~~~~~
         self.load_icons()
         self.set_up_base_ui()
         self.toggle_css()
+        self.read_settings()
+
+
 
     @property
     def current_view_wgt(self):
@@ -399,32 +402,27 @@ class MainWindow(QMainWindow):
         self.central_layout.setSpacing(0)
         self.central_layout.setContentsMargins(0, 0, 0, 0)
 
-        # ~~~~ Main left side ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        left_side_size_policy = QSizePolicy()
-        left_side_size_policy.setHorizontalStretch(0)
-        self.left_main_wgt.setSizePolicy(left_side_size_policy)
+        # ~~~~ Main left side ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        left_side_policy = QSizePolicy()
+        left_side_policy.setHorizontalPolicy(QSizePolicy.Minimum)
+        left_side_policy.setHorizontalStretch(0)
+        self.left_main_wgt.setSizePolicy(left_side_policy)
         self.left_main_layout.setSpacing(0)
         self.left_main_layout.setContentsMargins(0, 0, 0, 0)
 
-        self.tab_wgt.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
         self.tab_wgt.setMinimumWidth(400)
 
-        self.view_wgt.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Expanding)
         self.view_layout.setContentsMargins(0, 0, 0, 0)
         self.view_layout.setSpacing(0)
 
-        self.view_tools_wgt.setSizePolicy(QSizePolicy.Minimum,
-                                          QSizePolicy.Fixed)
-
-        # ~~~~ Main right side ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        right_side_size_policy = QSizePolicy()
-        right_side_size_policy.setHorizontalStretch(1)
-        self.right_main_wgt.setSizePolicy(right_side_size_policy)
+        # ~~~~ Main right side ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        right_side_policy = QSizePolicy()
+        right_side_policy.setHorizontalPolicy(QSizePolicy.Expanding)
+        right_side_policy.setHorizontalStretch(1)
+        self.right_main_wgt.setSizePolicy(right_side_policy)
         self.right_main_layout.setSpacing(0)
         self.right_main_layout.setContentsMargins(0, 0, 0, 0)
 
-        self.main_chart_widget.setSizePolicy(QSizePolicy.Expanding,
-                                             QSizePolicy.Expanding)
         self.main_chart_layout.setContentsMargins(0, 0, 0, 0)
         self.main_chart_widget.setMinimumWidth(400)
 
@@ -911,8 +909,5 @@ if __name__ == "__main__":
 
     db.addApplicationFont("./resources/Roboto-Regular.ttf")
     mainWindow = MainWindow()
-    # availableGeometry = app.desktop().availableGeometry(mainWindow)
-    # mainWindow.resize(availableGeometry.width() * 4 // 5,
-    #                   availableGeometry.height() * 4 // 5)
     mainWindow.show()
     sys.exit(app.exec_())

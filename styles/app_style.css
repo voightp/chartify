@@ -84,7 +84,7 @@ QGroupBox#intervalsGroup {
 }
 
 QGroupBox#toolsGroup {
-    min-height: 150px;
+    margin-bottom: 30px;
 }
 
 QFrame#unitsGroup {
