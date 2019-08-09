@@ -110,7 +110,8 @@ def install_fonts(pth, database):
 
 def act_factory(text, parent, func=None, icon_pth=None, shortcut=None):
     """ Wrapper to generate an action. """
-    act = QAction(text, parent)
+    act = QAction(parent)
+    act.setText(text)
 
     if icon_pth:
         act.setIcon(QIcon(icon_pth))
@@ -119,7 +120,10 @@ def act_factory(text, parent, func=None, icon_pth=None, shortcut=None):
         act.triggered.connect(func)
 
     if shortcut:
-        act.setShortcut(QKeySequence(shortcut))
+        if isinstance(shortcut, QKeySequence):
+            act.setShortcut(shortcut)
+        else:
+            act.setShortcut(QKeySequence(shortcut))
 
     return act
 
@@ -231,6 +235,10 @@ class MainWindow(QMainWindow):
         self.mini_menu_layout.setSpacing(0)
         self.toolbar.layout.insertWidget(0, self.mini_menu)
 
+        dummy = QAction(self)
+        dummy.triggered.connect(lambda: print("DUM UMD"))
+        dummy.setShortcut(QKeySequence("Ctrl+L"))
+
         # ~~~~ Actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.load_file_act = act_factory("Load file | files", self,
                                          func=self.load_files_from_os,
@@ -238,20 +246,23 @@ class MainWindow(QMainWindow):
                                          shortcut="Ctrl+L")
 
         self.close_all_act = act_factory("Close all", self,
-                                         self.close_all_tabs,
+                                         func=self.close_all_tabs,
                                          icon_pth="../icons/remove_grey.png")
 
         self.remove_act = act_factory("Delete", self,
                                       func=self.remove_vars)
 
         self.hide_act = act_factory("Hide", self,
-                                    func=self.hide_vars)
+                                    func=self.hide_vars,
+                                    shortcut="Ctrl+H")
 
         self.remove_hidden_act = act_factory("Remove hidden", self,
                                              func=self.remove_hidden_vars)
 
         self.show_hidden_act = act_factory("Show hidden", self,
-                                           func=self.show_hidden_vars)
+                                           func=self.show_hidden_vars,
+                                           shortcut="Ctrl+Shift+H")
+
         # disable actions as these will be activated on selection
         self.close_all_act.setEnabled(False)
         self.remove_act.setEnabled(False)
@@ -259,7 +270,7 @@ class MainWindow(QMainWindow):
         self.show_hidden_act.setEnabled(False)
 
         sz = QSize(25, 25)
-        acts = [self.load_file_act, self.close_all_act]
+        acts = [self.load_file_act, self.close_all_act, self.hide_act]
         load_file_btn = MenuButton(QIcon("../icons/file_grey.png"),
                                    "Load file | files", self,
                                    sz, self.load_files_from_os, acts)
@@ -314,8 +325,6 @@ class MainWindow(QMainWindow):
         self.set_up_base_ui()
         self.toggle_css()
         self.read_settings()
-
-
 
     @property
     def current_view_wgt(self):
@@ -373,6 +382,9 @@ class MainWindow(QMainWindow):
 
         elif event.key() == Qt.Key_Delete:
             self.remove_vars()
+
+        else:
+            print(event.key())
 
         # TODO handle loosing focus to chart area
 
@@ -840,6 +852,7 @@ class MainWindow(QMainWindow):
 
     def hide_vars(self):
         """ Temporarily hide variables. """
+        print("HIDE VARS!")
         variables = self.get_current_request()
         self.apply_tools_func(self.dump_vars, variables)
 
