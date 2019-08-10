@@ -538,8 +538,7 @@ class ViewModel(QStandardItemModel):
                       interval):
         """ Feed the model with output variables. """
         root = self.invisibleRootItem()
-        header = header.get_header_iterator(units_settings, view_order,
-                                            interval)
+        header = header.get_iterator(units_settings, view_order, interval)
 
         if not tree_key:
             # tree like structure is not being used
@@ -548,7 +547,7 @@ class ViewModel(QStandardItemModel):
 
         else:
             # create a tree like structure
-            tree_header = FileHeader.tree_header(header, tree_key)
+            tree_header = FileHeader.get_tree_dct(header, tree_key)
             self._append_tree_rows(tree_header, root)
 
 

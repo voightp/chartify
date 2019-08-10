@@ -31,7 +31,7 @@ class FileHeader:
         return self.header_dct.keys()
 
     @classmethod
-    def tree_header(cls, header_iterator, tree_key):
+    def get_tree_dct(cls, header_iterator, tree_key):
         """ Group variables into tree based on given key. """
         dct = defaultdict(list)
 
@@ -83,7 +83,7 @@ class FileHeader:
         interval, key, variable, units = variable
         self.header_dct[interval][id_] = HeaderVariable(key, variable, units)
 
-    def get_header_iterator(self, units_settings, view_order, interval):
+    def get_iterator(self, units_settings, view_order, interval):
         """ Return data - proxy paired list of tuples. """
         variables = list(self.header_dct[interval].values())
 
