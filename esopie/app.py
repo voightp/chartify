@@ -238,10 +238,12 @@ class MainWindow(QMainWindow):
                                       func=self.show_hidden_vars,
                                       shortcut="Ctrl+Shift+H")
 
-        self.sum_act = Action(self, "Sum", func=self.add_summed_var,
+        self.sum_act = Action(self, "Sum",
+                              func=partial(self.add_var, "sum"),
                               shortcut="Ctrl+S")
 
-        self.mean_act = Action(self, "Mean", func=self.add_summed_var,
+        self.mean_act = Action(self, "Mean",
+                               func=partial(self.add_var, "mean"),
                                shortcut="Ctrl+M")
 
         # add actions to main window to allow shortcuts
@@ -711,51 +713,12 @@ class MainWindow(QMainWindow):
         #     e = time.perf_counter()
         #     print("Printing file: {}".format((e - s)))
 
-    def add_new_var(self, view, variables, func):
-        """ Add a new variable to the file. """
-        var_nm = "Custom Variable"
-        key_nm = "Custom Key"
-
-        if all(map(lambda x: x.variable == variables[0].variable, variables)):
-            var_nm = variables[0].variable
-
-        if all(map(lambda x: x.key == variables[0].key, variables)):
-            key_nm = variables[0].key
-
-        # retrieve custom inputs from a user
-        kwargs = {"variable name": var_nm,
-                  "key name": key_nm}
-
-        dialog = MulInputDialog("Enter details: ", self, **kwargs)
-        res = dialog.exec()
-
-        if res == 0:
-            return
-
-        var_nm = dialog.get_inputs_dct()["variable name"]
-        key_nm = dialog.get_inputs_dct()["key name"]
-
-        file_id = view.get_file_id()
-
-        # files are always returned as list
-        file = self.get_files_from_db(file_id)[0]
-
-        var_id = file.aggregate_variables(variables, func,
-                                          key_name=key_nm,
-                                          variable_name=var_nm,
-                                          part_match=False)
-        if var_id:
-            # vars are always returned as list
-            var = file.get_variables_by_id(var_id)[0]
-            view.add_header_variable(var_id, var)
-            view.set_next_update_forced()
-
     def on_totals_change(self, change):
         """ Switch current views to 'totals' and back. """
         View.totals = change  # update class variable to request totals
         self.build_view()
 
-    def apply_tools_func(self, func, *args, **kwargs):
+    def apply_async(self, func, *args, **kwargs):
         """ A wrapper to apply functions to current views. """
         # apply function to the current widget
         view = self.current_view_wgt
@@ -801,15 +764,60 @@ class MainWindow(QMainWindow):
         for view in self.current_view_wgts:
             view.remove_hidden_header_variables()
 
-    def add_mean_var(self):
-        """ Create a new 'mean' variable. """
-        variables = self.get_current_request()
-        self.apply_tools_func(self.add_new_var, variables, "mean")
+    def aggr_vars(self, view, var_nm, key_nm, variables, func):
+        """ Add a new variable to the file. """
 
-    def add_summed_var(self):
-        """ Create a new 'summed' variable. """
+        file_id = view.get_file_id()
+
+        # files are always returned as list
+        file = self.get_files_from_db(file_id)[0]
+
+        var_id = file.aggregate_variables(variables, func,
+                                          key_name=key_nm,
+                                          variable_name=var_nm,
+                                          part_match=False)
+        if var_id:
+            # vars are always returned as list
+            var = file.get_variables_by_id(var_id)[0]
+            view.add_header_variable(var_id, var)
+            view.set_next_update_forced()
+
+    def get_var_name(self, variables):
+        """ Retrieve new variable data from the ui. """
+        var_nm = "Custom Variable"
+        key_nm = "Custom Key"
+
+        if all(map(lambda x: x.variable == variables[0].variable, variables)):
+            var_nm = variables[0].variable
+
+        if all(map(lambda x: x.key == variables[0].key, variables)):
+            key_nm = variables[0].key
+
+        # retrieve custom inputs from a user
+        kwargs = {"variable name": var_nm,
+                  "key name": key_nm}
+
+        dialog = MulInputDialog("Enter details: ", self, **kwargs)
+        res = dialog.exec()
+
+        if res == 0:
+            return
+
+        var_nm = dialog.get_inputs_dct()["variable name"]
+        key_nm = dialog.get_inputs_dct()["key name"]
+
+        return var_nm, key_nm
+
+    def add_var(self, aggr_func):
+        """ Create a new variable using given aggr function. """
         variables = self.get_current_request()
-        self.apply_tools_func(self.add_new_var, variables, "sum")
+
+        res = self.get_var_name(variables)
+
+        if res:
+            var_nm, key_nm = res
+            self.apply_async(self.aggr_vars, var_nm, key_nm,
+                             variables, aggr_func)
 
     def remove_vars(self):
         """ Remove variables from a file. """
@@ -822,7 +830,7 @@ class MainWindow(QMainWindow):
         nm = self.tab_wgt.tabText(self.tab_wgt.currentIndex())
 
         files = "all files" if all_ else f"file '{nm}'"
-        text = f"Following variables will be deleted from {files}: "
+        text = f"Delete following variables from {files}: "
 
         inf_text = "\n".join([" | ".join(var[1:3]) for var in variables])
 
@@ -832,13 +840,12 @@ class MainWindow(QMainWindow):
         if res == 0:
             return
 
-        self.apply_tools_func(self.dump_vars, variables, remove=True)
+        self.apply_async(self.dump_vars, variables, remove=True)
 
     def hide_vars(self):
         """ Temporarily hide variables. """
-        print("HIDE VARS!")
         variables = self.get_current_request()
-        self.apply_tools_func(self.dump_vars, variables)
+        self.apply_async(self.dump_vars, variables)
 
         # allow showing variables again
         self.show_hidden_act.setEnabled(True)
