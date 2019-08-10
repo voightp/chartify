@@ -16,7 +16,8 @@ from PySide2.QtGui import QIcon, QPixmap, QFontDatabase, QKeySequence
 from esopie.eso_file_header import FileHeader
 from esopie.icons import Pixmap, text_to_pixmap
 from esopie.progress_widget import StatusBar, ProgressContainer
-from esopie.misc_widgets import DropFrame, TabWidget, MulInputDialog, ConfirmationDialog
+from esopie.misc_widgets import (DropFrame, TabWidget, MulInputDialog,
+                                 ConfirmationDialog, Action)
 from esopie.buttons import MenuButton
 from esopie.toolbar import Toolbar
 from esopie.view_tools import ViewTools
@@ -51,9 +52,9 @@ def generate_ids(used_ids, n=1, max_id=99999):
     """ Create a list with unique ids. """
     ids = []
     while True:
-        id = randint(1, max_id)
-        if id not in used_ids and id not in ids:
-            ids.append(id)
+        id_ = randint(1, max_id)
+        if id_ not in used_ids and id_ not in ids:
+            ids.append(id_)
             if len(ids) == n:
                 break
     return ids
@@ -106,26 +107,6 @@ def install_fonts(pth, database):
     for file in files:
         p = os.path.join(pth, file)
         database.addApplicationFont(p)
-
-
-def act_factory(text, parent, func=None, icon_pth=None, shortcut=None):
-    """ Wrapper to generate an action. """
-    act = QAction(parent)
-    act.setText(text)
-
-    if icon_pth:
-        act.setIcon(QIcon(icon_pth))
-
-    if func:
-        act.triggered.connect(func)
-
-    if shortcut:
-        if isinstance(shortcut, QKeySequence):
-            act.setShortcut(shortcut)
-        else:
-            act.setShortcut(QKeySequence(shortcut))
-
-    return act
 
 
 # noinspection PyPep8Naming,PyUnresolvedReferences
@@ -240,28 +221,26 @@ class MainWindow(QMainWindow):
         dummy.setShortcut(QKeySequence("Ctrl+L"))
 
         # ~~~~ Actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.load_file_act = act_factory("Load file | files", self,
-                                         func=self.load_files_from_os,
-                                         icon_pth="../icons/add_file_grey.png",
-                                         shortcut="Ctrl+L")
+        self.load_file_act = Action(self, "Load file | files",
+                                    func=self.load_files_from_os,
+                                    icon_pth="../icons/add_file_grey.png",
+                                    shortcut="Ctrl+L")
 
-        self.close_all_act = act_factory("Close all", self,
-                                         func=self.close_all_tabs,
-                                         icon_pth="../icons/remove_grey.png")
+        self.close_all_act = Action(self, "Close all",
+                                    func=self.close_all_tabs,
+                                    icon_pth="../icons/remove_grey.png")
 
-        self.remove_act = act_factory("Delete", self,
-                                      func=self.remove_vars)
+        self.remove_act = Action(self, "Delete", func=self.remove_vars)
 
-        self.hide_act = act_factory("Hide", self,
-                                    func=self.hide_vars,
-                                    shortcut="Ctrl+H")
+        self.hide_act = Action(self, "Hide", func=self.hide_vars,
+                               shortcut="Ctrl+H")
 
-        self.remove_hidden_act = act_factory("Remove hidden", self,
-                                             func=self.remove_hidden_vars)
+        self.remove_hidden_act = Action(self, "Remove hidden",
+                                        func=self.remove_hidden_vars)
 
-        self.show_hidden_act = act_factory("Show hidden", self,
-                                           func=self.show_hidden_vars,
-                                           shortcut="Ctrl+Shift+H")
+        self.show_hidden_act = Action(self, "Show hidden",
+                                      func=self.show_hidden_vars,
+                                      shortcut="Ctrl+Shift+H")
 
         # add actions to main window to allow shortcuts
         self.addActions([self.remove_act, self.hide_act, self.show_hidden_act])
@@ -385,9 +364,6 @@ class MainWindow(QMainWindow):
 
         elif event.key() == Qt.Key_Delete:
             self.remove_vars()
-
-        else:
-            print(event.key())
 
         # TODO handle loosing focus to chart area
 

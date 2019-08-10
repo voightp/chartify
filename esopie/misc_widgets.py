@@ -1,10 +1,10 @@
 from PySide2.QtWidgets import (QSizePolicy, QLineEdit, QHBoxLayout, QTabWidget,
                                QToolButton, QDialog, QFormLayout, QVBoxLayout,
-                               QDialogButtonBox, QWidget, QApplication,
+                               QDialogButtonBox, QWidget, QAction,
                                QPushButton, QMessageBox, QTextEdit, QLabel)
 from PySide2.QtCore import Qt, QFileInfo, Signal, QSize
 from PySide2.QtWidgets import QFrame
-from PySide2.QtGui import QPixmap, QIcon
+from PySide2.QtGui import QPixmap, QIcon, QKeySequence
 from esopie.view_widget import View
 
 
@@ -23,6 +23,31 @@ def filter_eso_files(urls, extensions=("eso",)):
         if info.suffix() in extensions:
             files.append(f)
     return files
+
+
+class Action(QAction):
+    """
+    A wrapper around 'QAction' to automate
+    some common assignment.
+
+    """
+
+    def __init__(self, parent, text, func=None, icon_pth=None, shortcut=None):
+        super().__init__(parent)
+
+        self.setText(text)
+
+        if icon_pth:
+            self.setIcon(QIcon(icon_pth))
+
+        if func:
+            self.triggered.connect(func)
+
+        if shortcut:
+            if isinstance(shortcut, QKeySequence):
+                self.setShortcut(shortcut)
+            else:
+                self.setShortcut(QKeySequence(shortcut))
 
 
 class TabWidget(QTabWidget):
@@ -183,7 +208,7 @@ class MulInputDialog(QDialog):
         layout = QVBoxLayout(self)
         layout.setSpacing(0)
         layout.setContentsMargins(0, 0, 0, 0)
-        
+
         main_text = QLabel(self)
         main_text.setText(text)
         main_text.setProperty("primary", "true")
