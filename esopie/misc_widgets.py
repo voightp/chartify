@@ -225,8 +225,8 @@ class MulInputDialog(QDialog):
         self.ok_btn.setIcon(QIcon("../icons/check_black.png"))
         self.cancel_btn = QToolButton(self)
         self.cancel_btn.setIcon(QIcon("../icons/remove_grey.png"))
-        box.addButton(self.ok_btn, QDialogButtonBox.AcceptRole)
         box.addButton(self.cancel_btn, QDialogButtonBox.RejectRole)
+        box.addButton(self.ok_btn, QDialogButtonBox.AcceptRole)
         box.accepted.connect(self.accept)
         box.rejected.connect(self.reject)
         layout.addWidget(box)
@@ -236,6 +236,7 @@ class MulInputDialog(QDialog):
             inp.textChanged.connect(self.verify_input)
             self.line_edits[k] = inp
             inp.setText(v)
+            inp.setCursorPosition(0)
 
             form_layout.addRow(k, inp)
 

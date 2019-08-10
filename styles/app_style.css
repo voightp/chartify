@@ -632,6 +632,7 @@ QDialog {
   /*  background: rgb(200, 200, 211)*/
   /*  background: rgb(248,248,248);*/
    background: white;
+   min-width: 320;
 }
 
 QDialog QLabel {
@@ -640,25 +641,31 @@ QDialog QLabel {
 }
 
 QDialog QLabel[primary="true"] {
-    padding: 6px 12px 6px 6px;
+    padding: 10px 16px 10px 10px;
     margin: 0px 5px 0px 5px;
     border-bottom: 1px solid rgb(255,87,34);
     font-weight: bold;
+}
+
+QDialog QLineEdit {
+    border: 1px solid rgb(189, 189, 189);
 }
 
 QDialog QTextEdit {
     background-color: transparent;
     font-style: italic;
     margin: 5px;
+    margin-bottom: 0px;
     padding: 6px;
-    border-bottom: 1px solid rgb(255,87,34);
+    padding-bottom: 0px;
 }
 
 QDialogButtonBox QToolButton {
     border: 0px solid white;
     background: transparent;
-    width: 25px;
-    height: 25px;
+    width: 30px;
+    height: 30px;
+    margin: 0px;
 
 }
 
