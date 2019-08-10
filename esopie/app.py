@@ -167,10 +167,6 @@ class MainWindow(QMainWindow):
         self.main_chart_layout = QHBoxLayout(self.main_chart_widget)
         self.right_main_layout.addWidget(self.main_chart_widget)
 
-        # ~~~~ Actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.connect_ui_actions()
-        self.setContextMenuPolicy(Qt.DefaultContextMenu)
-
         # ~~~~ Intermediate settings ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.selected = None
 
@@ -242,14 +238,23 @@ class MainWindow(QMainWindow):
                                       func=self.show_hidden_vars,
                                       shortcut="Ctrl+Shift+H")
 
+        self.sum_act = Action(self, "Sum", func=self.add_summed_var,
+                              shortcut="Ctrl+S")
+
+        self.mean_act = Action(self, "Mean", func=self.add_summed_var,
+                               shortcut="Ctrl+M")
+
         # add actions to main window to allow shortcuts
-        self.addActions([self.remove_act, self.hide_act, self.show_hidden_act])
+        self.addActions([self.remove_act, self.hide_act, self.show_hidden_act,
+                         self.sum_act, self.mean_act])
 
         # disable actions as these will be activated on selection
         self.close_all_act.setEnabled(False)
         self.remove_act.setEnabled(False)
         self.hide_act.setEnabled(False)
         self.show_hidden_act.setEnabled(False)
+
+        self.connect_ui_actions()
 
         sz = QSize(25, 25)
         acts = [self.load_file_act, self.close_all_act]
@@ -888,8 +893,8 @@ class MainWindow(QMainWindow):
 
         # ~~~~ Outputs actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.toolbar.updateView.connect(self.build_view)
-        self.toolbar.meanRequested.connect(self.add_mean_var)
-        self.toolbar.sumRequested.connect(self.add_summed_var)
+        self.toolbar.meanRequested.connect(self.mean_act.trigger)
+        self.toolbar.sumRequested.connect(self.sum_act.trigger)
         self.toolbar.totalsChanged.connect(self.on_totals_change)
 
 
