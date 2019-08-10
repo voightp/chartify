@@ -263,6 +263,9 @@ class MainWindow(QMainWindow):
                                            func=self.show_hidden_vars,
                                            shortcut="Ctrl+Shift+H")
 
+        # add actions to main window to allow shortcuts
+        self.addActions([self.remove_act, self.hide_act, self.show_hidden_act])
+
         # disable actions as these will be activated on selection
         self.close_all_act.setEnabled(False)
         self.remove_act.setEnabled(False)
@@ -270,7 +273,7 @@ class MainWindow(QMainWindow):
         self.show_hidden_act.setEnabled(False)
 
         sz = QSize(25, 25)
-        acts = [self.load_file_act, self.close_all_act, self.hide_act]
+        acts = [self.load_file_act, self.close_all_act]
         load_file_btn = MenuButton(QIcon("../icons/file_grey.png"),
                                    "Load file | files", self,
                                    sz, self.load_files_from_os, acts)
