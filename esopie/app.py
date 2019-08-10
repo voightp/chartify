@@ -797,7 +797,8 @@ class MainWindow(QMainWindow):
         kwargs = {"variable name": var_nm,
                   "key name": key_nm}
 
-        dialog = MulInputDialog("Enter details: ", self, **kwargs)
+        msg = "Enter details of the new variable: "
+        dialog = MulInputDialog(msg, self, **kwargs)
         res = dialog.exec()
 
         if res == 0:
