@@ -722,7 +722,7 @@ class MainWindow(QMainWindow):
         """ A wrapper to apply functions to current views. """
         # apply function to the current widget
         view = self.current_view_wgt
-        func(view, *args, **kwargs)
+        val = func(view, *args, **kwargs)
 
         # apply function to all other widgets asynchronously
         others = self.all_other_view_wgts
@@ -730,7 +730,7 @@ class MainWindow(QMainWindow):
             w = IterWorker(func, others, *args, **kwargs)
             self.thread_pool.start(w)
 
-        self.build_view()
+        return val
 
     def dump_vars(self, view, variables, remove=False):
         """ Hide or remove the """
@@ -782,6 +782,8 @@ class MainWindow(QMainWindow):
             view.add_header_variable(var_id, var)
             view.set_next_update_forced()
 
+            return var
+
     def get_var_name(self, variables):
         """ Retrieve new variable data from the ui. """
         var_nm = "Custom Variable"
@@ -817,8 +819,15 @@ class MainWindow(QMainWindow):
 
         if res:
             var_nm, key_nm = res
-            self.apply_async(self.aggr_vars, var_nm, key_nm,
-                             variables, aggr_func)
+            var = self.apply_async(self.aggr_vars, var_nm, key_nm,
+                                   variables, aggr_func)
+
+            self.selected = [var]
+
+        self.build_view()
+
+        if var:
+            self.current_view_wgt.scroll_to(var)
 
     def remove_vars(self):
         """ Remove variables from a file. """
@@ -842,6 +851,7 @@ class MainWindow(QMainWindow):
             return
 
         self.apply_async(self.dump_vars, variables, remove=True)
+        self.build_view()
 
     def hide_vars(self):
         """ Temporarily hide variables. """
@@ -850,6 +860,7 @@ class MainWindow(QMainWindow):
 
         # allow showing variables again
         self.show_hidden_act.setEnabled(True)
+        self.build_view()
 
     def get_current_file_ids(self):
         """ Return current file id or ids based on 'all files btn' state. """
@@ -860,14 +871,7 @@ class MainWindow(QMainWindow):
 
     def get_current_request(self):
         """ Get a currently selected output variables information. """
-        outputs = self.selected
-        interval = self.get_current_interval()
-        variables = None
-
-        if outputs:
-            variables = [Variable(interval, *item) for item in outputs]
-
-        return variables
+        return self.selected
 
     def results_df(self):
         """ Get output values for given variables. """

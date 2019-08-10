@@ -1,5 +1,5 @@
 from collections import defaultdict, namedtuple
-from eso_reader.mini_classes import HeaderVariable, Variable
+from eso_reader.mini_classes import Variable
 
 
 class FileHeader:
@@ -80,8 +80,8 @@ class FileHeader:
 
     def add_variable(self, id_, variable):
         """ Add a new variable (from 'Variable' class). """
-        interval, key, variable, units = variable
-        self.header_dct[interval][id_] = HeaderVariable(key, variable, units)
+        interval = variable.interval
+        self.header_dct[interval][id_] = variable
 
     def get_iterator(self, units_settings, view_order, interval):
         """ Return data - proxy paired list of tuples. """

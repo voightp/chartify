@@ -176,12 +176,12 @@ class View(QTreeView):
                     # make sure that
                     self.collapse(ix)
 
-    def update_selection(self, current_selection, key):
+    def update_selection(self, variables, key):
         """ Select previously selected items when the model changes. """
         proxy_model = self.model()
 
         # Find matching items and select items on a new model
-        proxy_selection = proxy_model.find_match(current_selection, key)
+        proxy_selection = proxy_model.find_match(variables, key)
         self.select_items(proxy_selection)
 
         proxy_rows = proxy_selection.indexes()
@@ -192,6 +192,18 @@ class View(QTreeView):
     def update_scroll_position(self):
         """ Update the slider position. """
         self.verticalScrollBar().setValue(self._scrollbar_position)
+
+    def scroll_to(self, var):
+        """ Scroll to the given var. """
+        proxy_model = self.model()
+        key = self.settings["header"][0]
+
+        # var needs to be passed as a list
+        proxy_selection = proxy_model.find_match([var], key)
+
+        if proxy_selection:
+            ix = proxy_selection.indexes()[0]
+            self.scrollTo(ix)
 
     def update_view_appearance(self):
         """ Update the model appearance to be consistent with last view. """
@@ -606,17 +618,23 @@ class FilterModel(QSortFilterProxyModel):
     @staticmethod
     def append_item(selection, proxy_index):
         """ Append an item to a given selection. """
-        range = QItemSelectionRange(proxy_index)
-        selection.append(range)
+        rng = QItemSelectionRange(proxy_index)
+        selection.append(rng)
 
-    def find_match(self, current_selection, key):
+    def find_match(self, variables, key):
         """ Check if output variables are available in a new model. """
+
+        def check_var():
+            v = (var.key, var.variable)
+            return v in stripped_vars
+
         selection = QItemSelection()
+        stripped_vars = [(var.key, var.variable) for var in variables]
 
         # create a list which holds parent parts of currently
         # selected items, if the part of variable does not match,
         # than the variable (or any children) will not be selected
-        quick_check = [var.__getattribute__(key) for var in current_selection]
+        quick_check = [var.__getattribute__(key) for var in variables]
 
         num_rows = self.rowCount()
         for i in range(num_rows):
@@ -634,11 +652,11 @@ class FilterModel(QSortFilterProxyModel):
                 for j in range(num_child_rows):
                     ix = self.index(j, 0, p_ix)
                     var = self.data_from_index(ix)
-                    if var in current_selection:
+                    if check_var():
                         self.append_item(selection, ix)
             else:
                 var = self.data_from_index(p_ix)
-                if var in current_selection:
+                if check_var():
                     self.append_item(selection, p_ix)
 
         return selection
