@@ -390,15 +390,18 @@ class View(QTreeView):
 
     def handle_d_clicked(self, index):
         """ Handle double click on the view. """
-        self.clear_selected()
-        self.select_item(index)
-
         proxy_model = self.model()
         source_item = proxy_model.item_from_index(index)
 
         if source_item.hasChildren():
             # parent item cannot be renamed
             return
+
+        if source_item.column() > 0:
+            index = index.siblingAtColumn(0)
+
+        self.clear_selected()
+        self.select_item(index)
 
         dt = proxy_model.data_from_index(index)
         if dt:
