@@ -772,13 +772,12 @@ class MainWindow(QMainWindow):
         # files are always returned as list
         file = self.get_files_from_db(file_id)[0]
 
-        var_id = file.aggregate_variables(variables, func,
-                                          key_name=key_nm,
-                                          variable_name=var_nm,
-                                          part_match=False)
-        if var_id:
-            # vars are always returned as list
-            var = file.get_variables_by_id(var_id)[0]
+        res = file.aggregate_variables(variables, func,
+                                       key_nm=key_nm,
+                                       var_nm=var_nm,
+                                       part_match=False)
+        if res:
+            var_id, var = res
             view.add_header_variable(var_id, var)
             view.set_next_update_forced()
 
@@ -815,6 +814,7 @@ class MainWindow(QMainWindow):
         """ Create a new variable using given aggr function. """
         variables = self.get_current_request()
 
+        # retrieve variable name from ui
         res = self.get_var_name(variables)
 
         if res:
@@ -823,10 +823,7 @@ class MainWindow(QMainWindow):
                                    variables, aggr_func)
 
             self.selected = [var]
-
-        self.build_view()
-
-        if var:
+            self.build_view()
             self.current_view_wgt.scroll_to(var)
 
     def remove_vars(self):
