@@ -390,6 +390,9 @@ class View(QTreeView):
 
     def handle_d_clicked(self, index):
         """ Handle double click on the view. """
+        self.clear_selected()
+        self.select_item(index)
+
         proxy_model = self.model()
         source_item = proxy_model.item_from_index(index)
 
@@ -403,7 +406,7 @@ class View(QTreeView):
 
     def handle_drag_attempt(self):
         """ Handle pressing the view item or items. """
-        outputs = self.get_outputs()
+        outputs = self.select_variables()
 
         if not outputs:
             return
@@ -421,7 +424,7 @@ class View(QTreeView):
         drag.exec_(Qt.CopyAction)
         # create a drag object with pixmap
 
-    def get_outputs(self):
+    def select_variables(self):
         """ Extract output information from the current selection. """
         proxy_model = self.model()
         selection_model = self.selectionModel()
