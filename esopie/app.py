@@ -246,9 +246,22 @@ class MainWindow(QMainWindow):
                                func=partial(self.add_var, "mean"),
                                shortcut="Ctrl+M")
 
+        self.collapse_all_act = Action(self, "Collapse All",
+                                       func=self.collapse_all,
+                                       shortcut="Ctrl+Shift+E")
+
+        self.expand_all_act = Action(self, "Expand All",
+                                     func=self.expand_all,
+                                     shortcut="Ctrl+E")
+
+        self.tree_act = Action(self, "Tree",
+                               func=self.view_tools_wgt.tree_view_btn.toggle,
+                               shortcut="Ctrl+T")
+
         # add actions to main window to allow shortcuts
         self.addActions([self.remove_act, self.hide_act, self.show_hidden_act,
-                         self.sum_act, self.mean_act])
+                         self.sum_act, self.mean_act, self.collapse_all_act,
+                         self.expand_all_act, self.tree_act])
 
         # disable actions as these will be activated on selection
         self.close_all_act.setEnabled(False)

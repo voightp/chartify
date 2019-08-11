@@ -44,7 +44,7 @@ class ViewTools(QFrame):
         self.filter_line_edit.textEdited.connect(self.text_edited)
         self.expand_all_btn.clicked.connect(self.expandViewItems.emit)
         self.collapse_all_btn.clicked.connect(self.collapseViewItems.emit)
-        self.tree_view_btn.clicked.connect(self.tree_btn_toggled)
+        self.tree_view_btn.toggled.connect(self.tree_btn_toggled)
 
         self.set_up_view_tools()
 
