@@ -615,12 +615,6 @@ class FilterModel(QSortFilterProxyModel):
         pattern = filter.pattern().strip()
         return pattern.lower() in str_row.lower()
 
-    @staticmethod
-    def append_item(selection, proxy_index):
-        """ Append an item to a given selection. """
-        rng = QItemSelectionRange(proxy_index)
-        selection.append(rng)
-
     def find_match(self, variables, key):
         """ Check if output variables are available in a new model. """
 
@@ -653,11 +647,11 @@ class FilterModel(QSortFilterProxyModel):
                     ix = self.index(j, 0, p_ix)
                     var = self.data_from_index(ix)
                     if check_var():
-                        self.append_item(selection, ix)
+                        selection.append(QItemSelectionRange(ix))
             else:
                 var = self.data_from_index(p_ix)
                 if check_var():
-                    self.append_item(selection, p_ix)
+                    selection.append(QItemSelectionRange(p_ix))
 
         return selection
 
