@@ -603,6 +603,7 @@ class MainWindow(QMainWindow):
         wgt.selectionCleared.connect(self.selection_cleared)
         wgt.selectionPopulated.connect(self.items_selected)
         wgt.updateView.connect(self.build_view)
+        wgt.itemDoubleClicked.connect(self.rename_variable)
 
         return wgt
 
@@ -745,6 +746,20 @@ class MainWindow(QMainWindow):
 
         return val
 
+    def rename_variable(self, variable):
+        """ Rename given variable. """
+        # retrieve variable name from ui
+        msg = "Rename variable: "
+        res = self.get_var_name([variable], msg)  # TODO maybe customize?
+
+        if res:
+            var_nm, key_nm = res
+            var = self.apply_async(self.rename_var, var_nm,
+                                   key_nm, variable)
+            self.selected = [var]
+            self.build_view()
+            self.current_view_wgt.scroll_to(var)
+
     def dump_vars(self, view, variables, remove=False):
         """ Hide or remove the """
         file_id = view.get_file_id()
@@ -777,9 +792,22 @@ class MainWindow(QMainWindow):
         for view in self.current_view_wgts:
             view.remove_hidden_header_variables()
 
+    def rename_var(self, view, var_nm, key_nm, variable):
+        """ Rename given 'Variable'. """
+        file_id = view.get_file_id()
+        file = self.get_files_from_db(file_id)[0]
+
+        res = file.rename_variable(variable, var_nm, key_nm)
+        if res:
+            var_id, var = res
+            # add variable will replace current variable
+            view.add_header_variable(var_id, var)
+            view.set_next_update_forced()
+
+            return var
+
     def aggr_vars(self, view, var_nm, key_nm, variables, func):
         """ Add a new variable to the file. """
-
         file_id = view.get_file_id()
 
         # files are always returned as list
@@ -796,7 +824,7 @@ class MainWindow(QMainWindow):
 
             return var
 
-    def get_var_name(self, variables):
+    def get_var_name(self, variables, msg=""):
         """ Retrieve new variable data from the ui. """
         var_nm = "Custom Variable"
         key_nm = "Custom Key"
@@ -811,7 +839,6 @@ class MainWindow(QMainWindow):
         kwargs = {"variable name": var_nm,
                   "key name": key_nm}
 
-        msg = "Enter details of the new variable: "
         dialog = MulInputDialog(msg, self, **kwargs)
         res = dialog.exec()
 
@@ -828,7 +855,8 @@ class MainWindow(QMainWindow):
         variables = self.get_current_request()
 
         # retrieve variable name from ui
-        res = self.get_var_name(variables)
+        msg = "Enter details of the new variable: "
+        res = self.get_var_name(variables, msg=msg)
 
         if res:
             var_nm, key_nm = res

@@ -11,6 +11,7 @@ from esopie.eso_file_header import FileHeader
 class View(QTreeView):
     selectionCleared = Signal()
     selectionPopulated = Signal(list)
+    itemDoubleClicked = Signal(object)
     updateView = Signal()
     totals = False
 
@@ -57,6 +58,7 @@ class View(QTreeView):
         self.expanded.connect(self.handle_expanded)
         self.collapsed.connect(self.handle_collapsed)
         self.pressed.connect(self.handle_drag_attempt)
+        self.doubleClicked.connect(self.handle_d_clicked)
 
     @property
     def file_header(self):
@@ -386,6 +388,19 @@ class View(QTreeView):
         """ Handle moving view slider. """
         self._scrollbar_position = val
 
+    def handle_d_clicked(self, index):
+        """ Handle double click on the view. """
+        proxy_model = self.model()
+        source_item = proxy_model.item_from_index(index)
+
+        if source_item.hasChildren():
+            # parent item cannot be renamed
+            return
+
+        dt = proxy_model.data_from_index(index)
+        if dt:
+            self.itemDoubleClicked.emit(dt)
+
     def handle_drag_attempt(self):
         """ Handle pressing the view item or items. """
         outputs = self.get_outputs()
@@ -426,8 +441,9 @@ class View(QTreeView):
             source_index = proxy_model.mapToSource(index)
 
             if source_item.hasChildren():
+                # select all the children if the item is expanded
+                # and none of the children has been already selected
                 expanded = self.isExpanded(index)
-
                 cond = any(map(lambda x: x.parent() == source_index, rows))
                 if expanded and not cond:
                     self.select_children(source_item, source_index)
