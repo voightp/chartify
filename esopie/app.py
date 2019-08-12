@@ -124,6 +124,7 @@ class MainWindow(QMainWindow):
         super(MainWindow, self).__init__()
         # ~~~~ Main Window setup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.setWindowTitle("pie pie")
+        self.setFocusPolicy(Qt.StrongFocus)
 
         # ~~~~ Main Window widgets ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.central_wgt = QWidget(self)
