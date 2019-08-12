@@ -1,27 +1,38 @@
-/* colors:
-light blue: rgba(33, 150, 243, 0.5)
-*/
+
+/* ~~~~~ GLOBAL ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
 * {
     font-family: "Roboto";
     font-size: 13px;
     color: rgb(112, 112, 112);
-    border-radius: 2px;
 }
+
+/* ~~~~~ FRAMES ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
 QFrame {
     background-color: transparent;
-    border-radius: 0px;
-}
-
-DropFrame#leftMainWgt {
-   background-color: rgb(200, 200, 211);
-   padding: 2px;
+    border: 0px solid transparent;
+    padding: 0px;
+    margin: 0px;
 }
 
 QFrame#viewWidget {
-   margin: 0px;
-   padding: 0px;
+
+}
+
+QFrame#viewTools {
+    margin: 4px 0px 2px 6px;
+    background-color: transparent;
+}
+
+QFrame#toolbar {
+    margin-right: 2px;
+    background-color: white;
+}
+
+DropFrame#leftMainWgt {
+    background-color: rgb(200, 200, 211);
+    padding: 2px;
 }
 
 DropFrame#leftMainWgt[drag-accept="true"] {
@@ -32,14 +43,20 @@ DropFrame#leftMainWgt[drag-accept="false"] {
    background-color: rgb(255,171,145);
 }
 
+/* ~~~~~ SPLITTER ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
+
 QSplitter::handle {
     background-color: white;
 }
 
-QFrame#toolbar {
-    margin-right: 2px;
-    background-color: white;
+/* ~~~~~ STATUS BAR ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
+
+QStatusBar {
+    background: white;
+    border-radius: 0px;
 }
+
+/* ~~~~~ LABEL ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
 QLabel {
     background: transparent;
@@ -49,22 +66,14 @@ QLabel#filterIcon {
     image: url("../icons/filter_list_white.png");
 }
 
-QStatusBar {
-    background: white;
-    border-radius: 0px;
-    padding: 0px;
-}
+/* ~~~~~ GROUP BOX ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
 QGroupBox {
+    font-size: 11px;
+    text-transform: uppercase;
     border-top: 1px solid rgba(140,140,140,0.5);
     margin: 30px 0px 0px 0px;
     border-radius: 0px;
-}
-
-QFrame#viewTools {
-    border:none;
-    margin: 4px 0px 2px 6px;
-    background-color: transparent;
 }
 
 QGroupBox::title {
@@ -74,11 +83,6 @@ QGroupBox::title {
     top: -14px;
 }
 
-QGroupBox {
-    font-size: 11px;
-    text-transform: uppercase;
-}
-
 QGroupBox#intervalsGroup {
     min-height: 150px;
 }
@@ -86,10 +90,12 @@ QGroupBox#intervalsGroup {
 QGroupBox#toolsGroup {
     margin-bottom: 30px;
 }
-
+/* units group behaves like GroupBox */
 QFrame#unitsGroup {
     border-top: 1px solid rgba(140,140,140,0.5)
 }
+
+/* ~~~~~ TOOL BUTTONS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
 QToolButton {
     width: 50px;
@@ -101,15 +107,10 @@ QToolButton {
     margin: 2px;
 }
 
-ToolsButton {
-    font-size: 10px;
-}
-
 QToolButton:checked {
     background-color: rgba(255,137,100, 0.2);
     border-color: rgb(255,137,100);
 }
-
 
 QToolButton:hover:checked {
     background-color: rgba(255,137,100, 0.2);
@@ -128,14 +129,9 @@ QToolButton:hover {
     border-color: rgba(255,137,100,0.6);
 }
 
-QToolButton#collapseButton {
-    image: url("../icons/unfold_less_white.png");
-    width: 23;
-    height: 18;
-    border: 1px solid white ;
-    background: transparent;
-    margin: 2px;
-  }
+ToolsButton {
+    font-size: 10px;
+}
 
  QToolButton#swapButton {
     margin: 0px;
@@ -145,7 +141,16 @@ QToolButton#collapseButton {
     height: 20px;
  }
 
- QToolButton#collapseButton:disabled {
+QToolButton#collapseButton {
+    image: url("../icons/unfold_less_white.png");
+    width: 23;
+    height: 18;
+    border: 1px solid white ;
+    background: transparent;
+    margin: 2px;
+  }
+
+QToolButton#collapseButton:disabled {
     opacity: 0.5;
     border-color: rgba(255,255,255,0.5)
   }
@@ -163,7 +168,7 @@ QToolButton#collapseButton:hover {
     margin: 2px;
   }
 
- QToolButton#expandButton:disabled {
+QToolButton#expandButton:disabled {
     opacity: 0.5;
     border-color: rgba(255,255,255,0.5);
   }
@@ -172,7 +177,7 @@ QToolButton#expandButton:hover {
     background-color: rgba(255,255,255,0.15);
   }
 
- QToolButton#treeButton {
+QToolButton#treeButton {
     width: 23;
     height: 18;
     border: 1px solid white ;
@@ -181,53 +186,52 @@ QToolButton#expandButton:hover {
     image: url("../icons/plain_view_white.png");
   }
 
-  QToolButton#treeButton:checked {
+QToolButton#treeButton:checked {
     image: url("../icons/tree_view_white.png");
   }
 
- QToolButton#treeButton:hover {
+QToolButton#treeButton:hover {
     background-color: rgba(255,255,255,0.15)
   }
 
-  QToolButton#dropButton {
-      background: transparent;
-      border: none;
-      height: 100px;
-      width: 150px;
+QToolButton#dropButton {
+    background: transparent;
+    border: none;
+    height: 100px;
+    width: 150px;
   }
 
   QToolButton#dropButton:hover {
       background: transparent;
   }
+
+/* ~~~~~ MENU BUTTON ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
+
 MenuButton {
     border: 0px;
+    margin: 0px;
     width: 36px;
     height: 36px;
-    margin: 0px;
   }
 
- MenuButton#settingsButton {
+MenuButton#settingsButton {
     height: 60px;
     width: 60px;
  }
 
- MenuButton::menu-indicator {
+MenuButton::menu-indicator {
     image: url("../icons/plus_grey.png");
     margin: 3px;
     width: 10px;
     height: 10px;
 }
 
-LineEdit, QLineEdit{
-    border: 0px solid white;
-    background-color: white;
-    border-radius: 2px;
- }
-
 QFrame#buttonFrame {
     background: transparent;
     border: transparent;
 }
+
+/* ~~~~~ TITLED BUTTON ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
 TitledButton QToolButton {
     font-size: 13px;
@@ -266,6 +270,16 @@ QLabel#buttonTitle:disabled {
     color: rgba(112, 112, 112, 0.5);
 }
 
+/* ~~~~~ LINE EDIT ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
+
+LineEdit, QLineEdit{
+    border: 0px solid white;
+    background-color: white;
+    border-radius: 2px;
+ }
+
+/* ~~~~~ PROGRESS WIDGET ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
+
 ProgressWidget QPushButton {
     image: url("../icons/remove_red.png");
     margin-bottom: 2px;
@@ -290,6 +304,21 @@ ProgressWidget QLabel {
 
 ProgressWidget[failed="true"] QLabel {
     color: rgb(239 , 0, 0);
+}
+
+/* ~~~~~ TAB WIDGET ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
+
+
+QTabWidget::tab-bar {
+  /*  top: 2px;
+    left: 4px;*/
+}
+
+QTabWidget::pane { /* The tab widget frame */
+    margin: 0px 0px 0px 0px;
+    padding: 0px;
+    border: 0px solid transform;
+    background-color: white;
 }
 
 QTabBar QToolButton {
@@ -327,17 +356,6 @@ QTabBar QToolButton:disabled {
     border: transparent;
     background: transparent;
     color: transparent;
-}
-
-QTabWidget::tab-bar {
-  /*  top: 2px;
-    left: 4px;*/
-}
-
-QTabWidget::pane { /* The tab widget frame */
-    margin: 0px 0px 0px 0px;
-    padding: 0px;
-   /* border: 2px solid rgba(240,85,74,1);*/
 }
 
 /* Style the tab using the tab sub-control. Note that
