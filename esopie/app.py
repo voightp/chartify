@@ -21,6 +21,7 @@ from esopie.misc_widgets import (DropFrame, TabWidget, MulInputDialog,
 from esopie.buttons import MenuButton
 from esopie.toolbar import Toolbar
 from esopie.view_tools import ViewTools
+from esopie.css_theme import CssTheme
 from functools import partial
 
 from eso_reader.eso_file import EsoFile, get_results, IncompleteFile

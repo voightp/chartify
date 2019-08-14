@@ -2,9 +2,9 @@
 /* ~~~~~ GLOBAL ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
 * {
-    font-family: "Roboto";
+    font-family: Roboto;
     font-size: 13px;
-    color: rgb(112, 112, 112);
+    color: PRIMARY_TEXT_COLOR;
 }
 
 /* ~~~~~ FRAMES ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
@@ -27,32 +27,32 @@ QFrame#viewTools {
 
 QFrame#toolbar {
     margin-right: 2px;
-    background-color: white;
+    background-color: SURFACE_COLOR;
 }
 
 DropFrame#leftMainWgt {
-    background-color: rgb(200, 200, 211);
+    background-color: PRIMARY_COLOR;
     padding: 2px;
 }
 
-DropFrame#leftMainWgt[drag-accept="true"] {
-   background-color: rgb(197,225,165);
+DropFrame#leftMainWgt[drag-accept=true] {
+   background-color: OK_COLOR;
 }
 
-DropFrame#leftMainWgt[drag-accept="false"] {
-   background-color: rgb(255,171,145);
+DropFrame#leftMainWgt[drag-accept=false] {
+   background-color: ERROR_COLOR;
 }
 
 /* ~~~~~ SPLITTER ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
 QSplitter::handle {
-    background-color: white;
+    background-color: SURFACE_COLOR;
 }
 
 /* ~~~~~ STATUS BAR ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
 QStatusBar {
-    background: white;
+    background: SURFACE_COLOR;
     border-radius: 0px;
 }
 
@@ -63,7 +63,7 @@ QLabel {
 }
 
 QLabel#filterIcon {
-    image: url("../icons/filter_list_white.png");
+    image: url(../icons/filter_list_white.png);
 }
 
 /* ~~~~~ GROUP BOX ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
@@ -71,7 +71,7 @@ QLabel#filterIcon {
 QGroupBox {
     font-size: 11px;
     text-transform: uppercase;
-    border-top: 1px solid rgba(140,140,140,0.5);
+    border-top: 1px solid PRIMARY_COLOR;
     margin: 30px 0px 0px 0px;
     border-radius: 0px;
 }
@@ -92,7 +92,7 @@ QGroupBox#toolsGroup {
 }
 /* units group behaves like GroupBox */
 QFrame#unitsGroup {
-    border-top: 1px solid rgba(140,140,140,0.5)
+    border-top: 1px solid PRIMARY_COLOR;
 }
 
 /* ~~~~~ TOOL BUTTONS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
@@ -100,9 +100,9 @@ QFrame#unitsGroup {
 QToolButton {
     width: 50px;
     height: 40px;
-    border: 1px solid rgb(198,198,198);
+    border: 1px solid PRIMARY_COLOR;
     background-color: white;
-    color: rgba(112,112,112,1);
+    color: PRIMARY_TEXT_COLOR;
     font-size: 11px;
     margin: 2px;
 }
@@ -142,7 +142,7 @@ ToolsButton {
  }
 
 QToolButton#collapseButton {
-    image: url("../icons/unfold_less_white.png");
+    image: url(../icons/unfold_less_white.png);
     width: 23;
     height: 18;
     border: 1px solid white ;
@@ -160,7 +160,7 @@ QToolButton#collapseButton:hover {
   }
 
  QToolButton#expandButton {
-    image: url("../icons/unfold_more_white.png");
+    image: url(../icons/unfold_more_white.png);
     width: 23;
     height: 18;
     border: 1px solid white ;
@@ -183,11 +183,11 @@ QToolButton#treeButton {
     border: 1px solid white ;
     background: transparent;
     margin: 2px;
-    image: url("../icons/plain_view_white.png");
+    image: url(../icons/plain_view_white.png);
   }
 
 QToolButton#treeButton:checked {
-    image: url("../icons/tree_view_white.png");
+    image: url(../icons/tree_view_white.png);
   }
 
 QToolButton#treeButton:hover {
@@ -220,7 +220,7 @@ MenuButton#settingsButton {
  }
 
 MenuButton::menu-indicator {
-    image: url("../icons/plus_grey.png");
+    image: url(../icons/plus_grey.png);
     margin: 3px;
     width: 10px;
     height: 10px;
@@ -238,7 +238,7 @@ TitledButton QToolButton {
 }
 
 TitledButton QToolButton::menu-indicator {
-    image: url("../icons/expand_more_grey.png");
+    image: url(../icons/expand_more_grey.png);
     margin: 1px;
     width: 12px;
     height: 12px;
@@ -281,7 +281,7 @@ LineEdit, QLineEdit{
 /* ~~~~~ PROGRESS WIDGET ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
 ProgressWidget QPushButton {
-    image: url("../icons/remove_red.png");
+    image: url(../icons/remove_red.png);
     margin-bottom: 2px;
 }
 
@@ -294,7 +294,7 @@ ProgressWidget QProgressBar::chunk {
     width: 1px;
 }
 
-ProgressWidget[failed="true"] QProgressBar::chunk {
+ProgressWidget[failed=true] QProgressBar::chunk {
     background-color: rgb(239 , 0, 0);
 }
 
@@ -302,7 +302,7 @@ ProgressWidget QLabel {
     font-size: 11px;
 }
 
-ProgressWidget[failed="true"] QLabel {
+ProgressWidget[failed=true] QLabel {
     color: rgb(239 , 0, 0);
 }
 
@@ -342,19 +342,19 @@ QTabBar::scroller {
 }
 
 QTabBar QToolButton::left-arrow {
-    image: url("../icons/chevron_left_white.png");
+    image: url(../icons/chevron_left_white.png);
 }
 
 QTabBar QToolButton::left-arrow:disabled {
-    image: url("../icons/transparent.png");
+    image: url(../icons/transparent.png);
 }
 
 QTabBar QToolButton::right-arrow {
-    image: url("../icons/chevron_right_white.png");
+    image: url(../icons/chevron_right_white.png);
 }
 
 QTabBar QToolButton::right-arrow:disabled {
-    image: url("../icons/transparent.png");
+    image: url(../icons/transparent.png);
 }
 
 QTabBar::tab {
@@ -391,15 +391,15 @@ QTabBar::tab:selected {
 }
 
 QTabBar::close-button {
-    image: url("../icons/remove_white.png");
+    image: url(../icons/remove_white.png);
 }
 
 QTabBar::close-button:selected {
-    image: url("../icons/remove_red.png");
+    image: url(../icons/remove_red.png);
 }
 
 QTabBar::close-button:hover {
-    image: url("../icons/remove_light_red.png");
+    image: url(../icons/remove_light_red.png);
 }
 
 QTabBar::tab:first:selected {
@@ -433,7 +433,7 @@ QHeaderView::section:checked {
 /* style the sort indicator */
 QHeaderView::down-arrow {
   color: rgb(112,112,112);
-  image: url("../icons/expand_less.png");
+  image: url(../icons/expand_less.png);
   width: 12px;
   height: 12px;
   subcontrol-position: right;
@@ -442,7 +442,7 @@ QHeaderView::down-arrow {
 
 QHeaderView::up-arrow {
   color: rgb(112,112,112);
-  image: url("../icons/expand_more.png");
+  image: url(../icons/expand_more.png);
   width: 12px;
   height: 12px;
 }
@@ -486,11 +486,11 @@ QTreeView::branch:has-children {
 }
 
 QTreeView::branch:has-children:closed {
-    image: url("../icons/plus_grey.png");
+    image: url(../icons/plus_grey.png);
 }
 
 QTreeView::branch:has-children:open {
-    image: url("../icons/minus_grey.png");
+    image: url(../icons/minus_grey.png);
 }
 
 QScrollBar:vertical {
@@ -595,7 +595,7 @@ QMenu::indicator {
 }
 
 QMenu::indicator:non-exclusive:checked {
-  image: url("../icons/check_white.png");
+  image: url(../icons/check_white.png);
 }
 
 
@@ -618,11 +618,11 @@ QSlider {
     border: 0px solid black;
 }
 
-QSlider[checked="true"] {
+QSlider[checked=true] {
     background: rgb(255,137,100);
  }
 
-QSlider[enabled="false"] {
+QSlider[enabled=false] {
     opacity: 0.5;
     background: rgba(0, 0, 0, 0.12);
  }
@@ -652,7 +652,7 @@ QDialog QLabel {
     font-weight: normal;
 }
 
-QDialog QLabel[primary="true"] {
+QDialog QLabel[primary=true] {
     padding: 10px 16px 10px 10px;
     margin: 0px 5px 0px 5px;
     border-bottom: 1px solid rgb(255,87,34);
