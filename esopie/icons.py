@@ -13,8 +13,8 @@ class Pixmap(QPixmap):
     overridden using specified RGB values.
     """
 
-    def __init__(self, path, r=0, g=0, b=0, *args, a=1, **kwargs):
-        super().__init__(path, *args, **kwargs)
+    def __init__(self, path, r=0, g=0, b=0, a=1):
+        super().__init__(path)
 
         if not (r == 0 and g == 0 and b == 0 and a == 1):
             self.repaint(path, r, g, b, a)
