@@ -1,6 +1,7 @@
 import re
 from collections import namedtuple
 from esopie.icons import Pixmap
+from eso_reader.performance import perf
 
 Color = namedtuple("Color", "r, g, b")
 
@@ -14,11 +15,6 @@ class Palette:
 
     When an available kwarg is not populated, default color
     is used.
-
-    Examples
-    --------
-
-
 
     Arguments
     ---------
@@ -38,11 +34,9 @@ class Palette:
         "PRIMARY_COLOR",
         "PRIMARY_VARIANT_COLOR",
         "PRIMARY_TEXT_COLOR",
-        "PRIMARY_DISABLED_COLOR",
         "SECONDARY_COLOR",
         "SECONDARY_VARIANT_COLOR",
         "SECONDARY_TEXT_COLOR",
-        "SECONDARY_DISABLED_COLOR",
         "BACKGROUND_COLOR",
         "SURFACE_COLOR",
         "ERROR_COLOR",
@@ -71,7 +65,6 @@ class Palette:
             if not isinstance(s, (int, str, float)):
                 #  this is just a basic test
                 s = "".join(s)
-
             print(f"Failed to parse color: '{s}'")
 
         return rgb
@@ -97,23 +90,19 @@ class Palette:
 
         return dct
 
-    def get_color(self, color_key, line=None, as_tuple=False):
+    def get_color(self, color_key, opacity=None, as_tuple=False):
         """ Get specified color as string. """
         try:
             rgb = self.colors_dct[color_key]
 
-            if line:
-                # check for opacity
-                p = f"{color_key}#(\d\d)?"
-                gr = re.findall(p, line)
-                if gr:
-                    # add opacity to rgb request
-                    a = round((int(gr[0]) / 100), 2)
-                    rgb = (*rgb, a)
+            if opacity:
+                # add opacity to rgb request
+                rgb = (*rgb, opacity)
 
             srgb = ",".join([str(i) for i in rgb])
 
             if as_tuple:
+                # this can be rgba
                 return rgb
 
             return f"rgb({srgb})" if len(rgb) == 3 else f"rgba({srgb})"
@@ -134,14 +123,31 @@ class Palette:
 
 
 class CssTheme:
+    """
+    A class used to parse input css.
+
+    Lines containing 'palette' color keys or
+    images with URL annotation will be parsed.
+
+    Icons defined as: URL(some/path)#PRIMARY_COLOR#20
+    will be repainted using given 'palette' color.
+
+    Arguments
+    ---------
+    palette : Palette
+        Defines color theme.
+
+    """
+
     def __init__(self, palette):
         self.palette = palette
 
+    @perf
     def process_csss(self, *args):
         """ Process multiple css files. """
         all_css = ""
         for file in args:
-            with open(file) as f:
+            with open(file, "r") as f:
                 css = self.parse_css(f)
                 all_css += css
 
@@ -151,15 +157,14 @@ class CssTheme:
         """ Parse a line with an url. """
         pattern = "(.*)URL\((.*?)\)#(.*);"
         try:
-            prop, url, col = re.findall(pattern, line)[0]
-            try:
-                key = next(k for k in self.palette.colors if k in line)
-                rgb = self.palette.get_color(key, line, as_tuple=True)
-                # TODO handle pixmap
-            except StopIteration:
-                print(f"Failed to parse {line}")
+            t = re.findall(pattern, line)
+            prop, url, col = t[0]
+            rgb = self.parse_color(col, as_tuple=True)
+            if rgb:
+                p = Pixmap(url, *rgb)
+                p.save(url)
+                line = f"{prop}url({url});\n"
 
-            return f"prop({url});"
         except IndexError:
             # this is raised when there's no match
             print(f"Failed to parse {line}")
@@ -169,11 +174,21 @@ class CssTheme:
 
         return line
 
-    def parse_color(self, line):
+    def parse_color(self, line, as_tuple=False):
         """ Parse a line with color. """
         key = next(k for k in self.palette.colors if k in line)
-        color = self.palette.get_color(key, line)
-        return line.replace(key, color)
+        pattern = f"(.*){key}#?(\d\d)?;?"
+        prop, opacity = re.findall(pattern, line)[0]
+
+        if opacity:
+            opacity = round((int(opacity) / 100), 2)
+
+        rgb = self.palette.get_color(key, opacity, as_tuple=as_tuple)
+
+        if as_tuple:
+            return rgb
+
+        return f"{prop}{rgb};\n"
 
     def parse_css(self, source_css):
         """ Parse given css files. """
@@ -187,27 +202,6 @@ class CssTheme:
                 line = self.parse_color(line)
 
             css += line
+            print(line, end="")
 
         return css
-
-
-default = {
-    "PRIMARY_COLOR": "rgb(200,200,211)",
-    "PRIMARY_VARIANT_COLOR": None,
-    "PRIMARY_TEXT_COLOR": "rgb(112, 112, 112)",
-    "PRIMARY_DISABLED_COLOR": (180, 180, 180),
-    "SECONDARY_COLOR": None,
-    "SECONDARY_VARIANT_COLOR": None,
-    "SECONDARY_TEXT_COLOR": None,
-    "SECONDARY_DISABLED_COLOR": None,
-    "BACKGROUND_COLOR": "#eceff1",
-    "SURFACE_COLOR": "",
-    "ERROR_COLOR": "#e53935",
-    "OK_COLOR": "#69f0ae",
-}
-
-p = Palette(**default)
-th = CssTheme(p)
-
-c = th.process_csss("../styles/app_style.css")
-print(c)

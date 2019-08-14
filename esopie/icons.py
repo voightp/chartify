@@ -14,7 +14,7 @@ class Pixmap(QPixmap):
     """
 
     def __init__(self, path, r=0, g=0, b=0, a=1):
-        super().__init__(path)
+        super().__init__()
 
         if not (r == 0 and g == 0 and b == 0 and a == 1):
             self.repaint(path, r, g, b, a)

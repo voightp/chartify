@@ -21,7 +21,7 @@ from esopie.misc_widgets import (DropFrame, TabWidget, MulInputDialog,
 from esopie.buttons import MenuButton
 from esopie.toolbar import Toolbar
 from esopie.view_tools import ViewTools
-from esopie.css_theme import CssTheme
+from esopie.css_theme import CssTheme, Palette
 from functools import partial
 
 from eso_reader.eso_file import EsoFile, get_results, IncompleteFile
@@ -113,9 +113,19 @@ def install_fonts(pth, database):
 # noinspection PyPep8Naming,PyUnresolvedReferences
 class MainWindow(QMainWindow):
     # todo create color schemes
-    background_color = {"r": 255, "g": 255, "b": 255}
-    primary_color = {"r": 112, "g": 112, "b": 112}
-    secondary_color = {"r": 112, "g": 112, "b": 112}
+    palette = Palette(**{
+        "PRIMARY_COLOR": (255, 0, 0),
+        "PRIMARY_VARIANT_COLOR": None,
+        "PRIMARY_TEXT_COLOR": (0, 255, 0),
+        "SECONDARY_COLOR": (0, 0, 255),
+        "SECONDARY_VARIANT_COLOR": (100, 100, 100),
+        "SECONDARY_TEXT_COLOR": (255, 255, 255),
+        "BACKGROUND_COLOR": (100, 100, 100),
+        "SURFACE_COLOR": (100, 100, 100),
+        "ERROR_COLOR": (150, 150, 150),
+        "OK_COLOR": (80, 80, 80),
+    })
+    css = CssTheme(palette)
 
     QCoreApplication.setOrganizationName("piecompany")
     QCoreApplication.setOrganizationDomain("piecomp.foo")
@@ -189,8 +199,6 @@ class MainWindow(QMainWindow):
         self.swap_btn.clicked.connect(self.mirror)
         self.swap_btn.setObjectName("swapButton")
 
-        pix = Pixmap("../icons/swap_black.png", **self.primary_color)
-        self.swap_btn.setIcon(pix)
         self.status_bar.addPermanentWidget(self.swap_btn)
 
         # ~~~~ Database ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -473,9 +481,7 @@ class MainWindow(QMainWindow):
     def toggle_css(self):
         """ Turn the CSS on and off. """
         self.setStyleSheet("")
-        with open("../styles/app_style.css", "r") as file:
-            cont = file.read()
-
+        cont = self.css.process_csss("../styles/app_style.css")
         self.setStyleSheet(cont)
 
     def get_current_interval(self):
