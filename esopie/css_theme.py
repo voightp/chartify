@@ -112,13 +112,14 @@ class Palette:
             print(f"Cannot get color for color key '{color_key}' is it's not "
                   f"available, use one of: '{colors_str}'.")
 
-    def set_color(self, color_key, color):
-        """ Set specified color. """
+    def set_color(self, **kwargs):
+        """ Set specified colors as 'color_key : color' pairs. """
         try:
-            self.colors_dct[color_key] = color
+            for k, v in kwargs.items():
+                self.colors_dct[k] = v
         except KeyError:
             colors_str = ", ".join(self.colors)
-            print(f"Cannot set color '{color}' color key '{color_key}' is not "
+            print(f"Cannot set color '{v}', color key '{k}' is not "
                   f"available, use one of: '{colors_str}'.")
 
 
@@ -167,7 +168,6 @@ class CssTheme:
                 print(tf.fileName())
                 self._temp.append(tf)
                 line = f"{prop}url({tf.fileName()});\n"
-
 
         except IndexError:
             # this is raised when there's no match

@@ -305,19 +305,24 @@ class MainWindow(QMainWindow):
         mn = QMenu(self)
         self.toolbar.stngs_btn.setMenu(mn)
 
-        css = QAction("C", self)
+        css = QAction("CSS", self)
         css.triggered.connect(self.toggle_css)
 
-        no_css = QAction("N C", self)
+        no_css = QAction("NO CSS", self)
         no_css.triggered.connect(self.turn_off_css)
 
-        memory = QAction("M", self)
+        memory = QAction("MEMORY", self)
         memory.triggered.connect(self.report_sizes)  # TODO REMOVE THIS
 
-        dummy = QAction("D", self)
+        dummy = QAction("DUMMY", self)
         dummy.triggered.connect(self.load_dummy)  # TODO REMOVE THIS
 
-        mn.addActions([css, no_css, memory, dummy])
+        colors = QAction("COLORS", self)
+        colors.triggered.connect(self.update_colors)  # TODO REMOVE THIS
+
+        self.toolbar.stngs_btn.setDefaultAction(dummy)
+
+        mn.addActions([css, no_css, memory, dummy, colors])
 
         # TODO create custom chart area
         # self.chart_area = QWebEngineView(self)
@@ -465,6 +470,17 @@ class MainWindow(QMainWindow):
               asizeof.asizeof(self.progress_cont.monitor))
         print("Watcher thread", asizeof.asizeof(self.watcher))
 
+    # TODO dialog to choose colors
+    def update_colors(self):
+        parsed = {k: "" if not isinstance(v, str) else v for k, v
+                  in self.palette.colors_dct.items()}
+        d = MulInputDialog("choose colors", self, **parsed)
+        res = d.exec_()
+        if res:
+            dct = d.get_inputs_dct()
+            self.palette = Palette(**dct)
+            self.toggle_css()
+
     def load_dummy(self):
         """ Load a dummy file. """
         self.load_files(["../tests/eplusout.eso"])
@@ -481,6 +497,7 @@ class MainWindow(QMainWindow):
     def toggle_css(self):
         """ Turn the CSS on and off. """
         self.setStyleSheet("")
+        self.css = CssTheme(self.palette)
         cont = self.css.process_csss("../styles/app_style.css")
         self.setStyleSheet(cont)
 
