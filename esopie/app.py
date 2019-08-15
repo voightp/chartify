@@ -114,16 +114,16 @@ def install_fonts(pth, database):
 class MainWindow(QMainWindow):
     # todo create color schemes
     palette = Palette(**{
-        "PRIMARY_COLOR": (255, 0, 0),
+        "PRIMARY_COLOR": "rgb(180,180,180)",
         "PRIMARY_VARIANT_COLOR": None,
-        "PRIMARY_TEXT_COLOR": (0, 255, 0),
-        "SECONDARY_COLOR": (0, 0, 255),
-        "SECONDARY_VARIANT_COLOR": (100, 100, 100),
-        "SECONDARY_TEXT_COLOR": (255, 255, 255),
-        "BACKGROUND_COLOR": (100, 100, 100),
-        "SURFACE_COLOR": (100, 100, 100),
-        "ERROR_COLOR": (150, 150, 150),
-        "OK_COLOR": (80, 80, 80),
+        "PRIMARY_TEXT_COLOR": "rgb(112,112,112)",
+        "SECONDARY_COLOR": "#f44336",
+        "SECONDARY_VARIANT_COLOR": None,
+        "SECONDARY_TEXT_COLOR": "#EEEEEE",
+        "BACKGROUND_COLOR": "#607D8B",
+        "SURFACE_COLOR": "#F5F5F5",
+        "ERROR_COLOR": "#b71c1c",
+        "OK_COLOR": "#64DD17",
     })
     css = CssTheme(palette)
 
@@ -281,25 +281,24 @@ class MainWindow(QMainWindow):
 
         self.connect_ui_actions()
 
-        sz = QSize(25, 25)
         acts = [self.load_file_act, self.close_all_act]
-        load_file_btn = MenuButton(QIcon("../icons/file.png"),
-                                   "Load file | files", self,
-                                   sz, self.load_files_from_os, acts)
+        self.load_file_btn = MenuButton("Load file | files", self,
+                                        func=self.load_files_from_os,
+                                        actions=acts)
 
-        self.mini_menu_layout.addWidget(load_file_btn)
+        self.save_all = MenuButton("Save", self,
+                                   func=lambda: print("NEEDS FUNCTION TO SAVE"))
 
-        save_all = MenuButton(QIcon("../icons/save.png"),
-                              "Save", self, sz,
-                              lambda: print("NEEDS FUNCTION TO SAVE"))
+        self.about_btn = MenuButton("About", self,
+                                    func=lambda: print("NEEDS FUNCTION TO ABOUT"))
 
-        self.mini_menu_layout.addWidget(save_all)
+        self.load_file_btn.setObjectName("fileButton")
+        self.save_all.setObjectName("saveButton")
+        self.about_btn.setObjectName("aboutButton")
 
-        about_btn = MenuButton(QIcon("../icons/help.png"),
-                               "Save", self, sz,
-                               lambda: print("NEEDS FUNCTION TO ABOUT"))
-
-        self.mini_menu_layout.addWidget(about_btn)
+        self.mini_menu_layout.addWidget(self.load_file_btn)
+        self.mini_menu_layout.addWidget(self.save_all)
+        self.mini_menu_layout.addWidget(self.about_btn)
 
         # TODO reload css button (temporary)
         mn = QMenu(self)
@@ -421,7 +420,7 @@ class MainWindow(QMainWindow):
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(
             myappid)  # this sets toolbar icon on win 7
 
-        self.setWindowIcon(QPixmap("../icons/smile.png"))
+        self.setWindowIcon(Pixmap("../icons/smile.png", 255, 255, 255))
 
     def set_up_base_ui(self):
         """ Set up appearance of main widgets. """
@@ -472,8 +471,11 @@ class MainWindow(QMainWindow):
 
     # TODO dialog to choose colors
     def update_colors(self):
-        parsed = {k: "" if not isinstance(v, str) else v for k, v
-                  in self.palette.colors_dct.items()}
+        parsed = {}
+        for k, v in self.palette.colors_dct.items():
+            sv = f"rgb({v[0]},{v[1]},{v[2]})"
+            parsed[k] = sv
+
         d = MulInputDialog("choose colors", self, **parsed)
         res = d.exec_()
         if res:

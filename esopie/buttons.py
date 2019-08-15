@@ -259,11 +259,14 @@ class MenuButton(QToolButton):
 
     """
 
-    def __init__(self, icon, text, parent, size, func=None, actions=None):
+    def __init__(self, text, parent, size=QSize(25, 25),
+                 icon=None, func=None, actions=None):
         super().__init__(parent)
-        self.setIcon(icon)
         self.setText(text)
         self.setIconSize(size)
+
+        if icon:
+            self.setIcon(icon)
 
         if func:
             self.clicked.connect(func)

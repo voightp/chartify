@@ -31,7 +31,7 @@ QFrame#toolbar {
 }
 
 DropFrame#leftMainWgt {
-    background-color: PRIMARY_COLOR;
+    background-color: BACKGROUND_COLOR;
     padding: 2px;
 }
 
@@ -109,8 +109,9 @@ QToolButton {
 }
 
 QToolButton:checked {
-    background-color: SECONDARY_COLOR#20;
+    background-color: SECONDARY_COLOR#50;
     border-color: SECONDARY_COLOR;
+    color: SECONDARY_TEXT_COLOR;
 }
 
 QToolButton:hover:checked {
@@ -126,7 +127,7 @@ QToolButton:disabled {
 }
 
 QToolButton:hover {
-    background-color: SECONDARY_COLOR#50;
+    background-color: SECONDARY_COLOR#10;
     border-color: SECONDARY_COLOR;
 }
 
@@ -138,7 +139,7 @@ QToolButton#swapButton {
     margin: 0px;
     border: 0px;
     background: transparent;
-    image: URL(../icons/swap.png)#SECONDARY_COLOR;
+    image: URL(../icons/swap.png)#PRIMARY_COLOR;
     width: 20px;
     height: 20px;
 }
@@ -201,12 +202,16 @@ MenuButton {
     margin: 0px;
     width: 36px;
     height: 36px;
-  }
+}
+
+MenuButton:hover {
+    background: transparent;
+}
 
 MenuButton#settingsButton {
     height: 60px;
     width: 60px;
- }
+}
 
 MenuButton::menu-indicator {
     image: URL(../icons/plus.png)#PRIMARY_COLOR;
@@ -218,6 +223,18 @@ MenuButton::menu-indicator {
 QFrame#buttonFrame {
     background: transparent;
     border: transparent;
+}
+
+MenuButton#fileButton {
+image: URL(../icons/file.png)#PRIMARY_COLOR;
+}
+
+MenuButton#saveButton {
+image: URL(../icons/save.png)#PRIMARY_COLOR;
+}
+
+MenuButton#aboutButton {
+image: URL(../icons/help.png)#PRIMARY_COLOR;
 }
 
 /* ~~~~~ TITLED BUTTON ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
@@ -246,8 +263,8 @@ TitledButton QToolButton:disabled {
 }
 
 TitledButton QToolButton:checked:hover {
-    background-color:PRIMARY_COLOR#50;
-    border-color: PRIMARY_COLOR#50;
+    border-color: PRIMARY_COLOR;
+    background-color: transparent;
 }
 
 QLabel#buttonTitle {
@@ -310,13 +327,13 @@ QTabWidget::pane {
 }
 
 QTabBar QToolButton {
-    border: 1px solid SURFACE_COLOR;
-    background: PRIMARY_COLOR;
+    border: 1px solid SECONDARY_TEXT_COLOR;
+    background: BACKGROUND_COLOR;
     margin: 2px;
 }
 
 QTabBar QToolButton:hover {
-    background-color: SURFACE_COLOR#10;
+    background-color: SECONDARY_TEXT_COLOR#10;
     border: 1px solid SECONDARY_TEXT_COLOR;
 }
 
@@ -360,7 +377,7 @@ QTabBar::tab:!selected {
 
 QTabBar::tab:selected {
     background: SURFACE_COLOR;
-    color: PRIMARY_COLOR;
+    color: PRIMARY_TEXT_COLOR;
     margin-left: 0px;
     margin-right: 0px;
 }
@@ -387,7 +404,7 @@ QTabBar::close-button:selected {
 }
 
 QTabBar::close-button:hover {
-    image: URL(../icons/remove.png)#ERROR_COLOR#50;
+    image: URL(../icons/remove.png)#SECONDARY_TEXT_COLOR;
 }
 
 QTabBar::tab:first:selected {
@@ -439,7 +456,7 @@ QTreeView {
 }
 
 QTreeView::item {
-    border: 1px solid PRIMARY_COLOR#10;
+    border: 1px solid PRIMARY_COLOR;
     border-top-color: transparent;
     border-bottom-color: transparent;
     border-left-color: transparent;
@@ -473,11 +490,11 @@ QTreeView::branch:has-children {
 }
 
 QTreeView::branch:has-children:closed {
-    image: URL(../icons/plus.png)#PRIMARY_COLOR;
+    image: URL(../icons/plus.png)#PRIMARY_TEXT_COLOR;
 }
 
 QTreeView::branch:has-children:open {
-    image: URL(../icons/minus.png)#PRIMARY_COLOR;
+    image: URL(../icons/minus.png)#PRIMARY_TEXT_COLOR;
 }
 
 QScrollBar:vertical {
@@ -563,7 +580,7 @@ QMenu#contextMenu::item {
 }
 
 QMenu::item:selected {
-  background: red;
+  background: SECONDARY_COLOR#15;
 }
 
 QMenu::item:checked {
@@ -600,7 +617,7 @@ QSlider {
     padding: 2px 5px;
     height: 11px;
     max-width: 14px;
-    background: SECONDARY_COLOR;
+    background: PRIMARY_COLOR#50;
     border-radius: 7px;
     border: 0px solid transparent;
 }
@@ -663,6 +680,5 @@ QDialogButtonBox QToolButton {
     width: 30px;
     height: 30px;
     margin: 0px;
-
 }
 

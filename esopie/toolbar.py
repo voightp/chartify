@@ -153,8 +153,8 @@ class Toolbar(QFrame):
         self.layout.addSpacerItem(spacer)
 
         # ~~~~ Settings group ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.stngs_btn = MenuButton(QPixmap("../icons/gear.png"),
-                                    "Settings", self, QSize(40, 40))
+        self.stngs_btn = MenuButton("Settings", self, QSize(40, 40),
+                                    icon=QPixmap("../icons/gear.png"))
 
         self.layout.addWidget(self.stngs_btn)
 

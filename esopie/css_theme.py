@@ -57,7 +57,7 @@ class Palette:
             rgb = color
         elif color.startswith("rgb"):
             srgb = re.sub('[rgb() ]', '', color)
-            rgb = tuple(srgb.split(","))
+            rgb = tuple([int(i) for i in srgb.split(",")])
         elif color.startswith("#") and len(color) == 7:
             rgb = tuple([int(color[i: i + 2], 16) for i in range(1, 7, 2)])
         else:
