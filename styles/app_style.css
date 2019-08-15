@@ -102,7 +102,7 @@ QToolButton {
     width: 50px;
     height: 40px;
     border: 1px solid PRIMARY_COLOR;
-    background-color: white;
+    background-color: transparent;
     color: PRIMARY_TEXT_COLOR;
     font-size: 11px;
     margin: 2px;
@@ -310,14 +310,14 @@ QTabWidget::pane {
 }
 
 QTabBar QToolButton {
-    border: 1px solid white;
+    border: 1px solid SURFACE_COLOR;
     background: PRIMARY_COLOR;
     margin: 2px;
 }
 
 QTabBar QToolButton:hover {
     background-color: SURFACE_COLOR#10;
-    border: 1px solid white;
+    border: 1px solid SECONDARY_TEXT_COLOR;
 }
 
 QTabBar QToolButton:disabled {
@@ -439,7 +439,7 @@ QTreeView {
 }
 
 QTreeView::item {
-    border: 1px solid #PRIMARY_COLOR#10;
+    border: 1px solid PRIMARY_COLOR#10;
     border-top-color: transparent;
     border-bottom-color: transparent;
     border-left-color: transparent;

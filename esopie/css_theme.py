@@ -2,6 +2,7 @@ import re
 from collections import namedtuple
 from esopie.icons import Pixmap
 from eso_reader.performance import perf
+from PySide2.QtCore import QTemporaryFile
 
 Color = namedtuple("Color", "r, g, b")
 
@@ -24,9 +25,8 @@ class Palette:
 
     **kwargs
         primary_color, primary_variant_color, primary_text_color,
-        primary_disabled_color, secondary_color, secondary_variant_color,
-        secondary_text_color, secondary_disabled_color, background_color,
-        surface_color, error_color, ok_color
+        secondary_color, secondary_variant_color, secondary_text_color,
+        background_color, surface_color, error_color, ok_color
 
 
     """
@@ -141,6 +141,7 @@ class CssTheme:
 
     def __init__(self, palette):
         self.palette = palette
+        self._temp = []
 
     @perf
     def process_csss(self, *args):
@@ -157,13 +158,16 @@ class CssTheme:
         """ Parse a line with an url. """
         pattern = "(.*)URL\((.*?)\)#(.*);"
         try:
-            t = re.findall(pattern, line)
-            prop, url, col = t[0]
+            tup = re.findall(pattern, line)
+            prop, url, col = tup[0]
             rgb = self.parse_color(col, as_tuple=True)
             if rgb:
                 p = Pixmap(url, *rgb)
-                p.save(url)
-                line = f"{prop}url({url});\n"
+                tf = p.as_temp()
+                print(tf.fileName())
+                self._temp.append(tf)
+                line = f"{prop}url({tf.fileName()});\n"
+
 
         except IndexError:
             # this is raised when there's no match

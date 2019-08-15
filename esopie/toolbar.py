@@ -112,13 +112,13 @@ class Toolbar(QFrame):
         self.outputs_group = QGroupBox("Outputs", self)
         self.outputs_group.setObjectName("outputsGroup")
 
-        pix = QPixmap("../icons/building_grey.png")
+        pix = QPixmap("../icons/building.png")
         self.totals_btn = ToolsButton("totals", pix,
                                       checkable=True,
                                       parent=self.outputs_group)
         self.totals_btn.setEnabled(False)
 
-        pix = QPixmap("../icons/all_files_grey.png")
+        pix = QPixmap("../icons/all_files.png")
         self.all_files_btn = ToolsButton("all files", pix,
                                          checkable=True,
                                          parent=self)
@@ -153,7 +153,7 @@ class Toolbar(QFrame):
         self.layout.addSpacerItem(spacer)
 
         # ~~~~ Settings group ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.stngs_btn = MenuButton(QPixmap("../icons/gear_grey.png"),
+        self.stngs_btn = MenuButton(QPixmap("../icons/gear.png"),
                                     "Settings", self, QSize(40, 40))
 
         self.layout.addWidget(self.stngs_btn)

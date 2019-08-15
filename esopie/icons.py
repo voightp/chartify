@@ -1,6 +1,6 @@
 from PySide2.QtGui import QImage, QPixmap, QColor, QPainter, QFont, QFontMetrics
 from PySide2.QtWidgets import QApplication, QWidget
-from PySide2.QtCore import Qt, QPoint
+from PySide2.QtCore import Qt, QPoint, QBuffer, QTemporaryFile
 
 
 class Pixmap(QPixmap):
@@ -14,7 +14,7 @@ class Pixmap(QPixmap):
     """
 
     def __init__(self, path, r=0, g=0, b=0, a=1):
-        super().__init__()
+        super().__init__(path)
 
         if not (r == 0 and g == 0 and b == 0 and a == 1):
             self.repaint(path, r, g, b, a)
@@ -33,7 +33,18 @@ class Pixmap(QPixmap):
             self.convertFromImage(img)
 
         except IOError:
-            print("Could not open f{path}")
+            print(f"Could not open {path}")
+
+    def as_temp(self):
+        """ Save the pixmap as a temporary file. """
+        buff = QBuffer()
+        self.save(buff, "PNG")
+
+        tf = QTemporaryFile()
+        tf.open()
+        tf.write(buff.data())
+        tf.close()
+        return tf
 
 
 def text_to_pixmap(text, font, color):

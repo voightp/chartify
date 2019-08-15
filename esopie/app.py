@@ -229,12 +229,12 @@ class MainWindow(QMainWindow):
         # ~~~~ Actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.load_file_act = Action(self, "Load file | files",
                                     func=self.load_files_from_os,
-                                    icon_pth="../icons/add_file_grey.png",
+                                    icon_pth="../icons/add_file.png",
                                     shortcut="Ctrl+L")
 
         self.close_all_act = Action(self, "Close all",
                                     func=self.close_all_tabs,
-                                    icon_pth="../icons/remove_grey.png")
+                                    icon_pth="../icons/remove.png")
 
         self.remove_act = Action(self, "Delete", func=self.remove_vars)
 
@@ -283,19 +283,19 @@ class MainWindow(QMainWindow):
 
         sz = QSize(25, 25)
         acts = [self.load_file_act, self.close_all_act]
-        load_file_btn = MenuButton(QIcon("../icons/file_grey.png"),
+        load_file_btn = MenuButton(QIcon("../icons/file.png"),
                                    "Load file | files", self,
                                    sz, self.load_files_from_os, acts)
 
         self.mini_menu_layout.addWidget(load_file_btn)
 
-        save_all = MenuButton(QIcon("../icons/save_grey.png"),
+        save_all = MenuButton(QIcon("../icons/save.png"),
                               "Save", self, sz,
                               lambda: print("NEEDS FUNCTION TO SAVE"))
 
         self.mini_menu_layout.addWidget(save_all)
 
-        about_btn = MenuButton(QIcon("../icons/help_grey.png"),
+        about_btn = MenuButton(QIcon("../icons/help.png"),
                                "Save", self, sz,
                                lambda: print("NEEDS FUNCTION TO ABOUT"))
 
@@ -416,7 +416,7 @@ class MainWindow(QMainWindow):
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(
             myappid)  # this sets toolbar icon on win 7
 
-        self.setWindowIcon(QPixmap("../icons/twotone_pie_chart.png"))
+        self.setWindowIcon(QPixmap("../icons/smile.png"))
 
     def set_up_base_ui(self):
         """ Set up appearance of main widgets. """
