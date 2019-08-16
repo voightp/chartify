@@ -313,48 +313,11 @@ QTabWidget::pane {
     background-color: SURFACE_COLOR;
 }
 
-QTabBar QToolButton {
-    border: 1px solid SECONDARY_TEXT_COLOR;
-    background: BACKGROUND_COLOR;
-    margin: 2px;
-}
-
-QTabBar QToolButton:hover {
-    background-color: SECONDARY_TEXT_COLOR#10;
-    border: 1px solid SECONDARY_TEXT_COLOR;
-}
-
-QTabBar QToolButton:disabled {
-    border: transparent;
-    background: transparent;
-    color: transparent;
-}
-
-QTabBar::scroller {
-    width: 60px;
-}
-
-QTabBar QToolButton::left-arrow {
-    image: URL(../icons/chevron_left.png)#SECONDARY_TEXT_COLOR;
-}
-
-QTabBar QToolButton::left-arrow:disabled {
-    image: url(../icons/transparent.png);
-}
-
-QTabBar QToolButton::right-arrow {
-    image: URL(../icons/chevron_right.png)#SECONDARY_TEXT_COLOR;
-}
-
-QTabBar QToolButton::right-arrow:disabled {
-    image: url(../icons/transparent.png);
-}
-
 QTabBar::tab {
     color: SURFACE_COLOR;
     border-top-left-radius: 0px;
     border-top-right-radius: 0px;
-    padding: 8px 10px;
+    padding: 10px 10px;
     border-right: 2px solid SURFACE_COLOR;
     border-top: 0px solid transparent;
 }
@@ -403,6 +366,43 @@ QTabBar::tab:last:selected {
 
 QTabBar::tab:only-one {
 
+}
+
+QTabBar QToolButton {
+    border: 1px solid SECONDARY_TEXT_COLOR;
+    background: BACKGROUND_COLOR;
+    margin: 2px;
+}
+
+QTabBar QToolButton:hover {
+    background-color: BACKGROUND_COLOR;
+    border: 1px solid SECONDARY_TEXT_COLOR;
+}
+
+QTabBar QToolButton:disabled {
+    border: transparent;
+    background: transparent;
+    color: transparent;
+}
+
+QTabBar::scroller {
+    width: 60px;
+}
+
+QTabBar QToolButton::left-arrow {
+    image: URL(../icons/chevron_left.png)#SECONDARY_TEXT_COLOR;
+}
+
+QTabBar QToolButton::left-arrow:disabled {
+    image: url(../icons/transparent.png);
+}
+
+QTabBar QToolButton::right-arrow {
+    image: URL(../icons/chevron_right.png)#SECONDARY_TEXT_COLOR;
+}
+
+QTabBar QToolButton::right-arrow:disabled {
+    image: url(../icons/transparent.png);
 }
 
 QHeaderView::section {
