@@ -660,19 +660,29 @@ QDialog QTextEdit {
     padding-bottom: 0px;
 }
 
-QDialogButtonBox QToolButton {
+#okButton, #cancelButton {
     border: 0px solid transparent;
     background: transparent;
-    width: 20px;
-    height: 20px;
-    margin: 0px;
+    width: 16px;
+    height: 16px;
+    margin: 4px 0px;
 }
 
 QDialogButtonBox #okButton {
-    image: URL(../icons/check.png)#OK_COLOR;
+    image: URL(../icons/check.png)#PRIMARY_COLOR;
 }
 
 QDialogButtonBox #cancelButton {
-    image: URL(../icons/remove.png)#ERROR_COLOR;
+    image: URL(../icons/remove.png)#PRIMARY_COLOR;
+    margin-right: 4px;
 }
 
+QDialogButtonBox #okButton:hover {
+    image: URL(../icons/check.png)#OK_COLOR;
+    background: transparent;
+}
+
+QDialogButtonBox #cancelButton:hover {
+    image: URL(../icons/remove.png)#ERROR_COLOR;
+    background: transparent;
+}
