@@ -114,14 +114,14 @@ def install_fonts(pth, database):
 class MainWindow(QMainWindow):
     # todo create color schemes
     palette = Palette(**{
-        "PRIMARY_COLOR": "rgb(180,180,180)",
+        "PRIMARY_COLOR": "#aeaeae",
         "PRIMARY_VARIANT_COLOR": None,
         "PRIMARY_TEXT_COLOR": "rgb(112,112,112)",
-        "SECONDARY_COLOR": "#f44336",
+        "SECONDARY_COLOR": "#ff8a65",
         "SECONDARY_VARIANT_COLOR": None,
         "SECONDARY_TEXT_COLOR": "#EEEEEE",
-        "BACKGROUND_COLOR": "rgb(200,200,200)",
-        "SURFACE_COLOR": "#F5F5F5",
+        "BACKGROUND_COLOR": "#c2c2c2",
+        "SURFACE_COLOR": "#f5f5f5",
         "ERROR_COLOR": "#b71c1c",
         "OK_COLOR": "#64DD17",
     })

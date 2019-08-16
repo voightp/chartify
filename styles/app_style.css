@@ -109,13 +109,13 @@ QToolButton {
 }
 
 QToolButton:checked {
-    background-color: SECONDARY_COLOR#50;
+    background-color: SECONDARY_COLOR#70;
     border-color: SECONDARY_COLOR;
     color: SECONDARY_TEXT_COLOR;
 }
 
 QToolButton:hover:checked {
-    background-color: SECONDARY_COLOR#20;
+    background-color: SECONDARY_COLOR#70;
     border-color: SECONDARY_COLOR;
 }
 
@@ -239,6 +239,7 @@ TitledButton QToolButton::menu-indicator {
 TitledButton QToolButton:checked {
     background-color: transparent;
     border-color: PRIMARY_COLOR;
+    color: PRIMARY_TEXT_COLOR;
 }
 
 TitledButton QToolButton:disabled {
@@ -306,7 +307,7 @@ QTabWidget::tab-bar {
 }
 
 QTabWidget::pane {
-    margin: 0px 0px 0px 0px;
+    margin: 0px;
     padding: 0px;
     border: 0px solid transparent;
     background-color: SURFACE_COLOR;
@@ -353,12 +354,9 @@ QTabBar::tab {
     color: SURFACE_COLOR;
     border-top-left-radius: 0px;
     border-top-right-radius: 0px;
-    padding: 10px 8px;
+    padding: 8px 10px;
     border-right: 2px solid SURFACE_COLOR;
-}
-
-QTabBar::tab:!selected {
-    margin-top: 0px;
+    border-top: 0px solid transparent;
 }
 
 QTabBar::tab:selected {
@@ -366,6 +364,8 @@ QTabBar::tab:selected {
     color: PRIMARY_TEXT_COLOR;
     margin-left: 0px;
     margin-right: 0px;
+    border-top: 0px solid SECONDARY_COLOR;
+    border-right: 2px solid transparent;
 }
 
 QTabBar::tab:selected:hover {
@@ -386,11 +386,11 @@ QTabBar::close-button {
 }
 
 QTabBar::close-button:selected {
-    image: URL(../icons/remove.png)#ERROR_COLOR;
+    image: URL(../icons/remove.png)#PRIMARY_COLOR;
 }
 
 QTabBar::close-button:hover {
-    image: URL(../icons/remove.png)#SECONDARY_TEXT_COLOR;
+    image: URL(../icons/remove.png)#ERROR_COLOR;
 }
 
 QTabBar::tab:first:selected {
