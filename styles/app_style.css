@@ -104,7 +104,7 @@ QToolButton {
     border: 1px solid PRIMARY_COLOR;
     background-color: transparent;
     color: PRIMARY_TEXT_COLOR;
-    font-size: 11px;
+    font-size: 10px;
     margin: 2px;
 }
 
@@ -129,10 +129,6 @@ QToolButton:disabled {
 QToolButton:hover {
     background-color: SECONDARY_COLOR#10;
     border-color: SECONDARY_COLOR;
-}
-
-ToolsButton {
-    font-size: 10px;
 }
 
 QToolButton#swapButton {
@@ -189,6 +185,7 @@ QToolButton#dropButton {
     border: none;
     height: 100px;
     width: 150px;
+    font-size: 11px;
   }
 
 QToolButton#dropButton:hover {
@@ -202,6 +199,7 @@ MenuButton {
     margin: 0px;
     width: 36px;
     height: 36px;
+    icon-size: 25px;
 }
 
 MenuButton:hover {
@@ -223,18 +221,6 @@ MenuButton::menu-indicator {
 QFrame#buttonFrame {
     background: transparent;
     border: transparent;
-}
-
-MenuButton#fileButton {
-image: URL(../icons/file.png)#PRIMARY_COLOR;
-}
-
-MenuButton#saveButton {
-image: URL(../icons/save.png)#PRIMARY_COLOR;
-}
-
-MenuButton#aboutButton {
-image: URL(../icons/help.png)#PRIMARY_COLOR;
 }
 
 /* ~~~~~ TITLED BUTTON ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
@@ -677,8 +663,16 @@ QDialog QTextEdit {
 QDialogButtonBox QToolButton {
     border: 0px solid transparent;
     background: transparent;
-    width: 30px;
-    height: 30px;
+    width: 20px;
+    height: 20px;
     margin: 0px;
+}
+
+QDialogButtonBox #okButton {
+    image: URL(../icons/check.png)#OK_COLOR;
+}
+
+QDialogButtonBox #cancelButton {
+    image: URL(../icons/remove.png)#ERROR_COLOR;
 }
 

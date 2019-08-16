@@ -64,10 +64,7 @@ class TabWidget(QTabWidget):
         layout = QHBoxLayout(self)
         self.drop_btn = QToolButton(self)
         self.drop_btn.setObjectName("dropButton")
-        self.drop_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
         self.drop_btn.setText("Choose a file or drag it here!")
-        self.drop_btn.setIcon(QPixmap("../icons/drop_file_grey.png"))
-        self.drop_btn.setIconSize(QSize(50, 50))
         layout.addWidget(self.drop_btn)
 
         self.tabCloseRequested.connect(self.close_tab)
@@ -292,10 +289,10 @@ class ConfirmationDialog(QDialog):
             layout.addWidget(area)
 
         box = QDialogButtonBox(self)
-        self.ok_btn = QToolButton(box)  # TODO change colors
-        self.ok_btn.setIcon(QIcon("../icons/check_black.png"))
+        self.ok_btn = QToolButton(box)
+        self.ok_btn.setObjectName("okButton")
         self.cancel_btn = QToolButton(box)
-        self.cancel_btn.setIcon(QIcon("../icons/remove_grey.png"))
+        self.cancel_btn.setObjectName("cancelButton")
         box.addButton(self.ok_btn, QDialogButtonBox.AcceptRole)
         box.addButton(self.cancel_btn, QDialogButtonBox.RejectRole)
         box.accepted.connect(self.accept)

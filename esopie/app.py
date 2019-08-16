@@ -120,7 +120,7 @@ class MainWindow(QMainWindow):
         "SECONDARY_COLOR": "#f44336",
         "SECONDARY_VARIANT_COLOR": None,
         "SECONDARY_TEXT_COLOR": "#EEEEEE",
-        "BACKGROUND_COLOR": "#607D8B",
+        "BACKGROUND_COLOR": "rgb(200,200,200)",
         "SURFACE_COLOR": "#F5F5F5",
         "ERROR_COLOR": "#b71c1c",
         "OK_COLOR": "#64DD17",
@@ -286,18 +286,18 @@ class MainWindow(QMainWindow):
                                         func=self.load_files_from_os,
                                         actions=acts)
 
-        self.save_all = MenuButton("Save", self,
-                                   func=lambda: print("NEEDS FUNCTION TO SAVE"))
+        self.save_all_btn = MenuButton("Save", self,
+                                       func=lambda: print("NEEDS FUNCTION TO SAVE"))
 
         self.about_btn = MenuButton("About", self,
                                     func=lambda: print("NEEDS FUNCTION TO ABOUT"))
 
         self.load_file_btn.setObjectName("fileButton")
-        self.save_all.setObjectName("saveButton")
+        self.save_all_btn.setObjectName("saveButton")
         self.about_btn.setObjectName("aboutButton")
 
         self.mini_menu_layout.addWidget(self.load_file_btn)
-        self.mini_menu_layout.addWidget(self.save_all)
+        self.mini_menu_layout.addWidget(self.save_all_btn)
         self.mini_menu_layout.addWidget(self.about_btn)
 
         # TODO reload css button (temporary)
@@ -416,11 +416,31 @@ class MainWindow(QMainWindow):
         menu.exec_(self.mapToGlobal(event.pos()))
 
     def load_icons(self):
+        r = "../icons/"
+        c1 = self.palette.get_color("PRIMARY_TEXT_COLOR", as_tuple=True)
+        c2 = self.palette.get_color("SECONDARY_TEXT_COLOR", as_tuple=True)
+
         myappid = 'foo'  # arbitrary string
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(
             myappid)  # this sets toolbar icon on win 7
 
-        self.setWindowIcon(Pixmap("../icons/smile.png", 255, 255, 255))
+        self.setWindowIcon(Pixmap(r + "smile.png", 255, 255, 255))
+
+        self.load_file_btn.setIcon(QIcon(Pixmap(r + "file.png", *c1)))
+        self.save_all_btn.setIcon(QIcon(Pixmap(r + "save.png", *c1)))
+        self.about_btn.setIcon(QIcon(Pixmap(r + "help.png", *c1)))
+
+        self.toolbar.totals_btn.setIcon(Pixmap(r + "building.png", *c1))
+        self.toolbar.totals_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
+        self.toolbar.totals_btn.setIconSize(QSize(20, 20))
+
+        self.toolbar.all_files_btn.setIcon(Pixmap(r + "all_files.png", *c1))
+        self.toolbar.all_files_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
+        self.toolbar.all_files_btn.setIconSize(QSize(20, 20))
+
+        self.tab_wgt.drop_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
+        self.tab_wgt.drop_btn.setIcon(Pixmap(r + "drop_file.png", *c1))
+        self.tab_wgt.drop_btn.setIconSize(QSize(50, 50))
 
     def set_up_base_ui(self):
         """ Set up appearance of main widgets. """

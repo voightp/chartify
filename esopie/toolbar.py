@@ -5,7 +5,7 @@ from PySide2.QtCore import QSize, Qt, Signal, QSettings
 from PySide2.QtGui import QPixmap, QFont, QColor
 
 from esopie.icons import Pixmap, text_to_pixmap
-from esopie.buttons import TitledButton, ToolsButton, ToggleButton, MenuButton
+from esopie.buttons import TitledButton, ToggleButton, MenuButton
 
 from eso_reader.constants import TS, D, H, M, A, RP
 
@@ -112,17 +112,16 @@ class Toolbar(QFrame):
         self.outputs_group = QGroupBox("Outputs", self)
         self.outputs_group.setObjectName("outputsGroup")
 
-        pix = QPixmap("../icons/building.png")
-        self.totals_btn = ToolsButton("totals", pix,
-                                      checkable=True,
-                                      parent=self.outputs_group)
+        self.totals_btn = QToolButton(self.outputs_group)
+        self.totals_btn.setText("totals")
+        self.totals_btn.setCheckable(True)
         self.totals_btn.setEnabled(False)
 
-        pix = QPixmap("../icons/all_files.png")
-        self.all_files_btn = ToolsButton("all files", pix,
-                                         checkable=True,
-                                         parent=self)
+        self.all_files_btn = QToolButton(self.outputs_group)
+        self.all_files_btn.setText("all files")
+        self.all_files_btn.setCheckable(True)
         self.all_files_btn.setEnabled(False)
+
         self.set_up_outputs_btns()
         self.layout.addWidget(self.outputs_group)
 
@@ -234,17 +233,15 @@ class Toolbar(QFrame):
         interval_btns_layout.setAlignment(Qt.AlignTop)
 
         # ~~~~ Interval buttons set up~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        p = self.intervals_group
-        ids = {TS: "TS", H: "H", D: "D", M: "M", A: "A", RP: "RP"}
-        font = QFont("Roboto", 40)
-        color = QColor(112, 112, 112)
+        invervals = [TS, H, D, M, A, RP]
 
-        for k, v in ids.items():
-            pix = text_to_pixmap(v, font, color)
-            btn = ToolsButton(k, pix, checkable=True, parent=p)
+        for ivl in invervals:
+            btn = QToolButton(self.intervals_group)
+            btn.setText(ivl)
+            btn.setCheckable(True)
             btn.setAutoExclusive(True)
             btn.setEnabled(False)
-            self.interval_btns[k] = btn
+            self.interval_btns[ivl] = btn
 
         self.populate_intervals_group(hide_disabled=False)
 

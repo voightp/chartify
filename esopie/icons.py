@@ -47,14 +47,18 @@ class Pixmap(QPixmap):
         return tf
 
 
-def text_to_pixmap(text, font, color):
+def text_to_pixmap(text, font, color, size=None):
     """ Convert text to QPixmap of a given size. """
 
     def text_geometry():
         fm = QFontMetrics(font)
         return fm.width(text), fm.height()
 
-    w, h = text_geometry()
+    if not size:
+        w, h = text_geometry()
+    else:
+        w, h = size
+
     pix = QPixmap(w, h)
     pix.fill(Qt.transparent)
     p = QPainter(pix)
