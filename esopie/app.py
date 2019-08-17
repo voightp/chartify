@@ -430,11 +430,13 @@ class MainWindow(QMainWindow):
         self.save_all_btn.setIcon(QIcon(Pixmap(r + "save.png", *c1)))
         self.about_btn.setIcon(QIcon(Pixmap(r + "help.png", *c1)))
 
-        self.toolbar.totals_btn.setIcon(Pixmap(r + "building.png", *c1))
+        self.toolbar.totals_btn.set_icons(Pixmap(r + "building.png", *c1),
+                                          Pixmap(r + "building.png", *c2))
         self.toolbar.totals_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
         self.toolbar.totals_btn.setIconSize(QSize(20, 20))
 
-        self.toolbar.all_files_btn.setIcon(Pixmap(r + "all_files.png", *c1))
+        self.toolbar.all_files_btn.set_icons(Pixmap(r + "all_files.png", *c1),
+                                             Pixmap(r + "all_files.png", *c2))
         self.toolbar.all_files_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
         self.toolbar.all_files_btn.setIconSize(QSize(20, 20))
 

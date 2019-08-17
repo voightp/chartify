@@ -232,6 +232,9 @@ class MenuButton(QToolButton):
     """
     A button to mimic 'Action' behaviour.
 
+    This is in place to allow resizing the
+    icon as QAction does not allow that.
+
     """
 
     def __init__(self, text, parent, size=QSize(25, 25),
@@ -250,3 +253,34 @@ class MenuButton(QToolButton):
             mn = QMenu(self)
             mn.addActions(actions)
             self.setMenu(mn)
+
+
+class CheckableButton(QToolButton):
+    """
+    A button to allow changing icon color
+    when checked.
+
+    """
+
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.setCheckable(True)
+        self.toggled.connect(self._toggled)
+        self.icons = {}
+
+    def _toggled(self, checked):
+        """ Update icons state. """
+        key = "secondary" if checked else "primary"
+
+        try:
+            self.setIcon(self.icons[key])
+        except KeyError:
+            pass
+
+    def set_icons(self, primary, secondary):
+        """ Assign button icons. """
+        self.icons["primary"] = primary
+        self.icons["secondary"] = secondary
+
+        key = "secondary" if self.isChecked() else "primary"
+        self.setIcon(self.icons[key])

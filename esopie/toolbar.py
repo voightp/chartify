@@ -5,7 +5,8 @@ from PySide2.QtCore import QSize, Qt, Signal, QSettings
 from PySide2.QtGui import QPixmap, QFont, QColor
 
 from esopie.icons import Pixmap, text_to_pixmap
-from esopie.buttons import TitledButton, ToggleButton, MenuButton
+from esopie.buttons import (TitledButton, ToggleButton, MenuButton,
+                            CheckableButton)
 
 from eso_reader.constants import TS, D, H, M, A, RP
 
@@ -112,14 +113,12 @@ class Toolbar(QFrame):
         self.outputs_group = QGroupBox("Outputs", self)
         self.outputs_group.setObjectName("outputsGroup")
 
-        self.totals_btn = QToolButton(self.outputs_group)
+        self.totals_btn = CheckableButton(self.outputs_group)
         self.totals_btn.setText("totals")
-        self.totals_btn.setCheckable(True)
         self.totals_btn.setEnabled(False)
 
-        self.all_files_btn = QToolButton(self.outputs_group)
+        self.all_files_btn = CheckableButton(self.outputs_group)
         self.all_files_btn.setText("all files")
-        self.all_files_btn.setCheckable(True)
         self.all_files_btn.setEnabled(False)
 
         self.set_up_outputs_btns()
@@ -494,7 +493,7 @@ class Toolbar(QFrame):
         # ~~~~ Options buttons actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.mean_btn.clicked.connect(self.meanRequested.emit)
         self.sum_btn.clicked.connect(self.sumRequested.emit)
-        self.totals_btn.clicked.connect(self.totals_toggled)
+        self.totals_btn.toggled.connect(self.totals_toggled)
 
         # ~~~~ Options Actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.cstm_uni_tgl.stateChanged.connect(self.units_settings_toggled)
