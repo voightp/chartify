@@ -21,7 +21,7 @@ class View(QTreeView):
                 "header": ("variable", "key", "units"),
                 "expanded": set()}
 
-    def __init__(self, id_, std_file_header, tot_file_header):
+    def __init__(self, id_, name, std_file_header, tot_file_header):
         super().__init__()
         self.setRootIsDecorated(True)
         self.setUniformRowHeights(True)
@@ -40,6 +40,7 @@ class View(QTreeView):
         self.setFocusPolicy(Qt.NoFocus)
 
         self.id_ = id_
+        self.name = name
         self.headers = {
             "standard": std_file_header,
             "totals": tot_file_header

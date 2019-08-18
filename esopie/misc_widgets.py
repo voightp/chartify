@@ -74,10 +74,11 @@ class TabWidget(QTabWidget):
         """ Check if there's at least one loaded file. """
         return self.count() <= 0
 
-    def get_all_widgets(self):
-        count = self.count()
-        widgets = [self.widget(i) for i in range(count)]
-        return widgets
+    def get_all_children(self):
+        return [self.widget(i) for i in range(self.count())]
+
+    def get_all_child_names(self):
+        return [wgt.name for wgt in self.get_all_children()]
 
     def get_current_widget(self):
         return self.currentWidget()

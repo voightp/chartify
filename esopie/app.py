@@ -363,7 +363,7 @@ class MainWindow(QMainWindow):
     @property
     def all_view_wgts(self):
         """ A list of all loaded eso files. """
-        return self.tab_wgt.get_all_widgets()
+        return self.tab_wgt.get_all_children()
 
     def read_settings(self):
         """ Apply application settings. """
@@ -645,10 +645,42 @@ class MainWindow(QMainWindow):
         # disable export xlsx as there are no variables to be exported
         self.toolbar.enable_tools_btns(False)
 
-    def create_view_wgt(self, id_, std_file_header, tot_file_header):
-        """ Create a 'View' widget and connect its actions. """
-        wgt = View(id_, std_file_header, tot_file_header)
+    def create_variable(variables, interval, key, var, units):
+        """ Create a unique header variable. """
 
+        def is_unique():
+            return variable not in variables
+
+        def add_num():
+            new_key = f"{key} ({i})"
+            return Variable(interval, new_key, var, units)
+
+        variable = Variable(interval, key, var, units)
+
+        i = 0
+        while not is_unique():
+            i += 1
+            variable = add_num()
+
+        return variable
+
+    def create_view_wgt(self, id_, f_name, std_header, tot_header):
+        """ Create a 'View' widget and connect its actions. """
+
+        def add_num():
+            return f"{f_name} ({i})"
+
+        i = 0
+        name = f_name
+
+        # add unique number if the file name is not unique
+        while name in self.tab_wgt.get_all_child_names():
+            i += 1
+            name = add_num()
+
+        wgt = View(id_, name, std_header, tot_header)
+
+        # connect view actions
         wgt.selectionCleared.connect(self.selection_cleared)
         wgt.selectionPopulated.connect(self.items_selected)
         wgt.updateView.connect(self.build_view)
@@ -673,8 +705,11 @@ class MainWindow(QMainWindow):
 
         self.add_set_to_db(id_, file_set)
 
-        wgt = self.create_view_wgt(id_, std_header, tot_header)
-        self.tab_wgt.add_tab(wgt, std_file.file_name)
+        f_name = std_file.file_name
+        wgt = self.create_view_wgt(id_, f_name, std_header, tot_header)
+
+        # add the new view into tab widget
+        self.tab_wgt.add_tab(wgt, wgt.name)
 
         # enable all eso file results btn if there's multiple files
         if self.tab_wgt.count() > 1:
