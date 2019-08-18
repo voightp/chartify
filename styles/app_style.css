@@ -112,6 +112,7 @@ QToolButton:checked {
     background-color: SECONDARY_COLOR#70;
     border-color: SECONDARY_COLOR;
     color: SECONDARY_TEXT_COLOR;
+    font-weight: bold;
 }
 
 QToolButton:hover:checked {
@@ -240,6 +241,7 @@ TitledButton QToolButton:checked {
     background-color: transparent;
     border-color: PRIMARY_COLOR;
     color: PRIMARY_TEXT_COLOR;
+    font-weight: normal;
 }
 
 TitledButton QToolButton:disabled {
