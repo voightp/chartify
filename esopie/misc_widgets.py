@@ -25,31 +25,6 @@ def filter_eso_files(urls, extensions=("eso",)):
     return files
 
 
-class Action(QAction):
-    """
-    A wrapper around 'QAction' to automate
-    some common assignment.
-
-    """
-
-    def __init__(self, parent, text, func=None, icon_pth=None, shortcut=None):
-        super().__init__(parent)
-
-        self.setText(text)
-
-        if icon_pth:
-            self.setIcon(QIcon(icon_pth))
-
-        if func:
-            self.triggered.connect(func)
-
-        if shortcut:
-            if isinstance(shortcut, QKeySequence):
-                self.setShortcut(shortcut)
-            else:
-                self.setShortcut(QKeySequence(shortcut))
-
-
 class TabWidget(QTabWidget):
     tabClosed = Signal(View)
     fileLoadRequested = Signal()

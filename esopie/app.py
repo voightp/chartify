@@ -17,7 +17,7 @@ from esopie.eso_file_header import FileHeader
 from esopie.icons import Pixmap, text_to_pixmap
 from esopie.progress_widget import StatusBar, ProgressContainer
 from esopie.misc_widgets import (DropFrame, TabWidget, MulInputDialog,
-                                 ConfirmationDialog, Action)
+                                 ConfirmationDialog)
 from esopie.buttons import MenuButton
 from esopie.toolbar import Toolbar
 from esopie.view_tools import ViewTools
@@ -227,46 +227,46 @@ class MainWindow(QMainWindow):
         dummy.setShortcut(QKeySequence("Ctrl+L"))
 
         # ~~~~ Actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.load_file_act = Action(self, "Load file | files",
-                                    func=self.load_files_from_os,
-                                    icon_pth="../icons/add_file.png",
-                                    shortcut="Ctrl+L")
+        self.load_file_act = QAction("Load file | files", self)
+        self.load_file_act.triggered.connect(self.load_files_from_os)
+        self.load_file_act.setShortcut(QKeySequence("Ctrl+L"))
 
-        self.close_all_act = Action(self, "Close all",
-                                    func=self.close_all_tabs,
-                                    icon_pth="../icons/remove.png")
+        self.close_all_act = QAction("Close all", self)
+        self.close_all_act.triggered.connect(self.close_all_tabs)
 
-        self.remove_act = Action(self, "Delete", func=self.remove_vars)
+        self.remove_act = QAction("Delete", self)
+        self.remove_act.triggered.connect(self.remove_vars)
 
-        self.hide_act = Action(self, "Hide", func=self.hide_vars,
-                               shortcut="Ctrl+H")
+        self.hide_act = QAction("Hide", self)
+        self.hide_act.triggered.connect(self.hide_vars)
+        self.hide_act.setShortcut(QKeySequence("Ctrl+H"))
 
-        self.remove_hidden_act = Action(self, "Remove hidden",
-                                        func=self.remove_hidden_vars)
+        self.remove_hidden_act = QAction("Remove hidden", self)
+        self.remove_hidden_act.triggered.connect(self.remove_hidden_vars)
 
-        self.show_hidden_act = Action(self, "Show hidden",
-                                      func=self.show_hidden_vars,
-                                      shortcut="Ctrl+Shift+H")
+        self.show_hidden_act = QAction("Show hidden", self)
+        self.show_hidden_act.triggered.connect(self.show_hidden_vars)
+        self.show_hidden_act.setShortcut(QKeySequence("Ctrl+Shift+H"))
 
-        self.sum_act = Action(self, "Sum",
-                              func=partial(self.add_var, "sum"),
-                              shortcut="Ctrl+S")
+        self.sum_act = QAction("Sum", self)
+        self.sum_act.triggered.connect(partial(self.add_var, "sum"))
+        self.sum_act.setShortcut(QKeySequence("Ctrl+S"))
 
-        self.mean_act = Action(self, "Mean",
-                               func=partial(self.add_var, "mean"),
-                               shortcut="Ctrl+M")
+        self.mean_act = QAction("Mean", self)
+        self.mean_act.triggered.connect(partial(self.add_var, "mean"))
+        self.mean_act.setShortcut(QKeySequence("Ctrl+M"))
 
-        self.collapse_all_act = Action(self, "Collapse All",
-                                       func=self.collapse_all,
-                                       shortcut="Ctrl+Shift+E")
+        self.collapse_all_act = QAction("Collapse All", self)
+        self.collapse_all_act.triggered.connect(self.collapse_all)
+        self.collapse_all_act.setShortcut(QKeySequence("Ctrl+Shift+E"))
 
-        self.expand_all_act = Action(self, "Expand All",
-                                     func=self.expand_all,
-                                     shortcut="Ctrl+E")
+        self.expand_all_act = QAction("Expand All", self)
+        self.expand_all_act.triggered.connect(self.expand_all)
+        self.expand_all_act.setShortcut(QKeySequence("Ctrl+E"))
 
-        self.tree_act = Action(self, "Tree",
-                               func=self.view_tools_wgt.tree_view_btn.toggle,
-                               shortcut="Ctrl+T")
+        self.tree_act = QAction("Tree", self)
+        self.tree_act.triggered.connect(self.view_tools_wgt.tree_view_btn.toggle)
+        self.tree_act.setShortcut(QKeySequence("Ctrl+T"))
 
         # add actions to main window to allow shortcuts
         self.addActions([self.remove_act, self.hide_act, self.show_hidden_act,
@@ -415,6 +415,8 @@ class MainWindow(QMainWindow):
         self.load_file_btn.setIcon(QIcon(Pixmap(r + "file.png", *c1)))
         self.save_all_btn.setIcon(QIcon(Pixmap(r + "save.png", *c1)))
         self.about_btn.setIcon(QIcon(Pixmap(r + "help.png", *c1)))
+        self.close_all_act.setIcon(QIcon(Pixmap(r + "remove.png", *c1)))
+        self.load_file_act.setIcon(QIcon(Pixmap(r + "add_file.png", *c1)))
 
         self.toolbar.totals_btn.set_icons(Pixmap(r + "building.png", *c1),
                                           Pixmap(r + "building.png", *c2))
@@ -559,7 +561,7 @@ class MainWindow(QMainWindow):
                 del self.database[id_]
 
         except KeyError:
-            print(f"Cannot delete the eso file: id '{file_id}',"
+            print(f"Cannot delete the eso file: id '{id_}',"
                   f"\nFile was not found in database.")
 
     def get_files_from_db(self, *args):
