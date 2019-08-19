@@ -81,6 +81,7 @@ class View(QTreeView):
         menu = QMenu(self)
         menu.setObjectName("contextMenu")
         menu.addActions(self.context_menu_actions)
+        menu.setWindowFlags(menu.windowFlags() | Qt.NoDropShadowWindowHint)
 
         menu.exec_(self.mapToGlobal(event.pos()))
 

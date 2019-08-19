@@ -558,7 +558,7 @@ QScrollBar::handle:vertical, QScrollBar::handle:horizontal {
  }
 
 QMenu {
-  border: 0px solid transparent;
+  border: 1px solid PRIMARY_COLOR;
   margin: 0px;
 }
 

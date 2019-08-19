@@ -58,6 +58,8 @@ class TitledButton(QFrame):
         layout.addWidget(self.button)
 
         if menu and items:
+            menu.setWindowFlags(menu.windowFlags() | Qt.NoDropShadowWindowHint)
+
             actions = []
             for text in items:
                 act = QAction(text, menu)
@@ -251,6 +253,7 @@ class MenuButton(QToolButton):
 
         if actions:
             mn = QMenu(self)
+            mn.setWindowFlags(mn.windowFlags() | Qt.NoDropShadowWindowHint)
             mn.addActions(actions)
             self.setMenu(mn)
 
