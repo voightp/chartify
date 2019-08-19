@@ -46,7 +46,17 @@ DropFrame#leftMainWgt[drag-accept=false] {
 /* ~~~~~ SPLITTER ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
 QSplitter::handle {
-    background-color: SURFACE_COLOR;
+    height: 6px;
+    image: URL(../icons/dots.png)#BACKGROUND_COLOR;
+}
+
+/* workaround to repaint handle */
+QSplitterHandle:hover {
+
+}
+
+QSplitter::handle:horizontal:hover {
+    image: URL(../icons/dots.png)#PRIMARY_TEXT_COLOR;
 }
 
 /* ~~~~~ STATUS BAR ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
