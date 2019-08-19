@@ -1,10 +1,9 @@
-from PySide2.QtWidgets import QTreeView, QAbstractItemView, QHeaderView
+from PySide2.QtWidgets import QTreeView, QAbstractItemView, QHeaderView, QMenu
 from PySide2.QtCore import (Qt, QSortFilterProxyModel, QItemSelectionModel,
                             QItemSelection, QItemSelectionRange, QMimeData,
                             Signal, QObject)
-from PySide2.QtGui import QDrag, QPixmap
 
-from PySide2.QtGui import QStandardItemModel, QStandardItem
+from PySide2.QtGui import QStandardItemModel, QStandardItem, QDrag, QPixmap
 from esopie.eso_file_header import FileHeader
 
 
@@ -61,6 +60,8 @@ class View(QTreeView):
         self.pressed.connect(self.handle_drag_attempt)
         self.doubleClicked.connect(self.handle_d_clicked)
 
+        self.context_menu_actions = []
+
     @property
     def file_header(self):
         """ Current file header. """
@@ -74,6 +75,14 @@ class View(QTreeView):
             return
         else:
             super().mousePressEvent(event)
+
+    def contextMenuEvent(self, event):
+        """ Manage context menu. """
+        menu = QMenu(self)
+        menu.setObjectName("contextMenu")
+        menu.addActions(self.context_menu_actions)
+
+        menu.exec_(self.mapToGlobal(event.pos()))
 
     def get_available_intervals(self):
         """ Get currently available intervals. """

@@ -401,20 +401,6 @@ class MainWindow(QMainWindow):
 
         # TODO handle loosing focus to chart area
 
-    def contextMenuEvent(self, event):
-        """ Manage context menu. """
-        actions = [self.remove_act,
-                   self.hide_act,
-                   self.show_hidden_act]
-
-        # available = [a for a in actions if a.isEnabled()] TODO decide if hide
-
-        menu = QMenu(self)
-        menu.setObjectName("contextMenu")
-        menu.addActions(actions)
-
-        menu.exec_(self.mapToGlobal(event.pos()))
-
     def load_icons(self):
         r = "../icons/"
         c1 = self.palette.get_color("PRIMARY_TEXT_COLOR", as_tuple=True)
@@ -685,6 +671,9 @@ class MainWindow(QMainWindow):
         wgt.selectionPopulated.connect(self.items_selected)
         wgt.updateView.connect(self.build_view)
         wgt.itemDoubleClicked.connect(self.rename_variable)
+        wgt.context_menu_actions = [self.remove_act,
+                                    self.hide_act,
+                                    self.show_hidden_act]
 
         return wgt
 
