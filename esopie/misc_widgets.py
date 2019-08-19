@@ -28,6 +28,7 @@ def filter_eso_files(urls, extensions=("eso",)):
 class TabWidget(QTabWidget):
     tabClosed = Signal(View)
     fileLoadRequested = Signal()
+    tabRenameRequested = Signal(int)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -44,6 +45,7 @@ class TabWidget(QTabWidget):
 
         self.tabCloseRequested.connect(self.close_tab)
         self.drop_btn.clicked.connect(self.fileLoadRequested.emit)
+        self.tabBarDoubleClicked.connect(self.tabRenameRequested.emit)
 
     def is_empty(self):
         """ Check if there's at least one loaded file. """
@@ -166,6 +168,10 @@ class MulInputDialog(QDialog):
     """
     Dialog to allow user to specify text inputs.
 
+    Values defined in check list will be forbidden
+    from the input, i.e. the dialog will be blocked
+    from confirming.
+
     Arbitrary number of rows can be defined as
     k, v pairs using **kwargs.
 
@@ -174,9 +180,10 @@ class MulInputDialog(QDialog):
 
     """
 
-    def __init__(self, text, parent, **kwargs):
+    def __init__(self, text, parent, check_list=None, **kwargs):
         super().__init__(parent, Qt.FramelessWindowHint)
         self.line_edits = {}
+        self.check_list = [] if check_list is None else check_list
 
         layout = QVBoxLayout(self)
         layout.setSpacing(0)
@@ -216,8 +223,15 @@ class MulInputDialog(QDialog):
 
             form_layout.addRow(k, inp)
 
+    def get_input(self, key):
+        """ Return an input text of specified input. """
+        try:
+            return self.get_inputs_dct()[key]
+        except KeyError:
+            raise KeyError(f"Invalid dialog input '{key}' requested!")
+
     def get_inputs_dct(self):
-        """ Return current input text. """
+        """ Return an input text of all the inputs. """
         return {k: v.text() for k, v in self.line_edits.items()}
 
     def get_inputs_vals(self):
@@ -227,8 +241,14 @@ class MulInputDialog(QDialog):
     def verify_input(self):
         """ Check if the line text is applicable. """
         vals = self.get_inputs_vals()
+
         if any(map(lambda x: not x or not x.strip(), vals)):
+            # one or more inputs is empty
             self.ok_btn.setEnabled(False)
+
+        elif any(map(lambda x: x in self.check_list, vals)):
+            self.ok_btn.setEnabled(False)
+
         else:
             if not self.ok_btn.isEnabled():
                 self.ok_btn.setEnabled(True)

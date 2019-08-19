@@ -654,7 +654,7 @@ QDialog QLabel {
 
 QDialog QLabel[primary=true] {
     padding: 10px 16px 10px 10px;
-    margin: 0px 5px 0px 5px;
+    margin: 0px 5px 5px 5px;
     border-bottom: 1px solid SECONDARY_COLOR;
     font-weight: bold;
 }

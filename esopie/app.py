@@ -61,6 +61,23 @@ def generate_ids(used_ids, n=1, max_id=99999):
     return ids
 
 
+def create_unique_name(name, check_list):
+    """ Create a unique name to avoid duplicates. """
+
+    def add_num():
+        return f"{name} ({i})"
+
+    new_name = name
+    i = 0
+
+    # add unique number if the file name is not unique
+    while new_name in check_list:
+        i += 1
+        new_name = add_num()
+
+    return new_name
+
+
 def kill_child_processes(parent_pid):
     """ Terminate all running child processes. """
     try:
@@ -488,10 +505,13 @@ class MainWindow(QMainWindow):
 
         d = MulInputDialog("choose colors", self, **parsed)
         res = d.exec_()
-        if res:
-            dct = d.get_inputs_dct()
-            self.palette = Palette(**dct)
-            self.toggle_css()
+
+        if res == 0:
+            return
+
+        dct = d.get_inputs_dct()
+        self.palette = Palette(**dct)
+        self.toggle_css()
 
     def load_dummy(self):
         """ Load a dummy file. """
@@ -654,17 +674,8 @@ class MainWindow(QMainWindow):
 
     def create_view_wgt(self, id_, f_name, std_header, tot_header):
         """ Create a 'View' widget and connect its actions. """
-
-        def add_num():
-            return f"{f_name} ({i})"
-
-        i = 0
-        name = f_name
-
-        # add unique number if the file name is not unique
-        while name in self.tab_wgt.get_all_child_names():
-            i += 1
-            name = add_num()
+        names = self.tab_wgt.get_all_child_names()
+        name = create_unique_name(f_name, names)
 
         wgt = View(id_, name, std_header, tot_header)
 
@@ -785,6 +796,29 @@ class MainWindow(QMainWindow):
         if file_pths:
             self.load_files(file_pths)
             settings.setValue("loadPath", file_pths[0])
+
+    def rename_file(self, tab_index):
+        """ Rename file on a tab identified by the given index. """
+        view = self.tab_wgt.widget(tab_index)
+        orig_name = view.name
+
+        # create a list of names which won't be acceptable
+        check_list = self.tab_wgt.get_all_child_names()[:]
+        check_list.remove(orig_name)
+
+        d = MulInputDialog("Enter a new file name.", self,
+                           check_list=check_list, name=orig_name)
+        res = d.exec_()
+
+        if res == 0:
+            return
+
+        name = d.get_input("name")
+
+        # update name references
+        # TODO decide if database names should be handled as well
+        view.name = name
+        self.tab_wgt.setTabText(tab_index, name)
 
     def export_xlsx(self):
         """ Export selected variables data to xlsx. """
@@ -1015,6 +1049,7 @@ class MainWindow(QMainWindow):
         self.tab_wgt.tabClosed.connect(self.remove_eso_file)
         self.tab_wgt.currentChanged.connect(self.on_tab_changed)
         self.tab_wgt.fileLoadRequested.connect(self.load_files_from_os)
+        self.tab_wgt.tabRenameRequested.connect(self.rename_file)
 
         # ~~~~ Outputs actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.toolbar.updateView.connect(self.build_view)
