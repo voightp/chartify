@@ -246,7 +246,7 @@ class MulInputDialog(QDialog):
             # one or more inputs is empty
             self.ok_btn.setEnabled(False)
 
-        elif any(map(lambda x: x in self.check_list, vals)):
+        elif any(map(lambda x: x.strip() in self.check_list, vals)):
             self.ok_btn.setEnabled(False)
 
         else:
