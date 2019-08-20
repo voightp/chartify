@@ -130,11 +130,11 @@ class DropFrame(QFrame):
         update_appearance(self)
 
 
-# TODO this might not be necessary
-# the reason behind this is that I'd like to find a way to hack cursor color
 class LineEdit(QFrame):
     """
     A custom line edit to allow changing cursor color.
+
+    Which is not working!
 
     """
     textEdited = Signal()

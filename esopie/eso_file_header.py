@@ -67,7 +67,6 @@ class FileHeader:
             for id_ in ids:
                 var = self.header_dct[interval].pop(id_)
                 self.hidden[interval][id_] = var
-                # TODO check what happens if all the variables are hidden
 
     def remove_variables(self, groups):
         """ Remove header variables from the header. """

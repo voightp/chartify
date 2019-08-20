@@ -129,7 +129,6 @@ def install_fonts(pth, database):
 
 # noinspection PyPep8Naming,PyUnresolvedReferences
 class MainWindow(QMainWindow):
-    # todo create color schemes
     palette = Palette(**{
         "PRIMARY_COLOR": "#aeaeae",
         "PRIMARY_VARIANT_COLOR": None,
@@ -415,8 +414,6 @@ class MainWindow(QMainWindow):
 
         elif event.key() == Qt.Key_Delete:
             self.remove_vars()
-
-        # TODO handle loosing focus to chart area
 
     def load_icons(self):
         r = "../icons/"
