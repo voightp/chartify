@@ -445,6 +445,7 @@ class MainWindow(QMainWindow):
         self.toolbar.hide_btn.setIconSize(QSize(20, 20))
 
         self.tab_wgt.drop_btn.setIcon(Pixmap(r + "drop_file.png", *c1))
+        self.tab_wgt.drop_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
         self.tab_wgt.drop_btn.setIconSize(QSize(50, 50))
 
     def set_up_base_ui(self):
