@@ -240,16 +240,14 @@ class MenuButton(QToolButton):
     """
 
     def __init__(self, text, parent, size=QSize(25, 25),
-                 icon=None, func=None, actions=None):
+                 icon=None, actions=None):
         super().__init__(parent)
         self.setText(text)
         self.setIconSize(size)
+        self.setPopupMode(QToolButton.InstantPopup)
 
         if icon:
             self.setIcon(icon)
-
-        if func:
-            self.clicked.connect(func)
 
         if actions:
             mn = QMenu(self)

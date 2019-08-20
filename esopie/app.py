@@ -295,21 +295,21 @@ class MainWindow(QMainWindow):
 
         acts = [self.load_file_act, self.close_all_act]
         self.load_file_btn = MenuButton("Load file | files", self,
-                                        func=self.load_files_from_os,
                                         actions=acts)
 
-        self.save_all_btn = MenuButton("Save", self,
-                                       func=lambda: print("NEEDS FUNCTION TO SAVE"))
+        acts = [self.sum_act, self.mean_act,
+                self.remove_act, self.show_hidden_act]
+        self.tools_btn = MenuButton("Tools", self,
+                                    actions=acts)
 
-        self.about_btn = MenuButton("About", self,
-                                    func=lambda: print("NEEDS FUNCTION TO ABOUT"))
+        self.about_btn = MenuButton("About", self)
 
         self.load_file_btn.setObjectName("fileButton")
-        self.save_all_btn.setObjectName("saveButton")
+        self.tools_btn.setObjectName("saveButton")
         self.about_btn.setObjectName("aboutButton")
 
         self.mini_menu_layout.addWidget(self.load_file_btn)
-        self.mini_menu_layout.addWidget(self.save_all_btn)
+        self.mini_menu_layout.addWidget(self.tools_btn)
         self.mini_menu_layout.addWidget(self.about_btn)
 
         # TODO reload css button (temporary)
@@ -423,7 +423,7 @@ class MainWindow(QMainWindow):
         self.setWindowIcon(Pixmap(r + "smile.png", 255, 255, 255))
 
         self.load_file_btn.setIcon(QIcon(Pixmap(r + "file.png", *c1)))
-        self.save_all_btn.setIcon(QIcon(Pixmap(r + "save.png", *c1)))
+        self.tools_btn.setIcon(QIcon(Pixmap(r + "save.png", *c1)))
         self.about_btn.setIcon(QIcon(Pixmap(r + "help.png", *c1)))
         self.close_all_act.setIcon(QIcon(Pixmap(r + "remove.png", *c1)))
         self.load_file_act.setIcon(QIcon(Pixmap(r + "add_file.png", *c1)))
@@ -438,7 +438,14 @@ class MainWindow(QMainWindow):
         self.toolbar.all_files_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
         self.toolbar.all_files_btn.setIconSize(QSize(20, 20))
 
-        self.tab_wgt.drop_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
+        self.toolbar.sum_btn.setIcon(Pixmap(r + "sigma.png", *c1))
+        self.toolbar.sum_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
+        self.toolbar.sum_btn.setIconSize(QSize(20, 20))
+
+        self.toolbar.mean_btn.setIcon(Pixmap(r + "mean.png", *c1))
+        self.toolbar.mean_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
+        self.toolbar.mean_btn.setIconSize(QSize(20, 20))
+
         self.tab_wgt.drop_btn.setIcon(Pixmap(r + "drop_file.png", *c1))
         self.tab_wgt.drop_btn.setIconSize(QSize(50, 50))
 
@@ -1046,9 +1053,9 @@ class MainWindow(QMainWindow):
 
         # ~~~~ Outputs actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.toolbar.updateView.connect(self.build_view)
-        self.toolbar.meanRequested.connect(self.mean_act.trigger)
-        self.toolbar.sumRequested.connect(self.sum_act.trigger)
         self.toolbar.totalsChanged.connect(self.on_totals_change)
+        self.toolbar.sum_btn.clicked.connect(self.sum_act.trigger)
+        self.toolbar.mean_btn.clicked.connect(self.mean_act.trigger)
 
 
 if __name__ == "__main__":

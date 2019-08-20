@@ -82,9 +82,6 @@ class Toolbar(QFrame):
 
     """
     updateView = Signal()
-    sumRequested = Signal()
-    meanRequested = Signal()
-
     totalsChanged = Signal(bool)
 
     temp_settings = {"energy_units": "",
@@ -491,8 +488,6 @@ class Toolbar(QFrame):
         _ = [btn.clicked.connect(self.interval_changed) for btn in btns]
 
         # ~~~~ Options buttons actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.mean_btn.clicked.connect(self.meanRequested.emit)
-        self.sum_btn.clicked.connect(self.sumRequested.emit)
         self.totals_btn.toggled.connect(self.totals_toggled)
 
         # ~~~~ Options Actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
