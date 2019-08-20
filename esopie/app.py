@@ -238,10 +238,6 @@ class MainWindow(QMainWindow):
         self.mini_menu_layout.setSpacing(0)
         self.toolbar.layout.insertWidget(0, self.mini_menu)
 
-        dummy = QAction(self)
-        dummy.triggered.connect(lambda: print("DUM UMD"))
-        dummy.setShortcut(QKeySequence("Ctrl+L"))
-
         # ~~~~ Actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.load_file_act = QAction("Load file | files", self)
         self.load_file_act.triggered.connect(self.load_files_from_os)
