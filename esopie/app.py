@@ -446,6 +446,14 @@ class MainWindow(QMainWindow):
         self.toolbar.mean_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
         self.toolbar.mean_btn.setIconSize(QSize(20, 20))
 
+        self.toolbar.remove_btn.setIcon(Pixmap(r + "remove.png", *c1))
+        self.toolbar.remove_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
+        self.toolbar.remove_btn.setIconSize(QSize(20, 20))
+
+        self.toolbar.hide_btn.setIcon(Pixmap(r + "hide.png", *c1))
+        self.toolbar.hide_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
+        self.toolbar.hide_btn.setIconSize(QSize(20, 20))
+
         self.tab_wgt.drop_btn.setIcon(Pixmap(r + "drop_file.png", *c1))
         self.tab_wgt.drop_btn.setIconSize(QSize(50, 50))
 
@@ -629,7 +637,7 @@ class MainWindow(QMainWindow):
         self.selected = outputs
 
         # always enable remove and export buttons
-        self.toolbar.enable_tools_btns(True, exclude=["sum", "mean"])
+        self.toolbar.set_tools_btns_enabled("remove", "hide")
 
         # handle actions availability
         self.hide_act.setEnabled(True)
@@ -637,10 +645,11 @@ class MainWindow(QMainWindow):
 
         # check if variables can be aggregated
         units = verify_units([var.units for var in outputs])
+
         if len(outputs) > 1 and units:
-            self.toolbar.enable_tools_btns(True, exclude=["xlsx", "remove"])
+            self.toolbar.set_tools_btns_enabled("sum", "mean")
         else:
-            self.toolbar.enable_tools_btns(False, exclude=["xlsx", "remove"])
+            self.toolbar.set_tools_btns_enabled("sum", "mean", enabled=False)
 
     def selection_cleared(self):
         """ Handle behaviour when no variables are selected. """
@@ -651,7 +660,7 @@ class MainWindow(QMainWindow):
         self.remove_act.setEnabled(False)
 
         # disable export xlsx as there are no variables to be exported
-        self.toolbar.enable_tools_btns(False)
+        self.toolbar.set_tools_btns_enabled(enabled=False)
 
     def create_variable(variables, interval, key, var, units):
         """ Create a unique header variable. """
@@ -1056,6 +1065,8 @@ class MainWindow(QMainWindow):
         self.toolbar.totalsChanged.connect(self.on_totals_change)
         self.toolbar.sum_btn.clicked.connect(self.sum_act.trigger)
         self.toolbar.mean_btn.clicked.connect(self.mean_act.trigger)
+        self.toolbar.hide_btn.clicked.connect(self.hide_act.trigger)
+        self.toolbar.remove_btn.clicked.connect(self.remove_act.trigger)
 
 
 if __name__ == "__main__":

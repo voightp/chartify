@@ -126,6 +126,8 @@ class Toolbar(QFrame):
         self.tools_group.setObjectName("toolsGroup")
         self.sum_btn = QToolButton(self.tools_group)
         self.mean_btn = QToolButton(self.tools_group)
+        self.hide_btn = QToolButton(self.tools_group)
+        self.remove_btn = QToolButton(self.tools_group)
         self.set_up_tools()
         self.layout.addWidget(self.tools_group)
 
@@ -167,7 +169,9 @@ class Toolbar(QFrame):
     def tools_btns(self):
         """ A shorthand to get all tools buttons."""
         return [self.sum_btn,
-                self.mean_btn]
+                self.mean_btn,
+                self.hide_btn,
+                self.remove_btn]
 
     @property
     def outputs_btns(self):
@@ -303,6 +307,16 @@ class Toolbar(QFrame):
         self.mean_btn.setText("mean")
         self.mean_btn.setCheckable(False)
 
+        # ~~~~ Mean variables button ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.hide_btn.setEnabled(False)
+        self.hide_btn.setText("hide")
+        self.hide_btn.setCheckable(False)
+
+        # ~~~~ Mean variables button ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.remove_btn.setEnabled(False)
+        self.remove_btn.setText("remove")
+        self.remove_btn.setCheckable(False)
+
         self.populate_tools_group()
 
     def disable_interval_btns(self):
@@ -312,16 +326,14 @@ class Toolbar(QFrame):
             btn.setChecked(False)
             btn.setEnabled(False)
 
-    def enable_tools_btns(self, enable=True, exclude=None):
-        """ Disable all tool buttons with given exceptions. """
-        exclude = [exclude] if not isinstance(exclude, list) else exclude
-        pairs = [("sum", self.sum_btn),
-                 ("mean", self.mean_btn)]
+    def set_tools_btns_enabled(self, *args, enabled=True):
+        """ Enable tool buttons specified as args. """
+        btns = self.tools_btns
+        if args:
+            # enable all when not explicitly defined
+            btns = [btn for btn in btns if btn.text() in args]
 
-        btns = [btn for s, btn in pairs if s not in exclude]
-
-        for btn in btns:
-            btn.setEnabled(enable)
+        _ = [btn.setEnabled(enabled) for btn in btns]
 
     def set_initial_layout(self):
         """ Define an app layout when there isn't any file loaded. """
