@@ -21,7 +21,7 @@ from esopie.misc_widgets import (DropFrame, TabWidget, MulInputDialog,
 from esopie.buttons import MenuButton
 from esopie.toolbar import Toolbar
 from esopie.view_tools import ViewTools
-from esopie.css_theme import CssTheme, Palette
+from esopie.css_theme import CssTheme, Palette, get_palette
 from functools import partial
 
 from eso_reader.eso_file import EsoFile, get_results, IncompleteFile
@@ -129,19 +129,9 @@ def install_fonts(pth, database):
 
 # noinspection PyPep8Naming,PyUnresolvedReferences
 class MainWindow(QMainWindow):
-    palette = Palette(**{
-        "PRIMARY_COLOR": "#aeaeae",
-        "PRIMARY_VARIANT_COLOR": None,
-        "PRIMARY_TEXT_COLOR": "rgb(112,112,112)",
-        "SECONDARY_COLOR": "#ff8a65",
-        "SECONDARY_VARIANT_COLOR": None,
-        "SECONDARY_TEXT_COLOR": "#EEEEEE",
-        "BACKGROUND_COLOR": "#c2c2c2",
-        "SURFACE_COLOR": "#f5f5f5",
-        "ERROR_COLOR": "#b71c1c",
-        "OK_COLOR": "#64DD17",
-    })
-    css = CssTheme(palette)
+    """ Main application instance. """
+
+    css = CssTheme(get_palette("default"))
 
     QCoreApplication.setOrganizationName("piecompany")
     QCoreApplication.setOrganizationDomain("piecomp.foo")
@@ -413,8 +403,8 @@ class MainWindow(QMainWindow):
 
     def load_icons(self):
         r = "../icons/"
-        c1 = self.palette.get_color("PRIMARY_TEXT_COLOR", as_tuple=True)
-        c2 = self.palette.get_color("SECONDARY_TEXT_COLOR", as_tuple=True)
+        c1 = self.css.palette.get_color("PRIMARY_TEXT_COLOR", as_tuple=True)
+        c2 = self.css.palette.get_color("SECONDARY_TEXT_COLOR", as_tuple=True)
 
         myappid = 'foo'  # arbitrary string
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(
@@ -507,7 +497,7 @@ class MainWindow(QMainWindow):
     # TODO dialog to choose colors
     def update_colors(self):
         parsed = {}
-        for k, v in self.palette.colors_dct.items():
+        for k, v in self.css.palette.colors_dct.items():
             sv = f"rgb({v[0]},{v[1]},{v[2]})"
             parsed[k] = sv
 
@@ -518,7 +508,7 @@ class MainWindow(QMainWindow):
             return
 
         dct = d.get_inputs_dct()
-        self.palette = Palette(**dct)
+        self.css.palette = Palette(**dct)
         self.toggle_css()
 
     def load_dummy(self):
@@ -537,9 +527,10 @@ class MainWindow(QMainWindow):
     def toggle_css(self):
         """ Turn the CSS on and off. """
         self.setStyleSheet("")
-        self.css = CssTheme(self.palette)
+        self.css = CssTheme(self.css.palette)
         cont = self.css.process_csss("../styles/app_style.css")
         self.setStyleSheet(cont)
+        self.load_icons()
 
     def get_current_interval(self):
         """ Get currently selected interval buttons. """

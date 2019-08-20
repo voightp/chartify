@@ -165,7 +165,6 @@ class CssTheme:
             if rgb:
                 p = Pixmap(url, *rgb)
                 tf = p.as_temp()
-                print(tf.fileName())
                 self._temp.append(tf)
                 line = f"{prop}url({tf.fileName()});\n"
 
@@ -206,6 +205,50 @@ class CssTheme:
                 line = self.parse_color(line)
 
             css += line
-            print(line, end="")
 
         return css
+
+
+def get_palette(name):
+    """ Return an palette instance of the given name. """
+    palettes = {
+        "default": Palette(**{
+            "PRIMARY_COLOR": "#aeaeae",
+            "PRIMARY_VARIANT_COLOR": None,
+            "PRIMARY_TEXT_COLOR": "rgb(112,112,112)",
+            "SECONDARY_COLOR": "#ff8a65",
+            "SECONDARY_VARIANT_COLOR": None,
+            "SECONDARY_TEXT_COLOR": "#EEEEEE",
+            "BACKGROUND_COLOR": "#c2c2c2",
+            "SURFACE_COLOR": "#f5f5f5",
+            "ERROR_COLOR": "#b71c1c",
+            "OK_COLOR": "#64DD17",
+        }),
+        "monochrome": Palette(**{
+            "PRIMARY_COLOR": "#aeaeae",
+            "PRIMARY_VARIANT_COLOR": None,
+            "PRIMARY_TEXT_COLOR": "rgb(112,112,112)",
+            "SECONDARY_COLOR": "#ff8a65",
+            "SECONDARY_VARIANT_COLOR": None,
+            "SECONDARY_TEXT_COLOR": "#EEEEEE",
+            "BACKGROUND_COLOR": "#c2c2c2",
+            "SURFACE_COLOR": "#f5f5f5",
+            "ERROR_COLOR": "#b71c1c",
+            "OK_COLOR": "#64DD17",
+        }),
+
+        "dark": Palette(**{
+            "PRIMARY_COLOR": "#aeaeae",
+            "PRIMARY_VARIANT_COLOR": None,
+            "PRIMARY_TEXT_COLOR": "rgb(112,112,112)",
+            "SECONDARY_COLOR": "#ff8a65",
+            "SECONDARY_VARIANT_COLOR": None,
+            "SECONDARY_TEXT_COLOR": "#EEEEEE",
+            "BACKGROUND_COLOR": "#c2c2c2",
+            "SURFACE_COLOR": "#f5f5f5",
+            "ERROR_COLOR": "#b71c1c",
+            "OK_COLOR": "#64DD17",
+        })
+    }
+
+    return palettes.get(name, "default")
