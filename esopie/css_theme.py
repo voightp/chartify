@@ -1,8 +1,9 @@
 import re
+import json
+
 from collections import namedtuple
 from esopie.icons import Pixmap
 from eso_reader.performance import perf
-from PySide2.QtCore import QTemporaryFile
 
 Color = namedtuple("Color", "r, g, b")
 
@@ -211,44 +212,34 @@ class CssTheme:
 
 def get_palette(name):
     """ Return an palette instance of the given name. """
-    palettes = {
-        "default": Palette(**{
-            "PRIMARY_COLOR": "#aeaeae",
-            "PRIMARY_VARIANT_COLOR": None,
-            "PRIMARY_TEXT_COLOR": "rgb(112,112,112)",
-            "SECONDARY_COLOR": "#ff8a65",
-            "SECONDARY_VARIANT_COLOR": None,
-            "SECONDARY_TEXT_COLOR": "#EEEEEE",
-            "BACKGROUND_COLOR": "#c2c2c2",
-            "SURFACE_COLOR": "#f5f5f5",
-            "ERROR_COLOR": "#b71c1c",
-            "OK_COLOR": "#64DD17",
-        }),
-        "monochrome": Palette(**{
-            "PRIMARY_COLOR": "#aeaeae",
-            "PRIMARY_VARIANT_COLOR": None,
-            "PRIMARY_TEXT_COLOR": "rgb(112,112,112)",
-            "SECONDARY_COLOR": "#ff8a65",
-            "SECONDARY_VARIANT_COLOR": None,
-            "SECONDARY_TEXT_COLOR": "#EEEEEE",
-            "BACKGROUND_COLOR": "#c2c2c2",
-            "SURFACE_COLOR": "#f5f5f5",
-            "ERROR_COLOR": "#b71c1c",
-            "OK_COLOR": "#64DD17",
-        }),
 
-        "dark": Palette(**{
-            "PRIMARY_COLOR": "#aeaeae",
-            "PRIMARY_VARIANT_COLOR": None,
-            "PRIMARY_TEXT_COLOR": "rgb(112,112,112)",
-            "SECONDARY_COLOR": "#ff8a65",
-            "SECONDARY_VARIANT_COLOR": None,
-            "SECONDARY_TEXT_COLOR": "#EEEEEE",
-            "BACKGROUND_COLOR": "#c2c2c2",
-            "SURFACE_COLOR": "#f5f5f5",
-            "ERROR_COLOR": "#b71c1c",
-            "OK_COLOR": "#64DD17",
-        })
+    default_palette = {
+        "PRIMARY_COLOR": "#aeaeae",
+        "PRIMARY_VARIANT_COLOR": None,
+        "PRIMARY_TEXT_COLOR": "rgb(112,112,112)",
+        "SECONDARY_COLOR": "#ff8a65",
+        "SECONDARY_VARIANT_COLOR": None,
+        "SECONDARY_TEXT_COLOR": "#EEEEEE",
+        "BACKGROUND_COLOR": "#c2c2c2",
+        "SURFACE_COLOR": "#f5f5f5",
+        "ERROR_COLOR": "#b71c1c",
+        "OK_COLOR": "#64DD17",
     }
 
-    return palettes.get(name, "default")
+    pth = "../styles/paletes.json"
+    palette = None
+
+    try:
+        with open(pth) as f:
+            palettes = json.load(f)
+            palette = palettes[name]
+
+    except KeyError:
+        print(f"Cannot find palette '{name}'.")
+
+    except FileNotFoundError:
+        print(f"Cannot find palette name '{name}'.")
+
+    palette = default_palette if not palette else palette
+
+    return Palette(**palette)
