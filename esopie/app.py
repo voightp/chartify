@@ -440,7 +440,8 @@ class MainWindow(QMainWindow):
         self.toolbar.remove_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
         self.toolbar.remove_btn.setIconSize(QSize(20, 20))
 
-        self.toolbar.hide_btn.setIcon(Pixmap(r + "hide.png", *c1))
+        self.toolbar.hide_btn.set_icons(Pixmap(r + "visibility.png", *c1),
+                                        Pixmap(r + "hide.png", *c1))
         self.toolbar.hide_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
         self.toolbar.hide_btn.setIconSize(QSize(20, 20))
 
@@ -628,6 +629,9 @@ class MainWindow(QMainWindow):
         # store current selection in the main app
         self.selected = outputs
 
+        # switch to hide action
+        self.toolbar.hide_btn.switch_state()
+
         # always enable remove and export buttons
         self.toolbar.set_tools_btns_enabled("remove", "hide")
 
@@ -651,27 +655,11 @@ class MainWindow(QMainWindow):
         self.hide_act.setEnabled(False)
         self.remove_act.setEnabled(False)
 
+        # switch to show hidden action
+        self.toolbar.hide_btn.switch_state()
+
         # disable export xlsx as there are no variables to be exported
         self.toolbar.set_tools_btns_enabled(enabled=False)
-
-    def create_variable(variables, interval, key, var, units):
-        """ Create a unique header variable. """
-
-        def is_unique():
-            return variable not in variables
-
-        def add_num():
-            new_key = f"{key} ({i})"
-            return Variable(interval, new_key, var, units)
-
-        variable = Variable(interval, key, var, units)
-
-        i = 0
-        while not is_unique():
-            i += 1
-            variable = add_num()
-
-        return variable
 
     def create_view_wgt(self, id_, f_name, std_header, tot_header):
         """ Create a 'View' widget and connect its actions. """
@@ -1057,8 +1045,10 @@ class MainWindow(QMainWindow):
         self.toolbar.totalsChanged.connect(self.on_totals_change)
         self.toolbar.sum_btn.clicked.connect(self.sum_act.trigger)
         self.toolbar.mean_btn.clicked.connect(self.mean_act.trigger)
-        self.toolbar.hide_btn.clicked.connect(self.hide_act.trigger)
         self.toolbar.remove_btn.clicked.connect(self.remove_act.trigger)
+
+        self.toolbar.hide_btn.set_actions(self.show_hidden_act.trigger,
+                                          self.hide_act.trigger)
 
 
 if __name__ == "__main__":

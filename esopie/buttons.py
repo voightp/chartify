@@ -298,18 +298,35 @@ class DualActionButton(QToolButton):
         super().__init__(parent)
         self.icons = None
         self.actions = None
-        self.state = 0
+        self.texts = None
+        self._state = 0
+
+    def get_current_state(self):
+        """ Retrieve current state. """
+        return self._state
 
     def set_icons(self, primary, secondary):
         """ Assign button icons. """
         self.icons = [primary, secondary]
-        self.setIcon(self.icons[0])
+        self.setIcon(primary)
 
     def set_actions(self, primary, secondary):
         """ Assign button click actions. """
         self.actions = [primary, secondary]
         self.clicked.connect(primary)
 
+    def set_texts(self, primary, secondary):
+        """ Assign button click actions. """
+        self.texts = [primary, secondary]
+        self.setText(primary)
+
     def switch_state(self):
         """ Switch current state. """
-        # TODO implement button
+        i = int(not bool(self._state))  # small hack
+
+        self.clicked.disconnect()
+        self.clicked.connect(self.actions[i])
+
+        self.setIcon(self.icons[i])
+
+        self._state = i
