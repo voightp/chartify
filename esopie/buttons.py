@@ -285,3 +285,31 @@ class CheckableButton(QToolButton):
 
         key = "secondary" if self.isChecked() else "primary"
         self.setIcon(self.icons[key])
+
+
+class DualActionButton(QToolButton):
+    """
+    A button which allows registering two
+    icons and actions.
+
+    """
+
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.icons = None
+        self.actions = None
+        self.state = 0
+
+    def set_icons(self, primary, secondary):
+        """ Assign button icons. """
+        self.icons = [primary, secondary]
+        self.setIcon(self.icons[0])
+
+    def set_actions(self, primary, secondary):
+        """ Assign button click actions. """
+        self.actions = [primary, secondary]
+        self.clicked.connect(primary)
+
+    def switch_state(self):
+        """ Switch current state. """
+        # TODO implement button
