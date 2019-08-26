@@ -630,7 +630,7 @@ class MainWindow(QMainWindow):
         self.selected = outputs
 
         # switch to hide action
-        self.toolbar.hide_btn.switch_state()
+        self.toolbar.hide_btn.set_secondary_state()
 
         # always enable remove and export buttons
         self.toolbar.set_tools_btns_enabled("remove", "hide")
@@ -656,10 +656,11 @@ class MainWindow(QMainWindow):
         self.remove_act.setEnabled(False)
 
         # switch to show hidden action
-        self.toolbar.hide_btn.switch_state()
+        self.toolbar.hide_btn.set_primary_state()
 
         # disable export xlsx as there are no variables to be exported
-        self.toolbar.set_tools_btns_enabled(enabled=False)
+        self.toolbar.set_tools_btns_enabled("sum", "mean",
+                                            "remove", enabled=False)
 
     def create_view_wgt(self, id_, f_name, std_header, tot_header):
         """ Create a 'View' widget and connect its actions. """
@@ -883,6 +884,8 @@ class MainWindow(QMainWindow):
             view.set_next_update_forced()
 
         self.show_hidden_act.setEnabled(False)
+        self.toolbar.hide_btn.setEnabled(False)
+
         self.build_view()
 
     def remove_hidden_vars(self):
@@ -996,6 +999,8 @@ class MainWindow(QMainWindow):
 
         # allow showing variables again
         self.show_hidden_act.setEnabled(True)
+        self.toolbar.hide_btn.setEnabled(True)
+
         self.build_view()
 
     def get_current_file_ids(self):

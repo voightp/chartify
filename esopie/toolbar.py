@@ -309,7 +309,7 @@ class Toolbar(QFrame):
 
         # ~~~~ Mean variables button ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.hide_btn.setEnabled(False)
-        self.hide_btn.set_texts("show hidden", "hide")
+        self.hide_btn.set_texts("show", "hide")
         self.hide_btn.setCheckable(False)
 
         # ~~~~ Mean variables button ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

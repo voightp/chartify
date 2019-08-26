@@ -320,13 +320,22 @@ class DualActionButton(QToolButton):
         self.texts = [primary, secondary]
         self.setText(primary)
 
-    def switch_state(self):
-        """ Switch current state. """
-        i = int(not bool(self._state))  # small hack
+    def set_primary_state(self):
+        """ Set button 'primary' state. """
+        if self._state != 0:
+            self.switch_state(0)
 
+    def set_secondary_state(self):
+        """ Set button 'secondary' state. """
+        if self._state != 1:
+            self.switch_state(1)
+
+    def switch_state(self, i):
+        """ Switch current state. """
         self.clicked.disconnect()
         self.clicked.connect(self.actions[i])
 
         self.setIcon(self.icons[i])
+        self.setText(self.texts[i])
 
         self._state = i
