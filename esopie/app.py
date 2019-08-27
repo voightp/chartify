@@ -577,14 +577,13 @@ class MainWindow(QMainWindow):
 
     def delete_sets_from_db(self, *args):
         """ Delete the eso file from the database. """
-        try:
-            for id_ in args:
+        for id_ in args:
+            try:
                 print(f"Deleting file id: '{id_}' from database.")
                 del self.database[id_]
-
-        except KeyError:
-            print(f"Cannot delete the eso file: id '{id_}',"
-                  f"\nFile was not found in database.")
+            except KeyError:
+                print(f"Cannot delete the eso file: id '{id_}',"
+                      f"\nFile was not found in database.")
 
     def get_files_from_db(self, *args):
         """ Fetch eso files from the database. """
