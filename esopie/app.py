@@ -202,11 +202,27 @@ class MainWindow(QMainWindow):
                                                self.progress_queue)
         self.status_bar.addWidget(self.progress_cont)
 
+        def_schm = QAction("default", self)
+        def_schm.triggered.connect(partial(self.refresh_css, "default"))
+        def_schm.setIcon(QPixmap("../icons/orange_dot.png"))
+
+        mono_schm = QAction("monochrome", self)
+        mono_schm.triggered.connect(partial(self.refresh_css, "monochrome"))
+        mono_schm.setIcon(QPixmap("../icons/grey_dot.png"))
+
+        dark_schm = QAction("dark", self)
+        dark_schm.triggered.connect(partial(self.refresh_css, "dark"))
+        dark_schm.setIcon(QPixmap("../icons/dark_dot.png"))
+
+        actions = [def_schm, mono_schm, dark_schm]
+        self.scheme_btn = MenuButton("scheme", self, actions=actions)
+
         self.swap_btn = QToolButton(self)
         self.swap_btn.clicked.connect(self.mirror)
         self.swap_btn.setObjectName("swapButton")
 
         self.status_bar.addPermanentWidget(self.swap_btn)
+        self.status_bar.addPermanentWidget(self.scheme_btn)
 
         # ~~~~ Database ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         # self.database = self.manager.dict() TODO simple dict might be sufficient
