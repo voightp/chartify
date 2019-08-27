@@ -134,27 +134,42 @@ class CssTheme:
     Icons defined as: URL(some/path)#PRIMARY_COLOR#20
     will be repainted using given 'palette' color.
 
+    Note that 'populate_content' needs to be called
+    to process given css files.
+
     Arguments
     ---------
     palette : Palette
         Defines color theme.
+    *args
+        Css file paths.
 
     """
 
-    def __init__(self, palette):
+    def __init__(self, palette, *args):
+        self.css_pths = [a for a in args]
         self.palette = palette
+        self.content = None
         self._temp = []
 
     @perf
-    def process_csss(self, *args):
+    def populate_content(self):
         """ Process multiple css files. """
-        all_css = ""
-        for file in args:
+        self.content = ""
+        for file in self.css_pths:
             with open(file, "r") as f:
                 css = self.parse_css(f)
-                all_css += css
+                self.content += css
 
-        return all_css
+    def set_palette(self, palette):
+        """ Update palette. """
+        # temp icons are no longer needed as those will
+        # be created again
+        self._temp.clear()
+
+        # assign new palette and update content
+        self.palette = palette
+        self.populate_content()
 
     def parse_url(self, line):
         """ Parse a line with an url. """
@@ -210,7 +225,7 @@ class CssTheme:
         return css
 
 
-def get_palette(name):
+def fetch_palette(pth, name):
     """ Return an palette instance of the given name. """
 
     default_palette = {
@@ -226,7 +241,6 @@ def get_palette(name):
         "OK_COLOR": "#64DD17",
     }
 
-    pth = "../styles/palettes.json"
     palette = None
 
     try:

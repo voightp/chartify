@@ -21,7 +21,7 @@ from esopie.misc_widgets import (DropFrame, TabWidget, MulInputDialog,
 from esopie.buttons import MenuButton
 from esopie.toolbar import Toolbar
 from esopie.view_tools import ViewTools
-from esopie.css_theme import CssTheme, Palette, get_palette
+from esopie.css_theme import CssTheme, fetch_palette
 from functools import partial
 
 from eso_reader.eso_file import EsoFile, get_results, IncompleteFile
@@ -131,7 +131,8 @@ def install_fonts(pth, database):
 class MainWindow(QMainWindow):
     """ Main application instance. """
 
-    css = CssTheme(get_palette("default"))
+    palette = fetch_palette("../styles/palettes.json", "default")
+    css = CssTheme(palette, "../styles/app_style.css")
 
     QCoreApplication.setOrganizationName("piecompany")
     QCoreApplication.setOrganizationDomain("piecomp.foo")
@@ -307,7 +308,7 @@ class MainWindow(QMainWindow):
         self.toolbar.stngs_btn.setMenu(mn)
 
         css = QAction("CSS", self)
-        css.triggered.connect(self.toggle_css)
+        css.triggered.connect(partial(self.refresh_css, palette_name="default"))
 
         no_css = QAction("NO CSS", self)
         no_css.triggered.connect(self.turn_off_css)
@@ -318,12 +319,9 @@ class MainWindow(QMainWindow):
         dummy = QAction("DUMMY", self)
         dummy.triggered.connect(self.load_dummy)  # TODO REMOVE THIS
 
-        colors = QAction("COLORS", self)
-        colors.triggered.connect(self.update_colors)  # TODO REMOVE THIS
-
         self.toolbar.stngs_btn.setDefaultAction(dummy)
 
-        mn.addActions([css, no_css, memory, dummy, colors])
+        mn.addActions([css, no_css, memory, dummy])
 
         # TODO create custom chart area
         # self.chart_area = QWebEngineView(self)
@@ -341,7 +339,7 @@ class MainWindow(QMainWindow):
         # ~~~~ Set up main widgets and layouts ~~~~~~~~~~~~~~~~~~~~~~~~~
         self.load_icons()
         self.set_up_base_ui()
-        self.toggle_css()
+        self.refresh_css()
         self.read_settings()
 
     @property
@@ -403,8 +401,8 @@ class MainWindow(QMainWindow):
 
     def load_icons(self):
         r = "../icons/"
-        c1 = self.css.palette.get_color("PRIMARY_TEXT_COLOR", as_tuple=True)
-        c2 = self.css.palette.get_color("SECONDARY_TEXT_COLOR", as_tuple=True)
+        c1 = self.palette.get_color("PRIMARY_TEXT_COLOR", as_tuple=True)
+        c2 = self.palette.get_color("SECONDARY_TEXT_COLOR", as_tuple=True)
 
         myappid = 'foo'  # arbitrary string
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(
@@ -496,23 +494,6 @@ class MainWindow(QMainWindow):
               asizeof.asizeof(self.progress_cont.monitor))
         print("Watcher thread", asizeof.asizeof(self.watcher))
 
-    # TODO dialog to choose colors
-    def update_colors(self):
-        parsed = {}
-        for k, v in self.css.palette.colors_dct.items():
-            sv = f"rgb({v[0]},{v[1]},{v[2]})"
-            parsed[k] = sv
-
-        d = MulInputDialog("choose colors", self, **parsed)
-        res = d.exec_()
-
-        if res == 0:
-            return
-
-        dct = d.get_inputs_dct()
-        self.css.palette = Palette(**dct)
-        self.toggle_css()
-
     def load_dummy(self):
         """ Load a dummy file. """
         self.load_files(["../tests/eplusout.eso"])
@@ -526,12 +507,16 @@ class MainWindow(QMainWindow):
         """ Turn the CSS on and off. """
         self.setStyleSheet("")
 
-    def toggle_css(self):
+    def refresh_css(self, palette_name="default"):
         """ Turn the CSS on and off. """
+        # update color scheme
+        self.palette = fetch_palette("../styles/palettes.json", palette_name)
+        self.css.set_palette(self.palette)
+
+        # update the application appearance
+        # note that css needs to be cleared to repaint the window
         self.setStyleSheet("")
-        self.css = CssTheme(self.css.palette)
-        cont = self.css.process_csss("../styles/app_style.css")
-        self.setStyleSheet(cont)
+        self.setStyleSheet(self.css.content)
         self.load_icons()
 
     def get_current_interval(self):
