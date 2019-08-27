@@ -256,6 +256,27 @@ class MenuButton(QToolButton):
             self.setMenu(mn)
 
 
+class IconMenuButton(QToolButton):
+    """
+    A button to wrap 'icon only' menu.
+
+    """
+
+    def __init__(self, parent, actions):
+        super().__init__(parent)
+        self.setPopupMode(QToolButton.InstantPopup)
+
+        menu = QMenu(self)
+        menu.setWindowFlags(menu.windowFlags() | Qt.NoDropShadowWindowHint)
+        menu.addActions(actions)
+        menu.triggered.connect(self.update_icon)
+        self.setMenu(menu)
+
+    def update_icon(self, act):
+        """ Set default icon for of the current action. """
+        self.setDefaultAction(act)
+
+
 class CheckableButton(QToolButton):
     """
     A button to allow changing icon color

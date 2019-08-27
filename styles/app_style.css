@@ -275,6 +275,54 @@ QLabel#buttonTitle:disabled {
     color: PRIMARY_COLOR#50;
 }
 
+/* ~~~~~ ICON MENU BUTTON ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
+
+IconMenuButton {
+    margin: 0px;
+    padding: 0px;
+    border: 0px solid transparent;
+    background: transparent;
+    width: 20px;
+    height: 20px;
+}
+
+IconMenuButton:hover {
+    background: transparent;
+}
+
+IconMenuButton QMenu {
+  border: 1px solid PRIMARY_COLOR;
+  margin: 0px;
+}
+
+IconMenuButton::menu-indicator {
+    image: url(../icons/transparent.png);
+    margin: 0px;
+    width: 0px;
+    height: 0px;
+}
+
+IconMenuButton QMenu::icon {
+  margin: 0px;
+  padding: 0px 5px;
+}
+
+IconMenuButton QMenu::item {
+  background-color: SURFACE_COLOR;
+  padding: 10px 24px 10px 30px;
+  border: 1px solid transparent;
+}
+
+IconMenuButton QMenu::item:selected {
+  background: SECONDARY_COLOR#15;
+}
+
+IconMenuButton QMenu::indicator {
+  width: 12px;
+  height: 12px;
+  padding-left: 6px;
+}
+
 /* ~~~~~ LINE EDIT ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
 LineEdit, QLineEdit{

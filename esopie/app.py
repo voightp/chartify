@@ -18,7 +18,7 @@ from esopie.icons import Pixmap, text_to_pixmap
 from esopie.progress_widget import StatusBar, ProgressContainer
 from esopie.misc_widgets import (DropFrame, TabWidget, MulInputDialog,
                                  ConfirmationDialog)
-from esopie.buttons import MenuButton
+from esopie.buttons import MenuButton, IconMenuButton
 from esopie.toolbar import Toolbar
 from esopie.view_tools import ViewTools
 from esopie.css_theme import CssTheme, fetch_palette
@@ -215,7 +215,7 @@ class MainWindow(QMainWindow):
         dark_schm.setIcon(QPixmap("../icons/dark_dot.png"))
 
         actions = [def_schm, mono_schm, dark_schm]
-        self.scheme_btn = MenuButton("scheme", self, actions=actions)
+        self.scheme_btn = IconMenuButton(self, actions)
 
         self.swap_btn = QToolButton(self)
         self.swap_btn.clicked.connect(self.mirror)
