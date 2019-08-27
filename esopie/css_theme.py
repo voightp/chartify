@@ -226,7 +226,7 @@ def get_palette(name):
         "OK_COLOR": "#64DD17",
     }
 
-    pth = "../styles/paletes.json"
+    pth = "../styles/palettes.json"
     palette = None
 
     try:
@@ -238,7 +238,7 @@ def get_palette(name):
         print(f"Cannot find palette '{name}'.")
 
     except FileNotFoundError:
-        print(f"Cannot find palette name '{name}'.")
+        print(f"Cannot find palette file '{pth}'.")
 
     palette = default_palette if not palette else palette
 
