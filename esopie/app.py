@@ -130,16 +130,17 @@ def install_fonts(pth, database):
 # noinspection PyPep8Naming,PyUnresolvedReferences
 class MainWindow(QMainWindow):
     """ Main application instance. """
+    QCoreApplication.setOrganizationName("piecompany")
+    QCoreApplication.setOrganizationDomain("piecomp.foo")
+    QCoreApplication.setApplicationName("piepie")
+
     PALETTE_PATH = "../styles/palettes.json"
     CSS_PATH = "../styles/app_style.css"
     ICONS_PATH = "../icons/"
 
-    palette = get_palette(PALETTE_PATH, QSettings().value("scheme", "default"))
     css = CssTheme(CSS_PATH)
-
-    QCoreApplication.setOrganizationName("piecompany")
-    QCoreApplication.setOrganizationDomain("piecomp.foo")
-    QCoreApplication.setApplicationName("piepie")
+    palette = get_palette(PALETTE_PATH, QSettings().value("MainWindow/scheme",
+                                                          "default"))
 
     def __init__(self):
         super(MainWindow, self).__init__()
