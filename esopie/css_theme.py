@@ -146,9 +146,9 @@ class CssTheme:
 
     """
 
-    def __init__(self, palette, *args):
+    def __init__(self, *args):
         self.css_pths = [a for a in args]
-        self.palette = palette
+        self.palette = None
         self.content = None
         self._temp = []
 

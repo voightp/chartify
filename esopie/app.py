@@ -11,10 +11,10 @@ from PySide2.QtWidgets import (QWidget, QSplitter, QHBoxLayout, QVBoxLayout,
 from PySide2.QtCore import (QSize, Qt, QThreadPool, QCoreApplication, QSettings,
                             QPoint, QUrl)
 from PySide2.QtWebEngineWidgets import QWebEngineView, QWebEngineSettings
-from PySide2.QtGui import QIcon, QPixmap, QFontDatabase, QKeySequence
+from PySide2.QtGui import QIcon, QPixmap, QFontDatabase, QKeySequence, QColor
 
 from esopie.eso_file_header import FileHeader
-from esopie.icons import Pixmap, text_to_pixmap
+from esopie.icons import Pixmap, filled_circle_pixmap
 from esopie.progress_widget import StatusBar, ProgressContainer
 from esopie.misc_widgets import (DropFrame, TabWidget, MulInputDialog,
                                  ConfirmationDialog)
@@ -130,9 +130,12 @@ def install_fonts(pth, database):
 # noinspection PyPep8Naming,PyUnresolvedReferences
 class MainWindow(QMainWindow):
     """ Main application instance. """
+    PALETTE_PATH = "../styles/palettes.json"
+    CSS_PATH = "../styles/app_style.css"
+    ICONS_PATH = "../icons/"
 
-    palette = fetch_palette("../styles/palettes.json", "default")
-    css = CssTheme(palette, "../styles/app_style.css")
+    palette = fetch_palette(PALETTE_PATH, "default")
+    css = CssTheme(CSS_PATH)
 
     QCoreApplication.setOrganizationName("piecompany")
     QCoreApplication.setOrganizationDomain("piecomp.foo")
@@ -202,19 +205,16 @@ class MainWindow(QMainWindow):
                                                self.progress_queue)
         self.status_bar.addWidget(self.progress_cont)
 
-        def_schm = QAction("default", self)
-        def_schm.triggered.connect(partial(self.refresh_css, "default"))
-        def_schm.setIcon(QPixmap("../icons/orange_dot.png"))
+        self.def_schm = QAction("default", self)
+        self.def_schm.triggered.connect(partial(self.load_css, "default"))
 
-        mono_schm = QAction("monochrome", self)
-        mono_schm.triggered.connect(partial(self.refresh_css, "monochrome"))
-        mono_schm.setIcon(QPixmap("../icons/grey_dot.png"))
+        self.mono_schm = QAction("monochrome", self)
+        self.mono_schm.triggered.connect(partial(self.load_css, "monochrome"))
 
-        dark_schm = QAction("dark", self)
-        dark_schm.triggered.connect(partial(self.refresh_css, "dark"))
-        dark_schm.setIcon(QPixmap("../icons/dark_dot.png"))
+        self.dark_schm = QAction("dark", self)
+        self.dark_schm.triggered.connect(partial(self.load_css, "dark"))
 
-        actions = [def_schm, mono_schm, dark_schm]
+        actions = [self.def_schm, self.mono_schm, self.dark_schm]
         self.scheme_btn = IconMenuButton(self, actions)
 
         self.swap_btn = QToolButton(self)
@@ -324,7 +324,7 @@ class MainWindow(QMainWindow):
         self.toolbar.stngs_btn.setMenu(mn)
 
         css = QAction("CSS", self)
-        css.triggered.connect(partial(self.refresh_css, palette_name="default"))
+        css.triggered.connect(partial(self.load_css, palette_name="default"))
 
         no_css = QAction("NO CSS", self)
         no_css.triggered.connect(self.turn_off_css)
@@ -355,7 +355,7 @@ class MainWindow(QMainWindow):
         # ~~~~ Set up main widgets and layouts ~~~~~~~~~~~~~~~~~~~~~~~~~
         self.load_icons()
         self.set_up_base_ui()
-        self.refresh_css()
+        self.load_css()
         self.read_settings()
 
     @property
@@ -416,7 +416,7 @@ class MainWindow(QMainWindow):
             self.remove_vars()
 
     def load_icons(self):
-        r = "../icons/"
+        r = self.ICONS_PATH
         c1 = self.palette.get_color("PRIMARY_TEXT_COLOR", as_tuple=True)
         c2 = self.palette.get_color("SECONDARY_TEXT_COLOR", as_tuple=True)
 
@@ -462,6 +462,10 @@ class MainWindow(QMainWindow):
         self.tab_wgt.drop_btn.setIcon(Pixmap(r + "drop_file.png", *c1))
         self.tab_wgt.drop_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
         self.tab_wgt.drop_btn.setIconSize(QSize(50, 50))
+
+        size = QSize(60, 60)
+        border = QColor(255, 255, 255)
+        self.dark_schm.setIcon(filled_circle_pixmap(size, QColor()))
 
     def set_up_base_ui(self):
         """ Set up appearance of main widgets. """
@@ -523,10 +527,10 @@ class MainWindow(QMainWindow):
         """ Turn the CSS on and off. """
         self.setStyleSheet("")
 
-    def refresh_css(self, palette_name="default"):
+    def load_css(self, palette_name="default"):
         """ Turn the CSS on and off. """
         # update color scheme
-        self.palette = fetch_palette("../styles/palettes.json", palette_name)
+        self.palette = fetch_palette(self.PALETTE_PATH, palette_name)
         self.css.set_palette(self.palette)
 
         # update the application appearance
