@@ -7,7 +7,7 @@
         "SECONDARY_VARIANT_COLOR": null,
         "SECONDARY_TEXT_COLOR": "#EEEEEE",
         "BACKGROUND_COLOR": "#c2c2c2",
-        "SURFACE_COLOR": "#f5f5f5",
+        "SURFACE_COLOR": "rgb(255,255,255)",
         "ERROR_COLOR": "#b71c1c",
         "OK_COLOR": "#64DD17"
     },
@@ -24,14 +24,14 @@
         "OK_COLOR": "#64DD17"
     },
     "dark": {
-        "PRIMARY_COLOR": "#aeaeae",
+        "PRIMARY_COLOR": "rgb(180,180,180)",
         "PRIMARY_VARIANT_COLOR": null,
-        "PRIMARY_TEXT_COLOR": "rgb(112,112,112)",
-        "SECONDARY_COLOR": "#ff8a65",
+        "PRIMARY_TEXT_COLOR": "rgb(180,180,180)",
+        "SECONDARY_COLOR": "rgb(200,120,50)",
         "SECONDARY_VARIANT_COLOR": null,
-        "SECONDARY_TEXT_COLOR": "#EEEEEE",
-        "BACKGROUND_COLOR": "#c2c2c2",
-        "SURFACE_COLOR": "#f5f5f5",
+        "SECONDARY_TEXT_COLOR": "rgb(180,180,180)",
+        "BACKGROUND_COLOR": "rgb(45,45,45)",
+        "SURFACE_COLOR": "rgb(65,65,65)",
         "ERROR_COLOR": "#b71c1c",
         "OK_COLOR": "#64DD17"
     }

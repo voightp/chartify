@@ -613,6 +613,7 @@ QScrollBar::handle:vertical, QScrollBar::handle:horizontal {
 
 QMenu {
   border: 1px solid PRIMARY_COLOR;
+  background: SURFACE_COLOR;
   margin: 0px;
 }
 
