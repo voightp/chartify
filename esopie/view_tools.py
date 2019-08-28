@@ -31,7 +31,8 @@ class ViewTools(QFrame):
         self.expand_all_btn.setObjectName("expandButton")
 
         self.filter_icon = QLabel(self)
-        self.filter_icon.setPixmap(QPixmap("../icons/filter_list_white.png"))
+        self.filter_icon.setObjectName("filterIcon")
+
         self.filter_line_edit = LineEdit(self)
 
         # ~~~~ Timer ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
