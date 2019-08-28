@@ -1,6 +1,7 @@
-from PySide2.QtGui import QImage, QPixmap, QColor, QPainter, QFont, QFontMetrics
+from PySide2.QtGui import (QImage, QPixmap, QColor, QPainter, QFont,
+                           QFontMetrics, QPen)
 from PySide2.QtWidgets import QApplication, QWidget
-from PySide2.QtCore import Qt, QPoint, QBuffer, QTemporaryFile
+from PySide2.QtCore import Qt, QPoint, QBuffer, QTemporaryFile, QRectF
 
 
 class Pixmap(QPixmap):
@@ -66,4 +67,44 @@ def text_to_pixmap(text, font, color, size=None):
     p.setFont(font)
     p.drawText(pix.rect(), Qt.AlignCenter, text)
     p.end()
+    return pix
+
+
+def filled_circle_pixmap(size, col1, col2=None,
+                         border_col=None, border_w=1, fr=0.9):
+    """
+    Draw a pixmap with single or two colors filled circle.
+
+    """
+    pix = QPixmap(size)
+    pix.fill(Qt.transparent)
+
+    p = QPainter(pix)
+
+    w, h = size.width(), size.height()
+    x = (w - (fr * w)) / 2
+    y = (h - (fr * h)) / 2
+    rect_w = w * fr
+    rect_y = h * fr
+
+    rect = QRectF(x, y, rect_w, rect_y)
+    p.setBrush(col1)
+    p.setPen(QPen(Qt.transparent, 0))
+
+    if not col2:
+        # draw full circle
+        p.drawChord(rect, 0, 360 * 16)
+    else:
+        p.drawChord(rect, -90 * 16, -180 * 16)
+        p.setBrush(col2)
+        p.drawChord(rect, -90 * 16, 180 * 16)
+
+    if border_col:
+        # draw the border
+        p.setBrush(Qt.NoBrush)
+        p.setPen(QPen(border_col, border_w))
+        p.drawChord(rect, 0, 360 * 16)
+
+    p.end()
+
     return pix
