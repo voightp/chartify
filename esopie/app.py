@@ -353,7 +353,6 @@ class MainWindow(QMainWindow):
         self.main_chart_layout.addWidget(self.dummy)
 
         # ~~~~ Set up main widgets and layouts ~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.load_icons()
         self.set_up_base_ui()
         self.load_css()
         self.read_settings()
@@ -463,9 +462,29 @@ class MainWindow(QMainWindow):
         self.tab_wgt.drop_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
         self.tab_wgt.drop_btn.setIconSize(QSize(50, 50))
 
+        # TODO refactor this
         size = QSize(60, 60)
-        border = QColor(255, 255, 255)
-        self.dark_schm.setIcon(filled_circle_pixmap(size, QColor()))
+        k1 = "PRIMARY_COLOR"
+        k2 = "SECONDARY_COLOR"
+        border_col = QColor(255, 255, 255)
+
+        p = fetch_palette(self.PALETTE_PATH, "default")
+        c1 = QColor(*p.get_color(k1, as_tuple=True))
+        c2 = QColor(*p.get_color(k2, as_tuple=True))
+        self.def_schm.setIcon(filled_circle_pixmap(size, c1, col2=c2,
+                                                   border_col=border_col))
+
+        p = fetch_palette(self.PALETTE_PATH, "dark")
+        c1 = QColor(*p.get_color(k1, as_tuple=True))
+        c2 = QColor(*p.get_color(k2, as_tuple=True))
+        self.dark_schm.setIcon(filled_circle_pixmap(size, c1, col2=c2,
+                                                    border_col=border_col))
+
+        p = fetch_palette(self.PALETTE_PATH, "monochrome")
+        c1 = QColor(*p.get_color(k1, as_tuple=True))
+        c2 = QColor(*p.get_color(k2, as_tuple=True))
+        self.mono_schm.setIcon(filled_circle_pixmap(size, c1, col2=c2,
+                                                    border_col=border_col))
 
     def set_up_base_ui(self):
         """ Set up appearance of main widgets. """
