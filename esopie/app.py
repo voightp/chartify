@@ -21,7 +21,7 @@ from esopie.misc_widgets import (DropFrame, TabWidget, MulInputDialog,
 from esopie.buttons import MenuButton, IconMenuButton
 from esopie.toolbar import Toolbar
 from esopie.view_tools import ViewTools
-from esopie.css_theme import CssTheme, fetch_palette
+from esopie.css_theme import CssTheme, get_palette
 from functools import partial
 
 from eso_reader.eso_file import EsoFile, get_results, IncompleteFile
@@ -134,7 +134,7 @@ class MainWindow(QMainWindow):
     CSS_PATH = "../styles/app_style.css"
     ICONS_PATH = "../icons/"
 
-    palette = fetch_palette(PALETTE_PATH, "default")
+    palette = get_palette(PALETTE_PATH, QSettings().value("scheme", "default"))
     css = CssTheme(CSS_PATH)
 
     QCoreApplication.setOrganizationName("piecompany")
@@ -206,16 +206,22 @@ class MainWindow(QMainWindow):
         self.status_bar.addWidget(self.progress_cont)
 
         self.def_schm = QAction("default", self)
-        self.def_schm.triggered.connect(partial(self.load_css, "default"))
+        self.def_schm.triggered.connect(partial(self.set_palette, "default"))
 
         self.mono_schm = QAction("monochrome", self)
-        self.mono_schm.triggered.connect(partial(self.load_css, "monochrome"))
+        self.mono_schm.triggered.connect(partial(self.set_palette, "monochrome"))
 
         self.dark_schm = QAction("dark", self)
-        self.dark_schm.triggered.connect(partial(self.load_css, "dark"))
+        self.dark_schm.triggered.connect(partial(self.set_palette, "dark"))
 
-        actions = [self.def_schm, self.mono_schm, self.dark_schm]
-        self.scheme_btn = IconMenuButton(self, actions)
+        actions = {"default": self.def_schm,
+                   "monochrome": self.mono_schm,
+                   "dark": self.dark_schm}
+
+        def_act = actions[QSettings().value("scheme", "default")]
+
+        self.scheme_btn = IconMenuButton(self, list(actions.values()))
+        self.scheme_btn.setDefaultAction(def_act)
 
         self.swap_btn = QToolButton(self)
         self.swap_btn.clicked.connect(self.mirror)
@@ -324,7 +330,7 @@ class MainWindow(QMainWindow):
         self.toolbar.stngs_btn.setMenu(mn)
 
         css = QAction("CSS", self)
-        css.triggered.connect(partial(self.load_css, palette_name="default"))
+        css.triggered.connect(self.load_css)
 
         no_css = QAction("NO CSS", self)
         no_css.triggered.connect(self.turn_off_css)
@@ -391,6 +397,7 @@ class MainWindow(QMainWindow):
         settings = QSettings()
         settings.setValue("MainWindow/size", self.size())
         settings.setValue("MainWindow/pos", self.pos())
+        settings.setValue("MainWindow/scheme", self.palette.name)
 
         self.toolbar.store_settings()
 
@@ -468,19 +475,19 @@ class MainWindow(QMainWindow):
         k2 = "SECONDARY_COLOR"
         border_col = QColor(255, 255, 255)
 
-        p = fetch_palette(self.PALETTE_PATH, "default")
+        p = get_palette(self.PALETTE_PATH, "default")
         c1 = QColor(*p.get_color(k1, as_tuple=True))
         c2 = QColor(*p.get_color(k2, as_tuple=True))
         self.def_schm.setIcon(filled_circle_pixmap(size, c1, col2=c2,
                                                    border_col=border_col))
 
-        p = fetch_palette(self.PALETTE_PATH, "dark")
+        p = get_palette(self.PALETTE_PATH, "dark")
         c1 = QColor(*p.get_color(k1, as_tuple=True))
         c2 = QColor(*p.get_color(k2, as_tuple=True))
         self.dark_schm.setIcon(filled_circle_pixmap(size, c1, col2=c2,
                                                     border_col=border_col))
 
-        p = fetch_palette(self.PALETTE_PATH, "monochrome")
+        p = get_palette(self.PALETTE_PATH, "monochrome")
         c1 = QColor(*p.get_color(k1, as_tuple=True))
         c2 = QColor(*p.get_color(k2, as_tuple=True))
         self.mono_schm.setIcon(filled_circle_pixmap(size, c1, col2=c2,
@@ -546,10 +553,13 @@ class MainWindow(QMainWindow):
         """ Turn the CSS on and off. """
         self.setStyleSheet("")
 
-    def load_css(self, palette_name="default"):
+    def set_palette(self, name):
+        """ Update the application palette. """
+        self.palette = get_palette(self.PALETTE_PATH, name)
+        self.load_css()
+
+    def load_css(self):
         """ Turn the CSS on and off. """
-        # update color scheme
-        self.palette = fetch_palette(self.PALETTE_PATH, palette_name)
         self.css.set_palette(self.palette)
 
         # update the application appearance

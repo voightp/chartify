@@ -274,7 +274,7 @@ class IconMenuButton(QToolButton):
 
     def update_icon(self, act):
         """ Set default icon for of the current action. """
-        self.setDefaultAction(act)
+        self.setIcon(act.icon())
 
 
 class CheckableButton(QToolButton):

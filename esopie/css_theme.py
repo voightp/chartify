@@ -44,7 +44,8 @@ class Palette:
         "OK_COLOR",
     ]
 
-    def __init__(self, default_color=(255, 255, 255), **kwargs):
+    def __init__(self, name, default_color=(255, 255, 255), **kwargs):
+        self.name = name
         self.colors_dct = self.parse_inst_kwargs(default_color, **kwargs)
 
     @staticmethod
@@ -225,7 +226,7 @@ class CssTheme:
         return css
 
 
-def fetch_palette(pth, name):
+def get_palette(pth, name):
     """ Return an palette instance of the given name. """
 
     default_palette = {
@@ -256,4 +257,4 @@ def fetch_palette(pth, name):
 
     palette = default_palette if not palette else palette
 
-    return Palette(**palette)
+    return Palette(name, **palette)

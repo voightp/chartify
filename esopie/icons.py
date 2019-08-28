@@ -71,7 +71,7 @@ def text_to_pixmap(text, font, color, size=None):
 
 
 def filled_circle_pixmap(size, col1, col2=None,
-                         border_col=None, border_w=1, fr=0.9):
+                         border_col=None, border_w=1, fr=0.7):
     """
     Draw a pixmap with single or two colors filled circle.
 
