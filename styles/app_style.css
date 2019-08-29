@@ -345,16 +345,18 @@ ProgressWidget QPushButton {
 }
 
 ProgressWidget QProgressBar {
-    background-color: SURFACE_COLOR;
+    background: transparent;
+    border: 0px solid transparent;
+    min-height: 2px;
 }
 
 ProgressWidget QProgressBar::chunk {
-    background-color: OK_COLOR;
+    background: OK_COLOR;
     width: 1px;
 }
 
 ProgressWidget[failed=true] QProgressBar::chunk {
-    background-color: ERROR_COLOR;
+    background: ERROR_COLOR;
 }
 
 ProgressWidget QLabel {

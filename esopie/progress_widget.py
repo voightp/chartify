@@ -277,9 +277,6 @@ class ProgressWidget(QWidget):
 
         self.progress_bar = QProgressBar(wgt)
         self.progress_bar.setTextVisible(False)
-        self.progress_bar.setSizePolicy(QSizePolicy.Expanding,
-                                        QSizePolicy.Fixed)
-        self.progress_bar.setFixedHeight(1)
 
         self.del_btn = QPushButton(wgt)
         self.del_btn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
