@@ -1,7 +1,41 @@
 from PySide2.QtWidgets import (QToolButton, QVBoxLayout, QHBoxLayout, QLabel,
                                QSizePolicy, QFrame, QAction, QSlider, QMenu)
 from PySide2.QtCore import Qt, Signal, QSize
+from PySide2.QtGui import QIcon
 from esopie.misc_widgets import update_appearance
+
+
+class ToolButton(QToolButton):
+    """
+    A base class which automatically modifies
+    icon transparency when disabled.
+
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
+        self.setIconSize(QSize(20, 20))
+        self.icons = {"enabled": QIcon(),
+                      "disabled": QIcon()}
+
+    def set_icons(self, enabled_icon, disabled_icon):
+        """ Populate button's icons. """
+        self.icons["enabled"] = enabled_icon
+        self.icons["disabled"] = disabled_icon
+
+        icon = enabled_icon if self.isEnabled() else disabled_icon
+        self.setIcon(icon)
+
+    def setEnabled(self, enabled):
+        """ Override to adjust icon opacity. """
+        super().setEnabled(enabled)
+
+        # update icon appearance, if icons attr has not been
+        # set before, this won't make any difference
+        icon = self.icons["enabled"] if enabled else self.icons["disabled"]
+        if icon:
+            self.setIcon(icon)
 
 
 class TitledButton(QFrame):
@@ -36,7 +70,7 @@ class TitledButton(QFrame):
     def __init__(self, parent, fill_space=True, title="",
                  menu=None, items=None, def_act_dt="", data=None):
         super().__init__(parent)
-        self.button = QToolButton(self)
+        self.button = ToolButton(self)
         self.button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
         self.setObjectName(TitledButton.button_name)
@@ -230,7 +264,7 @@ class ToggleButton(QFrame):
         update_appearance(sl)
 
 
-class MenuButton(QToolButton):
+class MenuButton(ToolButton):
     """
     A button to mimic 'Action' behaviour.
 
@@ -242,6 +276,7 @@ class MenuButton(QToolButton):
     def __init__(self, text, parent, size=QSize(25, 25),
                  icon=None, actions=None):
         super().__init__(parent)
+        self.setToolButtonStyle(Qt.ToolButtonIconOnly)
         self.setText(text)
         self.setIconSize(size)
         self.setPopupMode(QToolButton.InstantPopup)
@@ -286,26 +321,48 @@ class CheckableButton(QToolButton):
 
     def __init__(self, parent):
         super().__init__(parent)
+        self.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
+        self.setIconSize(QSize(20, 20))
         self.setCheckable(True)
         self.toggled.connect(self._toggled)
-        self.icons = {}
+        self.icons = {"primary": {"enabled": QIcon(),
+                                  "disabled": QIcon()},
+                      "secondary": {"enabled": QIcon(),
+                                    "disabled": QIcon()}}
 
     def _toggled(self, checked):
         """ Update icons state. """
         key = "secondary" if checked else "primary"
+        enabled = "enabled" if self.isEnabled() else "disabled"
 
         try:
-            self.setIcon(self.icons[key])
+            self.setIcon(self.icons[key][enabled])
         except KeyError:
             pass
 
-    def set_icons(self, primary, secondary):
+    def set_icons(self, icon1, icon1_disabled, icon2, icon2_disabled):
         """ Assign button icons. """
-        self.icons["primary"] = primary
-        self.icons["secondary"] = secondary
+        self.icons["primary"]["enabled"] = icon1
+        self.icons["primary"]["disabled"] = icon1_disabled
+
+        self.icons["secondary"]["enabled"] = icon2
+        self.icons["secondary"]["disabled"] = icon2_disabled
 
         key = "secondary" if self.isChecked() else "primary"
-        self.setIcon(self.icons[key])
+        enabled = "enabled" if self.isEnabled() else "disabled"
+
+        self.setIcon(self.icons[key][enabled])
+
+    def setEnabled(self, enabled):
+        """ Override to adjust icon opacity. """
+        super().setEnabled(enabled)
+
+        # update icon appearance, if icons attr have not been
+        # set before, this won't make any difference
+        key = "secondary" if self.isChecked() else "primary"
+        enabled = "enabled" if self.isEnabled() else "disabled"
+
+        self.setIcon(self.icons[key][enabled])
 
 
 class DualActionButton(QToolButton):
@@ -317,8 +374,13 @@ class DualActionButton(QToolButton):
 
     def __init__(self, parent):
         super().__init__(parent)
-        self.icons = None
-        self.actions = None
+        self.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
+        self.setIconSize(QSize(20, 20))
+        self.icons = {"primary": {"enabled": QIcon(),
+                                  "disabled": QIcon()},
+                      "secondary": {"enabled": QIcon(),
+                                    "disabled": QIcon()}}
+        self.actions = []
         self.texts = None
         self._state = 0
 
@@ -326,10 +388,16 @@ class DualActionButton(QToolButton):
         """ Retrieve current state. """
         return self._state
 
-    def set_icons(self, primary, secondary):
+    def set_icons(self, icon1, icon1_disabled, icon2, icon2_disabled):
         """ Assign button icons. """
-        self.icons = [primary, secondary]
-        self.setIcon(primary)
+        self.icons["primary"]["enabled"] = icon1
+        self.icons["primary"]["disabled"] = icon1_disabled
+
+        self.icons["secondary"]["enabled"] = icon2
+        self.icons["secondary"]["disabled"] = icon2_disabled
+
+        icon = icon1 if self.isEnabled() else icon1_disabled
+        self.setIcon(icon)
 
     def set_actions(self, primary, secondary):
         """ Assign button click actions. """
@@ -356,7 +424,21 @@ class DualActionButton(QToolButton):
         self.clicked.disconnect()
         self.clicked.connect(self.actions[i])
 
-        self.setIcon(self.icons[i])
+        key = "secondary" if bool(self._state) else "primary"
+        enabled = "enabled" if self.isEnabled() else "disabled"
+
+        self.setIcon(self.icons[key][enabled])
         self.setText(self.texts[i])
 
         self._state = i
+
+    def setEnabled(self, enabled):
+        """ Override to adjust icon opacity. """
+        super().setEnabled(enabled)
+
+        # update icon appearance, if icons attr have not been
+        # set before, this won't make any difference
+        key = "secondary" if bool(self._state) else "primary"
+        enabled = "enabled" if self.isEnabled() else "disabled"
+
+        self.setIcon(self.icons[key][enabled])

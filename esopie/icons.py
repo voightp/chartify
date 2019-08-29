@@ -1,5 +1,5 @@
 from PySide2.QtGui import (QImage, QPixmap, QColor, QPainter, QFont,
-                           QFontMetrics, QPen)
+                           QFontMetrics, QPen, QIcon)
 from PySide2.QtWidgets import QApplication, QWidget
 from PySide2.QtCore import Qt, QPoint, QBuffer, QTemporaryFile, QRectF
 

@@ -440,31 +440,27 @@ class MainWindow(QMainWindow):
         self.load_file_act.setIcon(QIcon(Pixmap(r + "add_file.png", *c1)))
 
         self.toolbar.totals_btn.set_icons(Pixmap(r + "building.png", *c1),
-                                          Pixmap(r + "building.png", *c2))
-        self.toolbar.totals_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
-        self.toolbar.totals_btn.setIconSize(QSize(20, 20))
+                                          Pixmap(r + "building.png", *c1, a=0.5),
+                                          Pixmap(r + "building.png", *c2),
+                                          Pixmap(r + "building.png", *c2, a=0.5))
 
         self.toolbar.all_files_btn.set_icons(Pixmap(r + "all_files.png", *c1),
-                                             Pixmap(r + "all_files.png", *c2))
-        self.toolbar.all_files_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
-        self.toolbar.all_files_btn.setIconSize(QSize(20, 20))
+                                             Pixmap(r + "all_files.png", *c1, a=0.5),
+                                             Pixmap(r + "all_files.png", *c2),
+                                             Pixmap(r + "all_files.png", *c2, a=0.5))
 
-        self.toolbar.sum_btn.setIcon(Pixmap(r + "sigma.png", *c1))
-        self.toolbar.sum_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
-        self.toolbar.sum_btn.setIconSize(QSize(20, 20))
+        self.toolbar.sum_btn.set_icons(Pixmap(r + "sigma.png", *c1),
+                                       Pixmap(r + "sigma.png", *c1, a=0.5))
+        self.toolbar.mean_btn.set_icons(Pixmap(r + "mean.png", *c1),
+                                        Pixmap(r + "mean.png", *c1, a=0.5))
 
-        self.toolbar.mean_btn.setIcon(Pixmap(r + "mean.png", *c1))
-        self.toolbar.mean_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
-        self.toolbar.mean_btn.setIconSize(QSize(20, 20))
-
-        self.toolbar.remove_btn.setIcon(Pixmap(r + "remove.png", *c1))
-        self.toolbar.remove_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
-        self.toolbar.remove_btn.setIconSize(QSize(20, 20))
+        self.toolbar.remove_btn.set_icons(Pixmap(r + "remove.png", *c1),
+                                          Pixmap(r + "remove.png", *c1, a=0.5))
 
         self.toolbar.hide_btn.set_icons(Pixmap(r + "visibility.png", *c1),
-                                        Pixmap(r + "hide.png", *c1))
-        self.toolbar.hide_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
-        self.toolbar.hide_btn.setIconSize(QSize(20, 20))
+                                        Pixmap(r + "visibility.png", *c1, a=0.5),
+                                        Pixmap(r + "hide.png", *c1),
+                                        Pixmap(r + "hide.png", *c1, a=0.5))
 
         self.tab_wgt.drop_btn.setIcon(Pixmap(r + "drop_file.png", *c1))
         self.tab_wgt.drop_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)

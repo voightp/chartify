@@ -6,7 +6,7 @@ from PySide2.QtGui import QPixmap, QFont, QColor
 
 from esopie.icons import Pixmap, text_to_pixmap
 from esopie.buttons import (TitledButton, ToggleButton, MenuButton,
-                            CheckableButton, DualActionButton)
+                            CheckableButton, DualActionButton, ToolButton)
 
 from eso_reader.constants import TS, D, H, M, A, RP
 
@@ -124,10 +124,10 @@ class Toolbar(QFrame):
         # ~~~~ Tools group ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.tools_group = QGroupBox("Tools", self)
         self.tools_group.setObjectName("toolsGroup")
-        self.sum_btn = QToolButton(self.tools_group)
-        self.mean_btn = QToolButton(self.tools_group)
+        self.sum_btn = ToolButton(self.tools_group)
+        self.mean_btn = ToolButton(self.tools_group)
         self.hide_btn = DualActionButton(self.tools_group)
-        self.remove_btn = QToolButton(self.tools_group)
+        self.remove_btn = ToolButton(self.tools_group)
         self.set_up_tools()
         self.layout.addWidget(self.tools_group)
 
