@@ -685,8 +685,10 @@ class MainWindow(QMainWindow):
         self.hide_act.setEnabled(False)
         self.remove_act.setEnabled(False)
 
-        # switch to show hidden action
+        # switch to show hidden action, handle visibility
+        # based on child action
         self.toolbar.hide_btn.set_primary_state()
+        self.toolbar.hide_btn.setEnabled(self.show_hidden_act.isEnabled())
 
         # disable export xlsx as there are no variables to be exported
         self.toolbar.set_tools_btns_enabled("sum", "mean",
