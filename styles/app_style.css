@@ -550,15 +550,20 @@ QTreeView::branch:has-children:open {
 }
 
 QScrollBar:vertical {
-    background: transparent;
-    width: 10px;
-    margin: 2px;
+    background: SURFACE_COLOR;
+    width: 6px;
+    margin: 0px;
+    border: 0px solid transparent;
 }
 
 QScrollBar:horizontal {
+    background: SURFACE_COLOR;
+    height: 6px;
+    margin: 0px;
+}
+
+QScrollBar::add-page, QScrollBar::sub-page {
     background: transparent;
-    height: 10px;
-    margin: 2px;
 }
 
  QScrollBar::up-arrow:vertical, QScrollBar::down-arrow:vertical {
@@ -579,31 +584,31 @@ QScrollBar::handle:vertical, QScrollBar::handle:horizontal {
    background-color: SECONDARY_COLOR;
 }
 
- QScrollBar::add-line:vertical {
+QScrollBar::add-line:vertical {
      border: 0px solid transparent;
-     background-color: SECONDARY_COLOR;
+     background-color: transparent;
      height: 10px;
  }
 
- QScrollBar::add-line:horizontal {
+QScrollBar::add-line:horizontal {
      border: 0px solid transparent;
-     background-color: SECONDARY_COLOR;
+     background-color: transparent;
      width: 10px;
  }
 
-   QScrollBar::add-line:pressed {
+QScrollBar::add-line:pressed {
      background: SECONDARY_COLOR#50;
  }
 
- QScrollBar::sub-line:vertical {
+QScrollBar::sub-line:vertical {
      border: 0px solid transparent;
-     background-color: SECONDARY_COLOR;
+     background-color: transparent;
      height: 10px;
  }
 
   QScrollBar::sub-line:horizontal {
      border: 0px solid transparent;
-     background-color: SECONDARY_COLOR;
+     background-color: transparent;
      width: 10px;
  }
 
