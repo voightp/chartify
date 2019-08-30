@@ -56,7 +56,7 @@ QSplitterHandle:hover {
 }
 
 QSplitter::handle:horizontal:hover {
-    image: URL(../icons/dots.png)#PRIMARY_TEXT_COLOR;
+    image: URL(../icons/dots.png)#SECONDARY_COLOR;
 }
 
 /* ~~~~~ STATUS BAR ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
@@ -382,7 +382,7 @@ QTabWidget::pane {
 }
 
 QTabBar::tab {
-    color: SURFACE_COLOR;
+    color: SECONDARY_TEXT_COLOR;
     border-top-left-radius: 0px;
     border-top-right-radius: 0px;
     padding: 10px 10px;

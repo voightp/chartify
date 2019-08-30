@@ -6,7 +6,7 @@
         "SECONDARY_COLOR": "#ff8a65",
         "SECONDARY_VARIANT_COLOR": null,
         "SECONDARY_TEXT_COLOR": "#EEEEEE",
-        "BACKGROUND_COLOR": "#c2c2c2",
+        "BACKGROUND_COLOR": "rgb(129,212,250)",
         "SURFACE_COLOR": "rgb(255,255,255)",
         "ERROR_COLOR": "#b71c1c",
         "OK_COLOR": "#64DD17"
@@ -15,7 +15,7 @@
         "PRIMARY_COLOR": "#aeaeae",
         "PRIMARY_VARIANT_COLOR": null,
         "PRIMARY_TEXT_COLOR": "rgb(112,112,112)",
-        "SECONDARY_COLOR": "#ff8a65",
+        "SECONDARY_COLOR": "rgb(190,190,190)",
         "SECONDARY_VARIANT_COLOR": null,
         "SECONDARY_TEXT_COLOR": "#EEEEEE",
         "BACKGROUND_COLOR": "#c2c2c2",

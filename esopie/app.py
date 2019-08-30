@@ -219,7 +219,7 @@ class MainWindow(QMainWindow):
                    "monochrome": self.mono_schm,
                    "dark": self.dark_schm}
 
-        def_act = actions[QSettings().value("scheme", "default")]
+        def_act = actions[QSettings().value("MainWindow/scheme", "default")]
 
         self.scheme_btn = IconMenuButton(self, list(actions.values()))
         self.scheme_btn.setDefaultAction(def_act)
@@ -468,8 +468,8 @@ class MainWindow(QMainWindow):
 
         # TODO refactor this
         size = QSize(60, 60)
-        k1 = "PRIMARY_COLOR"
-        k2 = "SECONDARY_COLOR"
+        k1 = "SECONDARY_COLOR"
+        k2 = "BACKGROUND_COLOR"
         border_col = QColor(255, 255, 255)
 
         p = get_palette(self.PALETTE_PATH, "default")
