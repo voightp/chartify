@@ -6,7 +6,7 @@ from PySide2.QtGui import QPixmap, QFont, QColor
 
 from esopie.icons import Pixmap, text_to_pixmap
 from esopie.buttons import (TitledButton, ToggleButton, MenuButton,
-                            CheckableButton, DualActionButton, ToolButton)
+                            CheckableButton, DualActionButton, ClickButton)
 
 from eso_reader.constants import TS, D, H, M, A, RP
 
@@ -124,10 +124,10 @@ class Toolbar(QFrame):
         # ~~~~ Tools group ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.tools_group = QGroupBox("Tools", self)
         self.tools_group.setObjectName("toolsGroup")
-        self.sum_btn = ToolButton(self.tools_group)
-        self.mean_btn = ToolButton(self.tools_group)
+        self.sum_btn = ClickButton(self.tools_group)
+        self.mean_btn = ClickButton(self.tools_group)
         self.hide_btn = DualActionButton(self.tools_group)
-        self.remove_btn = ToolButton(self.tools_group)
+        self.remove_btn = ClickButton(self.tools_group)
         self.set_up_tools()
         self.layout.addWidget(self.tools_group)
 
@@ -325,22 +325,18 @@ class Toolbar(QFrame):
         # ~~~~ Sum variables button ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.sum_btn.setEnabled(False)
         self.sum_btn.setText("sum")
-        self.sum_btn.setCheckable(False)
 
         # ~~~~ Mean variables button ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.mean_btn.setEnabled(False)
         self.mean_btn.setText("mean")
-        self.mean_btn.setCheckable(False)
 
         # ~~~~ Mean variables button ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.hide_btn.setEnabled(False)
         self.hide_btn.set_texts("show", "hide")
-        self.hide_btn.setCheckable(False)
 
         # ~~~~ Mean variables button ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.remove_btn.setEnabled(False)
         self.remove_btn.setText("remove")
-        self.remove_btn.setCheckable(False)
 
         self.populate_tools_group()
 

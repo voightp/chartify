@@ -157,6 +157,13 @@ QToolButton#swapButton {
     height: 20px;
 }
 
+ClickButton:checked {
+    background-color: transparent;
+    color: PRIMARY_TEXT_COLOR;
+    border-color: SECONDARY_COLOR;
+    font-weight: bold;
+}
+
 #collapseButton, #expandButton, #treeButton {
     width: 23;
     height: 18;

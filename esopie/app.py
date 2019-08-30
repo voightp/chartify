@@ -1054,9 +1054,9 @@ class MainWindow(QMainWindow):
         # ~~~~ Outputs actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.toolbar.updateView.connect(self.build_view)
         self.toolbar.totalsChanged.connect(self.on_totals_change)
-        self.toolbar.sum_btn.clicked.connect(self.sum_act.trigger)
-        self.toolbar.mean_btn.clicked.connect(self.mean_act.trigger)
-        self.toolbar.remove_btn.clicked.connect(self.remove_act.trigger)
+        self.toolbar.sum_btn.connect_action(self.sum_act)
+        self.toolbar.mean_btn.connect_action(self.mean_act)
+        self.toolbar.remove_btn.connect_action(self.remove_act)
 
         self.toolbar.hide_btn.set_actions(self.show_hidden_act.trigger,
                                           self.hide_act.trigger)

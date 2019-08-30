@@ -5,19 +5,45 @@ from PySide2.QtGui import QIcon
 from esopie.misc_widgets import update_appearance
 
 
-class ToolButton(QToolButton):
+class ClickButton(QToolButton):
     """
     A base class which automatically modifies
     icon transparency when disabled.
+
+    Clicked signal triggers a previously assigned
+    action. The button stays 'checked' until the action
+    finishes.
+
+    The button is meant to be used as non checkable.
 
     """
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
+        self.setCheckable(False)
         self.setIconSize(QSize(20, 20))
         self.icons = {"enabled": QIcon(),
                       "disabled": QIcon()}
+
+        self.click_act = None
+        self.clicked.connect(self.trigger_act)
+
+    def trigger_act(self):
+        """ Execute assigned action. """
+        # set 'checked' state while the action executes
+        self.setCheckable(True)
+        self.setChecked(True)
+
+        if self.click_act:
+            self.click_act.trigger()
+
+        # revert to the original state
+        self.setCheckable(False)
+
+    def connect_action(self, act):
+        """ Assign click action to the button. """
+        self.click_act = act
 
     def set_icons(self, enabled_icon, disabled_icon):
         """ Populate button's icons. """
@@ -70,7 +96,7 @@ class TitledButton(QFrame):
     def __init__(self, parent, fill_space=True, title="",
                  menu=None, items=None, def_act_dt="", data=None):
         super().__init__(parent)
-        self.button = ToolButton(self)
+        self.button = ClickButton(self)
         self.button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
         self.setObjectName(TitledButton.button_name)
@@ -264,7 +290,7 @@ class ToggleButton(QFrame):
         update_appearance(sl)
 
 
-class MenuButton(ToolButton):
+class MenuButton(ClickButton):
     """
     A button to mimic 'Action' behaviour.
 
