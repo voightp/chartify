@@ -190,6 +190,31 @@ class Toolbar(QFrame):
         checked = self.rate_ene_btn.isChecked()
         settings.setValue("Toolbar/rateToEnergy", int(checked))
 
+    def load_icons(self, root, c1, c2):
+        """ Load toolbar buttons icons. """
+        self.totals_btn.set_icons(Pixmap(root + "building.png", *c1),
+                                  Pixmap(root + "building.png", *c1, a=0.5),
+                                  Pixmap(root + "building.png", *c2),
+                                  Pixmap(root + "building.png", *c2, a=0.5))
+
+        self.all_files_btn.set_icons(Pixmap(root + "all_files.png", *c1),
+                                     Pixmap(root + "all_files.png", *c1, a=0.5),
+                                     Pixmap(root + "all_files.png", *c2),
+                                     Pixmap(root + "all_files.png", *c2, a=0.5))
+
+        self.sum_btn.set_icons(Pixmap(root + "sigma.png", *c1),
+                               Pixmap(root + "sigma.png", *c1, a=0.5))
+        self.mean_btn.set_icons(Pixmap(root + "mean.png", *c1),
+                                Pixmap(root + "mean.png", *c1, a=0.5))
+
+        self.remove_btn.set_icons(Pixmap(root + "remove.png", *c1),
+                                  Pixmap(root + "remove.png", *c1, a=0.5))
+
+        self.hide_btn.set_icons(Pixmap(root + "visibility.png", *c1),
+                                Pixmap(root + "visibility.png", *c1, a=0.5),
+                                Pixmap(root + "hide.png", *c1),
+                                Pixmap(root + "hide.png", *c1, a=0.5))
+
     def all_files_requested(self):
         """ Check if results from all eso files are requested. """
         btn = self.all_files_btn
