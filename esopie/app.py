@@ -362,7 +362,7 @@ class MainWindow(QMainWindow):
         # ~~~~ Set up main widgets and layouts ~~~~~~~~~~~~~~~~~~~~~~~~~
         self.set_up_base_ui()
         self.load_css()
-        self.read_settings()
+        self.load_settings()
 
     @property
     def current_view_wgt(self):
@@ -387,7 +387,7 @@ class MainWindow(QMainWindow):
         """ A list of all loaded eso files. """
         return self.tab_wgt.get_all_children()
 
-    def read_settings(self):
+    def load_settings(self):
         """ Apply application settings. """
         settings = QSettings()
         self.resize(settings.value("MainWindow/size", QSize(800, 600)))
@@ -866,7 +866,7 @@ class MainWindow(QMainWindow):
             self.current_view_wgt.scroll_to(var)
 
     def dump_vars(self, view, variables, remove=False):
-        """ Hide or remove the """
+        """ Hide or remove selected variables. """
         file_id = view.get_file_id()
         file = self.get_files_from_db(file_id)[0]
 
@@ -914,7 +914,7 @@ class MainWindow(QMainWindow):
             return var
 
     def aggr_vars(self, view, var_nm, key_nm, variables, func):
-        """ Add a new variable to the file. """
+        """ Add a new aggreagated variable to the file. """
         file_id = view.get_file_id()
 
         # files are always returned as list
