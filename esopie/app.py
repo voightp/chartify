@@ -294,6 +294,13 @@ class MainWindow(QMainWindow):
         self.tree_act.triggered.connect(self.view_tools_wgt.tree_view_btn.toggle)
         self.tree_act.setShortcut(QKeySequence("Ctrl+T"))
 
+        # TODO SAVE FUNCTIONS REQUITED
+        self.save_act = QAction("Save", self)
+        self.save_act.triggered.connect(lambda x: print("SAVE ACT!"))
+
+        self.save_as_act = QAction("Save as", self)
+        self.save_as_act.triggered.connect(lambda x: print("SAVE AS ACT!"))
+
         # add actions to main window to allow shortcuts
         self.addActions([self.remove_act, self.hide_act, self.show_hidden_act,
                          self.sum_act, self.mean_act, self.collapse_all_act,
@@ -311,19 +318,18 @@ class MainWindow(QMainWindow):
         self.load_file_btn = MenuButton("Load file | files", self,
                                         actions=acts)
 
-        acts = [self.sum_act, self.mean_act,
-                self.remove_act, self.show_hidden_act]
-        self.tools_btn = MenuButton("Tools", self,
-                                    actions=acts)
+        acts = [self.save_act, self.save_as_act]
+        self.save_btn = MenuButton("Tools", self,
+                                   actions=acts)
 
         self.about_btn = MenuButton("About", self)
 
         self.load_file_btn.setObjectName("fileButton")
-        self.tools_btn.setObjectName("saveButton")
+        self.save_btn.setObjectName("saveButton")
         self.about_btn.setObjectName("aboutButton")
 
         self.mini_menu_layout.addWidget(self.load_file_btn)
-        self.mini_menu_layout.addWidget(self.tools_btn)
+        self.mini_menu_layout.addWidget(self.save_btn)
         self.mini_menu_layout.addWidget(self.about_btn)
 
         # TODO reload css button (temporary)
@@ -451,7 +457,7 @@ class MainWindow(QMainWindow):
         self.setWindowIcon(Pixmap(root + "smile.png", 255, 255, 255))
 
         self.load_file_btn.setIcon(QIcon(Pixmap(root + "file.png", *c1)))
-        self.tools_btn.setIcon(QIcon(Pixmap(root + "save.png", *c1)))
+        self.save_btn.setIcon(QIcon(Pixmap(root + "save.png", *c1)))
         self.about_btn.setIcon(QIcon(Pixmap(root + "help.png", *c1)))
         self.close_all_act.setIcon(QIcon(Pixmap(root + "remove.png", *c1)))
         self.load_file_act.setIcon(QIcon(Pixmap(root + "add_file.png", *c1)))
