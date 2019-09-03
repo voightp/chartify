@@ -353,17 +353,14 @@ class MainWindow(QMainWindow):
         mn.addActions([css, no_css, memory, dummy])
 
         # TODO create custom chart area
-        # self.chart_area = QWebEngineView(self)
-        # settings = QWebEngineSettings.JavascriptCanAccessClipboard
-        # self.chart_area.settings().setAttribute(settings, True)
-        # self.chart_area.setContextMenuPolicy(Qt.CustomContextMenu)
-        # self.chart_area.setAcceptDrops(True)
-        # self.url = "http://127.0.0.1:8080/"
-        # self.chart_area.load(QUrl(self.url))
-        # self.main_chart_layout.addWidget(self.chart_area)
-
-        self.dummy = QFrame(self.main_chart_widget)
-        self.main_chart_layout.addWidget(self.dummy)
+        self.chart_area = QWebEngineView(self)
+        settings = QWebEngineSettings.JavascriptCanAccessClipboard
+        self.chart_area.settings().setAttribute(settings, True)
+        self.chart_area.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.chart_area.setAcceptDrops(True)
+        self.url = "http://localhost:55555/"
+        self.chart_area.load(QUrl(self.url))
+        self.main_chart_layout.addWidget(self.chart_area)
 
         # ~~~~ Set up main widgets and layouts ~~~~~~~~~~~~~~~~~~~~~~~~~
         self.set_up_base_ui()
