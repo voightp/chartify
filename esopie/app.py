@@ -356,9 +356,9 @@ class MainWindow(QMainWindow):
         self.chart_area = QWebEngineView(self)
         settings = QWebEngineSettings.JavascriptCanAccessClipboard
         self.chart_area.settings().setAttribute(settings, True)
-        self.chart_area.setContextMenuPolicy(Qt.CustomContextMenu)
+        # self.chart_area.setContextMenuPolicy(Qt.CustomContextMenu)
         self.chart_area.setAcceptDrops(True)
-        self.url = "http://localhost:55555/"
+        self.url = "http://localhost:8080/"
         self.chart_area.load(QUrl(self.url))
         self.main_chart_layout.addWidget(self.chart_area)
 
