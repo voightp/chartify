@@ -22,6 +22,7 @@ from esopie.buttons import MenuButton, IconMenuButton
 from esopie.toolbar import Toolbar
 from esopie.view_tools import ViewTools
 from esopie.css_theme import CssTheme, get_palette
+from esopie.chart_widgets import MyWebView
 from functools import partial
 
 from eso_reader.eso_file import EsoFile, get_results, IncompleteFile
@@ -352,14 +353,7 @@ class MainWindow(QMainWindow):
 
         mn.addActions([css, no_css, memory, dummy])
 
-        # TODO create custom chart area
-        self.chart_area = QWebEngineView(self)
-        settings = QWebEngineSettings.JavascriptCanAccessClipboard
-        self.chart_area.settings().setAttribute(settings, True)
-        # self.chart_area.setContextMenuPolicy(Qt.CustomContextMenu)
-        self.chart_area.setAcceptDrops(True)
-        self.url = "http://localhost:8080/"
-        self.chart_area.load(QUrl(self.url))
+        self.chart_area = MyWebView(self)
         self.main_chart_layout.addWidget(self.chart_area)
 
         # ~~~~ Set up main widgets and layouts ~~~~~~~~~~~~~~~~~~~~~~~~~
