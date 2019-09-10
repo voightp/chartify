@@ -5,7 +5,7 @@ from PySide2.QtWebEngineWidgets import QWebEnginePage, QWebEngineView, QWebEngin
 import pandas as pd
 from PySide2.QtCore import QSize, Qt, QThreadPool, QThread, QObject, Signal, \
     QSortFilterProxyModel, QModelIndex, QItemSelectionModel, QRegExp, QUrl, QObject, \
-    Slot, Signal
+    Slot, Signal, Property
 
 from PySide2 import QtWebChannel
 
@@ -16,12 +16,25 @@ from functools import partial
 
 
 class Postman(QObject):
+    attribute_changed = Signal(str)
+
     def __init__(self):
         super().__init__()
+        self.m_attribute = ""
 
     @Slot()
     def call_from_js(self):
         print("Called from JS!")
+
+    @Property(str, notify=attribute_changed)
+    def attribute(self):
+        return self.m_attribute
+
+    @attribute.setter
+    def set_attribute(self, attribute):
+        if self.m_some_attribute == attribute:
+            return
+        self.m_attribute = attribute
 
 
 class MyWebView(QWebEngineView):
