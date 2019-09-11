@@ -417,7 +417,8 @@ class MainWindow(QMainWindow):
                 self.current_view_wgt.clear_selected()
 
         elif event.key() == Qt.Key_Delete:
-            self.remove_vars()
+            if self.hasFocus():
+                self.remove_vars()
 
     def load_scheme_btn_icons(self):
         """ Create scheme button icons. """
