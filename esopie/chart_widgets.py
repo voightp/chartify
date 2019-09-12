@@ -5,7 +5,7 @@ from PySide2.QtWebEngineWidgets import QWebEnginePage, QWebEngineView, QWebEngin
 import pandas as pd
 from PySide2.QtCore import QSize, Qt, QThreadPool, QThread, QObject, Signal, \
     QSortFilterProxyModel, QModelIndex, QItemSelectionModel, QRegExp, QUrl, QObject, \
-    Slot, Signal, Property
+    Slot, Signal, Property, QJsonValue, QJsonArray
 
 from PySide2 import QtWebChannel
 
@@ -13,6 +13,7 @@ import pickle
 from multiprocessing import Process
 from concurrent.futures import ProcessPoolExecutor
 from functools import partial
+import json
 
 
 class Postman(QObject):
@@ -22,9 +23,25 @@ class Postman(QObject):
         super().__init__()
         self.m_attribute = ""
 
-    @Slot()
-    def call_from_js(self):
+    @Slot(QJsonValue)
+    def call_from_js(self, data):
+        print(data)
         print("Called from JS!")
+
+    @Slot(QJsonValue, str)
+    def chartInitialized(self, figure, itemId):
+        dct = figure.toObject()
+        print(dct)
+        print(figure)
+        print("chartInitialized: " + itemId)
+
+    @Slot(QJsonValue, str)
+    def chartUpdated(self, figure, itemId):
+        print("chartUpdated: " + itemId)
+
+    @Slot(str)
+    def traceDropped(self, item_id):
+        print("Trace dropped on " + item_id)
 
     @Property(str, notify=attribute_changed)
     def attribute(self):
@@ -53,4 +70,3 @@ class MyWebView(QWebEngineView):
 
         self.url = "http://127.0.0.1:8080/"
         self.load(QUrl(self.url))
-
