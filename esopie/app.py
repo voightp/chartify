@@ -22,7 +22,7 @@ from esopie.view_tools import ViewTools
 from esopie.css_theme import CssTheme, get_palette
 from esopie.chart_widgets import MyWebView
 
-from esopie.utils.ids_utils import generate_ids, get_str_identifier
+from esopie.utils.utils import generate_ids, get_str_identifier
 from esopie.utils.process_utils import (create_pool, kill_child_processes,
                                         load_file, wait_for_results)
 
@@ -732,7 +732,7 @@ class MainWindow(QMainWindow):
 
     def export_xlsx(self):
         """ Export selected variables data to xlsx. """
-        self.results_df()
+        self.get_results()
 
         # file_pth, _ = QFileDialog.getSaveFileName(self, "Save variable to .xlsx", "", "*.xlsx")
         # if file_pth:
@@ -934,7 +934,7 @@ class MainWindow(QMainWindow):
         """ Get a currently selected output variables information. """
         return self.selected
 
-    def results_df(self):
+    def get_results(self, callback=None):
         """ Get output values for given variables. """
         variables = self.get_current_request()
         rate_to_energy, units_system, energy, power = self.get_units_settings()
@@ -943,12 +943,13 @@ class MainWindow(QMainWindow):
         ids = self.get_current_file_ids()
         files = self.get_files_from_db(*ids)
 
-        args = (get_results, files, variables)
-        kwargs = ddict(rate_units=power, energy_units=energy,
-                       add_file_name="column",
-                       rate_to_energy_dct=rate_to_energy_dct)
+        args = (files, variables)
+        kwargs = {"rate_units": power, "energy_units": energy,
+                  "add_file_name": "column",
+                  "rate_to_energy_dct": rate_to_energy_dct}
 
-        self.thread_pool.start(ResultsFetcher(*args, **kwargs))
+        self.thread_pool.start(ResultsFetcher(get_results, *args,
+                                              callback=callback, **kwargs))
 
     def connect_ui_actions(self):
         """ Create actions which depend on user actions """

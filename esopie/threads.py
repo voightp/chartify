@@ -139,12 +139,15 @@ class IterWorker(QRunnable):
 
 
 class ResultsFetcher(QRunnable):
-    def __init__(self, func, *args, **kwargs):
+    def __init__(self, func, *args, callback=None, **kwargs):
         super().__init__()
         self.func = func
+        self.callback = callback
         self.args = args
         self.kwargs = kwargs
 
     def run(self):
         # TODO catch fetch exceptions, emit signal to handle results
         df = self.func(*self.args, **self.kwargs)
+        if self.callback:
+            self.callback(df)
