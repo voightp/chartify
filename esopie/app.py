@@ -22,6 +22,7 @@ from esopie.view_tools import ViewTools
 from esopie.css_theme import CssTheme, get_palette
 from esopie.chart_widgets import MyWebView
 
+from esopie.utils.ids_utils import generate_ids, create_unique_name
 from esopie.utils.process_utils import (create_pool, kill_child_processes,
                                         load_file, wait_for_results)
 
@@ -32,38 +33,8 @@ from queue import Queue
 from functools import partial
 from multiprocessing import Manager
 from esopie.view_widget import View
-from random import randint
 from esopie.threads import (EsoFileWatcher, GuiMonitor, ResultsFetcher,
                             IterWorker)
-
-
-def generate_ids(used_ids, n=1, max_id=99999):
-    """ Create a list with unique ids. """
-    ids = []
-    while True:
-        id_ = randint(1, max_id)
-        if id_ not in used_ids and id_ not in ids:
-            ids.append(id_)
-            if len(ids) == n:
-                break
-    return ids
-
-
-def create_unique_name(name, check_list):
-    """ Create a unique name to avoid duplicates. """
-
-    def add_num():
-        return f"{name} ({i})"
-
-    new_name = name
-    i = 0
-
-    # add unique number if the file name is not unique
-    while new_name in check_list:
-        i += 1
-        new_name = add_num()
-
-    return new_name
 
 
 def install_fonts(pth, database):
