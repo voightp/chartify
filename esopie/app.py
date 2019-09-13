@@ -22,7 +22,7 @@ from esopie.view_tools import ViewTools
 from esopie.css_theme import CssTheme, get_palette
 from esopie.chart_widgets import MyWebView
 
-from esopie.utils.ids_utils import generate_ids, create_unique_name
+from esopie.utils.ids_utils import generate_ids, get_str_identifier
 from esopie.utils.process_utils import (create_pool, kill_child_processes,
                                         load_file, wait_for_results)
 
@@ -585,7 +585,7 @@ class MainWindow(QMainWindow):
     def create_view_wgt(self, id_, f_name, std_header, tot_header):
         """ Create a 'View' widget and connect its actions. """
         names = self.tab_wgt.get_all_child_names()
-        name = create_unique_name(f_name, names)
+        name = get_str_identifier(f_name, names)
 
         wgt = View(id_, name, std_header, tot_header)
 

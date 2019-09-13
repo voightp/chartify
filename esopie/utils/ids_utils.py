@@ -18,14 +18,14 @@ def generate_id(used_ids, max_id=99999):
     return generate_ids(used_ids, n=1, max_id=max_id)[0]
 
 
-def create_unique_name(name, check_list):
-    """ Create a unique name to avoid duplicates. """
+def get_str_identifier(base_name, check_list, delimiter=" ", start_i=None):
+    """ Create a unique name by adding index number to the base name. """
 
     def add_num():
-        return f"{name} ({i})"
+        return f"{base_name}{delimiter}({i})"
 
-    new_name = name
-    i = 0
+    i = start_i if start_i else 0
+    new_name = add_num() if start_i else base_name
 
     # add unique number if the file name is not unique
     while new_name in check_list:
