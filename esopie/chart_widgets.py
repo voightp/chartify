@@ -99,6 +99,17 @@ class Postman(QObject):
 
         self.fullChartUpdated.emit(item_id, chart.figure)
 
+    @Slot(str, int)
+    def onChartFrameResized(self, item_id, chart_div_height):
+        chart = self.components[item_id]
+        chart.set_legend_y(chart_div_height)
+
+        self.layoutUpdated.emit(item_id, chart.layout)
+
+    @Slot(str, QJsonValue)
+    def onTraceHover(self, item_id):
+        pass
+
 
 class MyPage(QWebEnginePage):
     def __init__(self):
