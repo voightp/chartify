@@ -1,10 +1,12 @@
 from esopie.utils.utils import get_str_identifier, update_recursively
 from esopie.chart_settings import (get_x_domain, get_x_axis_settings,
                                    get_y_axis_settings, get_units_y_dct,
-                                   style, config, get_trace_settings)
+                                   style, config, get_trace_settings,
+                                   layout_dct)
 
 
 def trace2d(id_, item_id, x, y, name, **kwargs):
+    print(x)
     dct = {
         "id": id_,
         "itemId": item_id,
@@ -22,6 +24,10 @@ class Points:
         self.name_tup = name_tup
         self.data = data
         self.timestamp = timestamp
+
+    @property
+    def js_timestamp(self):
+        return [ts * 1000 for ts in self.timestamp]
 
     @property
     def name(self):
@@ -45,35 +51,8 @@ class Chart:
         self.type_ = type_
         self.raw_data = {}
         self.traces = {}
+        self.layout = layout_dct
         self.custom = False
-        self.layout = {
-            "autosize": True,
-            "modebar": {"activecolor": "rgba(175,28,255,0.5)",
-                        "bgcolor": "rgba(0, 0, 0, 0)",
-                        "color": "rgba(175,28,255,1)",
-                        "orientation": "h"},
-            "paper_bgcolor": "transparent",
-            "plot_bgcolor": "transparent",
-            "showlegend": True,
-            "legend": {"orientation": "v",
-                       "x": 0,
-                       "xanchor": "left",
-                       "y": 1.5,
-                       "yanchor": "top"},
-            # "title": {"text": "A Fancy Plot"},
-            "xaxis": {"autorange": True,
-                      "range": [],
-                      "type": "linear",
-                      "gridcolor": "white"},
-            "yaxis": {"autorange": True,
-                      "range": [],
-                      "rangemode": "tozero",
-                      "type": "linear",
-                      "gridcolor": "white"},
-            "margin": {"l": 50,
-                       "t": 50,
-                       "b": 50}
-        }
 
     @property
     def figure(self):
@@ -103,14 +82,15 @@ class Chart:
                                   delimiter="-", brackets=False)
 
     def process_data(self, df):
-        dates = df.index
+        dates = df.index.to_pydatetime()
+        timestamps = [dt.timestamp() for dt in dates]
         dct = df.to_dict(orient="list")
         new_ids = []
 
         for col_ix, vals in dct.items():
             id_ = self.gen_trace_id()
             new_ids.append(id_)
-            self.raw_data[id_] = Points(col_ix, vals, dates)
+            self.raw_data[id_] = Points(col_ix, vals, timestamps)
 
         return new_ids
 
@@ -142,7 +122,6 @@ class Chart:
         xaxis = get_x_axis_settings(n=1, domain=x_domain)
 
         update_recursively(self.layout, {**yaxis, **xaxis})
-        print(self.layout)
 
     def populate_traces(self, ids=None):
         units_y_dct = get_units_y_dct(self.all_units)
@@ -153,7 +132,7 @@ class Chart:
                 yaxis = units_y_dct[points.units]
                 kwargs["yaxis"] = yaxis
                 trace = trace2d(id_, self.item_id,
-                                points.timestamp,
+                                points.js_timestamp,
                                 points.data,
                                 points.name,
                                 **kwargs)

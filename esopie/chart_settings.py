@@ -121,6 +121,35 @@ y_axis_dct = {
     },
 }
 
+layout_dct = {
+    "autosize": True,
+    "modebar": {"activecolor": "rgba(175,28,255,0.5)",
+                "bgcolor": "rgba(0, 0, 0, 0)",
+                "color": "rgba(175,28,255,1)",
+                "orientation": "h"},
+    "paper_bgcolor": "transparent",
+    "plot_bgcolor": "transparent",
+    "showlegend": True,
+    "legend": {"orientation": "v",
+               "x": 0,
+               "xanchor": "left",
+               "y": 1.5,
+               "yanchor": "top"},
+    # "title": {"text": "A Fancy Plot"},
+    "xaxis": {"autorange": True,
+              "range": [],
+              "type": "linear",
+              "gridcolor": "white"},
+    "yaxis": {"autorange": True,
+              "range": [],
+              "rangemode": "tozero",
+              "type": "linear",
+              "gridcolor": "white"},
+    "margin": {"l": 50,
+               "t": 50,
+               "b": 50}
+}
+
 
 def get_item(frame_id, type_):
     shared = {
