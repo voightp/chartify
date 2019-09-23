@@ -101,6 +101,7 @@ class Postman(QObject):
 
     @Slot(str, int)
     def onChartFrameResized(self, item_id, chart_div_height):
+        print(f"PY updateChartType {item_id}")
         chart = self.components[item_id]
         chart.set_legend_y(chart_div_height)
 

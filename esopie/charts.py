@@ -102,22 +102,6 @@ class Chart:
         return get_str_identifier("trace", ids, start_i=1,
                                   delimiter="-", brackets=False)
 
-    def add_data(self, df, auto_update=True):
-        new_ids = self.process_data(df)
-
-        if auto_update:
-            self.populate_traces(new_ids)
-
-    def update_chart_type(self, chart_type):
-        self.type_ = chart_type
-        update_dct = {"data": [{}]}
-        kwargs = get_trace_settings(chart_type)
-        for trace in self.traces.values():
-            for k, v in kwargs.items():
-                trace[k] = v
-            update_dct["data"].append(kwargs)
-        return update_dct
-
     def process_data(self, df):
         dates = df.index
         dct = df.to_dict(orient="list")
@@ -130,8 +114,35 @@ class Chart:
 
         return new_ids
 
+    def add_data(self, df, auto_update=True):
+        new_ids = self.process_data(df)
+
+        if auto_update:
+            self.populate_traces(new_ids)
+            self.populate_layout()
+
+    def update_chart_type(self, chart_type):
+        self.type_ = chart_type
+        update_dct = {"data": [{}]}
+        kwargs = get_trace_settings(chart_type)
+        for trace in self.traces.values():
+            for k, v in kwargs.items():
+                trace[k] = v
+            update_dct["data"].append(kwargs)
+        return update_dct
+
     def pop_trace(self, trace_id):
         pass
+
+    def populate_layout(self):
+        n = len(self.all_units)
+        yaxis = get_y_axis_settings(n, increment=0.1)
+
+        x_domain = get_x_domain(n, increment=0.1)
+        xaxis = get_x_axis_settings(n=1, domain=x_domain)
+
+        update_recursively(self.layout, {**yaxis, **xaxis})
+        print(self.layout)
 
     def populate_traces(self, ids=None):
         units_y_dct = get_units_y_dct(self.all_units)
