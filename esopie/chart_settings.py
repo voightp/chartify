@@ -123,17 +123,17 @@ y_axis_dct = {
 
 layout_dct = {
     "autosize": True,
-    "modebar": {"activecolor": "rgba(175,28,255,0.5)",
-                "bgcolor": "rgba(0, 0, 0, 0)",
-                "color": "rgba(175,28,255,1)",
-                "orientation": "h"},
+    "modebar": {"activecolor": "rgba(180,180,180,1)",
+                "bgcolor": "transparent",
+                "color": "rgba(180,180,180,1)",
+                "orientation": "v"},
     "paper_bgcolor": "transparent",
     "plot_bgcolor": "transparent",
     "showlegend": True,
     "legend": {"orientation": "v",
                "x": 0,
                "xanchor": "left",
-               "y": 1.5,
+               "y": 1.1,
                "yanchor": "top"},
     # "title": {"text": "A Fancy Plot"},
     "xaxis": {"autorange": True,
@@ -207,7 +207,7 @@ def get_x_domain(n_yaxis=1, increment=0.1):
         for i in range(n_yaxis - 2):
             j = i % 2
             inc = increment if j == 0 else -increment
-            domain[i] = round(domain[i] + inc, 2)
+            domain[j] = round(domain[j] + inc, 2)
     return domain
 
 

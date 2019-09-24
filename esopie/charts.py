@@ -116,9 +116,9 @@ class Chart:
 
     def populate_layout(self):
         n = len(self.all_units)
-        yaxis = get_y_axis_settings(n, increment=0.1)
+        yaxis = get_y_axis_settings(n, increment=0.05)
 
-        x_domain = get_x_domain(n, increment=0.1)
+        x_domain = get_x_domain(n, increment=0.05)
         xaxis = get_x_axis_settings(n=1, domain=x_domain)
 
         update_recursively(self.layout, {**yaxis, **xaxis})
@@ -147,7 +147,7 @@ class Chart:
     def set_legend_y(self, div_height):
         h_trace = 19  # this depends on legend text size (px)
         gap = 10  # space between legend and chart (px)
-        max_y = 2  # a maximum height ratio between legend and chart is 50/50
+        max_y = 3  # a maximum height ratio between legend and chart is 50/50
 
         n_traces = len(self.traces.keys())
         margin = self.layout["margin"]["t"] + self.layout["margin"]["b"]
