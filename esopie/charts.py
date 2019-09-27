@@ -1,12 +1,20 @@
+import copy
+
 from esopie.utils.utils import get_str_identifier, update_recursively
 from esopie.chart_settings import (get_x_domain, get_x_axis_settings,
                                    get_y_axis_settings, get_units_y_dct,
                                    style, config, get_trace_settings,
-                                   layout_dct)
+                                   layout_dct, color_generator)
 
 
-def trace2d(id_, item_id, x, y, name, **kwargs):
-    print(x)
+def assign_color(dct, color):
+    try:
+        dct["marker"]["color"] = color
+    except KeyError:
+        dct["marker"] = {"color": color}
+
+
+def trace2d(id_, item_id, x, y, name, color, **kwargs):
     dct = {
         "id": id_,
         "itemId": item_id,
@@ -15,6 +23,8 @@ def trace2d(id_, item_id, x, y, name, **kwargs):
         "y": y,
         **kwargs
     }
+
+    assign_color(dct, color)
 
     return dct
 
@@ -43,7 +53,10 @@ class Points:
 
 
 class Chart:
-    MAX_UNITS = 4
+    LEGEND_MAX_HEIGHT = 100
+    LEGEND_WIDTH = 400
+    LEGEND_TRACE_HEIGHT = 19
+    LEGEND_GAP = 10
 
     def __init__(self, chart_id, item_id, type_="scatter"):
         self.chart_id = chart_id
@@ -51,17 +64,25 @@ class Chart:
         self.type_ = type_
         self.raw_data = {}
         self.traces = {}
+        self.selected_traces = []
         self.layout = layout_dct
-        self.custom = False
+        self.show_custom_legend = True
+        self.color_gen = color_generator(0)
+
+    @property
+    def data(self):
+        return list(self.traces.values())
 
     @property
     def figure(self):
         return {
             "itemType": "chart",
+            "showCustomLegend": self.show_custom_legend,
+            "selectedTraces": self.selected_traces,
             "chartType": self.type_,
             "divId": self.chart_id,
             "layout": self.layout,
-            "data": list(self.traces.values()),
+            "data": self.data,
             "style": style,
             "config": config,
             "useResizeHandler": True
@@ -103,13 +124,9 @@ class Chart:
 
     def update_chart_type(self, chart_type):
         self.type_ = chart_type
-        update_dct = {"data": [{}]}
         kwargs = get_trace_settings(chart_type)
-        for trace in self.traces.values():
-            for k, v in kwargs.items():
-                trace[k] = v
-            update_dct["data"].append(kwargs)
-        return update_dct
+        for trace in self.data:
+            update_recursively(trace, kwargs)
 
     def pop_trace(self, trace_id):
         pass
@@ -125,41 +142,31 @@ class Chart:
 
     def populate_traces(self, ids=None):
         units_y_dct = get_units_y_dct(self.all_units)
-        kwargs = get_trace_settings(self.type_)
+        settings = get_trace_settings(self.type_)
 
-        for id_, points in self.raw_data.items():
-            if not ids or id_ in ids:
-                yaxis = units_y_dct[points.units]
-                kwargs["yaxis"] = yaxis
-                trace = trace2d(id_, self.item_id,
-                                points.js_timestamp,
-                                points.data,
-                                points.name,
-                                **kwargs)
-                self.traces[id_] = trace
+        dt = {k: v for k, v in self.raw_data.items() if k in ids}
+
+        for id_, points in dt.items():
+            # further keyword modifications could mutate the data
+            kwargs = copy.deepcopy(settings)
+            yaxis = units_y_dct[points.units]
+            color = next(self.color_gen)
+            kwargs["yaxis"] = yaxis
+
+            trace = trace2d(id_, self.item_id,
+                            points.js_timestamp,
+                            points.data,
+                            points.name,
+                            color,
+                            **kwargs)
+
+            self.traces[id_] = trace
 
     def update_figure(self, update_dct):
         pass
 
     def set_legend_visibility(self, visible=True):
-        self.layout["showlegend"] = visible
+        self["showCustomLegend"] = visible
 
-    def set_legend_y(self, div_height):
-        h_trace = 19  # this depends on legend text size (px)
-        gap = 10  # space between legend and chart (px)
-        max_y = 3  # a maximum height ratio between legend and chart is 50/50
-
-        n_traces = len(self.traces.keys())
-        margin = self.layout["margin"]["t"] + self.layout["margin"]["b"]
-
-        y = div_height - margin
-        y1 = gap
-        y2 = h_trace * n_traces
-
-        y_norm0 = (y - y1 - y2) / y
-        y_norm1 = (y1 / y) / y_norm0
-        y_norm2 = (y2 / y) / y_norm0
-
-        y_leg = 1 + y_norm1 + y_norm2
-
-        self.layout["legend"]["y"] = max_y if max_y <= y_leg else y_leg
+    def set_chart_offset(self):
+        pass

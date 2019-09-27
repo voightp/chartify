@@ -38,13 +38,6 @@ class Postman(QObject):
         print(items)
         self.items = items
 
-    @Slot(str, QJsonValue)
-    def storeChartLayout(self, item_id, layout):
-        print(f"PY storeChart", item_id)
-        layout = layout.toObject()
-        print(layout)
-        self.components[item_id].layout = layout
-
     @Slot(str)
     def removeItem(self, item_id):
         print(f"PY removeItem", item_id)
@@ -79,16 +72,26 @@ class Postman(QObject):
                                  item,
                                  chart.figure)
 
-    def add_chart_data(self, item_id, chart_div_height, df):
+    def add_chart_data(self, item_id, df):
         chart = self.components[item_id]
         chart.add_data(df)
-        chart.set_legend_y(chart_div_height)
-
         self.fullChartUpdated.emit(item_id, chart.figure)
 
-    @Slot(str, int)
-    def onTraceDropped(self, item_id, chart_div_height):
-        callback = partial(self.add_chart_data, item_id, chart_div_height)
+    @Slot(str, QJsonValue)
+    def onChartLayoutChange(self, item_id, layout):
+        layout = layout.toObject()
+        chart = self.components[item_id]
+
+        old_layout = chart.layout
+        if old_layout["hovermode"] != layout["hovermode"]:
+            print("HOVER UPDATED")
+            chart.layout = layout
+        else:
+            chart.layout = layout
+
+    @Slot(str)
+    def onTraceDrop(self, item_id):
+        callback = partial(self.add_chart_data, item_id)
         self.app.get_results(callback=callback)
 
     @Slot(str, str)
@@ -96,16 +99,7 @@ class Postman(QObject):
         print(f"PY updateChartType {chart_type}")
         chart = self.components[item_id]
         chart.update_chart_type(chart_type)
-
         self.fullChartUpdated.emit(item_id, chart.figure)
-
-    @Slot(str, int)
-    def onChartFrameResized(self, item_id, chart_div_height):
-        print(f"PY updateChartType {item_id}")
-        chart = self.components[item_id]
-        chart.set_legend_y(chart_div_height)
-
-        self.layoutUpdated.emit(item_id, chart.layout)
 
     @Slot(str, QJsonValue)
     def onTraceHover(self, item_id):
@@ -124,13 +118,6 @@ class MyWebView(QWebEngineView):
     def __init__(self, parent):
         super().__init__(parent)
         # self.setContextMenuPolicy(Qt.CustomContextMenu)
-        # settings = QWebEngineSettings.JavascriptCanAccessClipboard
-        # self.settings().setAttribute(settings, True)
-        attr1 = QWebEngineSettings.WebGLEnabled
-        attr2 = QWebEngineSettings.Accelerated2dCanvasEnabled
-        self.settings().setAttribute(attr1, True)
-        self.settings().setAttribute(attr2, True)
-
         self.setAcceptDrops(True)
 
         page = MyPage()

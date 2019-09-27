@@ -1,11 +1,11 @@
 def get_trace_settings(chart_type):
     shared = {
+        "opacity": 1,
         "hoverlabel": {
             "namelength": -1,
         },
         "marker": {
             "symbol": "circle",
-            "opacity": 1,
         },
     }
 
@@ -17,6 +17,9 @@ def get_trace_settings(chart_type):
         "line": {
             "type": "scattergl",
             "mode": "lines+markers",
+            "line": {
+                "width": 1,
+            }
         },
         "bubble": {
             "type": "scattergl",
@@ -54,7 +57,7 @@ config = {
 x_axis_dct = {
     "xaxis": {
         "domain": [0, 1],
-        "y": 1.15,
+        "y": 1.05,
         "yanchor": "top",
         "type": "date",
         "rangeselector": {
@@ -123,13 +126,14 @@ y_axis_dct = {
 
 layout_dct = {
     "autosize": True,
+    "hovermode": "closest",
     "modebar": {"activecolor": "rgba(180,180,180,1)",
                 "bgcolor": "transparent",
                 "color": "rgba(180,180,180,1)",
                 "orientation": "v"},
     "paper_bgcolor": "transparent",
     "plot_bgcolor": "transparent",
-    "showlegend": True,
+    "showlegend": False,
     "legend": {"orientation": "v",
                "x": 0,
                "xanchor": "left",
@@ -149,6 +153,29 @@ layout_dct = {
                "t": 50,
                "b": 50}
 }
+
+
+def color_generator(i=0):
+    colors = [
+        "rgb(31, 119, 180)",
+        "rgb(255, 127, 14)",
+        "rgb(44, 160, 44)",
+        "rgb(214, 39, 40)",
+        "rgb(148, 103, 189)",
+        "rgb(140, 86, 75)",
+        "rgb(227, 119, 194)",
+        "rgb(127, 127, 127)",
+        "rgb(188, 189, 34)",
+        "rgb(23, 190, 207)"
+    ]
+    while True:
+        try:
+            colors[i]
+        except IndexError:
+            i = 0
+
+        yield colors[i]
+        i += 1
 
 
 def get_item(frame_id, type_):

@@ -107,34 +107,3 @@ def remove_recursively(dct, ref_dct):
             del dct[k]
         else:
             remove_recursively(dct[k], v)
-
-
-data = {
-    "data": [
-        {"x": [1, 2, 3],
-         "y": [4, 5, 6],
-         "itemId": "kchoo"},
-        {"x": [7, 8, 9],
-         "y": [10, 11, 12],
-         "itemId": "bar"}
-    ],
-    "layout": {
-        "autosize": True,
-        "modebar": {"activecolor": "rgba(175,28,255,0.5)",
-                    "bgcolor": "rgba(0, 0, 0, 0)",
-                    "color": "rgba(175,28,255,1)",
-                    "orientation": "h"},
-        "paper_bgcolor": "transparent",
-        "plot_bgcolor": "transparent",
-        "showlegend": True,
-        "title": {"text": "A Fancy Plot"},
-        "xaxis": {"autorange": True,
-                  "range": [],
-                  "type": "linear",
-                  "gridcolor": "white"},
-        "yaxis": {"autorange": True,
-                  "range": [],
-                  "type": "linear",
-                  "gridcolor": "white"}
-    }
-}
