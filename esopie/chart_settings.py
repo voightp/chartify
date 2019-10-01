@@ -1,3 +1,60 @@
+def get_trace_appearance(chart_type, priority="normal"):
+    props = {
+        "high": {
+            "markerSize": 6,
+            "lineWidth": 2,
+            "opacity": 1
+        },
+        "normal": {
+            "markerSize": 5,
+            "lineWidth": 2,
+            "opacity": 0.7
+        },
+        "low": {
+            "markerSize": 5,
+            "lineWidth": 2,
+            "opacity": 0.3
+        }
+    }
+
+    shared = {
+        "opacity": props[priority]["opacity"]
+    }
+
+    settings = {
+        "scatter": {
+            "marker": {
+                "size": props[priority]["markerSize"],
+            },
+        },
+        "line": {
+            "marker": {
+                "size": props[priority]["markerSize"],
+            },
+            "line": {
+                "width": props[priority]["lineWidth"],
+            },
+        },
+        "bubble": {
+
+        },
+        "bar": {
+
+        },
+        "pie": {
+
+        },
+        "histogram": {
+
+        },
+        "box": {
+
+        }
+    }
+
+    return {**shared, **settings[chart_type]}
+
+
 def get_trace_settings(chart_type):
     shared = {
         "opacity": 1,
@@ -6,6 +63,7 @@ def get_trace_settings(chart_type):
         },
         "marker": {
             "symbol": "circle",
+            "size": 6,
         },
     }
 
@@ -18,7 +76,7 @@ def get_trace_settings(chart_type):
             "type": "scattergl",
             "mode": "lines+markers",
             "line": {
-                "width": 1,
+                "width": 2,
             }
         },
         "bubble": {

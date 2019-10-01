@@ -2,9 +2,9 @@ import copy
 
 from esopie.utils.utils import get_str_identifier, update_recursively
 from esopie.chart_settings import (get_x_domain, get_x_axis_settings,
-                                   get_y_axis_settings, get_units_y_dct,
+                                   get_y_axis_settings, get_trace_appearance,
                                    style, config, get_trace_settings,
-                                   layout_dct, color_generator)
+                                   layout_dct, color_generator, get_units_y_dct)
 
 
 def assign_color(dct, color):
@@ -14,9 +14,9 @@ def assign_color(dct, color):
         dct["marker"] = {"color": color}
 
 
-def trace2d(id_, item_id, x, y, name, color, **kwargs):
+def trace2d(trace_id, item_id, x, y, name, color, **kwargs):
     dct = {
-        "id": id_,
+        "traceId": trace_id,
         "itemId": item_id,
         "name": name,
         "x": x,
@@ -64,7 +64,6 @@ class Chart:
         self.type_ = type_
         self.raw_data = {}
         self.traces = {}
-        self.selected_traces = []
         self.layout = layout_dct
         self.show_custom_legend = True
         self.color_gen = color_generator(0)
@@ -78,7 +77,6 @@ class Chart:
         return {
             "itemType": "chart",
             "showCustomLegend": self.show_custom_legend,
-            "selectedTraces": self.selected_traces,
             "chartType": self.type_,
             "divId": self.chart_id,
             "layout": self.layout,
@@ -96,6 +94,9 @@ class Chart:
             if e not in setlist:
                 setlist.append(e)
         return setlist
+
+    def any_trace_selected(self):
+        return any(map(lambda x: x["selected"], self.traces.values()))
 
     def gen_trace_id(self):
         ids = self.raw_data.keys()
@@ -147,11 +148,13 @@ class Chart:
         dt = {k: v for k, v in self.raw_data.items() if k in ids}
 
         for id_, points in dt.items():
-            # further keyword modifications could mutate the data
-            kwargs = copy.deepcopy(settings)
             yaxis = units_y_dct[points.units]
             color = next(self.color_gen)
+
+            # further keyword modifications could mutate the data
+            kwargs = copy.deepcopy(settings)
             kwargs["yaxis"] = yaxis
+            kwargs["selected"] = False
 
             trace = trace2d(id_, self.item_id,
                             points.js_timestamp,
@@ -161,6 +164,38 @@ class Chart:
                             **kwargs)
 
             self.traces[id_] = trace
+
+    def handle_trace_selected(self, trace_id):
+        update_dct = {}
+        all_ids = self.traces.keys()
+        trace = self.traces[trace_id]
+        trace["selected"] = not trace["selected"]
+
+        appearance = {
+            "high": [],
+            "normal": [],
+            "low": []
+        }
+
+        if not self.any_trace_selected():
+            # all traces should appear as normal
+            appearance["normal"] = all_ids
+        else:
+            for id_ in all_ids:
+                if self.traces[id_]["selected"]:
+                    appearance["high"].append(id_)
+                else:
+                    appearance["low"].append(id_)
+
+        for k, v in appearance.items():
+            a = get_trace_appearance(self.type_, k)
+            for id_ in v:
+                update_dct[id_] = a
+
+        update_dct[trace_id]["selected"] = trace["selected"]
+        update_recursively(self.traces, update_dct)
+
+        return update_dct
 
     def update_figure(self, update_dct):
         pass

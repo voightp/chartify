@@ -21,7 +21,7 @@ from esopie.chart_settings import get_item
 class Postman(QObject):
     fullChartUpdated = Signal(str, "QVariantMap")
     layoutUpdated = Signal(str, "QVariantMap")
-    dataUpdated = Signal(str, "QVariantMap")
+    tracesUpdated = Signal(str, "QVariantMap")
     componentAdded = Signal(str, "QVariantMap", "QVariantMap")
 
     def __init__(self, app):
@@ -34,9 +34,7 @@ class Postman(QObject):
     @Slot(QJsonValue)
     def storeGridLayout(self, items):
         print("PY storeGridLayout")
-        items = items.toObject()
-        print(items)
-        self.items = items
+        self.items = items.toObject()
 
     @Slot(str)
     def removeItem(self, item_id):
@@ -60,6 +58,7 @@ class Postman(QObject):
         item_id = f"item-{i}"
         frame_id = f"frame-{i}"
         chart_id = f"chart-{i}"
+
         self.counter += 1
 
         chart = Chart(chart_id, item_id, chart_type)
@@ -101,9 +100,21 @@ class Postman(QObject):
         chart.update_chart_type(chart_type)
         self.fullChartUpdated.emit(item_id, chart.figure)
 
-    @Slot(str, QJsonValue)
-    def onTraceHover(self, item_id):
+    @Slot(str, str)
+    def onTraceHover(self, item_id, trace_id):
         pass
+
+    @Slot(str, QJsonValue)
+    def onTraceClick(self, item_id):
+        pass
+
+    @Slot(str, str)
+    def onLegendClick(self, item_id, trace_id):
+        chart = self.components[item_id]
+        update_dct = chart.handle_trace_selected(trace_id)
+        print(update_dct)
+
+        self.tracesUpdated.emit(item_id, update_dct)
 
 
 class MyPage(QWebEnginePage):
