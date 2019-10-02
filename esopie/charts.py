@@ -98,21 +98,16 @@ class Chart:
     def any_trace_selected(self):
         return any(map(lambda x: x["selected"], self.traces.values()))
 
-    def gen_trace_id(self):
-        ids = self.raw_data.keys()
-        return get_str_identifier("trace", ids, start_i=1,
-                                  delimiter="-", brackets=False)
-
     def process_data(self, df):
-        dates = df.index.to_pydatetime()
-        timestamps = [dt.timestamp() for dt in dates]
-        dct = df.to_dict(orient="list")
+        timestamps = [dt.timestamp() for dt in df.index.to_pydatetime()]
+        ids = self.raw_data.keys()
         new_ids = []
 
-        for col_ix, vals in dct.items():
-            id_ = self.gen_trace_id()
+        for col_ix, sr in df.iteritems():
+            id_ = get_str_identifier("trace", ids, start_i=1,
+                                     delimiter="-", brackets=False)
             new_ids.append(id_)
-            self.raw_data[id_] = Points(col_ix, vals, timestamps)
+            self.raw_data[id_] = Points(col_ix, sr.tolist(), timestamps)
 
         return new_ids
 
