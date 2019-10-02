@@ -54,7 +54,6 @@ class Points:
 
 class Chart:
     LEGEND_MAX_HEIGHT = 100
-    LEGEND_WIDTH = 400
     LEGEND_TRACE_HEIGHT = 19
     LEGEND_GAP = 10
 
@@ -95,6 +94,9 @@ class Chart:
                 setlist.append(e)
         return setlist
 
+    def get_n_traces(self):
+        return len(self.traces.keys())
+
     def any_trace_selected(self):
         return any(map(lambda x: x["selected"], self.traces.values()))
 
@@ -127,6 +129,15 @@ class Chart:
     def pop_trace(self, trace_id):
         pass
 
+    def get_top_margin(self):
+        n_traces = self.get_n_traces()
+        if self.show_custom_legend:
+            m = n_traces * self.LEGEND_TRACE_HEIGHT
+            m = m if m <= self.LEGEND_MAX_HEIGHT else self.LEGEND_MAX_HEIGHT
+        else:
+            m = layout_dct["margin"]["t"]
+        return m + self.LEGEND_GAP
+
     def populate_layout(self):
         n = len(self.all_units)
         yaxis = get_y_axis_settings(n, increment=0.05)
@@ -134,7 +145,10 @@ class Chart:
         x_domain = get_x_domain(n, increment=0.05)
         xaxis = get_x_axis_settings(n=1, domain=x_domain)
 
-        update_recursively(self.layout, {**yaxis, **xaxis})
+        m = self.get_top_margin()
+        margin = {"margin": {"t": m}}
+
+        update_recursively(self.layout, {**yaxis, **xaxis, **margin})
 
     def populate_traces(self, ids=None):
         units_y_dct = get_units_y_dct(self.all_units)
@@ -197,6 +211,3 @@ class Chart:
 
     def set_legend_visibility(self, visible=True):
         self["showCustomLegend"] = visible
-
-    def set_chart_offset(self):
-        pass
