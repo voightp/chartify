@@ -112,9 +112,15 @@ class Postman(QObject):
     def onLegendClick(self, item_id, trace_id):
         chart = self.components[item_id]
         update_dct = chart.handle_trace_selected(trace_id)
-        print(update_dct)
 
         self.tracesUpdated.emit(item_id, update_dct)
+
+    @Slot(str)
+    def deleteSelectedTraces(self, item_id):
+        chart = self.components[item_id]
+        chart.delete_selected_traces()
+
+        self.fullChartUpdated.emit(item_id, chart.figure)
 
 
 class MyPage(QWebEnginePage):

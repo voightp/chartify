@@ -53,6 +53,11 @@ class Points:
 
 
 class Chart:
+    """
+    A class to handle chart operation and to
+    hold chart related data.
+
+    """
     LEGEND_MAX_HEIGHT = 100
     LEGEND_TRACE_HEIGHT = 19
     LEGEND_GAP = 10
@@ -69,10 +74,12 @@ class Chart:
 
     @property
     def data(self):
+        """ Get 'plotly' like trace data. """
         return list(self.traces.values())
 
     @property
     def figure(self):
+        """ Get 'plotly' like figure. """
         return {
             "itemType": "chart",
             "showCustomLegend": self.show_custom_legend,
@@ -85,8 +92,8 @@ class Chart:
             "useResizeHandler": True
         }
 
-    @property
-    def all_units(self):
+    def get_all_units(self):
+        """ Get a list of all used units. """
         full = [points.units for points in self.raw_data.values()]
         setlist = []
         for e in full:
@@ -95,12 +102,23 @@ class Chart:
         return setlist
 
     def get_n_traces(self):
+        """ Get a current number of traces. """
         return len(self.traces.keys())
 
+    def get_all_ids(self):
+        """ Get all displayed trace ids. """
+        return list(self.traces.keys())
+
+    def get_selected_ids(self):
+        """ Get all currently selected trace ids. """
+        return [tr["traceId"] for tr in self.data if tr["selected"]]
+
     def any_trace_selected(self):
+        """ Check if there's at least one trace selected. """
         return any(map(lambda x: x["selected"], self.traces.values()))
 
     def process_data(self, df):
+        """ Process raw pd.DataFrame and store the data. """
         timestamps = [dt.timestamp() for dt in df.index.to_pydatetime()]
         ids = self.raw_data.keys()
         new_ids = []
@@ -114,6 +132,7 @@ class Chart:
         return new_ids
 
     def add_data(self, df, auto_update=True):
+        """ Add a new trace into the chart. """
         new_ids = self.process_data(df)
 
         if auto_update:
@@ -121,15 +140,29 @@ class Chart:
             self.populate_layout()
 
     def update_chart_type(self, chart_type):
+        """ Update the current chart type. """
         self.type_ = chart_type
         kwargs = get_trace_settings(chart_type)
         for trace in self.data:
             update_recursively(trace, kwargs)
 
-    def pop_trace(self, trace_id):
-        pass
+    def delete_selected_traces(self):
+        """ Remove currently selected traces. """
+        ids = self.get_selected_ids()
+        for id_ in ids:
+            self.delete_trace(id_)
+
+        # regenerate layout as axis data can change
+        # TODO double check if it's required to update trace axis
+        self.populate_layout()
+
+    def delete_trace(self, trace_id):
+        """ Remove trace with given id. """
+        del self.raw_data[trace_id]
+        del self.traces[trace_id]
 
     def get_top_margin(self):
+        """ Calculate chart top margin. """
         n_traces = self.get_n_traces()
         if self.show_custom_legend:
             m = n_traces * self.LEGEND_TRACE_HEIGHT
@@ -139,7 +172,8 @@ class Chart:
         return m + self.LEGEND_GAP
 
     def populate_layout(self):
-        n = len(self.all_units)
+        """ Generate chart layout properties. """
+        n = len(self.get_all_units())
         yaxis = get_y_axis_settings(n, increment=0.05)
 
         x_domain = get_x_domain(n, increment=0.05)
@@ -151,7 +185,8 @@ class Chart:
         update_recursively(self.layout, {**yaxis, **xaxis, **margin})
 
     def populate_traces(self, ids=None):
-        units_y_dct = get_units_y_dct(self.all_units)
+        """ Transform 'raw' trace objects for given ids.  """
+        units_y_dct = get_units_y_dct(self.get_all_units())
         settings = get_trace_settings(self.type_)
 
         dt = {k: v for k, v in self.raw_data.items() if k in ids}
@@ -174,11 +209,11 @@ class Chart:
 
             self.traces[id_] = trace
 
-    def handle_trace_selected(self, trace_id):
-        update_dct = {}
-        all_ids = self.traces.keys()
-        trace = self.traces[trace_id]
-        trace["selected"] = not trace["selected"]
+        self.update_traces_appearance()
+
+    def update_traces_appearance(self):
+        """ Update trace visual settings. """
+        all_ids = self.get_all_ids()
 
         appearance = {
             "high": [],
@@ -196,18 +231,32 @@ class Chart:
                 else:
                     appearance["low"].append(id_)
 
+        update_dct = {}
         for k, v in appearance.items():
             a = get_trace_appearance(self.type_, k)
             for id_ in v:
                 update_dct[id_] = a
 
-        update_dct[trace_id]["selected"] = trace["selected"]
         update_recursively(self.traces, update_dct)
+        return update_dct
+
+    def handle_trace_selected(self, trace_id):
+        """ Reverse 'selected' attribute for the given trace. """
+        update_dct1 = {
+            trace_id: {"selected": not self.traces[trace_id]["selected"]}
+        }
+        # set trace selected in the class instance
+        update_recursively(self.traces, update_dct1)
+
+        # trace visual appearance needs to be refreshed
+        update_dct2 = self.update_traces_appearance()
+
+        # dicts need to be updated recursively in order
+        # to not override nested levels
+        update_dct = update_recursively(update_dct1, update_dct2)
 
         return update_dct
 
-    def update_figure(self, update_dct):
-        pass
-
     def set_legend_visibility(self, visible=True):
-        self["showCustomLegend"] = visible
+
+        self.show_custom_legend = visible
