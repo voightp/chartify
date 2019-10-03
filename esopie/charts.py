@@ -1,10 +1,10 @@
 import copy
 
-from esopie.utils.utils import get_str_identifier, update_recursively
+from esopie.utils.utils import get_str_identifier, update_recursively, merge_dcts
 from esopie.chart_settings import (get_x_domain, get_x_axis_settings,
                                    get_y_axis_settings, get_trace_appearance,
                                    style, config, get_trace_settings,
-                                   layout_dct, color_generator, get_units_y_dct)
+                                   layout_dct, color_generator, get_units_y_dct, )
 
 
 def assign_color(dct, color):
@@ -27,6 +27,19 @@ def trace2d(trace_id, item_id, x, y, name, color, **kwargs):
     assign_color(dct, color)
 
     return dct
+
+
+def update_attr(attr_name):
+    def decorator(func):
+        def wrapper(self, *args, **kwargs):
+            update_dct = func(self, *args, **kwargs)
+            attr = self.__getattribute__(attr_name)
+            update_recursively(attr, update_dct)
+            return update_dct
+
+        return wrapper
+
+    return decorator
 
 
 class Points:
@@ -79,7 +92,7 @@ class Chart:
 
     @property
     def figure(self):
-        """ Get 'plotly' like figure. """
+        """ Get a base 'plotly' like figure. """
         return {
             "itemType": "chart",
             "showCustomLegend": self.show_custom_legend,
@@ -136,25 +149,40 @@ class Chart:
         new_ids = self.process_data(df)
 
         if auto_update:
-            self.populate_traces(new_ids)
-            self.populate_layout()
+            return self.populate_traces(new_ids)
+
+    @update_attr("traces")
+    def update_all_traces_type(self, chart_type):
+        """ Override a trace type for all traces. """
+        settings = get_trace_settings(chart_type)
+        update_dct = {}
+
+        for trace_id in self.traces.keys():
+            update_dct[trace_id] = settings
+
+        return update_dct
 
     def update_chart_type(self, chart_type):
         """ Update the current chart type. """
         self.type_ = chart_type
-        kwargs = get_trace_settings(chart_type)
-        for trace in self.data:
-            update_recursively(trace, kwargs)
+        traces = self.update_all_traces_type(chart_type)
+        return {"traces": traces, "chartType": chart_type}
 
     def delete_selected_traces(self):
         """ Remove currently selected traces. """
+        orig_n_units = len(self.get_all_units())
         ids = self.get_selected_ids()
         for id_ in ids:
             self.delete_trace(id_)
 
+        new_n_units = len(self.get_all_units())
+
+        if orig_n_units != new_n_units:
+            self.update_traces_axis()
+
         # regenerate layout as axis data can change
         # TODO double check if it's required to update trace axis
-        self.populate_layout()
+        self.update_layout()
 
     def delete_trace(self, trace_id):
         """ Remove trace with given id. """
@@ -171,7 +199,8 @@ class Chart:
             m = layout_dct["margin"]["t"]
         return m + self.LEGEND_GAP
 
-    def populate_layout(self):
+    @update_attr("layout")
+    def update_layout(self):
         """ Generate chart layout properties. """
         n = len(self.get_all_units())
         yaxis = get_y_axis_settings(n, increment=0.05)
@@ -179,26 +208,35 @@ class Chart:
         x_domain = get_x_domain(n, increment=0.05)
         xaxis = get_x_axis_settings(n=1, domain=x_domain)
 
-        m = self.get_top_margin()
-        margin = {"margin": {"t": m}}
+        margin = {"margin": {"t": self.get_top_margin()}}
 
-        update_recursively(self.layout, {**yaxis, **xaxis, **margin})
+        return {**yaxis, **xaxis, **margin}
 
-    def populate_traces(self, ids=None):
-        """ Transform 'raw' trace objects for given ids.  """
+    @update_attr("traces")
+    def update_traces_axis(self):
+        """ Assign trace 'y' axis (based on units). """
         units_y_dct = get_units_y_dct(self.get_all_units())
-        settings = get_trace_settings(self.type_)
+        update_dct = {}
 
+        for id_, trace in self.traces.items():
+            yaxis = units_y_dct[trace["units"]]
+            update_dct[id_] = {"yaxis": yaxis}
+
+        return update_dct
+
+    @update_attr("traces")
+    def add_traces(self, ids):
+        """ Transform 'raw' trace objects for given ids.  """
+        update_dct = {}
+        settings = get_trace_settings(self.type_)
         dt = {k: v for k, v in self.raw_data.items() if k in ids}
 
         for id_, points in dt.items():
-            yaxis = units_y_dct[points.units]
             color = next(self.color_gen)
-
             # further keyword modifications could mutate the data
             kwargs = copy.deepcopy(settings)
-            kwargs["yaxis"] = yaxis
             kwargs["selected"] = False
+            kwargs["units"] = points.units
 
             trace = trace2d(id_, self.item_id,
                             points.js_timestamp,
@@ -207,10 +245,19 @@ class Chart:
                             color,
                             **kwargs)
 
-            self.traces[id_] = trace
+            update_dct[id_] = trace
 
-        self.update_traces_appearance()
+        return update_dct
 
+    def populate_traces(self, ids):
+        dct1 = self.add_traces(ids)
+        dct2 = self.update_traces_appearance()
+        traces = update_recursively(dct1, dct2)
+
+        layout = self.update_layout()
+        return {"traces": traces, "layout": layout}
+
+    @update_attr("traces")
     def update_traces_appearance(self):
         """ Update trace visual settings. """
         all_ids = self.get_all_ids()
@@ -237,25 +284,23 @@ class Chart:
             for id_ in v:
                 update_dct[id_] = a
 
-        update_recursively(self.traces, update_dct)
         return update_dct
 
     def handle_trace_selected(self, trace_id):
         """ Reverse 'selected' attribute for the given trace. """
-        update_dct1 = {
-            trace_id: {"selected": not self.traces[trace_id]["selected"]}
-        }
-        # set trace selected in the class instance
-        update_recursively(self.traces, update_dct1)
+        selected = not self.traces[trace_id]["selected"]
+        update_dct1 = self.set_trace_selected(trace_id, selected)
 
         # trace visual appearance needs to be refreshed
         update_dct2 = self.update_traces_appearance()
 
         # dicts need to be updated recursively in order
-        # to not override nested levels
-        update_dct = update_recursively(update_dct1, update_dct2)
+        # to not override lower nested levels
+        return merge_dcts(update_dct1, update_dct2)
 
-        return update_dct
+    @update_attr("traces")
+    def set_trace_selected(self, trace_id, selected):
+        return {trace_id: {"selected": selected}}
 
     def set_legend_visibility(self, visible=True):
 

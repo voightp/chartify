@@ -37,6 +37,13 @@ def get_str_identifier(base_name, check_list, delimiter=" ",
     return new_name
 
 
+def merge_dcts(dct1, *args):
+    """ Merge given dicts with a reference one."""
+    for arg in args:
+        update_dct_recursively(dct1, arg)
+    return dct1
+
+
 def update_dct_recursively(dct, ref_dct):
     """ Update nested dict using reference dict. """
     for k, v in ref_dct.items():

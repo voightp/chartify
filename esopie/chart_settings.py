@@ -57,13 +57,11 @@ def get_trace_appearance(chart_type, priority="normal"):
 
 def get_trace_settings(chart_type):
     shared = {
-        "opacity": 1,
         "hoverlabel": {
             "namelength": -1,
         },
         "marker": {
             "symbol": "circle",
-            "size": 6,
         },
     }
 
@@ -75,9 +73,6 @@ def get_trace_settings(chart_type):
         "line": {
             "type": "scattergl",
             "mode": "lines+markers",
-            "line": {
-                "width": 2,
-            }
         },
         "bubble": {
             "type": "scattergl",

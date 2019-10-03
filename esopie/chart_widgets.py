@@ -22,6 +22,7 @@ class Postman(QObject):
     fullChartUpdated = Signal(str, "QVariantMap")
     layoutUpdated = Signal(str, "QVariantMap")
     tracesUpdated = Signal(str, "QVariantMap")
+    tracesDeleted = Signal(str, str, "QVariantMap")
     componentAdded = Signal(str, "QVariantMap", "QVariantMap")
 
     def __init__(self, app):
@@ -73,20 +74,16 @@ class Postman(QObject):
 
     def add_chart_data(self, item_id, df):
         chart = self.components[item_id]
-        chart.add_data(df)
-        self.fullChartUpdated.emit(item_id, chart.figure)
+        update_dct = chart.add_data(df)
+
+        if update_dct:
+            self.fullChartUpdated.emit(item_id, update_dct)
 
     @Slot(str, QJsonValue)
     def onChartLayoutChange(self, item_id, layout):
         layout = layout.toObject()
         chart = self.components[item_id]
-
-        old_layout = chart.layout
-        if old_layout["hovermode"] != layout["hovermode"]:
-            print("HOVER UPDATED")
-            chart.layout = layout
-        else:
-            chart.layout = layout
+        chart.layout = layout
 
     @Slot(str)
     def onTraceDrop(self, item_id):
@@ -97,8 +94,9 @@ class Postman(QObject):
     def updateChartType(self, item_id, chart_type):
         print(f"PY updateChartType {chart_type}")
         chart = self.components[item_id]
-        chart.update_chart_type(chart_type)
-        self.fullChartUpdated.emit(item_id, chart.figure)
+        update_dct = chart.update_chart_type(chart_type)
+
+        self.fullChartUpdated.emit(item_id, update_dct)
 
     @Slot(str, str)
     def onTraceHover(self, item_id, trace_id):
@@ -112,15 +110,14 @@ class Postman(QObject):
     def onLegendClick(self, item_id, trace_id):
         chart = self.components[item_id]
         update_dct = chart.handle_trace_selected(trace_id)
-
         self.tracesUpdated.emit(item_id, update_dct)
 
     @Slot(str)
     def deleteSelectedTraces(self, item_id):
         chart = self.components[item_id]
         chart.delete_selected_traces()
-
-        self.fullChartUpdated.emit(item_id, chart.figure)
+        # TODO handle trace delete
+        self.tracesDeleted.emit(item_id, chart.figure)
 
 
 class MyPage(QWebEnginePage):
