@@ -102,12 +102,8 @@ class Postman(QObject):
     def onTraceHover(self, item_id, trace_id):
         pass
 
-    @Slot(str, QJsonValue)
-    def onTraceClick(self, item_id):
-        pass
-
     @Slot(str, str)
-    def onLegendClick(self, item_id, trace_id):
+    def onTraceClick(self, item_id, trace_id):
         chart = self.components[item_id]
         update_dct = chart.handle_trace_selected(trace_id)
         self.tracesUpdated.emit(item_id, update_dct)
@@ -116,8 +112,6 @@ class Postman(QObject):
     def deleteSelectedTraces(self, item_id):
         chart = self.components[item_id]
         ids, update_dct = chart.delete_selected_traces()
-        print(ids)
-        print(update_dct)
         self.tracesDeleted.emit(item_id, ids, update_dct)
 
 
