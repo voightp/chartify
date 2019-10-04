@@ -173,21 +173,16 @@ class Chart:
         orig_n_units = len(self.get_all_units())
         ids = self.get_selected_ids()
         for id_ in ids:
-            self.delete_trace(id_)
+            del self.raw_data[id_]
+            del self.traces[id_]
 
         new_n_units = len(self.get_all_units())
-
+        dct1 = self.update_traces_appearance()
         if orig_n_units != new_n_units:
-            self.update_traces_axis()
+            dct1 = merge_dcts(dct1, self.update_traces_axis())
 
-        # regenerate layout as axis data can change
-        # TODO double check if it's required to update trace axis
-        self.update_layout()
-
-    def delete_trace(self, trace_id):
-        """ Remove trace with given id. """
-        del self.raw_data[trace_id]
-        del self.traces[trace_id]
+        dct2 = self.update_layout()
+        return ids, {"traces": dct1, "layout": dct2}
 
     def get_top_margin(self):
         """ Calculate chart top margin. """
@@ -289,14 +284,14 @@ class Chart:
     def handle_trace_selected(self, trace_id):
         """ Reverse 'selected' attribute for the given trace. """
         selected = not self.traces[trace_id]["selected"]
-        update_dct1 = self.set_trace_selected(trace_id, selected)
+        dct1 = self.set_trace_selected(trace_id, selected)
 
         # trace visual appearance needs to be refreshed
-        update_dct2 = self.update_traces_appearance()
+        dct2 = self.update_traces_appearance()
 
         # dicts need to be updated recursively in order
         # to not override lower nested levels
-        return merge_dcts(update_dct1, update_dct2)
+        return merge_dcts(dct1, dct2)
 
     @update_attr("traces")
     def set_trace_selected(self, trace_id, selected):
