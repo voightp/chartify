@@ -191,8 +191,10 @@ class Chart:
     @update_attr("layout")
     def update_layout(self):
         """ Generate chart layout properties. """
-        n = len(self.get_all_units())
-        yaxis = get_y_axis_settings(n, increment=0.05)
+        units = self.get_all_units()
+        n = len(units)
+        yaxis = get_y_axis_settings(n, increment=0.05, titles=units)
+        print(yaxis)
 
         x_domain = get_x_domain(n, increment=0.05)
         xaxis = get_x_axis_settings(n=1, domain=x_domain)

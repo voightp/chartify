@@ -256,10 +256,10 @@ def get_item(frame_id, type_):
     return {**shared, **cases[type_]}
 
 
-def get_y_axis_settings(n=1, increment=0.1):
+def get_y_axis_settings(n=1, increment=0.1, titles=None):
     keys = list(y_axis_dct.keys())[0:n]
     shared = {
-        "anchor": "free",
+        "anchor": "x",
         "rangemode": "tozero",
         "overlaying": "y",
     }
@@ -268,13 +268,18 @@ def get_y_axis_settings(n=1, increment=0.1):
     # modify gaps between y axes
     domain = [0, 1]
     for i, k in enumerate(dct.keys()):
+        j = i % 2
+        dct[k]["side"] = "left" if j == 0 else "right"
+
+        if titles:
+            dct[k]["title"] = titles[i]
+
         if i < 2:
             # skip first left and right y axis as
             # these should be 'nominal' (0, 1)
             continue
-        j = i % 2
-        pos = domain[j]
 
+        pos = domain[j]
         pos = round(pos + (increment if j == 0 else -increment), 2)
         dct[k]["position"] = pos
 
