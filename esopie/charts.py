@@ -130,7 +130,7 @@ class Chart:
         """ Check if there's at least one trace selected. """
         return any(map(lambda x: x["selected"], self.traces.values()))
 
-    def process_data(self, df):
+    def process_data(self, df, auto_update=True):
         """ Process raw pd.DataFrame and store the data. """
         timestamps = [dt.timestamp() for dt in df.index.to_pydatetime()]
         ids = self.raw_data.keys()
@@ -141,12 +141,6 @@ class Chart:
                                      delimiter="-", brackets=False)
             new_ids.append(id_)
             self.raw_data[id_] = Points(col_ix, sr.tolist(), timestamps)
-
-        return new_ids
-
-    def add_data(self, df, auto_update=True):
-        """ Add a new trace into the chart. """
-        new_ids = self.process_data(df)
 
         if auto_update:
             return self.populate_traces(new_ids)
@@ -247,7 +241,8 @@ class Chart:
     def populate_traces(self, ids):
         dct1 = self.add_traces(ids)
         dct2 = self.update_traces_appearance()
-        traces = update_recursively(dct1, dct2)
+        dct3 = self.update_traces_axis()
+        traces = merge_dcts(dct1, dct2, dct3)
 
         layout = self.update_layout()
         return {"traces": traces, "layout": layout}
