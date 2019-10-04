@@ -150,33 +150,6 @@ x_axis_dct = {
     }
 }
 
-y_axis_dct = {
-    "yaxis": {
-        "side": "left",
-        "position": 0
-    },
-    "yaxis2": {
-        "side": "right",
-        "position": 1,
-    },
-    "yaxis3": {
-        "side": "left",
-        "position": 0.1
-    },
-    "yaxis4": {
-        "side": "right",
-        "position": 0.9
-    },
-    "yaxis5": {
-        "side": "left",
-        "position": 0.2
-    },
-    "yaxis6": {
-        "side": "right",
-        "position": 0.8
-    },
-}
-
 layout_dct = {
     "autosize": True,
     "hovermode": "closest",
@@ -257,31 +230,37 @@ def get_item(frame_id, type_):
 
 
 def get_y_axis_settings(n=1, increment=0.1, titles=None):
-    keys = list(y_axis_dct.keys())[0:n]
-    shared = {
-        "anchor": "x",
-        "rangemode": "tozero",
-        "overlaying": "y",
-    }
-    dct = {k: {**v, **shared} for k, v in y_axis_dct.items() if k in keys}
+    dct = {}
 
     # modify gaps between y axes
-    domain = [0, 1]
-    for i, k in enumerate(dct.keys()):
+    s = 0 - increment
+    e = 1 + increment
+    for i in range(1, n + 1):
+        nm = "yaxis" if i == 1 else f"yaxis{i}"
+        dct[nm] = {}
         j = i % 2
-        dct[k]["side"] = "left" if j == 0 else "right"
+        dct[nm]["side"] = "left" if j == 1 else "right"
 
         if titles:
-            dct[k]["title"] = titles[i]
+            dct[nm]["title"] = titles[i - 1]
 
         if i < 2:
-            # skip first left and right y axis as
-            # these should be 'nominal' (0, 1)
+            # skip first default y axis as for some unknown
+            # reason assigning parameters below would break
+            # the 'hover' mechanism
             continue
 
-        pos = domain[j]
-        pos = round(pos + (increment if j == 0 else -increment), 2)
-        dct[k]["position"] = pos
+        if j == 1:
+            s += increment
+            pos = round(s, 2)
+        else:
+            e -= increment
+            pos = round(e, 2)
+
+        dct[nm]["position"] = pos
+        dct[nm]["anchor"] = "free"
+        dct[nm]["rangemode"] = "tozero"
+        dct[nm]["overlaying"] = "y"
 
     return dct
 
