@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 def get_trace_appearance(chart_type, priority="normal"):
     props = {
         "high": {
@@ -174,7 +176,9 @@ layout_dct = {
               "range": [],
               "rangemode": "tozero",
               "type": "linear",
-              "gridcolor": "white"},
+              "gridcolor": "white",
+              "side": "left",
+              },
     "margin": {"l": 50,
                "t": 50,
                "b": 50}
@@ -230,25 +234,29 @@ def get_item(frame_id, type_):
 
 
 def get_y_axis_settings(n=1, increment=0.1, titles=None):
-    dct = {}
+    dct = defaultdict(dict)
 
-    # modify gaps between y axes
-    s = 0 - increment
+    # modify gaps between y axes, initial domain is [0, 1]
+    s = 0
     e = 1 + increment
     for i in range(1, n + 1):
         nm = "yaxis" if i == 1 else f"yaxis{i}"
-        dct[nm] = {}
-        j = i % 2
-        dct[nm]["side"] = "left" if j == 1 else "right"
 
         if titles:
             dct[nm]["title"] = titles[i - 1]
 
-        if i < 2:
-            # skip first default y axis as for some unknown
-            # reason assigning parameters below would break
-            # the 'hover' mechanism
+        # skip first default y axis as for some unknown
+        # reason assigning parameters below would break
+        # the 'hover' mechanism
+        if n == 1:
             continue
+
+        dct[nm] = {**dct[nm],
+                   "anchor": "free",
+                   "rangemode": "tozero",
+                   "overlaying": "y"}
+        j = i % 2
+        dct[nm]["side"] = "left" if j == 1 else "right"
 
         if j == 1:
             s += increment
@@ -258,9 +266,6 @@ def get_y_axis_settings(n=1, increment=0.1, titles=None):
             pos = round(e, 2)
 
         dct[nm]["position"] = pos
-        dct[nm]["anchor"] = "free"
-        dct[nm]["rangemode"] = "tozero"
-        dct[nm]["overlaying"] = "y"
 
     return dct
 
@@ -268,7 +273,7 @@ def get_y_axis_settings(n=1, increment=0.1, titles=None):
 def get_x_domain(n_yaxis=1, increment=0.1):
     domain = [0, 1]
     if n_yaxis > 2:
-        for i in range(n_yaxis - 2):
+        for i in range(n_yaxis - 1):
             j = i % 2
             inc = increment if j == 0 else -increment
             domain[j] = round(domain[j] + inc, 2)

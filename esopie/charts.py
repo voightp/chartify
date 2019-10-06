@@ -193,9 +193,9 @@ class Chart:
         """ Generate chart layout properties. """
         units = self.get_all_units()
         n = len(units)
-        yaxis = get_y_axis_settings(n, increment=0.05, titles=units)
+        yaxis = get_y_axis_settings(n, increment=0.08, titles=units)
 
-        x_domain = get_x_domain(n, increment=0.05)
+        x_domain = get_x_domain(n, increment=0.08)
         xaxis = get_x_axis_settings(n=1, domain=x_domain)
 
         margin = {"margin": {"t": self.get_top_margin()}}
@@ -246,9 +246,7 @@ class Chart:
         traces = merge_dcts(dct1, dct2, dct3)
 
         layout = self.update_layout()
-        import json
-        print(json.dumps(layout, indent=4))
-        print(json.dumps(traces, indent=4))
+
         return {"traces": traces, "layout": layout}
 
     @update_attr("traces")
