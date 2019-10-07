@@ -1,10 +1,11 @@
 import copy
 
 from esopie.utils.utils import get_str_identifier, update_recursively, merge_dcts
-from esopie.chart_settings import (get_x_domain, get_x_axis_settings,
-                                   get_y_axis_settings, get_trace_appearance,
+from esopie.chart_settings import (get_shared_xdomain, get_xaxis_settings,
+                                   get_yaxis_settings, get_trace_appearance,
                                    style, config, get_trace_settings,
-                                   layout_dct, color_generator, get_units_y_dct, )
+                                   layout_dct, color_generator, get_units_axis_dct,
+                                   gen_domain_matrices)
 
 
 def assign_color(dct, color):
@@ -83,6 +84,7 @@ class Chart:
         self.traces = {}
         self.layout = layout_dct
         self.show_custom_legend = True
+        self.shared_axes = True
         self.color_gen = color_generator(0)
 
     @property
@@ -173,7 +175,7 @@ class Chart:
         new_n_units = len(self.get_all_units())
         dct1 = self.update_traces_appearance()
         if orig_n_units != new_n_units:
-            dct1 = merge_dcts(dct1, self.update_traces_axis())
+            dct1 = merge_dcts(dct1, self.update_traces_axes())
 
         dct2 = self.update_layout()
         return ids, {"traces": dct1, "layout": dct2}
@@ -193,24 +195,39 @@ class Chart:
         """ Generate chart layout properties. """
         units = self.get_all_units()
         n = len(units)
-        yaxis = get_y_axis_settings(n, increment=0.08, titles=units)
+        x_doms, y_doms = None, None
 
-        x_domain = get_x_domain(n, increment=0.08)
-        xaxis = get_x_axis_settings(n=1, domain=x_domain)
+        if not self.shared_axes:
+            x_doms, y_doms = gen_domain_matrices(units, max_columns=3,
+                                                 gap=0.05, flat=True)
+
+        yaxis = get_yaxis_settings(n, increment=0.08, titles=units,
+                                   y_domains=y_doms)
+
+        xaxis = get_xaxis_settings(n_yaxis=n, increment=0.08,
+                                   x_domains=x_doms)
 
         margin = {"margin": {"t": self.get_top_margin()}}
-
         return {**yaxis, **xaxis, **margin}
 
     @update_attr("traces")
-    def update_traces_axis(self):
-        """ Assign trace 'y' axis (based on units). """
-        units_y_dct = get_units_y_dct(self.get_all_units())
+    def update_traces_axes(self):
+        """ Assign trace 'x' and 'y' axes (based on units). """
         update_dct = {}
+
+        units = self.get_all_units()
+        units_y_dct = get_units_axis_dct(units, axis="y")
+        units_x_dct = get_units_axis_dct(units)
 
         for id_, trace in self.traces.items():
             yaxis = units_y_dct[trace["units"]]
-            update_dct[id_] = {"yaxis": yaxis}
+
+            if self.shared_axes:
+                xaxis = "x"
+            else:
+                xaxis = units_x_dct["units"]
+
+            update_dct[id_] = {"yaxis": yaxis, "xaxis": xaxis}
 
         return update_dct
 
@@ -242,10 +259,13 @@ class Chart:
     def populate_traces(self, ids):
         dct1 = self.add_traces(ids)
         dct2 = self.update_traces_appearance()
-        dct3 = self.update_traces_axis()
+        dct3 = self.update_traces_axes()
         traces = merge_dcts(dct1, dct2, dct3)
 
         layout = self.update_layout()
+        import json
+        print(json.dumps(traces, indent=4))
+        print(json.dumps(layout, indent=4))
 
         return {"traces": traces, "layout": layout}
 

@@ -1,4 +1,6 @@
 from collections import defaultdict
+import copy
+
 
 def get_trace_appearance(chart_type, priority="normal"):
     props = {
@@ -112,10 +114,10 @@ config = {
 x_axis_dct = {
     "xaxis": {
         "domain": [0, 1],
-        "y": 1.05,
-        "yanchor": "top",
         "type": "date",
         "rangeselector": {
+            "y": 1.05,
+            "yanchor": "top",
             "visible": True,
             "buttons": [
                 {
@@ -141,47 +143,47 @@ x_axis_dct = {
             ]
         },
         "rangeslider": {
-            "visible": False,
+            "visible": True,
             "thickness": 0.05
         }
     },
-    "xaxis2": {
-        "domain": [0, 1],
-        "y": 1.25,
-        "overlaying": "x"
-    }
 }
 
 layout_dct = {
     "autosize": True,
     "hovermode": "closest",
-    "modebar": {"activecolor": "rgba(180,180,180,1)",
-                "bgcolor": "transparent",
-                "color": "rgba(180,180,180,1)",
-                "orientation": "v"},
+    "modebar": {
+        "activecolor": "rgba(180,180,180,1)",
+        "bgcolor": "transparent",
+        "color": "rgba(180,180,180,1)",
+        "orientation": "v"},
     "paper_bgcolor": "transparent",
     "plot_bgcolor": "transparent",
     "showlegend": False,
-    "legend": {"orientation": "v",
-               "x": 0,
-               "xanchor": "left",
-               "y": 1.1,
-               "yanchor": "top"},
+    "legend": {
+        "orientation": "v",
+        "x": 0,
+        "xanchor": "left",
+        "y": 1.1,
+        "yanchor": "top"},
     # "title": {"text": "A Fancy Plot"},
-    "xaxis": {"autorange": True,
-              "range": [],
-              "type": "linear",
-              "gridcolor": "white"},
-    "yaxis": {"autorange": True,
-              "range": [],
-              "rangemode": "tozero",
-              "type": "linear",
-              "gridcolor": "white",
-              "side": "left",
-              },
-    "margin": {"l": 50,
-               "t": 50,
-               "b": 50}
+    "xaxis": {
+        "autorange": True,
+        "range": [],
+        "type": "linear",
+        "gridcolor": "white"},
+    "yaxis": {
+        "autorange": True,
+        "range": [],
+        "rangemode": "tozero",
+        "type": "linear",
+        "gridcolor": "white",
+        "side": "left",
+    },
+    "margin": {
+        "l": 50,
+        "t": 50,
+        "b": 50}
 }
 
 
@@ -233,44 +235,100 @@ def get_item(frame_id, type_):
     return {**shared, **cases[type_]}
 
 
-def get_y_axis_settings(n=1, increment=0.1, titles=None):
-    dct = defaultdict(dict)
+def gen_ref_matrix(items, max_columns):
+    m = [[]]
+    row = 0
+    for item in items:
+        if len(m[row]) < max_columns:
+            m[row].append(item)
+        else:
+            m.append([item])
+            row += 1
+    return m
 
+
+def dom_gen(n, gap):
+    w = (1 - ((n - 1) * gap)) / n
+    start = 0
+    for _ in range(n):
+        end = start + w
+        yield start, end
+        start = end + gap
+
+
+def gen_domain_matrices(items, gap=0.05, max_columns=3, flat=True):
+    ref_matrix = gen_ref_matrix(items, max_columns)
+
+    x_dom_mx = copy.deepcopy(ref_matrix)
+    y_dom_mx = copy.deepcopy(ref_matrix)
+
+    y_dom_gen = dom_gen(len(ref_matrix), gap)
+
+    for i, row in enumerate(ref_matrix):
+        x_dom_gen = dom_gen(len(row), gap)
+        y_dom = next(y_dom_gen)
+        for j, item in enumerate(row):
+            x_dom_mx[i][j] = next(x_dom_gen)
+            y_dom_mx[i][j] = y_dom
+
+    if flat:
+        x_dom_mx = [a for item in x_dom_mx for a in item]
+        y_dom_mx = [a for item in y_dom_mx for a in item]
+
+    return x_dom_mx, y_dom_mx
+
+
+def add_shared_yaxis_data(yaxis_dct, increment):
     # modify gaps between y axes, initial domain is [0, 1]
     s = 0
     e = 1 + increment
-    for i in range(1, n + 1):
-        nm = "yaxis" if i == 1 else f"yaxis{i}"
 
-        if titles:
-            dct[nm]["title"] = titles[i - 1]
+    for i, k in enumerate(yaxis_dct.keys()):
 
-        # skip first default y axis as for some unknown
-        # reason assigning parameters below would break
-        # the 'hover' mechanism
-        if n == 1:
+        # skip first y axis as this axis is a 'base' one
+        # and has its settings defined in default layout
+        if i == 0:
             continue
 
-        dct[nm] = {**dct[nm],
-                   "anchor": "free",
-                   "rangemode": "tozero",
-                   "overlaying": "y"}
+        yaxis_dct[k] = {**yaxis_dct[k],
+                        "anchor": "free",
+                        "overlaying": "y"}
         j = i % 2
-        dct[nm]["side"] = "left" if j == 1 else "right"
 
-        if j == 1:
+        if j == 0:
             s += increment
             pos = round(s, 2)
         else:
             e -= increment
             pos = round(e, 2)
 
-        dct[nm]["position"] = pos
+        yaxis_dct[k]["position"] = pos
+        yaxis_dct[k]["side"] = "left" if j == 0 else "right"
 
+
+def get_yaxis_settings(n=1, increment=0.1, titles=None, y_domains=None):
+    dct = defaultdict(dict)
+
+    for i in range(n):
+        nm = "yaxis" if i == 0 else f"yaxis{i + 1}"
+
+        if titles:
+            dct[nm]["title"] = titles[i]
+
+        dct[nm]["rangemode"] = "tozero"
+
+    if not y_domains:
+        add_shared_yaxis_data(dct, increment)
+    else:
+        for i, k in enumerate(dct.keys()):
+            dct[k] = {**dct[k],
+                      "domain": y_domains[i],
+                      "anchor": "x" if i == 0 else f"x{i + 1}",
+                      "side": "left"}
     return dct
 
 
-def get_x_domain(n_yaxis=1, increment=0.1):
+def get_shared_xdomain(n_yaxis, increment):
     domain = [0, 1]
     if n_yaxis > 2:
         for i in range(n_yaxis - 1):
@@ -280,21 +338,25 @@ def get_x_domain(n_yaxis=1, increment=0.1):
     return domain
 
 
-def get_x_axis_settings(n=1, domain=None):
-    keys = list(x_axis_dct.keys())[0:n]
-    dct = {k: v for k, v in x_axis_dct.items() if k in keys}
+def get_xaxis_settings(n_yaxis=1, increment=0.1, x_domains=None):
+    dct = defaultdict(dict)
 
-    if domain:
-        # update domain to match y axis settings
-        for k in dct.keys():
-            dct[k]["domain"] = domain
-
+    if not x_domains:
+        x_dom = get_shared_xdomain(n_yaxis, increment)
+        dct["xaxis"] = x_axis_dct["xaxis"]
+        dct["xaxis"]["domain"] = x_dom
+    else:
+        for i in range(len(x_domains)):
+            nm = "xaxis" if i == 0 else f"xaxis{i + 1}"
+            dct[nm] = {"side": "bottom",
+                       "domain": x_domains[i],
+                       "anchor": "y" if i == 0 else f"y{i + 1}"}
     return dct
 
 
-def get_units_y_dct(units_lst):
-    ys_dct = {}
+def get_units_axis_dct(units_lst, axis="x"):
+    axis_y = {}
     for i, u in enumerate(units_lst):
-        y = f"y{i + 1}" if i != 0 else "y"
-        ys_dct[u] = y
-    return ys_dct
+        y = f"{axis}{i + 1}" if i != 0 else f"{axis}"
+        axis_y[u] = y
+    return axis_y
