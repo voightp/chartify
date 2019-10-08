@@ -500,8 +500,18 @@ class MainWindow(QMainWindow):
                 print(f"Deleting file id: '{id_}' from database.")
                 del self.database[id_]
             except KeyError:
-                print(f"Cannot delete the eso file: id '{id_}',"
+                print(f"Cannot delete eso file: id '{id_}',"
                       f"\nFile was not found in database.")
+
+    def rename_file_in_db(self, id_, f_name, totals_f_name):
+        """ Rename file in the databases. """
+        try:
+            f_set = self.database[id_]
+            f_set[f"s{id_}"].rename(f_name)
+            f_set[f"t{id_}"].rename(totals_f_name)
+        except KeyError:
+            print(f"Cannot rename eso file: id '{id_}',"
+                  f"\nFile was not found in database.")
 
     def get_files_from_db(self, *args):
         """ Fetch eso files from the database. """
@@ -582,11 +592,8 @@ class MainWindow(QMainWindow):
         self.toolbar.set_tools_btns_enabled("sum", "mean",
                                             "remove", enabled=False)
 
-    def create_view_wgt(self, id_, f_name, std_header, tot_header):
+    def create_view_wgt(self, id_, name, std_header, tot_header):
         """ Create a 'View' widget and connect its actions. """
-        names = self.tab_wgt.get_all_child_names()
-        name = get_str_identifier(f_name, names)
-
         wgt = View(id_, name, std_header, tot_header)
 
         # connect view actions
@@ -605,6 +612,13 @@ class MainWindow(QMainWindow):
         std_id = f"s{id_}"
         tot_id = f"t{id_}"
 
+        # create unique file name
+        names = self.tab_wgt.get_all_child_names()
+        name = get_str_identifier(std_file.file_name, names)
+
+        std_file.rename(name)
+        tot_file.rename(f"{name} - totals")
+
         # copy header dicts as view and file should be independent
         std_header_dct = copy.deepcopy(std_file.header_dct)
         tot_header_dct = copy.deepcopy(tot_file.header_dct)
@@ -617,11 +631,10 @@ class MainWindow(QMainWindow):
 
         self.add_set_to_db(id_, file_set)
 
-        f_name = std_file.file_name
-        wgt = self.create_view_wgt(id_, f_name, std_header, tot_header)
+        wgt = self.create_view_wgt(id_, name, std_header, tot_header)
 
         # add the new view into tab widget
-        self.tab_wgt.add_tab(wgt, wgt.name)
+        self.tab_wgt.add_tab(wgt, name)
 
         # enable all eso file results btn if there's multiple files
         if self.tab_wgt.count() > 1:
@@ -724,10 +737,11 @@ class MainWindow(QMainWindow):
             return
 
         name = d.get_input("name")
+        totals_name = f"{name} - totals"
 
-        # update name references
-        # TODO decide if database names should be handled as well
         view.name = name
+        rename_file_in_db(view.id_, name, totals_name)
+
         self.tab_wgt.setTabText(tab_index, name)
 
     def export_xlsx(self):
