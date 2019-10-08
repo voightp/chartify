@@ -75,7 +75,6 @@ class Postman(QObject):
     def add_chart_data(self, item_id, df):
         chart = self.components[item_id]
         update_dct = chart.process_data(df)
-        print(df)
 
         if update_dct:
             self.fullChartUpdated.emit(item_id, update_dct)

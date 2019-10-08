@@ -257,21 +257,19 @@ class Chart:
     def add_traces(self, ids):
         """ Transform 'raw' trace objects for given ids.  """
         update_dct = {}
-        settings = get_trace_settings(self.type_)
         dt = {k: v for k, v in self.raw_data.items() if k in ids}
 
         for id_, points in dt.items():
             color = next(self.color_gen)
-            # further keyword modifications could mutate the data
-            kwargs = copy.deepcopy(settings)
-            kwargs["selected"] = False
-            kwargs["units"] = points.units
 
+            kwargs = get_trace_settings(self.type_)
             trace = trace2d(id_, self.item_id,
                             points.js_timestamp,
                             points.data,
                             points.name,
                             color,
+                            selected=False,
+                            units=points.units,
                             **kwargs)
 
             update_dct[id_] = trace
