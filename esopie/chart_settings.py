@@ -143,7 +143,7 @@ x_axis_dct = {
             ]
         },
         "rangeslider": {
-            "visible": True,
+            "visible": False,
             "thickness": 0.05
         }
     },
@@ -155,7 +155,7 @@ layout_dct = {
     "modebar": {
         "activecolor": "rgba(180,180,180,1)",
         "bgcolor": "transparent",
-        "color": "rgba(180,180,180,1)",
+        "color": "rgba(180,180,180,0.5)",
         "orientation": "v"},
     "paper_bgcolor": "transparent",
     "plot_bgcolor": "transparent",
@@ -252,7 +252,7 @@ def dom_gen(n, gap):
     start = 0
     for _ in range(n):
         end = start + w
-        yield start, end
+        yield [start, end]
         start = end + gap
 
 
@@ -349,6 +349,7 @@ def get_xaxis_settings(n_yaxis=1, increment=0.1, x_domains=None):
         for i in range(len(x_domains)):
             nm = "xaxis" if i == 0 else f"xaxis{i + 1}"
             dct[nm] = {"side": "bottom",
+                       "type": "date",
                        "domain": x_domains[i],
                        "anchor": "y" if i == 0 else f"y{i + 1}"}
     return dct

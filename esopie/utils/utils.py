@@ -40,7 +40,7 @@ def get_str_identifier(base_name, check_list, delimiter=" ",
 def merge_dcts(dct1, *args):
     """ Merge given dicts with a reference one."""
     for arg in args:
-        update_dct_recursively(dct1, arg)
+        dct1 = update_dct_recursively(dct1, arg)
     return dct1
 
 

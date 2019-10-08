@@ -22,7 +22,7 @@ class Postman(QObject):
     fullChartUpdated = Signal(str, "QVariantMap")
     layoutUpdated = Signal(str, "QVariantMap")
     tracesUpdated = Signal(str, "QVariantMap")
-    tracesDeleted = Signal(str, "QVariantList", "QVariantMap")
+    tracesDeleted = Signal(str, "QVariantList", "QVariantMap", "QVariantMap")
     componentAdded = Signal(str, "QVariantMap", "QVariantMap")
 
     def __init__(self, app):
@@ -75,6 +75,7 @@ class Postman(QObject):
     def add_chart_data(self, item_id, df):
         chart = self.components[item_id]
         update_dct = chart.process_data(df)
+        print(df)
 
         if update_dct:
             self.fullChartUpdated.emit(item_id, update_dct)
@@ -111,8 +112,8 @@ class Postman(QObject):
     @Slot(str)
     def deleteSelectedTraces(self, item_id):
         chart = self.components[item_id]
-        ids, update_dct = chart.delete_selected_traces()
-        self.tracesDeleted.emit(item_id, ids, update_dct)
+        ids, update_dct, remove_dct = chart.delete_selected_traces()
+        self.tracesDeleted.emit(item_id, ids, update_dct, remove_dct)
 
 
 class MyPage(QWebEnginePage):

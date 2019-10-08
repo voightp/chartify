@@ -1,7 +1,8 @@
 import copy
 
-from esopie.utils.utils import get_str_identifier, update_recursively, merge_dcts
-from esopie.chart_settings import (get_shared_xdomain, get_xaxis_settings,
+from esopie.utils.utils import (get_str_identifier, update_recursively,
+                                merge_dcts, remove_recursively)
+from esopie.chart_settings import (get_xaxis_settings,
                                    get_yaxis_settings, get_trace_appearance,
                                    style, config, get_trace_settings,
                                    layout_dct, color_generator, get_units_axis_dct,
@@ -33,10 +34,16 @@ def trace2d(trace_id, item_id, x, y, name, color, **kwargs):
 def update_attr(attr_name):
     def decorator(func):
         def wrapper(self, *args, **kwargs):
-            update_dct = func(self, *args, **kwargs)
             attr = self.__getattribute__(attr_name)
-            update_recursively(attr, update_dct)
-            return update_dct
+
+            out = func(self, *args, **kwargs)
+            if isinstance(out, dict):
+                update_recursively(attr, out)
+                return out
+            else:
+                remove_recursively(attr, out[1])
+                update_recursively(attr, out[0])
+            return list(out)
 
         return wrapper
 
@@ -84,7 +91,7 @@ class Chart:
         self.traces = {}
         self.layout = layout_dct
         self.show_custom_legend = True
-        self.shared_axes = True
+        self.shared_axes = False
         self.color_gen = color_generator(0)
 
     @property
@@ -173,12 +180,18 @@ class Chart:
             del self.traces[id_]
 
         new_n_units = len(self.get_all_units())
-        dct1 = self.update_traces_appearance()
+        traces = self.update_traces_appearance()
         if orig_n_units != new_n_units:
-            dct1 = merge_dcts(dct1, self.update_traces_axes())
+            dct = self.update_traces_axes()
+            traces = merge_dcts(traces, dct)
 
-        dct2 = self.update_layout()
-        return ids, {"traces": dct1, "layout": dct2}
+        update_dct, remove_dct = self.update_layout()
+
+        return (
+            ids,
+            {"traces": traces, "layout": update_dct},
+            {"layout": remove_dct}
+        )
 
     def get_top_margin(self):
         """ Calculate chart top margin. """
@@ -208,7 +221,16 @@ class Chart:
                                    x_domains=x_doms)
 
         margin = {"margin": {"t": self.get_top_margin()}}
-        return {**yaxis, **xaxis, **margin}
+
+        update_dct = {**yaxis, **xaxis, **margin}
+        remove_dct = {}
+
+        # clean up previous xaxis and yaxis assignment
+        for k in self.layout.keys():
+            if "yaxis" in k or "xaxis" in k:
+                remove_dct[k] = None
+
+        return update_dct, remove_dct
 
     @update_attr("traces")
     def update_traces_axes(self):
@@ -225,7 +247,7 @@ class Chart:
             if self.shared_axes:
                 xaxis = "x"
             else:
-                xaxis = units_x_dct["units"]
+                xaxis = units_x_dct[trace["units"]]
 
             update_dct[id_] = {"yaxis": yaxis, "xaxis": xaxis}
 
@@ -257,15 +279,17 @@ class Chart:
         return update_dct
 
     def populate_traces(self, ids):
+        """ Create 'trace' object from raw data for given ids. """
+        # create 'trace' objects and set appearance
         dct1 = self.add_traces(ids)
         dct2 = self.update_traces_appearance()
         dct3 = self.update_traces_axes()
+
         traces = merge_dcts(dct1, dct2, dct3)
 
-        layout = self.update_layout()
-        import json
-        print(json.dumps(traces, indent=4))
-        print(json.dumps(layout, indent=4))
+        # update_layout returns 'update' and 'remove' dicts but since nothing
+        # needs to be removed when adding traces, remove dct can be ignored
+        layout, _ = self.update_layout()
 
         return {"traces": traces, "layout": layout}
 
@@ -292,28 +316,29 @@ class Chart:
 
         update_dct = {}
         for k, v in appearance.items():
-            a = get_trace_appearance(self.type_, k)
             for id_ in v:
-                update_dct[id_] = a
+                update_dct[id_] = get_trace_appearance(self.type_, k)
 
         return update_dct
 
     def handle_trace_selected(self, trace_id):
         """ Reverse 'selected' attribute for the given trace. """
+        # reverse selected state of the clicked trace
         selected = not self.traces[trace_id]["selected"]
-        dct1 = self.set_trace_selected(trace_id, selected)
 
-        # trace visual appearance needs to be refreshed
+        dct1 = self.set_trace_selected(trace_id, selected)
         dct2 = self.update_traces_appearance()
 
         # dicts need to be updated recursively in order
         # to not override lower nested levels
-        return merge_dcts(dct1, dct2)
+        update_dct = merge_dcts(dct1, dct2)
+
+        return update_dct
 
     @update_attr("traces")
     def set_trace_selected(self, trace_id, selected):
+        """ Set 'selected' state for the given trace. """
         return {trace_id: {"selected": selected}}
 
     def set_legend_visibility(self, visible=True):
-
         self.show_custom_legend = visible
