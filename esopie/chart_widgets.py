@@ -88,7 +88,9 @@ class Postman(QObject):
     @Slot(str)
     def onTraceDrop(self, item_id):
         callback = partial(self.add_chart_data, item_id)
-        self.app.get_results(callback=callback)
+        self.app.get_results(callback=callback,
+                             include_interval=True,
+                             include_id=True)
 
     @Slot(str, str)
     def updateChartType(self, item_id, chart_type):

@@ -1,5 +1,6 @@
-import copy
+import pandas as pd
 
+from eso_reader.building_eso_file import averaged_units
 from esopie.utils.utils import (get_str_identifier, update_recursively,
                                 merge_dcts, remove_recursively)
 from esopie.chart_settings import (get_xaxis_settings,
@@ -31,6 +32,21 @@ def trace2d(trace_id, item_id, x, y, name, color, **kwargs):
     return dct
 
 
+def calculate_totals(df):
+    """ Calculate df sum or average (based on units). """
+    units = df.columns.get_level_values("units")
+    cnd = units.isin(averaged_units)
+
+    avg_df = df.loc[:, cnd].mean()
+    sum_df = df.loc[:, [not b for b in cnd]].sum()
+
+    sr = pd.concat([avg_df, sum_df])
+    drop = [nm for nm in sr.index.names if nm != "id"]
+    sr.index = sr.index.droplevel(drop)
+
+    return sr
+
+
 def update_attr(attr_name):
     def decorator(func):
         def wrapper(self, *args, **kwargs):
@@ -51,9 +67,10 @@ def update_attr(attr_name):
 
 
 class Points:
-    def __init__(self, name_tup, data, timestamp):
+    def __init__(self, name_tup, values, total_value, timestamp):
         self.name_tup = name_tup
-        self.data = data
+        self.values = values
+        self.total_value = total_value
         self.timestamp = timestamp
 
     @property
@@ -69,8 +86,20 @@ class Points:
         return self.name_tup[0]
 
     @property
+    def interval(self):
+        return self.name_tup[1]
+
+    @property
+    def key(self):
+        return self.name_tup[2]
+
+    @property
+    def variable(self):
+        return self.name_tup[3]
+
+    @property
     def units(self):
-        return self.name_tup[-1]
+        return self.name_tup[4]
 
 
 class Chart:
@@ -142,14 +171,21 @@ class Chart:
     def process_data(self, df, auto_update=True):
         """ Process raw pd.DataFrame and store the data. """
         timestamps = [dt.timestamp() for dt in df.index.to_pydatetime()]
-        ids = self.raw_data.keys()
-        new_ids = []
+        totals_sr = calculate_totals(df)
 
+        new_ids = []
         for col_ix, sr in df.iteritems():
+            ids = self.raw_data.keys()
             id_ = get_str_identifier("trace", ids, start_i=1,
                                      delimiter="-", brackets=False)
             new_ids.append(id_)
-            self.raw_data[id_] = Points(col_ix, sr.tolist(), timestamps)
+
+            # ignore col_ix[1] as variable 'id' is not required
+            name_tup = (col_ix[0], col_ix[2], col_ix[3], col_ix[4], col_ix[5])
+            total_value = totals_sr.at[col_ix[1]]
+
+            points = Points(name_tup, sr.tolist(), total_value, timestamps)
+            self.raw_data[id_] = points
 
         if auto_update:
             return self.populate_traces(new_ids)
@@ -265,7 +301,7 @@ class Chart:
             kwargs = get_trace_settings(self.type_)
             trace = trace2d(id_, self.item_id,
                             points.js_timestamp,
-                            points.data,
+                            points.values,
                             points.name,
                             color,
                             selected=False,
