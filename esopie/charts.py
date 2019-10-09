@@ -1,6 +1,7 @@
 import pandas as pd
 
 from eso_reader.building_eso_file import averaged_units
+from esopie.trace import RawTrace
 from esopie.utils.utils import (get_str_identifier, update_recursively,
                                 merge_dcts, remove_recursively)
 from esopie.chart_settings import (get_xaxis_settings,
@@ -8,13 +9,6 @@ from esopie.chart_settings import (get_xaxis_settings,
                                    style, config, get_trace_settings,
                                    layout_dct, color_generator, get_units_axis_dct,
                                    gen_domain_matrices)
-
-
-def assign_color(dct, color):
-    try:
-        dct["marker"]["color"] = color
-    except KeyError:
-        dct["marker"] = {"color": color}
 
 
 def trace2d(trace_id, item_id, x, y, name, color, **kwargs):
@@ -27,7 +21,10 @@ def trace2d(trace_id, item_id, x, y, name, color, **kwargs):
         **kwargs
     }
 
-    assign_color(dct, color)
+    try:
+        dct["marker"]["color"] = color
+    except KeyError:
+        dct["marker"] = {"color": color}
 
     return dct
 
@@ -66,42 +63,6 @@ def update_attr(attr_name):
     return decorator
 
 
-class Points:
-    def __init__(self, name_tup, values, total_value, timestamp):
-        self.name_tup = name_tup
-        self.values = values
-        self.total_value = total_value
-        self.timestamp = timestamp
-
-    @property
-    def js_timestamp(self):
-        return [ts * 1000 for ts in self.timestamp]
-
-    @property
-    def name(self):
-        return " | ".join(self.name_tup)
-
-    @property
-    def file_name(self):
-        return self.name_tup[0]
-
-    @property
-    def interval(self):
-        return self.name_tup[1]
-
-    @property
-    def key(self):
-        return self.name_tup[2]
-
-    @property
-    def variable(self):
-        return self.name_tup[3]
-
-    @property
-    def units(self):
-        return self.name_tup[4]
-
-
 class Chart:
     """
     A class to handle chart operation and to
@@ -116,7 +77,7 @@ class Chart:
         self.chart_id = chart_id
         self.item_id = item_id
         self.type_ = type_
-        self.raw_data = {}
+        self.raw_traces = {}
         self.traces = {}
         self.layout = layout_dct
         self.show_custom_legend = True
@@ -145,7 +106,7 @@ class Chart:
 
     def get_all_units(self):
         """ Get a list of all used units. """
-        full = [points.units for points in self.raw_data.values()]
+        full = [points.units for points in self.raw_traces.values()]
         setlist = []
         for e in full:
             if e not in setlist:
@@ -175,17 +136,21 @@ class Chart:
 
         new_ids = []
         for col_ix, sr in df.iteritems():
-            ids = self.raw_data.keys()
+            ids = self.raw_traces.keys()
             id_ = get_str_identifier("trace", ids, start_i=1,
                                      delimiter="-", brackets=False)
             new_ids.append(id_)
 
             # ignore col_ix[1] as variable 'id' is not required
             name_tup = (col_ix[0], col_ix[2], col_ix[3], col_ix[4], col_ix[5])
+            values = sr.tolist()
             total_value = totals_sr.at[col_ix[1]]
+            color = next(self.color_gen)
 
-            points = Points(name_tup, sr.tolist(), total_value, timestamps)
-            self.raw_data[id_] = points
+            raw_trace = RawTrace(name_tup, values, total_value,
+                                 timestamps, color)
+
+            self.raw_traces[id_] = raw_trace
 
         if auto_update:
             return self.populate_traces(new_ids)
@@ -212,7 +177,7 @@ class Chart:
         orig_n_units = len(self.get_all_units())
         ids = self.get_selected_ids()
         for id_ in ids:
-            del self.raw_data[id_]
+            del self.raw_traces[id_]
             del self.traces[id_]
 
         new_n_units = len(self.get_all_units())
@@ -293,7 +258,7 @@ class Chart:
     def add_traces(self, ids):
         """ Transform 'raw' trace objects for given ids.  """
         update_dct = {}
-        dt = {k: v for k, v in self.raw_data.items() if k in ids}
+        dt = {k: v for k, v in self.raw_traces.items() if k in ids}
 
         for id_, points in dt.items():
             color = next(self.color_gen)
