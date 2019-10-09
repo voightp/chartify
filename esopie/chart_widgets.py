@@ -76,8 +76,7 @@ class Postman(QObject):
         chart = self.components[item_id]
         update_dct = chart.process_data(df)
 
-        if update_dct:
-            self.fullChartUpdated.emit(item_id, update_dct)
+        self.fullChartUpdated.emit(item_id, update_dct)
 
     @Slot(str, QJsonValue)
     def onChartLayoutChange(self, item_id, layout):

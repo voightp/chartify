@@ -2,47 +2,53 @@ from collections import defaultdict
 import copy
 
 
-def get_trace_appearance(chart_type, priority="normal"):
-    props = {
+def get_appearance(type_, color, priority="normal"):
+    weights = {
+        "low": {
+            "markerSize": 5,
+            "lineWidth": 1,
+            "opacity": 0.3
+        },
+
+        "normal": {
+            "markerSize": 5,
+            "lineWidth": 2,
+            "opacity": 0.5
+        },
         "high": {
             "markerSize": 6,
             "lineWidth": 2,
             "opacity": 1
-        },
-        "normal": {
-            "markerSize": 5,
-            "lineWidth": 2,
-            "opacity": 0.7
-        },
-        "low": {
-            "markerSize": 5,
-            "lineWidth": 2,
-            "opacity": 0.3
-        }
-    }
+        }}
 
     shared = {
-        "opacity": props[priority]["opacity"]
+        "opacity": weights[priority]["opacity"]
     }
 
-    settings = {
+    props = {
         "scatter": {
             "marker": {
-                "size": props[priority]["markerSize"],
-            },
+                "size": weights[priority]["markerSize"],
+                "color": color,
+                "symbol": "circle",
+            }
         },
         "line": {
             "marker": {
-                "size": props[priority]["markerSize"],
+                "size": weights[priority]["markerSize"],
+                "color": color,
+                "symbol": "circle"
             },
             "line": {
-                "width": props[priority]["lineWidth"],
-            },
-        },
-        "bubble": {
+                "width": weights[priority]["lineWidth"],
+                "color": color
+            }
 
         },
         "bar": {
+
+        },
+        "bubble": {
 
         },
         "pie": {
@@ -53,50 +59,10 @@ def get_trace_appearance(chart_type, priority="normal"):
         },
         "box": {
 
-        }
-    }
-
-    return {**shared, **settings[chart_type]}
-
-
-def get_trace_settings(chart_type):
-    shared = {
-        "hoverlabel": {
-            "namelength": -1,
-        },
-        "marker": {
-            "symbol": "circle",
         },
     }
 
-    cases = {
-        "scatter": {
-            "type": "scattergl",
-            "mode": "markers",
-        },
-        "line": {
-            "type": "scattergl",
-            "mode": "lines+markers",
-        },
-        "bubble": {
-            "type": "scattergl",
-            "mode": "markers",
-        },
-        "bar": {
-            "type": "bar",
-        },
-        "pie": {
-            "type": "pie",
-        },
-        "histogram": {
-            "type": "histogram",
-        },
-        "box": {
-            "type": "box",
-        }
-    }
-
-    return {**shared, **cases[chart_type]}
+    return {**shared, **props[type_]}
 
 
 style = {
