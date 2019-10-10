@@ -19,10 +19,7 @@ from esopie.chart_settings import get_item
 
 
 class Postman(QObject):
-    fullChartUpdated = Signal(str, "QVariantMap")
-    layoutUpdated = Signal(str, "QVariantMap")
-    tracesUpdated = Signal(str, "QVariantMap")
-    tracesDeleted = Signal(str, "QVariantList", "QVariantMap", "QVariantMap")
+    chartUpdated = Signal(str, "QVariantMap", "QVariantMap", "QVariantList")
     componentAdded = Signal(str, "QVariantMap", "QVariantMap")
 
     def __init__(self, app):
@@ -72,19 +69,18 @@ class Postman(QObject):
                                  item,
                                  chart.figure)
 
-    def add_chart_data(self, item_id, df):
-        print("add_chart_data", item_id)
-        chart = self.components[item_id]
-        update_dct = chart.process_data(df)
-        print(json.dumps(update_dct, indent=4))
-
-        self.fullChartUpdated.emit(item_id, update_dct)
-
     @Slot(str, QJsonValue)
     def onChartLayoutChange(self, item_id, layout):
         layout = layout.toObject()
         chart = self.components[item_id]
         chart.layout = layout
+
+    def add_chart_data(self, item_id, df):
+        print("add_chart_data", item_id)
+        chart = self.components[item_id]
+        update_dct = chart.process_data(df)
+
+        self.chartUpdated.emit(item_id, update_dct, {}, [])
 
     @Slot(str)
     def onTraceDrop(self, item_id):
@@ -98,9 +94,11 @@ class Postman(QObject):
         print(f"PY updateChartType {chart_type}")
         chart = self.components[item_id]
         update_dct = chart.update_chart_type(chart_type)
-        print(json.dumps(update_dct, indent=4))
 
-        self.fullChartUpdated.emit(item_id, update_dct)
+        # remove all traces to clean up non-used attributes
+        all_ids = chart.get_all_ids()
+
+        self.chartUpdated.emit(item_id, update_dct, {}, all_ids)
 
     @Slot(str, str)
     def onTraceHover(self, item_id, trace_id):
@@ -110,19 +108,15 @@ class Postman(QObject):
     def onTraceClick(self, item_id, trace_id):
         chart = self.components[item_id]
         update_dct = chart.handle_trace_selected(trace_id)
-        print("onTraceClick", item_id)
-        print(json.dumps(update_dct, indent=4))
-        self.tracesUpdated.emit(item_id, update_dct)
+
+        self.chartUpdated.emit(item_id, update_dct, {}, [])
 
     @Slot(str)
     def deleteSelectedTraces(self, item_id):
         chart = self.components[item_id]
         ids, update_dct, remove_dct = chart.delete_selected_traces()
-        print("deleteSelectedTraces", item_id)
-        print(ids)
-        print(json.dumps(update_dct, indent=4))
-        print(json.dumps(remove_dct, indent=4))
-        self.tracesDeleted.emit(item_id, ids, update_dct, remove_dct)
+
+        self.chartUpdated.emit(item_id, update_dct, remove_dct, ids)
 
 
 class MyPage(QWebEnginePage):

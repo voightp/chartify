@@ -123,11 +123,12 @@ class Chart:
             info = list(col_ix)
             id_ = info.pop(1)
             total_value = totals_sr.at[id_]
+            color = next(self.color_gen)
             priority = "low" if self.any_trace_selected() else "normal"
 
             args = (self.item_id, trace_id, tuple(info), values,
-                    total_value, timestamps, next(self.color_gen))
-            kwargs = {"priority": priority}
+                    total_value, timestamps, color)
+            kwargs = {"priority": priority, "type_": self.type_}
 
             trace = RawTrace(*args, **kwargs)
             new_traces[trace_id] = trace
@@ -155,6 +156,7 @@ class Chart:
             trace.type_ = chart_type
 
         traces = self.plot_traces(self.raw_traces)
+
         return {"traces": traces, "chartType": chart_type}
 
     def delete_selected_traces(self):
@@ -298,7 +300,7 @@ class Chart:
         # to not override lower nested levels
         update_dct = merge_dcts(trace_dct1, trace_dct2)
 
-        return update_dct
+        return {"traces": update_dct}
 
     @update_attr("traces")
     def set_trace_selected(self, trace_id, selected):
