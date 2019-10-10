@@ -58,7 +58,10 @@ def get_appearance(type_, color, priority="normal"):
 
         },
         "box": {
-
+            "jitter": 0.5,
+            "boxpoints": 'all',
+            "whiskerwidth": 0.2,
+            "marker_size": 2,
         },
     }
 
@@ -80,7 +83,6 @@ config = {
 x_axis_dct = {
     "xaxis": {
         "domain": [0, 1],
-        "type": "date",
         "rangeselector": {
             "y": 1.05,
             "yanchor": "top",
@@ -132,24 +134,22 @@ layout_dct = {
         "xanchor": "left",
         "y": 1.1,
         "yanchor": "top"},
-    # "title": {"text": "A Fancy Plot"},
     "xaxis": {
         "autorange": True,
         "range": [],
         "type": "linear",
-        "gridcolor": "white"},
-    "yaxis": {
-        "autorange": True,
-        "range": [],
-        "rangemode": "tozero",
-        "type": "linear",
-        "gridcolor": "white",
-        "side": "left",
-    },
-    "margin": {
-        "l": 50,
-        "t": 50,
-        "b": 50}
+        "yaxis": {
+            "autorange": True,
+            "range": [],
+            "rangemode": "tozero",
+            "type": "linear",
+            "side": "left",
+        },
+        "margin": {
+            "l": 50,
+            "t": 50,
+            "b": 50}
+    }
 }
 
 
@@ -304,20 +304,33 @@ def get_shared_xdomain(n_yaxis, increment):
     return domain
 
 
-def get_xaxis_settings(n_yaxis=1, increment=0.1, x_domains=None):
+def get_xaxis_settings(n_yaxis=1, increment=0.1, x_domains=None,
+                       chart_type="scatter"):
     dct = defaultdict(dict)
+    types = ["scatter", "bar", "bubble", "line"]
+    axis_type = "date" if chart_type in types else "-"
+
+    shared = {"gridcolor": "#444",
+              "zeroline": True,
+              "zerolinewidth": 10,
+              "zerolinecolor": "#444"}
 
     if not x_domains:
         x_dom = get_shared_xdomain(n_yaxis, increment)
         dct["xaxis"] = x_axis_dct["xaxis"]
-        dct["xaxis"]["domain"] = x_dom
+        dct["xaxis"] = {"domain": x_dom,
+                        "type": axis_type,
+                        **shared}
+
     else:
         for i in range(len(x_domains)):
             nm = "xaxis" if i == 0 else f"xaxis{i + 1}"
             dct[nm] = {"side": "bottom",
-                       "type": "date",
+                       "type": axis_type,
                        "domain": x_domains[i],
-                       "anchor": "y" if i == 0 else f"y{i + 1}"}
+                       "anchor": "y" if i == 0 else f"y{i + 1}",
+                       **shared}
+
     return dct
 
 

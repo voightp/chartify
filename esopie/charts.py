@@ -156,8 +156,9 @@ class Chart:
             trace.type_ = chart_type
 
         traces = self.plot_traces(self.raw_traces)
+        layout, _ = self.update_layout()
 
-        return {"traces": traces, "chartType": chart_type}
+        return {"traces": traces, "chartType": chart_type, "layout": layout}
 
     def delete_selected_traces(self):
         """ Remove currently selected traces. """
@@ -207,7 +208,7 @@ class Chart:
                                    y_domains=y_doms)
 
         xaxis = get_xaxis_settings(n_yaxis=n, increment=0.08,
-                                   x_domains=x_doms)
+                                   x_domains=x_doms, chart_type=self.type_)
 
         margin = {"margin": {"t": self.get_top_margin()}}
 

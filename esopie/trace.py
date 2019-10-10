@@ -28,8 +28,8 @@ class RawTrace:
 
     @property
     def name(self):
-        return f"{self.interval} | {self.file_name}" \
-            f" | {self.key} | {self.variable} | {self.units}"
+        return f"{self.interval} | {self.file_name}<br>" \
+            f"{self.key} | {self.variable} | {self.units}"
 
     @property
     def appearance(self):
