@@ -103,7 +103,7 @@ class Chart:
 
     def get_selected_ids(self):
         """ Get all currently selected trace ids. """
-        return [tr.traceId for tr in self.raw_traces.values() if tr.selected]
+        return [tr.trace_id for tr in self.raw_traces.values() if tr.selected]
 
     def any_trace_selected(self):
         """ Check if there's at least one trace selected. """
@@ -115,7 +115,6 @@ class Chart:
         timestamps = [dt.timestamp() for dt in df.index.to_pydatetime()]
 
         new_traces = {}
-        # TODO handle IS assignment
         for col_ix, sr in df.iteritems():
             ids = self.get_all_ids()
             trace_id = get_str_identifier("trace", ids, start_i=1,
@@ -130,14 +129,14 @@ class Chart:
                     total_value, timestamps, next(self.color_gen))
             kwargs = {"priority": priority}
 
-            new_traces[trace_id] = RawTrace(*args, **kwargs)
-
-        self.raw_traces.update(new_traces)
+            trace = RawTrace(*args, **kwargs)
+            new_traces[trace_id] = trace
+            self.raw_traces[trace_id] = trace
 
         # create 'plotly' like dict traces and update axes
         # as assigned axes depend on all displayed units
         traces_dct1 = self.plot_traces(new_traces)
-        traces_dct2 = self.set_trace_axes()
+        traces_dct2 = self.set_trace_axes(new_traces)
 
         traces = merge_dcts(traces_dct1, traces_dct2)
 
@@ -155,7 +154,8 @@ class Chart:
         for trace in self.raw_traces.values():
             trace.type_ = chart_type
 
-        return {"traces": self.plot_traces(), "chartType": chart_type}
+        traces = self.plot_traces(self.raw_traces)
+        return {"traces": traces, "chartType": chart_type}
 
     def delete_selected_traces(self):
         """ Remove currently selected traces. """
@@ -165,16 +165,18 @@ class Chart:
             del self.raw_traces[id_]
             del self.traces[id_]
 
-        traces = self.set_traces_appearance()
+        # TODO handle situation when the chart is empty
+        all_traces = self.raw_traces
+        trace_dct = self.set_normal_appearance(all_traces)
         if orig_n_units != len(self.get_all_units()):
-            dct = self.set_trace_axes()
-            traces = merge_dcts(traces, dct)
+            dct = self.set_trace_axes(all_traces)
+            trace_dct = merge_dcts(trace_dct, dct)
 
         update_dct, remove_dct = self.update_layout()
 
         return (
             ids,
-            {"traces": traces, "layout": update_dct},
+            {"traces": trace_dct, "layout": update_dct},
             {"layout": remove_dct}
         )
 
@@ -218,7 +220,7 @@ class Chart:
         return update_dct, remove_dct
 
     @update_attr("traces")
-    def set_trace_axes(self):
+    def set_trace_axes(self, raw_traces):
         """ Assign trace 'x' and 'y' axes (based on units). """
         update_dct = {}
 
@@ -226,7 +228,7 @@ class Chart:
         units_x_dct = get_units_axis_dct(units, axis="x")
         units_y_dct = get_units_axis_dct(units, axis="y")
 
-        for trace_id, trace in self.raw_traces.items():
+        for trace_id, trace in raw_traces.items():
             yaxis = units_y_dct[trace.units]
 
             if self.shared_axes:
@@ -247,31 +249,50 @@ class Chart:
         return {k: v.pl_trace() for k, v in raw_traces.items()}
 
     @update_attr("traces")
-    def set_traces_appearance(self):
-        """ Update trace visual settings. """
+    def set_normal_appearance(self, raw_traces):
+        """ Reset trace visual appearance to 'normal'. """
         update_dct = {}
-        all_normal = not self.any_trace_selected()
 
-        for trace_id, trace in self.raw_traces.items():
-            if all_normal:
-                pr = "normal"
-            elif trace.selected:
+        for trace_id, trace in raw_traces.items():
+            out = trace.set_priority("normal")
+            if out:
+                update_dct[trace_id] = out
+
+        return update_dct
+
+    @update_attr("traces")
+    def set_emph_appearance(self, raw_traces):
+        """ Set emphasised trace appearance. """
+        update_dct = {}
+
+        for trace_id, trace in raw_traces.items():
+            if trace.selected:
                 pr = "high"
             else:
                 pr = "low"
-            update_dct[trace_id] = trace.set_priority(pr)
+            out = trace.set_priority(pr)
+            if out:
+                update_dct[trace_id] = out
 
         return update_dct
 
     def handle_trace_selected(self, trace_id):
         """ Reverse 'selected' attribute for the given trace. """
         # reverse selected state of the clicked trace
+        all_traces = self.raw_traces
         trace = self.raw_traces[trace_id]
         selected = not trace.selected
         trace.selected = selected
 
-        trace_dct1 = self.set_trace_selected(trace_id, selected)
-        trace_dct2 = self.set_traces_appearance()
+        if not self.any_trace_selected():
+            # trace has been deselected and there
+            # is no other trace selected
+            trace_dct1 = self.set_normal_appearance(all_traces)
+        else:
+            # all traces weren't selected but the one clicked
+            trace_dct1 = self.set_emph_appearance(all_traces)
+
+        trace_dct2 = self.set_trace_selected(trace_id, selected)
 
         # dicts need to be updated recursively in order
         # to not override lower nested levels

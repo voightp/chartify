@@ -31,12 +31,14 @@ class RawTrace:
         return f"{self.interval} | {self.file_name}" \
             f" | {self.key} | {self.variable} | {self.units}"
 
+    @property
+    def appearance(self):
+        return get_appearance(self.type_, self.color, self.priority)
+
     def set_priority(self, priority):
-        dct = {}
-        if self.priority == priority:
+        if self.priority != priority:
             self.priority = priority
-            dct = get_appearance(self.type_, self.color, self.priority)
-        return dct
+            return self.appearance
 
     def pl_trace(self):
         types = {

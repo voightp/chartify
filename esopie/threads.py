@@ -148,6 +148,12 @@ class ResultsFetcher(QRunnable):
 
     def run(self):
         # TODO catch fetch exceptions, emit signal to handle results
+        for a in self.args:
+            print(a)
+        for k, v in self.kwargs.items():
+            print(k, end="///")
+            print(v)
         df = self.func(*self.args, **self.kwargs)
+        print(df)
         if self.callback:
             self.callback(df)
