@@ -948,7 +948,7 @@ class MainWindow(QMainWindow):
         """ Get a currently selected output variables information. """
         return self.selected
 
-    def get_results(self, *args, callback=None, **kwargs):
+    def get_results(self, callback=None, **kwargs):
         """ Get output values for given variables. """
         variables = self.get_current_request()
         rate_to_energy, units_system, energy, power = self.get_units_settings()
@@ -957,7 +957,7 @@ class MainWindow(QMainWindow):
         ids = self.get_current_file_ids()
         files = self.get_files_from_db(*ids)
 
-        args = (*args, files, variables)
+        args = (files, variables)
         kwargs = {"rate_units": power, "energy_units": energy,
                   "add_file_name": "column",
                   "rate_to_energy_dct": rate_to_energy_dct,
