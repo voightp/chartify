@@ -98,7 +98,12 @@ class RawTrace:
         pass
 
     def as_box(self):
-        pass
+        return {
+            "type": "box",
+            "y": self.values,
+            "xaxis": self.xaxis,
+            "yaxis": self.yaxis,
+        }
 
     def as_hist(self):
         pass
