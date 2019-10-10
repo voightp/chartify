@@ -25,18 +25,15 @@ class Palette:
         kwarg is not specified.
 
     **kwargs
-        primary_color, primary_variant_color, primary_text_color,
-        secondary_color, secondary_variant_color, secondary_text_color,
-        background_color, surface_color, error_color, ok_color
+        primary_color, primary_text_color, secondary_color, error_color,
+        secondary_text_color, background_color, surface_color, ok_color
 
 
     """
     colors = [
         "PRIMARY_COLOR",
-        "PRIMARY_VARIANT_COLOR",
         "PRIMARY_TEXT_COLOR",
         "SECONDARY_COLOR",
-        "SECONDARY_VARIANT_COLOR",
         "SECONDARY_TEXT_COLOR",
         "BACKGROUND_COLOR",
         "SURFACE_COLOR",
@@ -231,10 +228,8 @@ def get_palette(pth, name):
 
     default_palette = {
         "PRIMARY_COLOR": "#aeaeae",
-        "PRIMARY_VARIANT_COLOR": None,
         "PRIMARY_TEXT_COLOR": "rgb(112,112,112)",
         "SECONDARY_COLOR": "#ff8a65",
-        "SECONDARY_VARIANT_COLOR": None,
         "SECONDARY_TEXT_COLOR": "#EEEEEE",
         "BACKGROUND_COLOR": "#c2c2c2",
         "SURFACE_COLOR": "#f5f5f5",
