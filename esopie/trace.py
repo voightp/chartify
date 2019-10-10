@@ -48,7 +48,7 @@ class RawTrace:
             "histogram": self.as_hist,
             "box": self.as_box
         }
-        return types[self.type_]()
+        return {**types[self.type_](), **self.shared()}
 
     def shared(self):
         ap = get_appearance(self.type_, self.color, self.priority)

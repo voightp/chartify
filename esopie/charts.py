@@ -114,21 +114,20 @@ class Chart:
         totals_sr = calculate_totals(df)
         timestamps = [dt.timestamp() for dt in df.index.to_pydatetime()]
 
-        # variable 'id' will not required
-        df.columns = df.columns.droplevel("id")
-
         new_traces = {}
+        # TODO handle IS assignment
         for col_ix, sr in df.iteritems():
             ids = self.get_all_ids()
             trace_id = get_str_identifier("trace", ids, start_i=1,
                                           delimiter="-", brackets=False)
             values = sr.tolist()
-            total_value = totals_sr.at[col_ix[1]]
-            color = next(self.color_gen)
+            info = list(col_ix)
+            id_ = info.pop(1)
+            total_value = totals_sr.at[id_]
             priority = "low" if self.any_trace_selected() else "normal"
 
-            args = (self.item_id, trace_id, col_ix, values,
-                    total_value, timestamps, color)
+            args = (self.item_id, trace_id, tuple(info), values,
+                    total_value, timestamps, next(self.color_gen))
             kwargs = {"priority": priority}
 
             new_traces[trace_id] = RawTrace(*args, **kwargs)
@@ -137,7 +136,7 @@ class Chart:
 
         # create 'plotly' like dict traces and update axes
         # as assigned axes depend on all displayed units
-        traces_dct1 = self.plot_traces(new_traces.values())
+        traces_dct1 = self.plot_traces(new_traces)
         traces_dct2 = self.set_trace_axes()
 
         traces = merge_dcts(traces_dct1, traces_dct2)
@@ -227,25 +226,25 @@ class Chart:
         units_x_dct = get_units_axis_dct(units, axis="x")
         units_y_dct = get_units_axis_dct(units, axis="y")
 
-        for id_, trace in self.traces.items():
-            yaxis = units_y_dct[trace["units"]]
+        for trace_id, trace in self.raw_traces.items():
+            yaxis = units_y_dct[trace.units]
 
             if self.shared_axes:
                 xaxis = "x"
             else:
-                xaxis = units_x_dct[trace["units"]]
+                xaxis = units_x_dct[trace.units]
 
             trace.xaxis = xaxis
             trace.yaxis = yaxis
 
-            update_dct[id_] = {"yaxis": yaxis, "xaxis": xaxis}
+            update_dct[trace_id] = {"yaxis": yaxis, "xaxis": xaxis}
 
         return update_dct
 
     @update_attr("traces")
     def plot_traces(self, raw_traces):
         """ Transform 'raw' trace objects into 'plotly' dicts. """
-        return {k: v.pl_trace() for k, v in raw_traces}
+        return {k: v.pl_trace() for k, v in raw_traces.items()}
 
     @update_attr("traces")
     def set_traces_appearance(self):
@@ -267,7 +266,7 @@ class Chart:
     def handle_trace_selected(self, trace_id):
         """ Reverse 'selected' attribute for the given trace. """
         # reverse selected state of the clicked trace
-        trace = self.traces[trace_id]
+        trace = self.raw_traces[trace_id]
         selected = not trace.selected
         trace.selected = selected
 

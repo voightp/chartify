@@ -8,7 +8,7 @@ from PySide2.QtCore import QSize, Qt, QThreadPool, QThread, QObject, Signal, \
     Slot, Signal, Property, QJsonValue, QJsonArray
 
 from PySide2 import QtWebChannel
-
+import json
 import pickle
 from multiprocessing import Process
 from concurrent.futures import ProcessPoolExecutor
@@ -73,8 +73,10 @@ class Postman(QObject):
                                  chart.figure)
 
     def add_chart_data(self, item_id, df):
+        print("add_chart_data", item_id)
         chart = self.components[item_id]
         update_dct = chart.process_data(df)
+        print(json.dumps(update_dct, indent=4))
 
         self.fullChartUpdated.emit(item_id, update_dct)
 
@@ -96,6 +98,7 @@ class Postman(QObject):
         print(f"PY updateChartType {chart_type}")
         chart = self.components[item_id]
         update_dct = chart.update_chart_type(chart_type)
+        print(json.dumps(update_dct, indent=4))
 
         self.fullChartUpdated.emit(item_id, update_dct)
 
@@ -107,12 +110,18 @@ class Postman(QObject):
     def onTraceClick(self, item_id, trace_id):
         chart = self.components[item_id]
         update_dct = chart.handle_trace_selected(trace_id)
+        print("onTraceClick", item_id)
+        print(json.dumps(update_dct, indent=4))
         self.tracesUpdated.emit(item_id, update_dct)
 
     @Slot(str)
     def deleteSelectedTraces(self, item_id):
         chart = self.components[item_id]
         ids, update_dct, remove_dct = chart.delete_selected_traces()
+        print("deleteSelectedTraces", item_id)
+        print(ids)
+        print(json.dumps(update_dct, indent=4))
+        print(json.dumps(remove_dct, indent=4))
         self.tracesDeleted.emit(item_id, ids, update_dct, remove_dct)
 
 
