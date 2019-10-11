@@ -111,6 +111,13 @@ class Palette:
             print(f"Cannot get color for color key '{color_key}' is it's not "
                   f"available, use one of: '{colors_str}'.")
 
+    def get_all_colors(self):
+        """ Get all colors key, color dict (color as string). """
+        dct = {}
+        for k in self.colors_dct.keys():
+            dct[k] = self.get_color(k)
+        return dct
+
     def set_color(self, **kwargs):
         """ Set specified colors as 'color_key : color' pairs. """
         try:

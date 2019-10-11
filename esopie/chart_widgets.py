@@ -19,15 +19,27 @@ from esopie.chart_settings import get_item
 
 
 class Postman(QObject):
+    appearanceUpdated = Signal(bool, "QVariantMap")
     chartUpdated = Signal(str, "QVariantMap", "QVariantMap", "QVariantList")
     componentAdded = Signal(str, "QVariantMap", "QVariantMap")
 
-    def __init__(self, app):
+    def __init__(self, app, colors):
         super().__init__()
         self.components = {}
         self.items = {}
         self.app = app
         self.counter = 0
+        self.colors = colors
+
+    def set_appearance(self, flat, colors):
+        if colors != self.colors:
+            self.colors = colors
+            self.appearanceUpdated.emit(flat, colors)
+
+    @Slot()
+    def onConnectionInitialized(self):
+        # TODO handle 'Flat' assignment
+        self.appearanceUpdated.emit(True, self.colors)
 
     @Slot(QJsonValue)
     def storeGridLayout(self, items):
@@ -79,6 +91,7 @@ class Postman(QObject):
         print("add_chart_data", item_id)
         chart = self.components[item_id]
         update_dct = chart.process_data(df)
+        print(json.dumps(update_dct, indent=4))
 
         self.chartUpdated.emit(item_id, update_dct, {}, [])
 
@@ -97,7 +110,7 @@ class Postman(QObject):
 
         # remove all traces to clean up non-used attributes
         all_ids = chart.get_all_ids()
-
+        print(json.dumps(update_dct, indent=4))
         self.chartUpdated.emit(item_id, update_dct, {}, all_ids)
 
     @Slot(str, str)
@@ -128,7 +141,7 @@ class MyPage(QWebEnginePage):
 
 
 class MyWebView(QWebEngineView):
-    def __init__(self, parent):
+    def __init__(self, parent, colors):
         super().__init__(parent)
         # self.setContextMenuPolicy(Qt.CustomContextMenu)
         self.setAcceptDrops(True)
@@ -136,9 +149,10 @@ class MyWebView(QWebEngineView):
         page = MyPage()
         self.setPage(page)
 
-        self.postman = Postman(parent)
+        self.postman = Postman(parent, colors)
         self.channel = QtWebChannel.QWebChannel(self)
         self.channel.registerObject("postman", self.postman)
+
         self.page().setWebChannel(self.channel)
 
         self.url = "http://127.0.0.1:8080/"

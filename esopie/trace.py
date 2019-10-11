@@ -69,6 +69,7 @@ class RawTrace:
         return {
             "type": "scattergl",
             "mode": "markers",
+            "hoverinfo": "all",
             "x": self.js_timestamps,
             "y": self.values,
             "xaxis": self.xaxis,
@@ -79,6 +80,7 @@ class RawTrace:
         return {
             "type": "scattergl",
             "mode": "lines+markers",
+            "hoverinfo": "all",
             "x": self.js_timestamps,
             "y": self.values,
             "xaxis": self.xaxis,
@@ -88,6 +90,7 @@ class RawTrace:
     def as_bar(self):
         return {
             "type": "bar",
+            "hoverinfo": "all",
             "x": self.js_timestamps,
             "y": self.values,
             "xaxis": self.xaxis,
@@ -103,6 +106,7 @@ class RawTrace:
             "y": self.values,
             "xaxis": self.xaxis,
             "yaxis": self.yaxis,
+            "hoverinfo": "name+y",
         }
 
     def as_hist(self):

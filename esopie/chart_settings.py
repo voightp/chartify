@@ -59,7 +59,7 @@ def get_appearance(type_, color, priority="normal"):
         },
         "box": {
             "jitter": 0.5,
-            "boxpoints": 'all',
+            "boxpoints": "false",  # all | outliers |suspectedoutliers | false
             "whiskerwidth": 0.2,
             "marker_size": 2,
         },
@@ -128,28 +128,22 @@ layout_dct = {
     "paper_bgcolor": "transparent",
     "plot_bgcolor": "transparent",
     "showlegend": False,
-    "legend": {
-        "orientation": "v",
-        "x": 0,
-        "xanchor": "left",
-        "y": 1.1,
-        "yanchor": "top"},
     "xaxis": {
         "autorange": True,
         "range": [],
         "type": "linear",
-        "yaxis": {
-            "autorange": True,
-            "range": [],
-            "rangemode": "tozero",
-            "type": "linear",
-            "side": "left",
-        },
-        "margin": {
-            "l": 50,
-            "t": 50,
-            "b": 50}
-    }
+    },
+    "yaxis": {
+        "autorange": True,
+        "range": [],
+        "rangemode": "tozero",
+        "type": "linear",
+        "side": "left",
+    },
+    "margin": {
+        "l": 50,
+        "t": 50,
+        "b": 50}
 }
 
 
@@ -275,6 +269,16 @@ def add_shared_yaxis_data(yaxis_dct, increment):
 def get_yaxis_settings(n=1, increment=0.1, titles=None, y_domains=None):
     dct = defaultdict(dict)
 
+    shared = {"showline": True,
+              "linewidth": 4,
+              "linecolor": "blue",
+              "showgrid": True,
+              "gridwidth": 4,
+              "gridcolor": "red",
+              "zeroline": True,
+              "zerolinewidth": 5,
+              "zerolinecolor": "yellow"}
+
     for i in range(n):
         nm = "yaxis" if i == 0 else f"yaxis{i + 1}"
 
@@ -290,7 +294,8 @@ def get_yaxis_settings(n=1, increment=0.1, titles=None, y_domains=None):
             dct[k] = {**dct[k],
                       "domain": y_domains[i],
                       "anchor": "x" if i == 0 else f"x{i + 1}",
-                      "side": "left"}
+                      "side": "left",
+                      **shared}
     return dct
 
 
@@ -310,10 +315,15 @@ def get_xaxis_settings(n_yaxis=1, increment=0.1, x_domains=None,
     types = ["scatter", "bar", "bubble", "line"]
     axis_type = "date" if chart_type in types else "-"
 
-    shared = {"gridcolor": "#444",
+    shared = {"showline": True,
+              "linewidth": 4,
+              "linecolor": "blue",
+              "showgrid": True,
+              "gridwidth": 4,
+              "gridcolor": "red",
               "zeroline": True,
-              "zerolinewidth": 10,
-              "zerolinecolor": "#444"}
+              "zerolinewidth": 5,
+              "zerolinecolor": "yellow"}
 
     if not x_domains:
         x_dom = get_shared_xdomain(n_yaxis, increment)

@@ -47,6 +47,7 @@ DropFrame#leftMainWgt[drag-accept=false] {
 
 QSplitter::handle {
     height: 6px;
+    background-color: SURFACE_COLOR;
     image: URL(../icons/dots.png)#BACKGROUND_COLOR;
 }
 
