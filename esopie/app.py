@@ -269,7 +269,7 @@ class MainWindow(QMainWindow):
 
         mn.addActions([css, no_css, memory, dummy])
 
-        self.chart_area = MyWebView(self, self.palette.get_all_colors())
+        self.chart_area = MyWebView(self, self.palette)
         self.main_chart_layout.addWidget(self.chart_area)
 
         # ~~~~ Set up main widgets and layouts ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -445,9 +445,8 @@ class MainWindow(QMainWindow):
 
             # notify web view to update chart layout colors
             flat = name in ["default", "dark"]
-            colors = self.palette.get_all_colors()
 
-            self.chart_area.postman.set_appearance(flat, colors)
+            self.chart_area.postman.set_appearance(flat, self.palette)
             self.load_css()
 
     def load_css(self):

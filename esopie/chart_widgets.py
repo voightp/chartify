@@ -19,27 +19,34 @@ from esopie.chart_settings import get_item
 
 
 class Postman(QObject):
-    appearanceUpdated = Signal(bool, "QVariantMap")
+    appearanceUpdated = Signal(bool, "QVariantMap", "QVariantMap")
     chartUpdated = Signal(str, "QVariantMap", "QVariantMap", "QVariantList")
     componentAdded = Signal(str, "QVariantMap", "QVariantMap")
 
-    def __init__(self, app, colors):
+    def __init__(self, app, palette):
         super().__init__()
         self.components = {}
         self.items = {}
         self.app = app
         self.counter = 0
-        self.colors = colors
+        self.palette = palette
 
-    def set_appearance(self, flat, colors):
-        if colors != self.colors:
-            self.colors = colors
-            self.appearanceUpdated.emit(flat, colors)
+    def set_appearance(self, flat, palette):
+        if palette != self.palette:
+            update_dct = {}
+            colors = palette.get_all_colors()
+
+            for id_, component in self.components.items():
+                dct = component.set_layout_colors(palette)
+                update_dct[id_] = {"layout": dct}
+
+            self.palette = palette
+            self.appearanceUpdated.emit(flat, colors, update_dct)
 
     @Slot()
     def onConnectionInitialized(self):
         # TODO handle 'Flat' assignment
-        self.appearanceUpdated.emit(True, self.colors)
+        self.appearanceUpdated.emit(True, self.palette.get_all_colors(), {})
 
     @Slot(QJsonValue)
     def storeGridLayout(self, items):
@@ -71,7 +78,7 @@ class Postman(QObject):
 
         self.counter += 1
 
-        chart = Chart(chart_id, item_id, chart_type)
+        chart = Chart(chart_id, item_id, self.palette, chart_type)
         item = get_item(frame_id, "chart")
 
         self.components[item_id] = chart
@@ -141,7 +148,7 @@ class MyPage(QWebEnginePage):
 
 
 class MyWebView(QWebEngineView):
-    def __init__(self, parent, colors):
+    def __init__(self, parent, palette):
         super().__init__(parent)
         # self.setContextMenuPolicy(Qt.CustomContextMenu)
         self.setAcceptDrops(True)
@@ -149,7 +156,7 @@ class MyWebView(QWebEngineView):
         page = MyPage()
         self.setPage(page)
 
-        self.postman = Postman(parent, colors)
+        self.postman = Postman(parent, palette)
         self.channel = QtWebChannel.QWebChannel(self)
         self.channel.registerObject("postman", self.postman)
 

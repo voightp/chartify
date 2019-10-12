@@ -13,7 +13,7 @@ def get_appearance(type_, color, priority="normal"):
         "normal": {
             "markerSize": 5,
             "lineWidth": 2,
-            "opacity": 0.5
+            "opacity": 0.7
         },
         "high": {
             "markerSize": 6,
@@ -266,18 +266,24 @@ def add_shared_yaxis_data(yaxis_dct, increment):
         yaxis_dct[k]["side"] = "left" if j == 0 else "right"
 
 
-def get_yaxis_settings(n=1, increment=0.1, titles=None, y_domains=None):
+def get_yaxis_settings(n=1, increment=0.1, titles=None,
+                       y_domains=None, palette=None):
     dct = defaultdict(dict)
+    c1 = palette.get_color("PRIMARY_COLOR")
+    c2 = palette.get_color("PRIMARY_COLOR", 0.3)
 
-    shared = {"showline": True,
-              "linewidth": 4,
-              "linecolor": "blue",
-              "showgrid": True,
-              "gridwidth": 4,
-              "gridcolor": "red",
-              "zeroline": True,
-              "zerolinewidth": 5,
-              "zerolinecolor": "yellow"}
+    shared = {
+        "color": c1,
+        "linecolor": c1,
+        "zerolinecolor": c1,
+        "gridcolor": c2,
+        "showline": True,
+        "linewidth": 1,
+        "showgrid": True,
+        "gridwidth": 1,
+        "zeroline": True,
+        "zerolinewidth": 2
+    }
 
     for i in range(n):
         nm = "yaxis" if i == 0 else f"yaxis{i + 1}"
@@ -310,20 +316,26 @@ def get_shared_xdomain(n_yaxis, increment):
 
 
 def get_xaxis_settings(n_yaxis=1, increment=0.1, x_domains=None,
-                       chart_type="scatter"):
+                       chart_type="scatter", palette=None):
     dct = defaultdict(dict)
     types = ["scatter", "bar", "bubble", "line"]
     axis_type = "date" if chart_type in types else "-"
 
-    shared = {"showline": True,
-              "linewidth": 4,
-              "linecolor": "blue",
-              "showgrid": True,
-              "gridwidth": 4,
-              "gridcolor": "red",
-              "zeroline": True,
-              "zerolinewidth": 5,
-              "zerolinecolor": "yellow"}
+    c1 = palette.get_color("PRIMARY_COLOR")
+    c2 = palette.get_color("PRIMARY_COLOR", 0.3)
+
+    shared = {
+        "color": c1,
+        "linecolor": c1,
+        "gridcolor": c2,
+        "zerolinecolor": c1,
+        "showline": True,
+        "linewidth": 1,
+        "showgrid": True,
+        "gridwidth": 1,
+        "zeroline": True,
+        "zerolinewidth": 2
+    }
 
     if not x_domains:
         x_dom = get_shared_xdomain(n_yaxis, increment)

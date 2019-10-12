@@ -53,9 +53,10 @@ class Chart:
     LEGEND_TRACE_HEIGHT = 19
     LEGEND_GAP = 10
 
-    def __init__(self, chart_id, item_id, type_="scatter"):
+    def __init__(self, chart_id, item_id, palette, type_="scatter"):
         self.chart_id = chart_id
         self.item_id = item_id
+        self.palette = palette
         self.type_ = type_
         self.raw_traces = {}
         self.traces = {}
@@ -83,6 +84,22 @@ class Chart:
             "config": config,
             "useResizeHandler": True
         }
+
+    @update_attr("layout")
+    def set_layout_colors(self, palette):
+        """ Apply specific color scheme to the chart layout. """
+        c1 = palette.get_color("PRIMARY_COLOR")
+        c2 = palette.get_color("PRIMARY_COLOR", 0.3)
+        update_dct = {}
+        for k, v in self.layout.items():
+            if "axis" in k:
+                update_dct[k] = {
+                    "color": c1,
+                    "linecolor": c1,
+                    "gridcolor": c2,
+                    "zerolinecolor": c1
+                }
+        return update_dct
 
     def get_all_units(self):
         """ Get a list of all used units. """
@@ -170,7 +187,7 @@ class Chart:
 
         # TODO handle situation when the chart is empty
         all_traces = self.raw_traces
-        trace_dct = self.set_normal_appearance(all_traces)
+        trace_dct = self.set_trace_emphasis(all_traces, normal=True)
         if orig_n_units != len(self.get_all_units()):
             dct = self.set_trace_axes(all_traces)
             trace_dct = merge_dcts(trace_dct, dct)
@@ -205,10 +222,10 @@ class Chart:
                                                  gap=0.05, flat=True)
 
         yaxis = get_yaxis_settings(n, increment=0.08, titles=units,
-                                   y_domains=y_doms)
+                                   y_domains=y_doms, palette=self.palette)
 
-        xaxis = get_xaxis_settings(n_yaxis=n, increment=0.08,
-                                   x_domains=x_doms, chart_type=self.type_)
+        xaxis = get_xaxis_settings(n_yaxis=n, increment=0.08, x_domains=x_doms,
+                                   chart_type=self.type_, palette=self.palette)
 
         margin = {"margin": {"t": self.get_top_margin()}}
 
@@ -252,24 +269,14 @@ class Chart:
         return {k: v.pl_trace() for k, v in raw_traces.items()}
 
     @update_attr("traces")
-    def set_normal_appearance(self, raw_traces):
-        """ Reset trace visual appearance to 'normal'. """
-        update_dct = {}
-
-        for trace_id, trace in raw_traces.items():
-            out = trace.set_priority("normal")
-            if out:
-                update_dct[trace_id] = out
-
-        return update_dct
-
-    @update_attr("traces")
-    def set_emph_appearance(self, raw_traces):
+    def set_trace_emphasis(self, raw_traces, normal=True):
         """ Set emphasised trace appearance. """
         update_dct = {}
 
         for trace_id, trace in raw_traces.items():
-            if trace.selected:
+            if normal:
+                pr = "normal"
+            elif trace.selected:
                 pr = "high"
             else:
                 pr = "low"
@@ -287,14 +294,9 @@ class Chart:
         selected = not trace.selected
         trace.selected = selected
 
-        if not self.any_trace_selected():
-            # trace has been deselected and there
-            # is no other trace selected
-            trace_dct1 = self.set_normal_appearance(all_traces)
-        else:
-            # all traces weren't selected but the one clicked
-            trace_dct1 = self.set_emph_appearance(all_traces)
+        is_normal = not self.any_trace_selected()
 
+        trace_dct1 = self.set_trace_emphasis(all_traces, normal=is_normal)
         trace_dct2 = self.set_trace_selected(trace_id, selected)
 
         # dicts need to be updated recursively in order
