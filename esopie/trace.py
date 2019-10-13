@@ -1,7 +1,47 @@
-from esopie.chart_settings import get_appearance
+from esopie.chart_settings import get_appearance, gen_dom_matrices
+from collections import defaultdict
 
 
-class RawTrace:
+def PieTrace(raw_traces):
+    # all the traces are grouped together
+    groups = defaultdict(list)
+    for trace in raw_traces:
+        groups[trace.units].append(trace)
+
+    x_doms, y_doms = gen_dom_matrices(groups.keys(), max_columns=3, gap=0,
+                                      flat=True, is_square=True)
+    pies = {}
+    for x_dom, y_dom, traces in zip(x_doms, y_doms, groups.values()):
+        values, labels, colors = [], [], []
+
+        # pie is unique trace which wraps generic traces
+        trace_id = "#".join([tr.trace_id for tr in traces])
+        item_id = traces[0].item_id
+
+        for tr in traces:
+            values.append(tr.total_value)
+            labels.append(tr.name)
+            colors.append(tr.color)
+
+        pies[trace_id] = {
+            "type": "pie",
+            "itemId": item_id,
+            "traceId": trace_id,
+            "marker": {
+                "colors": colors,
+            },
+            "values": values,
+            "labels": labels,
+            "domain": {
+                "x": x_dom,
+                "y": y_dom
+            }
+        }
+
+    return pies
+
+
+class GenericTrace:
     def __init__(self, item_id, trace_id, info_tup, values, total_value,
                  timestamps, color, type_="scatter", xaxis="x", yaxis="y",
                  selected=False, priority="normal"):
@@ -46,7 +86,6 @@ class RawTrace:
             "line": self.as_line,
             "bar": self.as_bar,
             "bubble": self.as_bubble,
-            "pie": self.as_pie,
             "histogram": self.as_hist,
             "box": self.as_box
         }
@@ -110,7 +149,4 @@ class RawTrace:
         }
 
     def as_hist(self):
-        pass
-
-    def as_pie(self):
         pass

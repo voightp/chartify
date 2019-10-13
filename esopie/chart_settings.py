@@ -1,5 +1,6 @@
 from collections import defaultdict
 import copy
+import math
 
 
 def get_appearance(type_, color, priority="normal"):
@@ -195,8 +196,14 @@ def get_item(frame_id, type_):
     return {**shared, **cases[type_]}
 
 
-def gen_ref_matrix(items, max_columns):
+def gen_ref_matrix(items, max_columns, square):
     m = [[]]
+
+    i = math.sqrt(len(items))
+    if square and i.is_integer() and max_columns > i:
+        # override number of columns to create a 'square' matrix
+        max_columns = i
+
     row = 0
     for item in items:
         if len(m[row]) < max_columns:
@@ -216,8 +223,8 @@ def dom_gen(n, gap):
         start = end + gap
 
 
-def gen_domain_matrices(items, gap=0.05, max_columns=3, flat=True):
-    ref_matrix = gen_ref_matrix(items, max_columns)
+def gen_dom_matrices(items, gap=0.05, max_columns=3, flat=True, is_square=True):
+    ref_matrix = gen_ref_matrix(items, max_columns, is_square)
 
     x_dom_mx = copy.deepcopy(ref_matrix)
     y_dom_mx = copy.deepcopy(ref_matrix)

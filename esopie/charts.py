@@ -1,12 +1,12 @@
 import pandas as pd
 
 from eso_reader.building_eso_file import averaged_units
-from esopie.trace import RawTrace
+from esopie.trace import GenericTrace, PieTrace
 from esopie.utils.utils import (get_str_identifier, update_recursively,
                                 merge_dcts, remove_recursively)
 from esopie.chart_settings import (get_xaxis_settings, get_yaxis_settings,
                                    style, config, layout_dct, color_generator,
-                                   get_units_axis_dct, gen_domain_matrices)
+                                   get_units_axis_dct, gen_dom_matrices)
 
 
 def calculate_totals(df):
@@ -139,7 +139,7 @@ class Chart:
             values = sr.tolist()
             info = list(col_ix)
             id_ = info.pop(1)
-            total_value = totals_sr.at[id_]
+            total_value = float(totals_sr.at[id_])  # channel cannot handle numpy.float
             color = next(self.color_gen)
             priority = "low" if self.any_trace_selected() else "normal"
 
@@ -147,16 +147,17 @@ class Chart:
                     total_value, timestamps, color)
             kwargs = {"priority": priority, "type_": self.type_}
 
-            trace = RawTrace(*args, **kwargs)
+            trace = GenericTrace(*args, **kwargs)
             new_traces[trace_id] = trace
             self.raw_traces[trace_id] = trace
 
         # create 'plotly' like dict traces and update axes
         # as assigned axes depend on all displayed units
-        traces_dct1 = self.plot_traces(new_traces)
-        traces_dct2 = self.set_trace_axes(new_traces)
+        traces = self.plot_traces(new_traces)
 
-        traces = merge_dcts(traces_dct1, traces_dct2)
+        if self.type_ != "pie":
+            upd_dct = self.set_trace_axes(new_traces)
+            traces = merge_dcts(traces, upd_dct)
 
         # update_layout returns 'update' and 'remove' dicts
         # but since nothing needs to be removed when adding
@@ -173,9 +174,10 @@ class Chart:
             trace.type_ = chart_type
 
         traces = self.plot_traces(self.raw_traces)
-        layout, _ = self.update_layout()
+        layout, remove = self.update_layout()
 
-        return {"traces": traces, "chartType": chart_type, "layout": layout}
+        return ({"traces": traces, "chartType": chart_type, "layout": layout},
+                {"layout": remove})
 
     def delete_selected_traces(self):
         """ Remove currently selected traces. """
@@ -216,21 +218,23 @@ class Chart:
         units = self.get_all_units()
         n = len(units)
         x_doms, y_doms = None, None
+        update_dct, remove_dct = {}, {}
 
-        if not self.shared_axes:
-            x_doms, y_doms = gen_domain_matrices(units, max_columns=3,
-                                                 gap=0.05, flat=True)
+        if self.type_ != "pie":
+            # pie chart does not require x, y axes
+            if not self.shared_axes:
+                x_doms, y_doms = gen_dom_matrices(units, max_columns=3, gap=0.05,
+                                                  flat=True, is_square=True)
 
-        yaxis = get_yaxis_settings(n, increment=0.08, titles=units,
-                                   y_domains=y_doms, palette=self.palette)
+            yaxis = get_yaxis_settings(n, increment=0.08, titles=units,
+                                       y_domains=y_doms, palette=self.palette)
 
-        xaxis = get_xaxis_settings(n_yaxis=n, increment=0.08, x_domains=x_doms,
-                                   chart_type=self.type_, palette=self.palette)
+            xaxis = get_xaxis_settings(n_yaxis=n, increment=0.08, x_domains=x_doms,
+                                       chart_type=self.type_, palette=self.palette)
 
-        margin = {"margin": {"t": self.get_top_margin()}}
+            margin = {"margin": {"t": self.get_top_margin()}}
 
-        update_dct = {**yaxis, **xaxis, **margin}
-        remove_dct = {}
+            update_dct = {**yaxis, **xaxis, **margin}
 
         # clean up previous xaxis and yaxis assignment
         for k in self.layout.keys():
@@ -266,6 +270,9 @@ class Chart:
     @update_attr("traces")
     def plot_traces(self, raw_traces):
         """ Transform 'raw' trace objects into 'plotly' dicts. """
+        if self.type_ == "pie":
+            return PieTrace(self.raw_traces.values())
+
         return {k: v.pl_trace() for k, v in raw_traces.items()}
 
     @update_attr("traces")
