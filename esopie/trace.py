@@ -19,7 +19,8 @@ def PieTrace(raw_traces):
         item_id = traces[0].item_id
 
         for tr in traces:
-            values.append(tr.total_value)
+            # value is not plotted when being negative
+            values.append(abs(tr.total_value))
             labels.append(tr.name)
             colors.append(tr.color)
 
