@@ -48,10 +48,11 @@ class GenericTrace:
         self.item_id = item_id
         self.trace_id = trace_id
         self.file_name = info_tup[0]
-        self.interval = info_tup[1]
-        self.key = info_tup[2]
-        self.variable = info_tup[3]
-        self.units = info_tup[4]
+        self.variable_id = info_tup[1]
+        self.interval = info_tup[2]
+        self.key = info_tup[3]
+        self.variable = info_tup[4]
+        self.units = info_tup[5]
         self.values = values
         self.total_value = total_value
         self.timestamps = timestamps

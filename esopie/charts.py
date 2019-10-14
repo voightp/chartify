@@ -18,8 +18,6 @@ def calculate_totals(df):
     sum_df = df.loc[:, [not b for b in cnd]].sum()
 
     sr = pd.concat([avg_df, sum_df])
-    drop = [nm for nm in sr.index.names if nm != "id"]
-    sr.index = sr.index.droplevel(drop)
 
     return sr
 
@@ -132,18 +130,19 @@ class Chart:
         timestamps = [dt.timestamp() for dt in df.index.to_pydatetime()]
 
         new_traces = {}
-        for col_ix, sr in df.iteritems():
+        for col_ix, val_sr in df.iteritems():
             ids = self.get_all_ids()
             trace_id = get_str_identifier("trace", ids, start_i=1,
                                           delimiter="-", brackets=False)
-            values = sr.tolist()
-            info = list(col_ix)
-            id_ = info.pop(1)
-            total_value = float(totals_sr.at[id_])  # channel cannot handle numpy.float
+
+            # channel cannot handle numpy.float
+            total_value = float(totals_sr.loc[col_ix])
+
+            # create a new color to distinguish traces and set emphasis
             color = next(self.color_gen)
             priority = "low" if self.any_trace_selected() else "normal"
 
-            args = (self.item_id, trace_id, tuple(info), values,
+            args = (self.item_id, trace_id, col_ix, val_sr.tolist(),
                     total_value, timestamps, color)
             kwargs = {"priority": priority, "type_": self.type_}
 
