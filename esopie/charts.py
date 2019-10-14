@@ -124,6 +124,12 @@ class Chart:
         """ Check if there's at least one trace selected. """
         return any(map(lambda x: x.selected, self.raw_traces.values()))
 
+    def gen_id(self):
+        """ Generate unique trace id. """
+        ids = self.get_all_ids()
+        return get_str_identifier("trace", ids, start_i=1,
+                                  delimiter="-", brackets=False)
+
     def process_data(self, df):
         """ Process raw pd.DataFrame and store the data. """
         totals_sr = calculate_totals(df)
@@ -131,9 +137,7 @@ class Chart:
 
         new_traces = {}
         for col_ix, val_sr in df.iteritems():
-            ids = self.get_all_ids()
-            trace_id = get_str_identifier("trace", ids, start_i=1,
-                                          delimiter="-", brackets=False)
+            trace_id = self.gen_id()
 
             # channel cannot handle numpy.float
             total_value = float(totals_sr.loc[col_ix])
