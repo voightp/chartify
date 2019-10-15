@@ -2,6 +2,10 @@ from collections import defaultdict
 import copy
 import math
 
+SIMPLE = ("scatter", "bar", "line")
+STATISTICAL_CHARTS = ("box", "histogram")
+ONE_DIM_CHARTS = ("pie")
+
 
 def get_appearance(type_, color, priority="normal"):
     weights = {

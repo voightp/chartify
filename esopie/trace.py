@@ -6,6 +6,7 @@ def PieTrace(raw_traces):
     # all the traces are grouped together
     groups = defaultdict(list)
     for trace in raw_traces:
+        trace.selected = False
         groups[trace.units].append(trace)
 
     x_doms, y_doms = gen_dom_matrices(groups.keys(), max_columns=3, gap=0,
@@ -26,6 +27,7 @@ def PieTrace(raw_traces):
 
         pies[trace_id] = {
             "type": "pie",
+            "opacity": 0.7,
             "itemId": item_id,
             "traceId": trace_id,
             "marker": {
@@ -82,7 +84,7 @@ class GenericTrace:
             self.priority = priority
             return self.appearance
 
-    def pl_trace(self):
+    def plot_trace(self):
         types = {
             "scatter": self.as_scatter,
             "line": self.as_line,

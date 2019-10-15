@@ -97,10 +97,10 @@ class Postman(QObject):
     def add_chart_data(self, item_id, df):
         print("add_chart_data", item_id)
         chart = self.components[item_id]
-        update_dct = chart.process_data(df)
+        upd_dct, rm_dct, rm_traces = chart.process_data(df)
         # print(json.dumps(update_dct, indent=4))
 
-        self.chartUpdated.emit(item_id, update_dct, {}, [])
+        self.chartUpdated.emit(item_id, upd_dct, rm_dct, rm_traces)
 
     @Slot(str)
     def onTraceDrop(self, item_id):
@@ -113,12 +113,10 @@ class Postman(QObject):
     def updateChartType(self, item_id, chart_type):
         print(f"PY updateChartType {chart_type}")
         chart = self.components[item_id]
-        update_dct, remove_dct = chart.update_chart_type(chart_type)
+        upd_dct, rm_dct, rm_traces = chart.update_chart_type(chart_type)
+        upd_dct["chartType"] = chart_type
 
-        # remove all traces to clean up non-used attributes
-        all_ids = chart.get_all_ids()
-        print(json.dumps(update_dct, indent=4))
-        self.chartUpdated.emit(item_id, update_dct, remove_dct, all_ids)
+        self.chartUpdated.emit(item_id, upd_dct, rm_dct, rm_traces)
 
     @Slot(str, str)
     def onTraceHover(self, item_id, trace_id):
@@ -134,9 +132,9 @@ class Postman(QObject):
     @Slot(str)
     def deleteSelectedTraces(self, item_id):
         chart = self.components[item_id]
-        ids, update_dct, remove_dct = chart.delete_selected_traces()
+        upd_dct, rm_dct, rm_traces = chart.delete_selected_traces()
 
-        self.chartUpdated.emit(item_id, update_dct, remove_dct, ids)
+        self.chartUpdated.emit(item_id, upd_dct, rm_dct, rm_traces)
 
 
 class MyPage(QWebEnginePage):
