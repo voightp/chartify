@@ -14,7 +14,7 @@ class ClickButton(QToolButton):
     action. The button stays 'checked' until the action
     finishes.
 
-    The button is meant to be used as non checkable.
+    The button is meant to be used as non-checkable.
 
     """
 

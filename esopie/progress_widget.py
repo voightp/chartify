@@ -21,16 +21,15 @@ class ProgressContainer(QWidget):
     A container to hold all progress widgets.
 
     """
-    max_active_jobs = 5
-    child_width = 140
-    child_spacing = 3
+    MAX_VISIBLE_JOBS = 5
+    CHILD_SPACING = 3
 
     def __init__(self, parent):
         super().__init__(parent)
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(self.child_spacing)
+        layout.setSpacing(self.CHILD_SPACING)
         layout.setAlignment(Qt.AlignLeft)
 
         self.files = {}
@@ -56,7 +55,7 @@ class ProgressContainer(QWidget):
     def create_widgets(self):
         """ Initialize progress widgets. """
         wgts = []
-        for i in range(self.max_active_jobs):
+        for i in range(self.MAX_VISIBLE_JOBS):
             wgt = ProgressWidget(self)
             wgt.remove.connect(self.remove_file)
             wgt.setVisible(False)
@@ -79,7 +78,7 @@ class ProgressContainer(QWidget):
         if i is None:
             # widget is in pending section, although it
             # can still be being processed on machines with
-            # number of cpu greater than max_active_jobs
+            # number of cpu greater than MAX_VISIBLE_JOBS
             vals = [v.rel_value for v in self.visible_files
                     if not isinstance(v, SummaryFile)]
             return any(map(lambda x: x < (file.rel_value + 3), vals))
@@ -103,7 +102,7 @@ class ProgressContainer(QWidget):
         """ Update progress widget display on the status bar. """
         files = self.sorted_files
         widgets = self.widgets
-        max_ = self.max_active_jobs
+        max_ = self.MAX_VISIBLE_JOBS
         n = len(files)
 
         fill = [None for _ in range(n, max_)]
@@ -243,6 +242,8 @@ class ProgressWidget(QWidget):
     """
     remove = Signal(ProgressFile)
 
+    WIDTH = 140
+
     def __init__(self, parent):
         super().__init__(parent)
         self.file_ref = None
@@ -252,7 +253,7 @@ class ProgressWidget(QWidget):
         self.main_layout.setSpacing(1)
 
         self.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
-        self.setFixedWidth(ProgressContainer.child_width)
+        self.setFixedWidth(self.WIDTH)
         self.setProperty("failed", False)
 
         wgt = QWidget(self)

@@ -6,7 +6,7 @@ from PySide2.QtWidgets import (QWidget, QSplitter, QHBoxLayout, QVBoxLayout,
                                QToolButton, QAction, QFileDialog, QSizePolicy,
                                QMenu, QFrame, QMainWindow)
 from PySide2.QtCore import (QSize, Qt, QCoreApplication, QSettings,
-                            QPoint)
+                            QPoint, Signal, QObject)
 
 from PySide2.QtGui import QIcon, QKeySequence, QColor
 
@@ -47,9 +47,13 @@ class MainWindow(QMainWindow):
     css = CssTheme(CSS_PATH)
     palette = get_palette(PALETTE_PATH, QSettings().value("MainWindow/scheme",
                                                           "default"))
-    selection_updated = Signal(list)
-    all_tabs_closed = Signal()
-    tab_closed = Signal(str)
+    selectionUpdated = Signal(list)
+    settingsChanged = Signal(dict)
+    fileProcessingRequested = Signal(list)
+    fileRenamed = Signal(str, str, str)
+    variableRenamed = Signal(str, str, str, QObject)
+    tabChanged = Signal(str)
+    tabClosed = Signal(str)
 
     def __init__(self):
         super(MainWindow, self).__init__()
@@ -184,8 +188,6 @@ class MainWindow(QMainWindow):
         self.hide_act.setEnabled(False)
         self.show_hidden_act.setEnabled(False)
 
-        self.connect_ui_actions()
-
         acts = [self.load_file_act, self.close_all_act]
         self.load_file_btn = MenuButton("Load file | files", self,
                                         actions=acts)
@@ -212,28 +214,29 @@ class MainWindow(QMainWindow):
         self.load_css()
         self.load_settings()
 
-    @property
-    def current_view_wgt(self):
-        """ A currently selected eso file. """
-        return self.tab_wgt.get_current_widget()
+        self.connect_ui_signals()
 
     @property
-    def current_view_wgts(self):
-        """ A currently selected eso file. """
-        all_ = self.toolbar.all_files_requested()
-        return self.all_view_wgts if all_ else [self.current_view_wgt]
+    def current_view(self):
+        """ A currently selected outputs file. """
+        return self.tab_wgt.currentWidget()
 
-    @property
-    def all_other_view_wgts(self):
-        """ A currently selected eso file. """
-        all_ = self.current_view_wgts
-        all_.remove(self.current_view_wgt)
-        return all_
+    def closeEvent(self, event):
+        """ Shutdown all the background stuff. """
+        self.store_settings()
 
-    @property
-    def all_view_wgts(self):
-        """ A list of all loaded eso files. """
-        return self.tab_wgt.get_all_children()
+        self.progress_cont.monitor.terminate()
+
+    def keyPressEvent(self, event):
+        """ Manage keyboard events. """
+        if event.key() == Qt.Key_Escape:
+
+            if not self.tab_wgt.is_empty():
+                self.current_view.clear_selected()
+
+        elif event.key() == Qt.Key_Delete:
+            if self.hasFocus():
+                self.remove_vars()
 
     def load_settings(self):
         """ Apply application settings. """
@@ -249,23 +252,6 @@ class MainWindow(QMainWindow):
         settings.setValue("MainWindow/scheme", self.palette.name)
 
         self.toolbar.store_settings()
-
-    def closeEvent(self, event):
-        """ Shutdown all the background stuff. """
-        self.store_settings()
-
-        self.progress_cont.monitor.terminate()
-
-    def keyPressEvent(self, event):
-        """ Manage keyboard events. """
-        if event.key() == Qt.Key_Escape:
-
-            if not self.tab_wgt.is_empty():
-                self.current_view_wgt.clear_selected()
-
-        elif event.key() == Qt.Key_Delete:
-            if self.hasFocus():
-                self.remove_vars()
 
     def load_scheme_btn_icons(self):
         """ Create scheme button icons. """
@@ -340,8 +326,7 @@ class MainWindow(QMainWindow):
 
     def mirror_layout(self):
         """ Mirror the layout. """
-        wgt = self.central_splitter.widget(1)
-        self.central_splitter.insertWidget(0, wgt)
+        self.central_splitter.insertWidget(0, self.central_splitter.widget(1))
 
     def set_palette(self, name):
         """ Update the application palette. """
@@ -349,6 +334,7 @@ class MainWindow(QMainWindow):
             self.palette = get_palette(self.PALETTE_PATH, name)
 
             # notify web view to update chart layout colors
+            # TODO REMOVE FLAT REFERENCE on CLIENT SIDE
             flat = name in ["default", "dark"]
 
             self.chart_area.postman.set_appearance(flat, self.palette)
@@ -364,9 +350,9 @@ class MainWindow(QMainWindow):
         self.setStyleSheet(self.css.content)
         self.load_icons()
 
-    def add_new_file(self, name, std_header, tot_header):
-        """ Add file on UI. """
-        wgt = self.create_view_wgt(id_, name, std_header, tot_header)
+    def add_new_tab(self, id_, name):
+        """ Add file on the UI. """
+        wgt = self.create_view_wgt(id_, name)
 
         # add the new view into tab widget
         self.tab_wgt.add_tab(wgt, name)
@@ -380,30 +366,20 @@ class MainWindow(QMainWindow):
         if not self.tab_wgt.is_empty():
             self.toolbar.totals_btn.setEnabled(True)
 
-    def rebuild_view(self):
+    def rebuild_view(self, header_dct):
         """ Create a new view when any of related settings change """
         is_tree = self.view_tools_wgt.tree_requested()
         interval = self.toolbar.get_selected_interval()
         units_settings = self.toolbar.get_units_settings()
         filter_str = self.view_tools_wgt.get_filter_str()
 
-        if not self.current_view_wgt:
+        if not self.current_view:
             return
 
-        self.current_view_wgt.update_model(is_tree, interval, units_settings,
-                                           filter_str=filter_str)
+        self.current_view.update_model(header_dct, is_tree, interval,
+                                       units_settings, filter_str=filter_str)
 
-    def close_all_tabs(self):
-        """ Delete all the content. """
-        wgts = self.tab_wgt.close_all_tabs()
-        for i in range(len(wgts)):
-            ids.append(wgts[i].id_)
-            wgts[i].deleteLater()
-
-        self.toolbar.set_initial_layout()
-        self.all_tabs_closed.emit()
-
-    def selection_populated(self, outputs):
+    def on_selection_populated(self, outputs):
         """ Store current selection in main app. """
         out_str = [" | ".join(var) for var in outputs]
         print("STORING!\n\t{}".format("\n\t".join(out_str)))
@@ -427,9 +403,9 @@ class MainWindow(QMainWindow):
             self.toolbar.set_tools_btns_enabled("sum", "mean", enabled=False)
 
         # store current selection in the model
-        self.selection_updated.emit(outputs)
+        self.selectionUpdated.emit(outputs)
 
-    def selection_cleared(self):
+    def on_selection_cleared(self):
         """ Handle behaviour when no variables are selected. """
         # handle actions availability
         self.hide_act.setEnabled(False)
@@ -443,45 +419,41 @@ class MainWindow(QMainWindow):
         # disable export xlsx as there are no variables to be exported
         self.toolbar.set_tools_btns_enabled("sum", "mean",
                                             "remove", enabled=False)
+        self.selectionUpdated.emit([])
 
-        self.selection_updated.emit([])
-
-    def create_view_wgt(self, id_, name, std_header, tot_header):
+    def create_view_wgt(self, id_, name):
         """ Create a 'View' widget and connect its actions. """
-        wgt = View(id_, name, std_header, tot_header)
-
-        # connect view actions
-        wgt.selectionCleared.connect(self.selection_cleared)
-        wgt.selectionPopulated.connect(self.selection_populated)
-        wgt.updateView.connect(self.rebuild_view)
-        wgt.itemDoubleClicked.connect(self.rename_item)
+        # create an empty 'View' widget - the data will be
+        # automatically populated on 'onTabChanged' signal
+        wgt = View(id_, name)
+        wgt.selectionCleared.connect(self.on_selection_cleared)
+        wgt.selectionPopulated.connect(self.on_selection_populated)
+        wgt.treeNodeChanged.connect(self.rebuild_view)
+        wgt.itemDoubleClicked.connect(self.rename_variable)
         wgt.context_menu_actions = [self.remove_act,
                                     self.hide_act,
                                     self.show_hidden_act]
-
         return wgt
 
     def filter_view(self, filter_string):
         """ Filter current view. """
         if not self.tab_wgt.is_empty():
-            self.current_view_wgt.filter_view(filter_string)
+            self.current_view.filter_view(filter_string)
 
     def expand_all(self):
         """ Expand all tree view items. """
-        if self.current_view_wgt:
-            self.current_view_wgt.expandAll()
+        if self.current_view:
+            self.current_view.expandAll()
 
     def collapse_all(self):
         """ Collapse all tree view items. """
-        if self.current_view_wgt:
-            self.current_view_wgt.collapseAll()
+        if self.current_view:
+            self.current_view.collapseAll()
 
-    def remove_eso_file(self, wgt):
+    def on_tab_closed(self, wgt):
         """ Delete current eso file. """
         id_ = wgt.id_
-
         wgt.deleteLater()
-        self.delete_sets_from_db(id_)
 
         if self.tab_wgt.is_empty():
             self.toolbar.totals_btn.setEnabled(False)
@@ -490,19 +462,15 @@ class MainWindow(QMainWindow):
             self.toolbar.all_files_btn.setEnabled(False)
             self.close_all_act.setEnabled(False)
 
+        self.tabClosed.emit(id_)
+
     def on_tab_changed(self, index):
         """ Update view when tabChanged event is fired. """
         if index != -1:
-            # update interval buttons state
-            intervals = self.current_view_wgt.get_available_intervals()
-            self.toolbar.update_intervals_state(intervals)
-            # update the view
-            self.rebuild_view()
-            # hide or show interval buttons based on availability
-            self.toolbar.populate_intervals_group()
+            self.tabChanged.emit(self.current_view.id_)
         else:
             # there aren't any widgets available
-            self.selection_cleared()
+            self.on_selection_cleared()
             self.toolbar.set_initial_layout()
 
     def load_files_from_os(self):
@@ -512,15 +480,15 @@ class MainWindow(QMainWindow):
         file_pths, _ = QFileDialog.getOpenFileNames(self, "Load Eso File",
                                                     pth, "*.eso")
         if file_pths:
-            self.load_files(file_pths)
+            # store last path for future
             settings.setValue("loadPath", file_pths[0])
+            self.fileProcessingRequested.emit(file_pths)
 
     def rename_file(self, tab_index):
         """ Rename file on a tab identified by the given index. """
         view = self.tab_wgt.widget(tab_index)
         orig_name = view.name
 
-        # create a list of names which won't be acceptable
         check_list = self.tab_wgt.get_all_child_names()[:]
         check_list.remove(orig_name)
 
@@ -533,128 +501,22 @@ class MainWindow(QMainWindow):
 
         name = d.get_input("name")
         totals_name = f"{name} - totals"
-
         view.name = name
-        rename_file_in_db(view.id_, name, totals_name)
 
         self.tab_wgt.setTabText(tab_index, name)
+        self.fileRenamed.emit(view.id_, name, totals_name)
 
-    def on_totals_change(self, change):
-        """ Switch current views to 'totals' and back. """
-        View.totals = change  # update class variable to request totals
-        self.rebuild_view()
-
-    def apply_async(self, func, *args, **kwargs):
-        """ A wrapper to apply functions to current views. """
-        # apply function to the current widget
-        view = self.current_view_wgt
-        val = func(view, *args, **kwargs)
-
-        # apply function to all other widgets asynchronously
-        others = self.all_other_view_wgts
-        if others:
-            w = IterWorker(func, others, *args, **kwargs)
-            self.thread_pool.start(w)
-
-        return val
-
-    def rename_item(self, variable):
+    def rename_variable(self, var):
         """ Rename given variable. """
         # retrieve variable name from ui
+        view = self.tab_wgt.widget(tab_index)
         msg = "Rename variable: "
-        res = self.get_new_name([variable], msg)  # TODO maybe customize?
-
-        if res:
-            var_nm, key_nm = res
-            var = self.apply_async(self.rename_var, var_nm,
-                                   key_nm, variable)
-            self.selected = [var]
-            self.rebuild_view()
-            self.current_view_wgt.scroll_to(var)
-
-    def dump_vars(self, view, variables, remove=False):
-        """ Hide or remove selected variables. """
-        file_id = view.get_file_id()
-        file = self.get_files_from_db(file_id)[0]
-
-        groups = file.find_pairs(variables)
-
-        if not groups:
-            return
-
-        if remove:
-            view.remove_header_variables(groups)
-            file.remove_outputs(variables)
-        else:
-            view.hide_header_variables(groups)
-
-        view.set_next_update_forced()
-
-    def show_hidden_vars(self):
-        """ Show previously hidden variables. """
-        for view in self.current_view_wgts:
-            view.show_hidden_header_variables()
-            view.set_next_update_forced()
-
-        self.show_hidden_act.setEnabled(False)
-        self.toolbar.hide_btn.setEnabled(False)
-
-        self.rebuild_view()
-
-    def remove_hidden_vars(self):
-        """ Remove hidden variables. """
-        for view in self.current_view_wgts:
-            view.remove_hidden_header_variables()
-
-    def rename_var(self, view, var_nm, key_nm, variable):
-        """ Rename given 'Variable'. """
-        file_id = view.get_file_id()
-        file = self.get_files_from_db(file_id)[0]
-
-        res = file.rename_variable(variable, var_nm, key_nm)
-        if res:
-            var_id, var = res
-            # add variable will replace current variable
-            view.add_header_variable(var_id, var)
-            view.set_next_update_forced()
-
-            return var
-
-    def aggr_vars(self, view, var_nm, key_nm, variables, func):
-        """ Add a new aggreagated variable to the file. """
-        file_id = view.get_file_id()
-
-        # files are always returned as list
-        file = self.get_files_from_db(file_id)[0]
-
-        res = file.aggregate_variables(variables, func,
-                                       key_nm=key_nm,
-                                       var_nm=var_nm,
-                                       part_match=False)
-        if res:
-            var_id, var = res
-            view.add_header_variable(var_id, var)
-            view.set_next_update_forced()
-
-            return var
-
-    def get_new_name(self, variables, msg=""):
-        """ Retrieve new variable data from the ui. """
-        var_nm = "Custom Variable"
-        key_nm = "Custom Key"
-
-        if all(map(lambda x: x.variable == variables[0].variable, variables)):
-            var_nm = variables[0].variable
-
-        if all(map(lambda x: x.key == variables[0].key, variables)):
-            key_nm = variables[0].key
-
-        # retrieve custom inputs from a user
-        kwargs = {"variable name": var_nm,
-                  "key name": key_nm}
+        kwargs = {"variable name": var.variable,
+                  "key name": var.key}
 
         dialog = MulInputDialog(msg, self, **kwargs)
-        res = dialog.exec()
+
+        res = dialog.exec_()
 
         if res == 0:
             return
@@ -662,84 +524,35 @@ class MainWindow(QMainWindow):
         var_nm = dialog.get_inputs_dct()["variable name"]
         key_nm = dialog.get_inputs_dct()["key name"]
 
-        return var_nm, key_nm
+        self.variableRenamed.emit(view.id_, var_nm, key_nm, var)
 
-    def add_var(self, aggr_func):
-        """ Create a new variable using given aggr function. """
-        variables = self.get_current_request()
-
-        # retrieve variable name from ui
-        msg = "Enter details of the new variable: "
-        res = self.get_new_name(variables, msg=msg)
-
-        if res:
-            var_nm, key_nm = res
-            var = self.apply_async(self.aggr_vars, var_nm, key_nm,
-                                   variables, aggr_func)
-
-            self.selected = [var]
-            self.rebuild_view()
-            self.current_view_wgt.scroll_to(var)
-
-    def remove_vars(self):
-        """ Remove variables from a file. """
-        variables = self.get_current_request()
-
-        if not variables:
-            return
-
-        all_ = self.toolbar.all_files_requested()
-        nm = self.tab_wgt.tabText(self.tab_wgt.currentIndex())
-
-        files = "all files" if all_ else f"file '{nm}'"
-        text = f"Delete following variables from {files}: "
-
-        inf_text = "\n".join([" | ".join(var[1:3]) for var in variables])
-
-        dialog = ConfirmationDialog(self, text, det_text=inf_text)
-        res = dialog.exec_()
-
-        if res == 0:
-            return
-
-        self.apply_async(self.dump_vars, variables, remove=True)
-        self.rebuild_view()
-
-    def hide_vars(self):
-        """ Temporarily hide variables. """
-        variables = self.get_current_request()
-        self.apply_async(self.dump_vars, variables)
-
-        # allow showing variables again
-        self.show_hidden_act.setEnabled(True)
-        self.toolbar.hide_btn.setEnabled(True)
-
-        self.rebuild_view()
-
-    def connect_ui_actions(self):
+    def connect_ui_signals(self):
         """ Create actions which depend on user actions """
-        # ~~~~ View Actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.left_main_wgt.fileDropped.connect(self.load_files)
+        # ~~~~ Widget Signals ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.left_main_wgt.fileDropped.connect(self.fileProcessingRequested.emit)
+
+        # ~~~~ Actions Signals ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.load_file_act.triggered.connect(self.load_files_from_os)
+        self.tree_act.triggered.connect(self.view_tools_wgt.tree_view_btn.toggle)
+        self.collapse_all_act.triggered.connect(self.collapse_all)
+        self.expand_all_act.triggered.connect(self.expand_all)
+
+        # ~~~~ View Signals ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.view_tools_wgt.textFiltered.connect(self.filter_view)
         self.view_tools_wgt.structureChanged.connect(self.rebuild_view)
         self.view_tools_wgt.expandRequested.connect(self.expand_all)
         self.view_tools_wgt.collapseRequested.connect(self.collapse_all)
 
-        # ~~~~ Tab actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.tab_wgt.tabClosed.connect(self.remove_eso_file)
+        # ~~~~ Tab Signals ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.tab_wgt.tabClosed.connect(self.on_tab_closed)
         self.tab_wgt.currentChanged.connect(self.on_tab_changed)
-        self.tab_wgt.fileLoadRequested.connect(self.load_files_from_os)
-        self.tab_wgt.tabRenameRequested.connect(self.rename_file)
+        self.tab_wgt.tabBarDoubleClicked.connect(self.rename_file)
+        self.tab_wgt.drop_btn.clicked.connect(self.load_files_from_os)
 
-        # ~~~~ Outputs actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.toolbar.updateView.connect(self.rebuild_view)
-        self.toolbar.totalsChanged.connect(self.on_totals_change)
+        # ~~~~ Toolbar Signals ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.toolbar.settingsUpdated.connect(self.settingsChanged.emit)
         self.toolbar.sum_btn.connect_action(self.sum_act)
         self.toolbar.mean_btn.connect_action(self.mean_act)
         self.toolbar.remove_btn.connect_action(self.remove_act)
-
         self.toolbar.hide_btn.set_actions(self.show_hidden_act.trigger,
                                           self.hide_act.trigger)
-
-        self.v.collapse_all_act.triggered.connect(self.collapse_all)
-        self.v.expand_all_act.triggered.connect(self.expand_all)

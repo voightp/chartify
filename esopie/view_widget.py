@@ -1,18 +1,17 @@
 from PySide2.QtWidgets import QTreeView, QAbstractItemView, QHeaderView, QMenu
 from PySide2.QtCore import (Qt, QSortFilterProxyModel, QItemSelectionModel,
                             QItemSelection, QItemSelectionRange, QMimeData,
-                            Signal, QObject)
+                            Signal)
 
 from PySide2.QtGui import QStandardItemModel, QStandardItem, QDrag, QPixmap
-from esopie.eso_file_header import FileHeader
+from esopie.view_functions import as_tree_dct, create_iterator
 
 
 class View(QTreeView):
     selectionCleared = Signal()
     selectionPopulated = Signal(list)
     itemDoubleClicked = Signal(object)
-    updateView = Signal()
-    totals = False
+    treeNodeChanged = Signal()
 
     settings = {"widths": {"interactive": 200,
                            "fixed": 70},
@@ -20,7 +19,7 @@ class View(QTreeView):
                 "header": ("variable", "key", "units"),
                 "expanded": set()}
 
-    def __init__(self, id_, name, std_file_header, tot_file_header):
+    def __init__(self, id_, name):
         super().__init__()
         self.setRootIsDecorated(True)
         self.setUniformRowHeights(True)
@@ -40,10 +39,6 @@ class View(QTreeView):
 
         self.id_ = id_
         self.name = name
-        self.headers = {
-            "standard": std_file_header,
-            "totals": tot_file_header
-        }
 
         self._initialized = False
         self.temp_settings = {"interval": None,
@@ -62,12 +57,6 @@ class View(QTreeView):
 
         self.context_menu_actions = []
 
-    @property
-    def file_header(self):
-        """ Current file header. """
-        key = "totals" if self.totals else "standard"
-        return self.headers[key]
-
     def mousePressEvent(self, event):
         """ Handle mouse events. """
         btn = event.button()
@@ -84,36 +73,6 @@ class View(QTreeView):
         menu.setWindowFlags(menu.windowFlags() | Qt.NoDropShadowWindowHint)
 
         menu.exec_(self.mapToGlobal(event.pos()))
-
-    def get_available_intervals(self):
-        """ Get currently available intervals. """
-        return self.file_header.available_intervals
-
-    def get_file_id(self):
-        """ Get file id based on 'totals' request. """
-        return self.file_header.id_
-
-    def show_hidden_header_variables(self):
-        """ Remove all hidden variables from the file. """
-        for v in self.headers.values():
-            v.show_hidden_variables()
-
-    def remove_hidden_header_variables(self):
-        """ Remove all hidden variables from the file. """
-        for v in self.headers.values():
-            v.remove_hidden_variables()
-
-    def remove_header_variables(self, groups):
-        """ Remove variables from the file. """
-        self.file_header.remove_variables(groups)
-
-    def hide_header_variables(self, groups):
-        """ Temporarily hide a variable from the file. """
-        self.file_header.hide_variables(groups)
-
-    def add_header_variable(self, id_, variable):
-        """ Add a new variable (from 'Variable' class) into file header. """
-        self.file_header.add_variable(id_, variable)
 
     def filter_view(self, filter_str):
         """ Filter the model using given string. """
@@ -145,14 +104,15 @@ class View(QTreeView):
             if model.hasChildren(ix):
                 self.setFirstColumnSpanned(i, self.rootIndex(), True)
 
-    def build_model(self, header, units_settings,
+    def build_model(self, header_dct, units_settings,
                     tree_key, view_order, interval):
         """
         Create a model and set up its appearance.
         """
+        header_zip = create_iterator(header_dct, units_settings, view_order, interval)
+
         model = ViewModel()
-        model.populate_data(header, units_settings,
-                            tree_key, view_order, interval)
+        model.populate_data(header_zip, tree_key)
 
         proxy_model = FilterModel()
         proxy_model.setSourceModel(model)
@@ -375,7 +335,7 @@ class View(QTreeView):
         if (new_visual_ix == 0 or old_visual_ix == 0) and is_tree:
             # need to update view as section has been moved
             # onto first position and tree key is applied
-            self.updateView.emit()
+            self.treeNodeChanged.emit()
             self.update_sort_order(names[0], Qt.AscendingOrder)
 
         self.update_resize_behaviour()
@@ -574,20 +534,18 @@ class ViewModel(QStandardItemModel):
                 root.appendRow(parent)
                 self._append_rows(variables, parent, tree=True)
 
-    def populate_data(self, header, units_settings, tree_key, view_order,
-                      interval):
+    def populate_data(self, header_zip, tree_key):
         """ Feed the model with output variables. """
         root = self.invisibleRootItem()
-        header = header.get_iterator(units_settings, view_order, interval)
 
         if not tree_key:
             # tree like structure is not being used
             # append as a plain table
-            self._append_rows(header, root)
+            self._append_rows(header_zip, root)
 
         else:
             # create a tree like structure
-            tree_header = FileHeader.get_tree_dct(header, tree_key)
+            tree_header = as_tree_dct(header_zip, tree_key)
             self._append_tree_rows(tree_header, root)
 
 

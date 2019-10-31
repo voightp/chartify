@@ -27,8 +27,6 @@ def filter_eso_files(urls, extensions=("eso",)):
 
 class TabWidget(QTabWidget):
     tabClosed = Signal(View)
-    fileLoadRequested = Signal()
-    tabRenameRequested = Signal(int)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -44,8 +42,6 @@ class TabWidget(QTabWidget):
         layout.addWidget(self.drop_btn)
 
         self.tabCloseRequested.connect(self.close_tab)
-        self.drop_btn.clicked.connect(self.fileLoadRequested.emit)
-        self.tabBarDoubleClicked.connect(self.tabRenameRequested.emit)
 
     def is_empty(self):
         """ Check if there's at least one loaded file. """
@@ -56,9 +52,6 @@ class TabWidget(QTabWidget):
 
     def get_all_child_names(self):
         return [wgt.name for wgt in self.get_all_children()]
-
-    def get_current_widget(self):
-        return self.currentWidget()
 
     def add_tab(self, wgt, title):
         if self.is_empty():
@@ -74,12 +67,6 @@ class TabWidget(QTabWidget):
             self.drop_btn.setVisible(True)
 
         self.tabClosed.emit(wgt)
-
-    def close_all_tabs(self):
-        wgts = [self.widget(i) for i in range(self.count())]
-        self.clear()
-        self.drop_btn.setVisible(True)
-        return wgts
 
 
 class DropFrame(QFrame):
