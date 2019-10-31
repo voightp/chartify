@@ -1,4 +1,12 @@
 from random import randint
+import os
+
+
+def install_fonts(pth, database):
+    files = os.listdir(pth)
+    for file in files:
+        p = os.path.join(pth, file)
+        database.addApplicationFont(p)
 
 
 def generate_ids(used_ids, n=1, max_id=99999):

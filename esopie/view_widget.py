@@ -58,7 +58,7 @@ class View(QTreeView):
         self.expanded.connect(self.handle_expanded)
         self.collapsed.connect(self.handle_collapsed)
         self.pressed.connect(self.handle_drag_attempt)
-        self.doubleClicked.connect(self.handle_d_clicked)
+        self.doubleClicked.connect(self.handle_double_clicked)
 
         self.context_menu_actions = []
 
@@ -244,13 +244,8 @@ class View(QTreeView):
         """ Connect specific signals. """
         self.verticalScrollBar().valueChanged.connect(self.slider_moved)
 
-    def update_model(self, is_tree, interval, units_settings,
-                     select=None, filter_str=""):
-        """
-        Set the model and define behaviour of the tree view.
-        """
-        header = self.file_header
-        totals = self.totals
+    def update_model(self, is_tree, interval, units_settings, filter_str=""):
+        """ Set the model and define behaviour of the tree view. """
         view_order = self.settings["header"]
         tree_key = view_order[0] if is_tree else None
 
@@ -261,24 +256,26 @@ class View(QTreeView):
                       self.totals != self.temp_settings["totals"],
                       self.temp_settings["force_update"]]
 
+        # store previously selected outputs
+        old_outputs = self.get_selected_variables()
+
         if any(conditions):
             self.disconnect_actions()
-            self.build_model(header, units_settings,
+            self.build_model(self.file_header, units_settings,
                              tree_key, view_order, interval)
 
             # Store current sorting key and interval
-            self.store_settings(interval, tree_key, units_settings, totals)
+            self.store_settings(interval, tree_key, units_settings, self.totals)
             self.reconnect_actions()
 
-        # clean up selection as this will be handled based on
-        # currently selected list of items stored in main app
-        self.clear_selected()
-        if select:
-            self.update_selection(select, view_order[0])
+            # update selection only if the model changes
+            self.update_selection(old_outputs, view_order[0])
 
         if filter_str:
             self.filter_view(filter_str)
 
+        # update visual appearance of the view to be consistent
+        # with previously displayed View
         self.update_view_appearance()
 
         if not self._initialized:
@@ -399,8 +396,8 @@ class View(QTreeView):
         """ Handle moving view slider. """
         self._scrollbar_position = val
 
-    def handle_d_clicked(self, index):
-        """ Handle double click on the view. """
+    def handle_double_clicked(self, index):
+        """ Handle view double click. """
         proxy_model = self.model()
         source_item = proxy_model.item_from_index(index)
 
@@ -420,7 +417,8 @@ class View(QTreeView):
 
     def handle_drag_attempt(self):
         """ Handle pressing the view item or items. """
-        outputs = self.select_variables()
+        outputs = self.get_selected_variables()
+        self.store_outputs(outputs)
 
         if not outputs:
             return
@@ -430,7 +428,7 @@ class View(QTreeView):
 
         mime_dt = QMimeData()
         mime_dt.setText("HELLO FROM PIE")
-        pix = QPixmap("../icons/input.png")
+        pix = QPixmap("./icons/input.png")
 
         drag = QDrag(self)
         drag.setMimeData(mime_dt)
@@ -438,7 +436,7 @@ class View(QTreeView):
         drag.exec_(Qt.CopyAction)
         # create a drag object with pixmap
 
-    def select_variables(self):
+    def get_selected_variables(self):
         """ Extract output information from the current selection. """
         proxy_model = self.model()
         selection_model = self.selectionModel()
@@ -472,10 +470,7 @@ class View(QTreeView):
         # needs to be called again to get updated selection
         proxy_rows = selection_model.selectedRows()
 
-        outputs = [proxy_model.data_from_index(index) for index in proxy_rows]
-        self.store_outputs(outputs)
-
-        return outputs
+        return [proxy_model.data_from_index(index) for index in proxy_rows]
 
     def store_outputs(self, outputs):
         """ Update outputs in the main app. """

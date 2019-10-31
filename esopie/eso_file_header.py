@@ -86,8 +86,10 @@ class FileHeader:
         """ Return data - proxy paired list of tuples. """
         variables = list(self.header_dct[interval].values())
 
-        (rate_to_energy, units_system,
-         energy_units, power_units) = units_settings
+        rate_to_energy = units_settings["rate_to_energy"]
+        units_system = units_settings["units_system"]
+        energy_units = units_settings["energy_units"]
+        power_units = units_settings["power_units"]
 
         order = list(view_order)
         ProxyVariable = namedtuple("ProxyVariable", order)

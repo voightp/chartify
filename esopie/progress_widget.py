@@ -1,8 +1,7 @@
-from PySide2.QtWidgets import QWidget, QLabel, QProgressBar, QStatusBar, \
-    QVBoxLayout, QSizePolicy, \
-    QPushButton, QHBoxLayout
+from PySide2.QtWidgets import (QWidget, QLabel, QProgressBar, QStatusBar,
+                               QVBoxLayout, QSizePolicy,
+                               QPushButton, QHBoxLayout)
 from PySide2.QtCore import Signal, Qt
-from esopie.threads import MonitorThread
 
 
 class StatusBar(QStatusBar):
@@ -26,7 +25,7 @@ class ProgressContainer(QWidget):
     child_width = 140
     child_spacing = 3
 
-    def __init__(self, parent, queue):
+    def __init__(self, parent):
         super().__init__(parent)
 
         layout = QHBoxLayout(self)
@@ -35,11 +34,7 @@ class ProgressContainer(QWidget):
         layout.setAlignment(Qt.AlignLeft)
 
         self.files = {}
-
         self.widgets = self.create_widgets()
-        self.monitor = MonitorThread(queue)
-        self.connect_monitor_actions()
-        self.monitor.start()
 
     @property
     def sorted_files(self):
@@ -165,16 +160,6 @@ class ProgressContainer(QWidget):
         """ Update text info for a given monitor. """
         pass  # TODO review if needed
         # self.status_bar.progressBars[monitor_id].setText(text)
-
-    def connect_monitor_actions(self):
-        """ Create monitor actions. """
-        self.monitor.initialized.connect(self.add_file)
-        self.monitor.started.connect(self.update_progress_text)
-        self.monitor.progress_text_updated.connect(self.update_progress_text)
-        self.monitor.progress_bar_updated.connect(self.update_file_progress)
-        self.monitor.preprocess_finished.connect(self.set_max_value)
-        self.monitor.finished.connect(self.remove_file)
-        self.monitor.failed.connect(self.set_failed)
 
 
 class ProgressFile:

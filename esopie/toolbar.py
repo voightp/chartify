@@ -83,6 +83,7 @@ class Toolbar(QFrame):
     """
     updateView = Signal()
     totalsChanged = Signal(bool)
+    unitsSettingsChanged = Signal()
 
     temp_settings = {"energy_units": "",
                      "power_units": "",
@@ -132,10 +133,10 @@ class Toolbar(QFrame):
         self.layout.addWidget(self.tools_group)
 
         # ~~~~ Units group ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.cstm_uni_tgl = ToggleButton(self)
-        self.cstm_uni_tgl.setText("Custom Units")
-        self.cstm_uni_tgl.setChecked(True)
-        self.layout.addWidget(self.cstm_uni_tgl)
+        self.custom_units_toggle = ToggleButton(self)
+        self.custom_units_toggle.setText("Custom Units")
+        self.custom_units_toggle.setChecked(True)
+        self.layout.addWidget(self.custom_units_toggle)
 
         self.uni_grp = QFrame(self)
         self.uni_grp.setObjectName("unitsGroup")
@@ -151,7 +152,7 @@ class Toolbar(QFrame):
 
         # ~~~~ Settings group ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.stngs_btn = MenuButton("Settings", self, QSize(40, 40),
-                                    icon=QPixmap("../icons/gear.png"))
+                                    icon=QPixmap("./icons/gear.png"))
 
         self.layout.addWidget(self.stngs_btn)
 
@@ -217,8 +218,7 @@ class Toolbar(QFrame):
 
     def all_files_requested(self):
         """ Check if results from all eso files are requested. """
-        btn = self.all_files_btn
-        return btn.isChecked() and btn.isEnabled()
+        return self.all_files_btn.isChecked() and self.all_files_btn.isEnabled()
 
     def totals_requested(self):
         """ Check if results from all eso files are requested. """
@@ -302,7 +302,7 @@ class Toolbar(QFrame):
         self.units_sys_btn = TitledButton(self.uni_grp, fill_space=True,
                                           title="system", menu=un_syst_menu,
                                           items=items, data=items, def_act_dt=dt)
-        self.toggle_units(dt)
+        self.toggle_units_system(dt)
 
         # ~~~~ Rate to energy set up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.rate_ene_btn = QToolButton(self.uni_grp)
@@ -369,7 +369,7 @@ class Toolbar(QFrame):
         """ Enable or disable rate to energy button. """
         # handle changing the state on rt_to_ene_btn
         # as this is allowed only for daily+ intervals
-        if self.cstm_uni_tgl.isChecked():
+        if self.custom_units_toggle.isChecked():
             b = self.get_selected_interval() not in [TS, H]
             self.rate_ene_btn.setEnabled(b)
         else:
@@ -417,7 +417,12 @@ class Toolbar(QFrame):
         energy_units = self.energy_btn.data()
         power_units = self.power_btn.data()
 
-        return rate_to_energy, units_system, energy_units, power_units
+        return {
+            "energy_units": energy_units,
+            "power_units": power_units,
+            "units_system": units_system,
+            "rate_to_energy": rate_to_energy
+        }
 
     def store_units_settings(self):
         """ Store intermediate units settings. """
@@ -457,7 +462,7 @@ class Toolbar(QFrame):
         self.rate_ene_btn.setEnabled(False)
         self.rate_ene_btn.setChecked(False)
 
-    def units_settings_toggled(self, state):
+    def custom_units_toggled(self, state):
         """ Update units settings when custom units toggled. """
         disabled = state == 0
         if disabled:
@@ -477,7 +482,7 @@ class Toolbar(QFrame):
         """ Toggle standard outputs and totals. """
         self.totalsChanged.emit(checked)
 
-    def toggle_units(self, units_system):
+    def toggle_units_system(self, units_system):
         """ Handle displaying allowed units for given units system. """
         if units_system == "IP":
             en_acts = ip_energy_units
@@ -495,7 +500,7 @@ class Toolbar(QFrame):
         changed = self.units_sys_btn.update_state(act)
 
         dt = act.data()
-        self.toggle_units(dt)
+        self.toggle_units_system(dt)
 
         if changed:
             self.updateView.emit()
@@ -522,9 +527,7 @@ class Toolbar(QFrame):
 
         # ~~~~ Options buttons actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.totals_btn.toggled.connect(self.totals_toggled)
-
-        # ~~~~ Options Actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.cstm_uni_tgl.stateChanged.connect(self.units_settings_toggled)
+        self.custom_units_toggle.stateChanged.connect(self.custom_units_toggled)
         self.rate_ene_btn.clicked.connect(self.rate_to_energy_toggled)
 
         # ~~~~ Settings Actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

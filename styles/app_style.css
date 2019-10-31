@@ -48,7 +48,7 @@ DropFrame#leftMainWgt[drag-accept=false] {
 QSplitter::handle {
     height: 6px;
     background-color: SURFACE_COLOR;
-    image: URL(../icons/dots.png)#BACKGROUND_COLOR;
+    image: URL(./icons/dots.png)#BACKGROUND_COLOR;
 }
 
 /* workaround to repaint handle */
@@ -57,7 +57,7 @@ QSplitterHandle:hover {
 }
 
 QSplitter::handle:horizontal:hover {
-    image: URL(../icons/dots.png)#SECONDARY_COLOR;
+    image: URL(./icons/dots.png)#SECONDARY_COLOR;
 }
 
 /* ~~~~~ STATUS BAR ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
@@ -78,7 +78,7 @@ QLabel {
 }
 
 QLabel#filterIcon {
-    image: URL(../icons/filter_list.png)#SECONDARY_TEXT_COLOR;
+    image: URL(./icons/filter_list.png)#SECONDARY_TEXT_COLOR;
     min-width: 20px;
     min-height: 20px;
 }
@@ -153,7 +153,7 @@ QToolButton#swapButton {
     margin: 0px;
     border: 0px;
     background: transparent;
-    image: URL(../icons/swap.png)#PRIMARY_COLOR;
+    image: URL(./icons/swap.png)#PRIMARY_COLOR;
     width: 20px;
     height: 20px;
 }
@@ -174,15 +174,15 @@ ClickButton:checked {
 }
 
 #collapseButton {
-    image: URL(../icons/unfold_less.png)#SECONDARY_TEXT_COLOR;
+    image: URL(./icons/unfold_less.png)#SECONDARY_TEXT_COLOR;
 }
 
 #expandButton {
-    image: URL(../icons/unfold_more.png)#SECONDARY_TEXT_COLOR;
+    image: URL(./icons/unfold_more.png)#SECONDARY_TEXT_COLOR;
 }
 
 #treeButton {
-    image: URL(../icons/plain_view.png)#SECONDARY_TEXT_COLOR;
+    image: URL(./icons/plain_view.png)#SECONDARY_TEXT_COLOR;
 }
 
 #collapseButton:disabled, #expandButton:disabled, #treeButton:disabled {
@@ -190,11 +190,11 @@ ClickButton:checked {
 }
 
 #collapseButton:disabled {
-    image: URL(../icons/unfold_less.png)#SECONDARY_TEXT_COLOR#50;
+    image: URL(./icons/unfold_less.png)#SECONDARY_TEXT_COLOR#50;
 }
 
 #expandButton:disabled {
-    image: URL(../icons/unfold_more.png)#SECONDARY_TEXT_COLOR#50;
+    image: URL(./icons/unfold_more.png)#SECONDARY_TEXT_COLOR#50;
 }
 
 #collapseButton:hover, #expandButton:hover, #treeButton:hover {
@@ -202,7 +202,7 @@ ClickButton:checked {
 }
 
 #treeButton:checked {
-    image: URL(../icons/tree_view.png)#SECONDARY_TEXT_COLOR;
+    image: URL(./icons/tree_view.png)#SECONDARY_TEXT_COLOR;
   }
 
 QToolButton#dropButton {
@@ -237,7 +237,7 @@ MenuButton#settingsButton {
 }
 
 MenuButton::menu-indicator {
-    image: URL(../icons/plus.png)#PRIMARY_COLOR;
+    image: URL(./icons/plus.png)#PRIMARY_COLOR;
     margin: 3px;
     width: 10px;
     height: 10px;
@@ -255,7 +255,7 @@ TitledButton QToolButton {
 }
 
 TitledButton QToolButton::menu-indicator {
-    image: URL(../icons/expand_more.png)#PRIMARY_COLOR;
+    image: URL(./icons/expand_more.png)#PRIMARY_COLOR;
     margin: 1px;
     width: 12px;
     height: 12px;
@@ -310,7 +310,7 @@ IconMenuButton QMenu {
 }
 
 IconMenuButton::menu-indicator {
-    image: url(../icons/transparent.png);
+    image: url(./icons/transparent.png);
     margin: 0px;
     width: 0px;
     height: 0px;
@@ -348,7 +348,7 @@ LineEdit, QLineEdit{
 /* ~~~~~ PROGRESS WIDGET ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
 ProgressWidget QPushButton {
-    image: URL(../icons/remove.png)#ERROR_COLOR;
+    image: URL(./icons/remove.png)#ERROR_COLOR;
     margin-bottom: 2px;
 }
 
@@ -421,15 +421,15 @@ QTabBar::tab:selected {
 }
 
 QTabBar::close-button {
-    image: URL(../icons/remove.png)#SECONDARY_TEXT_COLOR;
+    image: URL(./icons/remove.png)#SECONDARY_TEXT_COLOR;
 }
 
 QTabBar::close-button:selected {
-    image: URL(../icons/remove.png)#PRIMARY_COLOR;
+    image: URL(./icons/remove.png)#PRIMARY_COLOR;
 }
 
 QTabBar::close-button:hover {
-    image: URL(../icons/remove.png)#ERROR_COLOR;
+    image: URL(./icons/remove.png)#ERROR_COLOR;
 }
 
 QTabBar::tab:first:selected {
@@ -466,19 +466,19 @@ QTabBar::scroller {
 }
 
 QTabBar QToolButton::left-arrow {
-    image: URL(../icons/chevron_left.png)#SECONDARY_TEXT_COLOR;
+    image: URL(./icons/chevron_left.png)#SECONDARY_TEXT_COLOR;
 }
 
 QTabBar QToolButton::left-arrow:disabled {
-    image: url(../icons/transparent.png);
+    image: url(./icons/transparent.png);
 }
 
 QTabBar QToolButton::right-arrow {
-    image: URL(../icons/chevron_right.png)#SECONDARY_TEXT_COLOR;
+    image: URL(./icons/chevron_right.png)#SECONDARY_TEXT_COLOR;
 }
 
 QTabBar QToolButton::right-arrow:disabled {
-    image: url(../icons/transparent.png);
+    image: url(./icons/transparent.png);
 }
 
 QHeaderView::section {
@@ -499,7 +499,7 @@ QHeaderView::section:checked {
 /* style the sort indicator */
 QHeaderView::down-arrow {
   color: PRIMARY_TEXT_COLOR;
-  image: URL(../icons/expand_less.png)#PRIMARY_COLOR;
+  image: URL(./icons/expand_less.png)#PRIMARY_COLOR;
   width: 12px;
   height: 12px;
   subcontrol-position: right;
@@ -508,7 +508,7 @@ QHeaderView::down-arrow {
 
 QHeaderView::up-arrow {
   color: PRIMARY_TEXT_COLOR;
-  image: URL(../icons/expand_more.png)#PRIMARY_COLOR;
+  image: URL(./icons/expand_more.png)#PRIMARY_COLOR;
   width: 12px;
   height: 12px;
 }
@@ -552,11 +552,11 @@ QTreeView::branch:has-children {
 }
 
 QTreeView::branch:has-children:closed {
-    image: URL(../icons/plus.png)#PRIMARY_TEXT_COLOR;
+    image: URL(./icons/plus.png)#PRIMARY_TEXT_COLOR;
 }
 
 QTreeView::branch:has-children:open {
-    image: URL(../icons/minus.png)#PRIMARY_TEXT_COLOR;
+    image: URL(./icons/minus.png)#PRIMARY_TEXT_COLOR;
 }
 
 QScrollBar:vertical {
@@ -667,7 +667,7 @@ QMenu::indicator {
 }
 
 QMenu::indicator:non-exclusive:checked {
-  image: URL(../icons/check.png)#SECONDARY_TEXT_COLOR;
+  image: URL(./icons/check.png)#SECONDARY_TEXT_COLOR;
 }
 
 
@@ -751,20 +751,20 @@ QDialog QTextEdit {
 }
 
 QDialogButtonBox #okButton {
-    image: URL(../icons/check.png)#PRIMARY_COLOR;
+    image: URL(./icons/check.png)#PRIMARY_COLOR;
 }
 
 QDialogButtonBox #cancelButton {
-    image: URL(../icons/remove.png)#PRIMARY_COLOR;
+    image: URL(./icons/remove.png)#PRIMARY_COLOR;
     margin-right: 4px;
 }
 
 QDialogButtonBox #okButton:hover {
-    image: URL(../icons/check.png)#OK_COLOR;
+    image: URL(./icons/check.png)#OK_COLOR;
     background: transparent;
 }
 
 QDialogButtonBox #cancelButton:hover {
-    image: URL(../icons/remove.png)#ERROR_COLOR;
+    image: URL(./icons/remove.png)#ERROR_COLOR;
     background: transparent;
 }

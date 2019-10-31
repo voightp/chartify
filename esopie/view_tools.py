@@ -11,10 +11,10 @@ class ViewTools(QFrame):
     A class to represent an application toolbar.
 
     """
-    updateView = Signal()
-    filterViewItems = Signal(str)
-    expandViewItems = Signal()
-    collapseViewItems = Signal()
+    structureChanged = Signal()
+    textFiltered = Signal(str)
+    expandRequested = Signal()
+    collapseRequested = Signal()
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -43,8 +43,8 @@ class ViewTools(QFrame):
 
         # ~~~~ Filter action ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.filter_line_edit.textEdited.connect(self.text_edited)
-        self.expand_all_btn.clicked.connect(self.expandViewItems.emit)
-        self.collapse_all_btn.clicked.connect(self.collapseViewItems.emit)
+        self.expand_all_btn.clicked.connect(self.expandRequested.emit)
+        self.collapse_all_btn.clicked.connect(self.collapseRequested.emit)
         self.tree_view_btn.toggled.connect(self.tree_btn_toggled)
 
         self.set_up_view_tools()
@@ -98,7 +98,7 @@ class ViewTools(QFrame):
         # collapse and expand all buttons are not relevant for plain view
         self.collapse_all_btn.setEnabled(checked)
         self.expand_all_btn.setEnabled(checked)
-        self.updateView.emit()
+        self.structureChanged.emit()
 
     def text_edited(self):
         """ Delay firing a text edited event. """
@@ -107,4 +107,4 @@ class ViewTools(QFrame):
     def request_filter(self):
         """ Apply a filter when the filter text is edited. """
         filter_string = self.filter_line_edit.text()
-        self.filterViewItems.emit(filter_string)
+        self.textFiltered.emit(filter_string)

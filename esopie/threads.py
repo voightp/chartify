@@ -7,8 +7,8 @@ from eso_reader.building_eso_file import BuildingEsoFile
 
 # noinspection PyUnresolvedReferences
 class MonitorThread(QThread):
-    progress_bar_updated = Signal(int, int)
-    progress_text_updated = Signal(int, str)
+    bar_updated = Signal(int, int)
+    text_updated = Signal(int, str)
     finished = Signal(int)
     preprocess_finished = Signal(int, int)
     started = Signal(int, str)
@@ -80,10 +80,10 @@ class EsoFileWatcher(QThread):
 
 
 class GuiMonitor(DefaultMonitor):
-    def __init__(self, path, id, queue):
+    def __init__(self, path, id_, queue):
         super().__init__(path)
         self.queue = queue
-        self.id = id
+        self.id = id_
         self.send_message(0, "Waiting")
 
     def building_totals_finished(self):
