@@ -9,7 +9,7 @@ from esopie.threads import MonitorThread
 from queue import Queue
 
 from PySide2.QtCore import Signal, Qt
-from PySide2.QtCore import QSize, Qt, Signal, QSettings
+from PySide2.QtCore import QSize, Qt, Signal
 
 from esopie.utils.utils import generate_ids, get_str_identifier
 from esopie.utils.process_utils import (create_pool, kill_child_processes,
@@ -22,18 +22,8 @@ class AppModel:
     fileLoaded = Signal(str, str)
 
     def __init__(self):
-        settings = QSettings()
-
         # ~~~~ Intermediate settings ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.selected_variables = None
-        self.all_files_selected = False
-        self.totals_selected = False
-        self.units_settings = {
-            "energy_units": settings.value("Toolbar/energyUnits", "kWh"),
-            "power_units": settings.value("Toolbar/powerUnits", "kW"),
-            "units_system": settings.value("Toolbar/unitsSystem", "SI"),
-            "rate_to_energy": bool(settings.value("Toolbar/rateToEnergy", 0))
-        }
 
         # ~~~~ Queues ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.file_queue = Queue()

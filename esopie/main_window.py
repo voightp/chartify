@@ -19,6 +19,7 @@ from esopie.toolbar import Toolbar
 from esopie.view_tools import ViewTools
 from esopie.css_theme import CssTheme, get_palette
 from esopie.chart_widgets import MyWebView
+from esopie.settings import Settings
 
 from esopie.utils.utils import generate_ids, get_str_identifier
 from esopie.utils.process_utils import (create_pool, kill_child_processes,
@@ -48,7 +49,7 @@ class MainWindow(QMainWindow):
     palette = get_palette(PALETTE_PATH, QSettings().value("MainWindow/scheme",
                                                           "default"))
     selectionUpdated = Signal(list)
-    settingsChanged = Signal(dict)
+    settingsChanged = Signal()
     fileProcessingRequested = Signal(list)
     fileRenamed = Signal(str, str, str)
     variableRenamed = Signal(str, str, str, QObject)
@@ -225,8 +226,6 @@ class MainWindow(QMainWindow):
         """ Shutdown all the background stuff. """
         self.store_settings()
 
-        self.progress_cont.monitor.terminate()
-
     def keyPressEvent(self, event):
         """ Manage keyboard events. """
         if event.key() == Qt.Key_Escape:
@@ -250,8 +249,6 @@ class MainWindow(QMainWindow):
         settings.setValue("MainWindow/size", self.size())
         settings.setValue("MainWindow/pos", self.pos())
         settings.setValue("MainWindow/scheme", self.palette.name)
-
-        self.toolbar.store_settings()
 
     def load_scheme_btn_icons(self):
         """ Create scheme button icons. """
@@ -411,8 +408,7 @@ class MainWindow(QMainWindow):
         self.hide_act.setEnabled(False)
         self.remove_act.setEnabled(False)
 
-        # switch to show hidden action, handle visibility
-        # based on child action
+        # switch to show hidden action, handle visibility based on child action
         self.toolbar.hide_btn.set_primary_state()
         self.toolbar.hide_btn.setEnabled(self.show_hidden_act.isEnabled())
 
@@ -466,12 +462,12 @@ class MainWindow(QMainWindow):
 
     def on_tab_changed(self, index):
         """ Update view when tabChanged event is fired. """
-        if index != -1:
-            self.tabChanged.emit(self.current_view.id_)
-        else:
+        if index == -1:
             # there aren't any widgets available
             self.on_selection_cleared()
             self.toolbar.set_initial_layout()
+        else:
+            self.tabChanged.emit(self.current_view.id_)
 
     def load_files_from_os(self):
         """ Select eso files from explorer and start processing. """
@@ -539,9 +535,9 @@ class MainWindow(QMainWindow):
 
         # ~~~~ View Signals ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.view_tools_wgt.textFiltered.connect(self.filter_view)
-        self.view_tools_wgt.structureChanged.connect(self.rebuild_view)
         self.view_tools_wgt.expandRequested.connect(self.expand_all)
         self.view_tools_wgt.collapseRequested.connect(self.collapse_all)
+        self.view_tools_wgt.structureChanged.connect(self.settingsChanged.emit)
 
         # ~~~~ Tab Signals ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.tab_wgt.tabClosed.connect(self.on_tab_closed)

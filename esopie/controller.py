@@ -1,4 +1,5 @@
 from functools import partial
+from esopie.settings import Settings
 
 
 class AppController:
@@ -7,8 +8,8 @@ class AppController:
         self.m = model
 
     def connect_view_signals(self):
-        self.v.self.selection_updated.connect()
-        self.v.all_tabs_closed.connect()
+        self.v.self.selectionUpdated.connect()
+        self.v.settingsChanged.connect(lambda: print(Settings))
 
         self.v.close_all_act.triggered.connect(self.close_all_tabs)
         self.v.hide_act.triggered.connect(self.hide_vars)
@@ -38,13 +39,18 @@ class AppController:
         self.m.monitor.failed.connect(self.v.set_failed)
 
     def handle_tab_change(self):
-        self.toolbar.update_intervals_state(intervals)
+        self.v.toolbar.update_intervals_state(intervals)
+        # handle rate to energy button state
+        self.v.toolbar.update_rate_to_energy_state()
         # update the view
         self.rebuild_view()
         # hide or show interval buttons based on available intervals
         self.toolbar.populate_intervals_group()
 
     def handle_view_update(self):
+        pass
+
+    def handle_settings_change(self):
         pass
 
     def handle_variable_rename(self):
