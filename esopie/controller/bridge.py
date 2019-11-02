@@ -1,24 +1,11 @@
-from PySide2.QtWidgets import QWidget, QProgressBar, QHBoxLayout, QFrame, \
-    QSizePolicy, QGridLayout, \
-    QAction, QActionGroup, QMenu, QApplication
-from PySide2.QtWebEngineWidgets import QWebEnginePage, QWebEngineView, QWebEngineSettings
-import pandas as pd
-from PySide2.QtCore import QSize, Qt, QThreadPool, QThread, QObject, Signal, \
-    QSortFilterProxyModel, QModelIndex, QItemSelectionModel, QRegExp, QUrl, QObject, \
-    Slot, Signal, Property, QJsonValue, QJsonArray
+from PySide2.QtCore import QObject, Slot, Signal, QJsonValue
 
-from PySide2 import QtWebChannel
-import json
-import pickle
-from multiprocessing import Process
-from concurrent.futures import ProcessPoolExecutor
 from functools import partial
-import json
-from esopie.charts import Chart
-from esopie.chart_settings import get_item
+from esopie.charts.charts import Chart
+from esopie.charts.chart_settings import get_item
 
 
-class Postman(QObject):
+class Bridge(QObject):
     appearanceUpdated = Signal(bool, "QVariantMap", "QVariantMap")
     chartUpdated = Signal(str, "QVariantMap", "QVariantMap", "QVariantList")
     componentAdded = Signal(str, "QVariantMap", "QVariantMap")
@@ -31,7 +18,7 @@ class Postman(QObject):
         self.counter = 0
         self.palette = palette
 
-    def set_appearance(self, flat, palette):
+    def set_appearance(self, palette):
         if palette != self.palette:
             update_dct = {}
             colors = palette.get_all_colors()
@@ -41,7 +28,7 @@ class Postman(QObject):
                 update_dct[id_] = {"layout": dct}
 
             self.palette = palette
-            self.appearanceUpdated.emit(flat, colors, update_dct)
+            self.appearanceUpdated.emit(colors, update_dct)
 
     @Slot()
     def onConnectionInitialized(self):
@@ -135,30 +122,3 @@ class Postman(QObject):
         upd_dct, rm_dct, rm_traces = chart.delete_selected_traces()
 
         self.chartUpdated.emit(item_id, upd_dct, rm_dct, rm_traces)
-
-
-class MyPage(QWebEnginePage):
-    def __init__(self):
-        super().__init__()
-
-    def javaScriptConsoleMessage(self, level, msg, line, source):
-        print(f"JS >> {source} {line} {msg}")
-
-
-class MyWebView(QWebEngineView):
-    def __init__(self, parent, palette):
-        super().__init__(parent)
-        # self.setContextMenuPolicy(Qt.CustomContextMenu)
-        self.setAcceptDrops(True)
-
-        page = MyPage()
-        self.setPage(page)
-
-        self.postman = Postman(parent, palette)
-        self.channel = QtWebChannel.QWebChannel(self)
-        self.channel.registerObject("postman", self.postman)
-
-        self.page().setWebChannel(self.channel)
-
-        self.url = "http://127.0.0.1:8080/"
-        self.load(QUrl(self.url))

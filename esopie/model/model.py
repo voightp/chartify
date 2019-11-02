@@ -3,19 +3,18 @@ import os
 from PySide2.QtCore import QThreadPool
 from multiprocessing import Manager
 from functools import partial
-from copy import deepcopy
 
-from esopie.threads import MonitorThread
+from esopie.controller.threads import MonitorThread
 from queue import Queue
 
-from PySide2.QtCore import Signal, Qt
-from PySide2.QtCore import QSize, Qt, Signal
+from PySide2.QtCore import Signal
 
 from esopie.utils.utils import generate_ids, get_str_identifier
+from esopie.settings import Settings
 from esopie.utils.process_utils import (create_pool, kill_child_processes,
                                         load_file, wait_for_results)
-from esopie.threads import (EsoFileWatcher, GuiMonitor, ResultsFetcher,
-                            IterWorker)
+from esopie.controller.threads import (EsoFileWatcher, GuiMonitor, ResultsFetcher,
+                                       IterWorker)
 
 
 class AppModel:
@@ -31,8 +30,7 @@ class AppModel:
         self.progress_queue = self.manager.Queue()
 
         # ~~~~ Database ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.database = {"standard": {},
-                         "totals": {}}
+        self.database = {}
 
         # ~~~~ Process executor ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.pool = create_pool()
@@ -47,6 +45,23 @@ class AppModel:
 
         # ~~~~ Thread executor ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.thread_pool = QThreadPool()
+
+    def fetch_file(self, id_):
+        """ Fetch file from database. """
+        id_ = f"t{id_}" if Settings.TOTALS else f"s{id_}"
+        try:
+            return self.database[id_]
+        except KeyError:
+            raise KeyError(f"Cannot find file {id_} in database!")
+
+    def fetch_files(self, *args):
+        """ Fetch eso files from the database. """
+        files = []
+        for id_ in args:
+            f = self.fetch_file(id_)
+            if f:
+                files.append(f)
+        return files
 
     def tear_down(self):
         self.watcher.terminate()
@@ -81,9 +96,6 @@ class AppModel:
 
     def on_file_loaded(self, id_, std_file, tot_file):
         """ Add eso file into 'tab' widget. """
-        std_id = f"s{id_}"
-        tot_id = f"t{id_}"
-
         # create unique file name
         names = self.get_all_names_from_db()
         name = get_str_identifier(std_file.file_name, names)
@@ -91,10 +103,8 @@ class AppModel:
         std_file.rename(name)
         tot_file.rename(f"{name} - totals")
 
-        file_set = {std_id: std_file,
-                    tot_id: tot_file}
-
-        self.add_set_to_db(id_, file_set)
+        self.add_file_to_db(f"s{id_}", std_file)
+        self.add_file_to_db(f"t{id_}", tot_file)
 
         self.fileLoaded.emit(id_, name)
 
@@ -278,27 +288,9 @@ class AppModel:
             print(f"Cannot rename eso file: id '{id_}',"
                   f"\nFile was not found in database.")
 
-    def get_files_from_db(self, *args):
-        """ Fetch eso files from the database. """
-        files = []
-
-        for set_id, file_dct in self.database.items():
-            try:
-                f = next(f for f_id, f in file_dct.items() if f_id in args)
-                files.append(f)
-            except StopIteration:
-                pass
-
-        if len(args) != len(files):
-            diff = set(args).difference(set(files))
-            diff_str = ", ".join(list(diff))
-            print(f"Cannot find '{diff_str}' files in db!")
-
-        return files
-
-    def add_set_to_db(self, id_, file_set):
+    def add_file_to_db(self, id_, file):
         """ Add processed eso file to the database. """
         try:
-            self.database[id_] = file_set
+            self.database[id_] = file
         except BrokenPipeError:
             print("Application has been closed - catching broken pipe!")

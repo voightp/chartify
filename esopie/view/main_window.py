@@ -1,37 +1,27 @@
-import os
 import ctypes
-import copy
 
 from PySide2.QtWidgets import (QWidget, QSplitter, QHBoxLayout, QVBoxLayout,
                                QToolButton, QAction, QFileDialog, QSizePolicy,
-                               QMenu, QFrame, QMainWindow)
+                               QFrame, QMainWindow, QStatusBar)
 from PySide2.QtCore import (QSize, Qt, QCoreApplication, QSettings,
-                            QPoint, Signal, QObject)
+                            Signal, QObject, QUrl)
 
 from PySide2.QtGui import QIcon, QKeySequence, QColor
+from PySide2.QtWebEngineWidgets import QWebEngineView
 
-from esopie.icons import Pixmap, filled_circle_pixmap
-from esopie.progress_widget import StatusBar, ProgressContainer
-from esopie.misc_widgets import (DropFrame, TabWidget, MulInputDialog,
-                                 ConfirmationDialog)
-from esopie.buttons import MenuButton, IconMenuButton
-from esopie.toolbar import Toolbar
-from esopie.view_tools import ViewTools
-from esopie.css_theme import CssTheme, get_palette
-from esopie.chart_widgets import MyWebView
+from esopie.view.icons import Pixmap, filled_circle_pixmap
+from esopie.view.progress_widget import ProgressContainer
+from esopie.view.misc_widgets import (DropFrame, TabWidget, MulInputDialog)
+from esopie.view.buttons import MenuButton, IconMenuButton
+from esopie.view.toolbar import Toolbar
+from esopie.view.view_tools import ViewTools
+from esopie.view.css_theme import CssTheme, parse_palette, Palette
 from esopie.settings import Settings
 
-from esopie.utils.utils import generate_ids, get_str_identifier
-from esopie.utils.process_utils import (create_pool, kill_child_processes,
-                                        load_file, wait_for_results)
-
-from eso_reader.eso_file import get_results
 from eso_reader.convertor import verify_units
 
 from functools import partial
-from esopie.view_widget import View
-from esopie.threads import (EsoFileWatcher, GuiMonitor, ResultsFetcher,
-                            IterWorker)
+from esopie.view.view_widget import View
 
 
 # noinspection PyPep8Naming,PyUnresolvedReferences
@@ -41,19 +31,16 @@ class MainWindow(QMainWindow):
     QCoreApplication.setOrganizationDomain("piecomp.foo")
     QCoreApplication.setApplicationName("piepie")
 
-    PALETTE_PATH = "./styles/palettes.json"
-    CSS_PATH = "./styles/app_style.css"
-    ICONS_PATH = "./icons/"
+    css = CssTheme(Settings.CSS_PATH)
+    palette = parse_palette(Settings.PALETTE_PATH, Settings.PALETTE_NAME)
 
-    css = CssTheme(CSS_PATH)
-    palette = get_palette(PALETTE_PATH, QSettings().value("MainWindow/scheme",
-                                                          "default"))
     selectionUpdated = Signal(list)
     settingsChanged = Signal()
+    paletteChanged = Signal(Palette)
     fileProcessingRequested = Signal(list)
     fileRenamed = Signal(str, str, str)
     variableRenamed = Signal(str, str, str, QObject)
-    tabChanged = Signal(str)
+    tabChanged = Signal(str, list)
     tabClosed = Signal(str)
 
     def __init__(self):
@@ -61,6 +48,8 @@ class MainWindow(QMainWindow):
         # ~~~~ Main Window setup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.setWindowTitle("pie pie")
         self.setFocusPolicy(Qt.StrongFocus)
+        self.resize(Settings.SIZE)
+        self.move(Settings.POSITION)
 
         # ~~~~ Main Window widgets ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.central_wgt = QWidget(self)
@@ -104,8 +93,12 @@ class MainWindow(QMainWindow):
         self.main_chart_layout = QHBoxLayout(self.main_chart_widget)
         self.right_main_layout.addWidget(self.main_chart_widget)
 
+        self.web_view = QWebEngineView(self)
+        self.main_chart_layout.addWidget(self.web_view)
+
         # ~~~~ Status bar ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.status_bar = StatusBar(self)
+        self.status_bar = QStatusBar(self)
+        self.status_bar.setFixedHeight(20)
         self.setStatusBar(self.status_bar)
 
         self.progress_cont = ProgressContainer(self.status_bar)
@@ -124,7 +117,7 @@ class MainWindow(QMainWindow):
                    "monochrome": self.mono_scheme,
                    "dark": self.dark_scheme}
 
-        def_act = actions[QSettings().value("MainWindow/scheme", "default")]
+        def_act = actions[Settings.PALETTE_NAME]
 
         self.scheme_btn = IconMenuButton(self, list(actions.values()))
         self.scheme_btn.setDefaultAction(def_act)
@@ -207,14 +200,15 @@ class MainWindow(QMainWindow):
         self.mini_menu_layout.addWidget(self.save_btn)
         self.mini_menu_layout.addWidget(self.about_btn)
 
-        self.chart_area = MyWebView(self, self.palette)
-        self.main_chart_layout.addWidget(self.chart_area)
-
         # ~~~~ Set up main widgets and layouts ~~~~~~~~~~~~~~~~~~~~~~~~~
         self.set_up_base_ui()
         self.load_css()
-        self.load_settings()
 
+        # ~~~~ Set up web view ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.web_view.load(QUrl(Settings.URL))
+        self.web_view.setAcceptDrops(True)
+
+        # ~~~~ Connect main ui user actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.connect_ui_signals()
 
     @property
@@ -224,7 +218,10 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event):
         """ Shutdown all the background stuff. """
-        self.store_settings()
+        Settings.SIZE = self.size()
+        Settings.POSITION = self.pos()
+
+        Settings.write_settings()
 
     def keyPressEvent(self, event):
         """ Manage keyboard events. """
@@ -237,19 +234,6 @@ class MainWindow(QMainWindow):
             if self.hasFocus():
                 self.remove_vars()
 
-    def load_settings(self):
-        """ Apply application settings. """
-        settings = QSettings()
-        self.resize(settings.value("MainWindow/size", QSize(800, 600)))
-        self.move(settings.value("MainWindow/pos", QPoint(50, 50)))
-
-    def store_settings(self):
-        """ Store application settings. """
-        settings = QSettings()
-        settings.setValue("MainWindow/size", self.size())
-        settings.setValue("MainWindow/pos", self.pos())
-        settings.setValue("MainWindow/scheme", self.palette.name)
-
     def load_scheme_btn_icons(self):
         """ Create scheme button icons. """
         names = ["default", "dark", "monochrome"]
@@ -261,14 +245,14 @@ class MainWindow(QMainWindow):
         border_col = QColor(255, 255, 255)
 
         for name, act in zip(names, acts):
-            p = get_palette(self.PALETTE_PATH, name)
+            p = parse_palette(Settings.PALETTE_PATH, name)
             c1 = QColor(*p.get_color(k1, as_tuple=True))
             c2 = QColor(*p.get_color(k2, as_tuple=True))
             act.setIcon(filled_circle_pixmap(size, c1, col2=c2,
                                              border_col=border_col))
 
     def load_icons(self):
-        root = self.ICONS_PATH
+        root = Settings.ICONS_PATH
         c1 = self.palette.get_color("PRIMARY_TEXT_COLOR", as_tuple=True)
         c2 = self.palette.get_color("SECONDARY_TEXT_COLOR", as_tuple=True)
 
@@ -328,14 +312,10 @@ class MainWindow(QMainWindow):
     def set_palette(self, name):
         """ Update the application palette. """
         if name != self.palette.name:
-            self.palette = get_palette(self.PALETTE_PATH, name)
-
-            # notify web view to update chart layout colors
-            # TODO REMOVE FLAT REFERENCE on CLIENT SIDE
-            flat = name in ["default", "dark"]
-
-            self.chart_area.postman.set_appearance(flat, self.palette)
+            Settings.PALETTE_NAME = name
+            self.palette = parse_palette(Settings.PALETTE_PATH, name)
             self.load_css()
+            self.paletteChanged.emit(self.palette)
 
     def load_css(self):
         """ Turn the CSS on and off. """
@@ -363,29 +343,21 @@ class MainWindow(QMainWindow):
         if not self.tab_wgt.is_empty():
             self.toolbar.totals_btn.setEnabled(True)
 
-    def rebuild_view(self, header_dct):
+    def build_view(self, variables, proxy_variables, interval, units):
         """ Create a new view when any of related settings change """
         is_tree = self.view_tools_wgt.tree_requested()
-        interval = self.toolbar.get_selected_interval()
-        units_settings = self.toolbar.get_units_settings()
         filter_str = self.view_tools_wgt.get_filter_str()
 
         if not self.current_view:
             return
 
-        self.current_view.update_model(header_dct, is_tree, interval,
-                                       units_settings, filter_str=filter_str)
+        self.current_view.update_model(variables, proxy_variables, is_tree,
+                                       interval, units, filter_str=filter_str)
 
     def on_selection_populated(self, outputs):
         """ Store current selection in main app. """
         out_str = [" | ".join(var) for var in outputs]
         print("STORING!\n\t{}".format("\n\t".join(out_str)))
-
-        # switch to hide action
-        self.toolbar.hide_btn.set_secondary_state()
-
-        # always enable remove and export buttons
-        self.toolbar.set_tools_btns_enabled("remove", "hide")
 
         # handle actions availability
         self.hide_act.setEnabled(True)
@@ -395,9 +367,10 @@ class MainWindow(QMainWindow):
         units = verify_units([var.units for var in outputs])
 
         if len(outputs) > 1 and units:
-            self.toolbar.set_tools_btns_enabled("sum", "mean")
+            self.toolbar.set_tools_btns_enabled("sum", "mean", "remove")
         else:
-            self.toolbar.set_tools_btns_enabled("sum", "mean", enabled=False)
+            self.toolbar.set_tools_btns_enabled("sum", "mean", "remove",
+                                                enabled=False)
 
         # store current selection in the model
         self.selectionUpdated.emit(outputs)
@@ -424,7 +397,7 @@ class MainWindow(QMainWindow):
         wgt = View(id_, name)
         wgt.selectionCleared.connect(self.on_selection_cleared)
         wgt.selectionPopulated.connect(self.on_selection_populated)
-        wgt.treeNodeChanged.connect(self.rebuild_view)
+        wgt.treeNodeChanged.connect(self.build_view)
         wgt.itemDoubleClicked.connect(self.rename_variable)
         wgt.context_menu_actions = [self.remove_act,
                                     self.hide_act,
@@ -467,7 +440,8 @@ class MainWindow(QMainWindow):
             self.on_selection_cleared()
             self.toolbar.set_initial_layout()
         else:
-            self.tabChanged.emit(self.current_view.id_)
+            self.tabChanged.emit(self.current_view.id_,
+                                 self.current_view.settings["header"])
 
     def load_files_from_os(self):
         """ Select eso files from explorer and start processing. """
@@ -550,5 +524,3 @@ class MainWindow(QMainWindow):
         self.toolbar.sum_btn.connect_action(self.sum_act)
         self.toolbar.mean_btn.connect_action(self.mean_act)
         self.toolbar.remove_btn.connect_action(self.remove_act)
-        self.toolbar.hide_btn.set_actions(self.show_hidden_act.trigger,
-                                          self.hide_act.trigger)

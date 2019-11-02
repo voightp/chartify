@@ -1,13 +1,11 @@
 from PySide2.QtWidgets import (QVBoxLayout, QGridLayout, QToolButton,
-                               QGroupBox, QSpacerItem, QSizePolicy, QMenu,
+                               QGroupBox, QSizePolicy, QMenu,
                                QFrame)
-from PySide2.QtCore import QSize, Qt, Signal
-from PySide2.QtGui import QPixmap, QFont, QColor
+from PySide2.QtCore import Qt, Signal
 
 from esopie.settings import Settings
-from esopie.icons import Pixmap, text_to_pixmap
-from esopie.buttons import (TitledButton, ToggleButton, MenuButton,
-                            CheckableButton, DualActionButton, ClickButton)
+from esopie.view.icons import Pixmap
+from esopie.view.buttons import (TitledButton, ToggleButton, CheckableButton, DualActionButton, ClickButton)
 
 from eso_reader.constants import TS, D, H, M, A, RP
 
@@ -121,7 +119,6 @@ class Toolbar(QFrame):
 
         self.sum_btn = ClickButton(self.tools_group)
         self.mean_btn = ClickButton(self.tools_group)
-        self.hide_btn = DualActionButton(self.tools_group)
         self.remove_btn = ClickButton(self.tools_group)
         self.set_up_tools()
 
@@ -159,7 +156,6 @@ class Toolbar(QFrame):
         """ A shorthand to get all tools buttons."""
         return [self.sum_btn,
                 self.mean_btn,
-                self.hide_btn,
                 self.remove_btn]
 
     @property
@@ -188,10 +184,7 @@ class Toolbar(QFrame):
         self.remove_btn.set_icons(Pixmap(root + "remove.png", *c1),
                                   Pixmap(root + "remove.png", *c1, a=0.5))
 
-        self.hide_btn.set_icons(Pixmap(root + "visibility.png", *c1),
-                                Pixmap(root + "visibility.png", *c1, a=0.5),
-                                Pixmap(root + "hide.png", *c1),
-                                Pixmap(root + "hide.png", *c1, a=0.5))
+
 
     def all_files_requested(self):
         """ Check if results from all eso files are requested. """
@@ -307,11 +300,7 @@ class Toolbar(QFrame):
         self.mean_btn.setEnabled(False)
         self.mean_btn.setText("mean")
 
-        # ~~~~ Mean variables button ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.hide_btn.setEnabled(False)
-        self.hide_btn.set_texts("show", "hide")
-
-        # ~~~~ Mean variables button ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # ~~~~ Remove variables button ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.remove_btn.setEnabled(False)
         self.remove_btn.setText("remove")
 
@@ -339,20 +328,16 @@ class Toolbar(QFrame):
         self.totals_btn.setEnabled(False)
         self.rate_energy_btn.setEnabled(True)
 
-        self.disable_interval_btns()
-        self.populate_intervals_group(hide_disabled=False)
-
-    def disable_interval_btns(self):
-        """ Disable all interval buttons. """
         for btn in self.interval_btns.values():
             btn.setHidden(False)
             btn.setChecked(False)
             btn.setEnabled(False)
 
+        self.populate_intervals_group(hide_disabled=False)
+
     def update_rate_to_energy_state(self):
         """ Enable or disable rate to energy button. """
-        # handle changing  state of rate to energy button
-        # as this is allowed only for daily+ intervals
+        # rate to energy should be enabled only for daily+ intervals
         if self.custom_units_toggle.isChecked():
             b = self.get_selected_interval() not in [TS, H]
             self.rate_energy_btn.setEnabled(b)
@@ -382,6 +367,9 @@ class Toolbar(QFrame):
             # settingsUpdated signal is deliberately NOT triggered
             btn.setChecked(True)
             Settings.INTERVAL = k
+
+        # display only enabled interval buttons
+        self.populate_intervals_group(hide_disabled=True)
 
     def store_temp_units(self):
         """ Store intermediate units settings. """

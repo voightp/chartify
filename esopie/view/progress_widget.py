@@ -1,19 +1,7 @@
-from PySide2.QtWidgets import (QWidget, QLabel, QProgressBar, QStatusBar,
+from PySide2.QtWidgets import (QWidget, QLabel, QProgressBar,
                                QVBoxLayout, QSizePolicy,
                                QPushButton, QHBoxLayout)
 from PySide2.QtCore import Signal, Qt
-
-
-class StatusBar(QStatusBar):
-    """
-    Wrapper class with added functionality to
-    display widgets with file processing progress.
-
-    """
-
-    def __init__(self, parent):
-        super().__init__(parent)
-        self.setFixedHeight(20)
 
 
 class ProgressContainer(QWidget):

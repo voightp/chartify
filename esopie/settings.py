@@ -1,12 +1,22 @@
-from PySide2.QtCore import QSettings
+from PySide2.QtCore import QSettings, QSize, QPoint
 
 
 class Settings:
+    URL = "http://127.0.0.1:8080/"
+
     ENERGY_UNITS = QSettings().value("Units/energyUnits", "kWh")
     POWER_UNITS = QSettings().value("Units/powerUnits", "kW")
     UNITS_SYSTEM = QSettings().value("Units/unitsSystem", "SI")
     RATE_TO_ENERGY = bool(QSettings().value("Units/rateToEnergy", 0))
     CUSTOM_UNITS = bool(QSettings().value("Units/customUnits", 1))
+
+    PALETTE_NAME = QSettings().value("MainWindow/scheme", "default")
+    PALETTE_PATH = "./styles/palettes.json"
+    CSS_PATH = "./styles/app_style.css"
+    ICONS_PATH = "./icons/"
+
+    SIZE = QSettings().value("MainWindow/size", QSize(800, 600))
+    POSITION = QSettings().value("MainWindow/pos", QPoint(50, 50))
 
     INTERVAL = QSettings().value("interval", None)
     ALL_FILES = bool(QSettings().value("allFiles", 0))
@@ -38,3 +48,7 @@ class Settings:
         QSettings().setValue("Units/rateToEnergy", int(cls.RATE_TO_ENERGY))
         QSettings().setValue("allFiles", int(cls.ALL_FILES))
         QSettings().setValue("treeView", int(cls.TREE_VIEW))
+        QSettings().setValue("paletteName", cls.PALETTE_NAME)
+        QSettings().setValue("MainWindow/size", cls.SIZE)
+        QSettings().setValue("MainWindow/pos", cls.POSITION)
+        QSettings().setValue("MainWindow/scheme", cls.PALETTE_NAME)

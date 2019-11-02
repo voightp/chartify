@@ -24,18 +24,12 @@ def as_tree_dct(header_iterator, tree_key):
     return dct
 
 
-def create_iterator(header_dct, units_settings, view_order, interval):
+def create_proxy(variables, view_order, rate_to_energy,
+                 units_system, energy_units, power_units):
     """ Return data - proxy paired list of tuples. """
-    variables = list(header_dct[interval].values())
-
-    rate_to_energy = units_settings["rate_to_energy"]
-    units_system = units_settings["units_system"]
-    energy_units = units_settings["energy_units"]
-    power_units = units_settings["power_units"]
-
     order = list(view_order)
     ProxyVariable = namedtuple("ProxyVariable", order)
-    proxy_header = []
+    proxy_variables = []
 
     for var in variables:
         units = var.units
@@ -49,9 +43,9 @@ def create_iterator(header_dct, units_settings, view_order, interval):
                               variable=var.variable,
                               units=proxy_units)
 
-        proxy_header.append(proxy)
+        proxy_variables.append(proxy)
 
-    return zip(variables, proxy_header)
+    return proxy_variables
 
 
 def convert_energy(units, energy_units):

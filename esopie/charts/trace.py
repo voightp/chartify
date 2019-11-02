@@ -1,4 +1,4 @@
-from esopie.chart_settings import get_appearance, gen_dom_matrices
+from esopie.charts.chart_settings import get_appearance, gen_dom_matrices
 from collections import defaultdict
 
 

@@ -4,7 +4,7 @@ from PySide2.QtCore import (Qt, QSortFilterProxyModel, QItemSelectionModel,
                             Signal)
 
 from PySide2.QtGui import QStandardItemModel, QStandardItem, QDrag, QPixmap
-from esopie.view_functions import as_tree_dct, create_iterator
+from esopie.view.view_functions import as_tree_dct, create_proxy
 
 
 class View(QTreeView):
@@ -17,7 +17,8 @@ class View(QTreeView):
                            "fixed": 70},
                 "order": ("variable", Qt.AscendingOrder),
                 "header": ("variable", "key", "units"),
-                "expanded": set()}
+                "expanded": set(),
+                "selected": []}
 
     def __init__(self, id_, name):
         super().__init__()
@@ -55,8 +56,6 @@ class View(QTreeView):
         self.pressed.connect(self.handle_drag_attempt)
         self.doubleClicked.connect(self.handle_double_clicked)
 
-        self.context_menu_actions = []
-
     def mousePressEvent(self, event):
         """ Handle mouse events. """
         btn = event.button()
@@ -69,7 +68,6 @@ class View(QTreeView):
         """ Manage context menu. """
         menu = QMenu(self)
         menu.setObjectName("contextMenu")
-        menu.addActions(self.context_menu_actions)
         menu.setWindowFlags(menu.windowFlags() | Qt.NoDropShadowWindowHint)
 
         menu.exec_(self.mapToGlobal(event.pos()))
@@ -104,15 +102,12 @@ class View(QTreeView):
             if model.hasChildren(ix):
                 self.setFirstColumnSpanned(i, self.rootIndex(), True)
 
-    def build_model(self, header_dct, units_settings,
-                    tree_key, view_order, interval):
+    def build_model(self, variables, proxy_variables, tree_key, view_order):
         """
         Create a model and set up its appearance.
         """
-        header_zip = create_iterator(header_dct, units_settings, view_order, interval)
-
         model = ViewModel()
-        model.populate_data(header_zip, tree_key)
+        model.populate_data(variables, proxy_variables, tree_key)
 
         proxy_model = FilterModel()
         proxy_model.setSourceModel(model)
@@ -204,7 +199,8 @@ class View(QTreeView):
         """ Connect specific signals. """
         self.verticalScrollBar().valueChanged.connect(self.slider_moved)
 
-    def update_model(self, is_tree, interval, units_settings, filter_str=""):
+    def update_model(self, variables, proxy_variables, is_tree, interval,
+                     units, filter_str=""):
         """ Set the model and define behaviour of the tree view. """
         view_order = self.settings["header"]
         tree_key = view_order[0] if is_tree else None
@@ -212,7 +208,7 @@ class View(QTreeView):
         # Only update the model if the settings have changed
         conditions = [tree_key != self.temp_settings["tree_key"],
                       interval != self.temp_settings["interval"],
-                      units_settings != self.temp_settings["units"],
+                      units != self.temp_settings["units"],
                       self.totals != self.temp_settings["totals"],
                       self.temp_settings["force_update"]]
 
@@ -221,11 +217,10 @@ class View(QTreeView):
 
         if any(conditions):
             self.disconnect_actions()
-            self.build_model(self.file_header, units_settings,
-                             tree_key, view_order, interval)
+            self.build_model(variables, proxy_variables, tree_key, view_order)
 
             # Store current sorting key and interval
-            self.store_settings(interval, tree_key, units_settings, self.totals)
+            self.store_settings(interval, tree_key, units, self.totals)
             self.reconnect_actions()
 
             # update selection only if the model changes
@@ -404,7 +399,7 @@ class View(QTreeView):
         rows = proxy_model.map_to_source_lst(proxy_rows)
 
         if not proxy_rows:
-            # break if there isn't any valid variable
+            # break if there aren't any valid variable
             self.selectionCleared.emit()
             return
 
@@ -504,8 +499,7 @@ class ViewModel(QStandardItemModel):
     @staticmethod
     def set_status_tip(item, var):
         """ Parse variable to create a status tip. """
-        tip = f"{var.key}  |  {var.variable}  |  {var.units}"
-        item.setStatusTip(tip)
+        item.setStatusTip(f"{var.key}  |  {var.variable}  |  {var.units}")
 
     def _append_rows(self, header_iterator, parent, tree=False):
         """ Add rows to the model. """
@@ -534,13 +528,13 @@ class ViewModel(QStandardItemModel):
                 root.appendRow(parent)
                 self._append_rows(variables, parent, tree=True)
 
-    def populate_data(self, header_zip, tree_key):
+    def populate_data(self, variables, proxy_variables, tree_key):
         """ Feed the model with output variables. """
         root = self.invisibleRootItem()
+        header_zip = zip(variables, proxy_variables)
 
         if not tree_key:
-            # tree like structure is not being used
-            # append as a plain table
+            # create plain table when tree structure not requested
             self._append_rows(header_zip, root)
 
         else:

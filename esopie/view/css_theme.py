@@ -2,7 +2,7 @@ import re
 import json
 
 from collections import namedtuple
-from esopie.icons import Pixmap
+from esopie.view.icons import Pixmap
 from eso_reader.performance import perf
 
 Color = namedtuple("Color", "r, g, b")
@@ -230,8 +230,8 @@ class CssTheme:
         return css
 
 
-def get_palette(pth, name):
-    """ Return an palette instance of the given name. """
+def parse_palette(pth, name):
+    """ Return a palette instance of the given name. """
 
     default_palette = {
         "PRIMARY_COLOR": "#aeaeae",

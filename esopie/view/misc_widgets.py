@@ -1,11 +1,9 @@
 from PySide2.QtWidgets import (QSizePolicy, QLineEdit, QHBoxLayout, QTabWidget,
                                QToolButton, QDialog, QFormLayout, QVBoxLayout,
-                               QDialogButtonBox, QWidget, QAction,
-                               QPushButton, QMessageBox, QTextEdit, QLabel)
-from PySide2.QtCore import Qt, QFileInfo, Signal, QSize
-from PySide2.QtWidgets import QFrame
-from PySide2.QtGui import QPixmap, QIcon, QKeySequence
-from esopie.view_widget import View
+                               QDialogButtonBox, QWidget, QTextEdit, QLabel,
+                               QFrame)
+from PySide2.QtCore import Qt, QFileInfo, Signal
+from esopie.view.view_widget import View
 
 
 def update_appearance(wgt):

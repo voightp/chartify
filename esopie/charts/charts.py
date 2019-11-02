@@ -1,15 +1,12 @@
 import pandas as pd
 
-from collections import defaultdict
-
 from eso_reader.building_eso_file import averaged_units
-from esopie.trace import GenericTrace, PieTrace
+from esopie.charts.trace import GenericTrace, PieTrace
 from esopie.utils.utils import (get_str_identifier, update_recursively,
                                 merge_dcts, remove_recursively)
-from esopie.chart_settings import (get_xaxis_settings, get_yaxis_settings,
-                                   style, config, layout_dct, color_generator,
-                                   get_units_axis_dct, gen_dom_matrices, SIMPLE,
-                                   STATISTICAL_CHARTS, ONE_DIM_CHARTS)
+from esopie.charts.chart_settings import (get_xaxis_settings, get_yaxis_settings,
+                                          style, config, layout_dct, color_generator,
+                                          get_units_axis_dct, gen_dom_matrices, STATISTICAL_CHARTS, ONE_DIM_CHARTS)
 
 
 def calculate_totals(df):
