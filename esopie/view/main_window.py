@@ -445,13 +445,11 @@ class MainWindow(QMainWindow):
 
     def load_files_from_os(self):
         """ Select eso files from explorer and start processing. """
-        settings = QSettings()
-        pth = settings.value("loadPath", "")
         file_pths, _ = QFileDialog.getOpenFileNames(self, "Load Eso File",
-                                                    pth, "*.eso")
+                                                    Settings.FS_PATH, "*.eso")
         if file_pths:
             # store last path for future
-            settings.setValue("loadPath", file_pths[0])
+            Settings.FS_PATH = file_pths[0]
             self.fileProcessingRequested.emit(file_pths)
 
     def rename_file(self, tab_index):

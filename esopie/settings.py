@@ -10,6 +10,7 @@ class Settings:
     RATE_TO_ENERGY = bool(QSettings().value("Units/rateToEnergy", 0))
     CUSTOM_UNITS = bool(QSettings().value("Units/customUnits", 1))
 
+    FS_PATH = QSettings().value("fsPath", "")
     PALETTE_NAME = QSettings().value("MainWindow/scheme", "default")
     PALETTE_PATH = "./styles/palettes.json"
     CSS_PATH = "./styles/app_style.css"
@@ -49,6 +50,7 @@ class Settings:
         QSettings().setValue("allFiles", int(cls.ALL_FILES))
         QSettings().setValue("treeView", int(cls.TREE_VIEW))
         QSettings().setValue("paletteName", cls.PALETTE_NAME)
+        QSettings().setValue("fsPath", cls.FS_PATH)
         QSettings().setValue("MainWindow/size", cls.SIZE)
         QSettings().setValue("MainWindow/pos", cls.POSITION)
         QSettings().setValue("MainWindow/scheme", cls.PALETTE_NAME)
