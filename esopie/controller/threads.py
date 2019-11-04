@@ -1,12 +1,12 @@
 from PySide2.QtCore import QThread, Signal, QRunnable
 
 from eso_reader.monitor import DefaultMonitor
-from eso_reader.eso_file import EsoFile, get_results
+from eso_reader.eso_file import EsoFile
 from eso_reader.building_eso_file import BuildingEsoFile
 
 
 # noinspection PyUnresolvedReferences
-class MonitorThread(QThread):
+class Monitor(QThread):
     bar_updated = Signal(int, int)
     text_updated = Signal(int, str)
     finished = Signal(int)
@@ -32,6 +32,8 @@ class MonitorThread(QThread):
                 self.started.emit(mon_id, mon_name)
 
             def send_finished():
+                # finished signal is triggered when the file
+                # loads into database
                 self.finished.emit(mon_id)
 
             def preprocessing_finished():
@@ -58,7 +60,7 @@ class MonitorThread(QThread):
                 6: do_not_report,  # output cls finished
                 7: do_not_report,  # tree finished
                 8: do_not_report,  # file processing finished
-                9: send_finished,  # building totals generated
+                9: do_not_report,  # building totals generated
                 100: send_update_progress_bar,
             }
 

@@ -50,11 +50,11 @@ class View(QTreeView):
 
         self._scrollbar_position = 0
 
-        self.verticalScrollBar().valueChanged.connect(self.slider_moved)
-        self.expanded.connect(self.handle_expanded)
-        self.collapsed.connect(self.handle_collapsed)
-        self.pressed.connect(self.handle_drag_attempt)
-        self.doubleClicked.connect(self.handle_double_clicked)
+        self.verticalScrollBar().valueChanged.connect(self.on_slider_moved)
+        self.expanded.connect(self.on_expanded)
+        self.collapsed.connect(self.on_collapsed)
+        self.pressed.connect(self.on_pressed)
+        self.doubleClicked.connect(self.on_double_clicked)
 
     def mousePressEvent(self, event):
         """ Handle mouse events. """
@@ -103,18 +103,15 @@ class View(QTreeView):
                 self.setFirstColumnSpanned(i, self.rootIndex(), True)
 
     def build_model(self, variables, proxy_variables, tree_key, view_order):
-        """
-        Create a model and set up its appearance.
-        """
+        """  Create a model and set up its appearance. """
         model = ViewModel()
         model.populate_data(variables, proxy_variables, tree_key)
+        model.setHorizontalHeaderLabels(view_order)
 
         proxy_model = FilterModel()
         proxy_model.setSourceModel(model)
         self.setModel(proxy_model)
 
-        # define view appearance and behaviour
-        self.set_header_labels(view_order)
         self.set_first_col_spanned()
 
     def reshuffle_columns(self, order):
@@ -144,13 +141,16 @@ class View(QTreeView):
                     # make sure that
                     self.collapse(ix)
 
-    def update_selection(self, variables, key):
+    def select_variables(self, variables):
         """ Select previously selected items when the model changes. """
+        variables = variables if isinstance(variables, list) else [variables]
+
         proxy_model = self.model()
+        key = self.settings["header"][0]
 
         # Find matching items and select items on a new model
         proxy_selection = proxy_model.find_match(variables, key)
-        self.select_items(proxy_selection)
+        self._select_items(proxy_selection)
 
         proxy_rows = proxy_selection.indexes()
         outputs = [proxy_model.data_from_index(index) for index in proxy_rows]
@@ -193,11 +193,11 @@ class View(QTreeView):
 
     def disconnect_actions(self):
         """ Disconnect specific signals to avoid overriding stored values. """
-        self.verticalScrollBar().valueChanged.disconnect(self.slider_moved)
+        self.verticalScrollBar().valueChanged.disconnect(self.on_slider_moved)
 
     def reconnect_actions(self):
         """ Connect specific signals. """
-        self.verticalScrollBar().valueChanged.connect(self.slider_moved)
+        self.verticalScrollBar().valueChanged.connect(self.on_slider_moved)
 
     def update_model(self, variables, proxy_variables, is_tree, interval,
                      units, filter_str=""):
@@ -224,7 +224,7 @@ class View(QTreeView):
             self.reconnect_actions()
 
             # update selection only if the model changes
-            self.update_selection(old_outputs, view_order[0])
+            self.select_variables(old_outputs)
 
         if filter_str:
             self.filter_view(filter_str)
@@ -237,11 +237,6 @@ class View(QTreeView):
             # create header actions only when view is created
             self.initialize_header()
             self._initialized = True
-
-    def set_header_labels(self, view_order):
-        """ Assign header labels. """
-        model = self.model().sourceModel()
-        model.setHorizontalHeaderLabels(view_order)
 
     def resize_header(self, widths):
         """ Update header sizes. """
@@ -347,11 +342,11 @@ class View(QTreeView):
         self.header().sortIndicatorChanged.connect(self.on_sort_order_changed)
         self.header().sectionMoved.connect(self.on_section_moved)
 
-    def slider_moved(self, val):
+    def on_slider_moved(self, val):
         """ Handle moving view slider. """
         self._scrollbar_position = val
 
-    def handle_double_clicked(self, index):
+    def on_double_clicked(self, index):
         """ Handle view double click. """
         proxy_model = self.model()
         source_item = proxy_model.item_from_index(index)
@@ -363,14 +358,16 @@ class View(QTreeView):
         if source_item.column() > 0:
             index = index.siblingAtColumn(0)
 
-        self.clear_selected()
-        self.select_item(index)
+        self.selectionCleared.emit()
+        self.selectionModel().clearSelection()
+
+        self._select_item(index)
 
         dt = proxy_model.data_from_index(index)
         if dt:
             self.itemDoubleClicked.emit(dt)
 
-    def handle_drag_attempt(self):
+    def on_pressed(self):
         """ Handle pressing the view item or items. """
         outputs = self.get_selected_variables()
         self.store_outputs(outputs)
@@ -416,11 +413,11 @@ class View(QTreeView):
                 expanded = self.isExpanded(index)
                 cond = any(map(lambda x: x.parent() == source_index, rows))
                 if expanded and not cond:
-                    self.select_children(source_item, source_index)
+                    self._select_children(source_item, source_index)
 
                 # deselect all the parent nodes as these should not be
                 # included in output variable data
-                self.deselect_item(index)
+                self._deselect_item(index)
 
         # needs to be called again to get updated selection
         proxy_rows = selection_model.selectedRows()
@@ -434,7 +431,7 @@ class View(QTreeView):
         else:
             self.selectionCleared.emit()
 
-    def select_children(self, source_item, source_index):
+    def _select_children(self, source_item, source_index):
         """ Select all children of the parent row. """
         first_ix = source_index.child(0, 0)
         last_ix = source_index.child((source_item.rowCount() - 1), 0)
@@ -442,32 +439,32 @@ class View(QTreeView):
         selection = QItemSelection(first_ix, last_ix)
         proxy_selection = self.model().mapSelectionFromSource(selection)
 
-        self.select_items(proxy_selection)
+        self._select_items(proxy_selection)
 
     def clear_selected(self):
         """ Clear all selected rows. """
         self.selectionCleared.emit()
         self.selectionModel().clearSelection()
 
-    def deselect_item(self, proxy_index):
+    def _deselect_item(self, proxy_index):
         """ Select an item programmatically. """
         self.selectionModel().select(proxy_index,
                                      QItemSelectionModel.Deselect |
                                      QItemSelectionModel.Rows)
 
-    def select_item(self, proxy_index):
+    def _select_item(self, proxy_index):
         """ Select an item programmatically. """
         self.selectionModel().select(proxy_index,
                                      QItemSelectionModel.Select |
                                      QItemSelectionModel.Rows)
 
-    def select_items(self, proxy_selection):
+    def _select_items(self, proxy_selection):
         """ Select items given by given selection (model indexes). """
         self.selectionModel().select(proxy_selection,
                                      QItemSelectionModel.Select |
                                      QItemSelectionModel.Rows)
 
-    def handle_collapsed(self, index):
+    def on_collapsed(self, index):
         """ Deselect the row when node collapses."""
         proxy_model = self.model()
         if proxy_model.hasChildren(index):
@@ -478,7 +475,7 @@ class View(QTreeView):
             except KeyError:
                 pass
 
-    def handle_expanded(self, index):
+    def on_expanded(self, index):
         """ Deselect the row when node is expanded. """
         proxy_model = self.model()
         if proxy_model.hasChildren(index):

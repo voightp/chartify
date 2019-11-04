@@ -3,8 +3,7 @@ import ctypes
 from PySide2.QtWidgets import (QWidget, QSplitter, QHBoxLayout, QVBoxLayout,
                                QToolButton, QAction, QFileDialog, QSizePolicy,
                                QFrame, QMainWindow, QStatusBar)
-from PySide2.QtCore import (QSize, Qt, QCoreApplication, QSettings,
-                            Signal, QObject, QUrl)
+from PySide2.QtCore import (QSize, Qt, QCoreApplication, Signal, QObject, QUrl)
 
 from PySide2.QtGui import QIcon, QKeySequence, QColor
 from PySide2.QtWebEngineWidgets import QWebEngineView
@@ -16,6 +15,7 @@ from esopie.view.buttons import MenuButton, IconMenuButton
 from esopie.view.toolbar import Toolbar
 from esopie.view.view_tools import ViewTools
 from esopie.view.css_theme import CssTheme, parse_palette, Palette
+from esopie.view.view_functions import create_proxy
 from esopie.settings import Settings
 
 from eso_reader.convertor import verify_units
@@ -34,13 +34,12 @@ class MainWindow(QMainWindow):
     css = CssTheme(Settings.CSS_PATH)
     palette = parse_palette(Settings.PALETTE_PATH, Settings.PALETTE_NAME)
 
-    selectionUpdated = Signal(list)
-    settingsChanged = Signal()
+    viewUpdateRequested = Signal(str)
     paletteChanged = Signal(Palette)
     fileProcessingRequested = Signal(list)
     fileRenamed = Signal(str, str, str)
     variableRenamed = Signal(str, str, str, QObject)
-    tabChanged = Signal(str, list)
+    variablesRemoved = Signal(str, list)
     tabClosed = Signal(str)
 
     def __init__(self):
@@ -142,7 +141,7 @@ class MainWindow(QMainWindow):
 
         self.close_all_act = QAction("Close all", self)
 
-        self.remove_act = QAction("Delete", self)
+        self.remove_variables_act = QAction("Delete", self)
 
         self.hide_act = QAction("Hide", self)
         self.hide_act.setShortcut(QKeySequence("Ctrl+H"))
@@ -152,11 +151,11 @@ class MainWindow(QMainWindow):
         self.show_hidden_act = QAction("Show hidden", self)
         self.show_hidden_act.setShortcut(QKeySequence("Ctrl+Shift+H"))
 
-        self.sum_act = QAction("Sum", self)
-        self.sum_act.setShortcut(QKeySequence("Ctrl+S"))
+        self.sum_variables_act = QAction("Sum", self)
+        self.sum_variables_act.setShortcut(QKeySequence("Ctrl+S"))
 
-        self.mean_act = QAction("Mean", self)
-        self.mean_act.setShortcut(QKeySequence("Ctrl+M"))
+        self.avg_variables_act = QAction("Mean", self)
+        self.avg_variables_act.setShortcut(QKeySequence("Ctrl+M"))
 
         self.collapse_all_act = QAction("Collapse All", self)
         self.collapse_all_act.setShortcut(QKeySequence("Ctrl+Shift+E"))
@@ -172,13 +171,14 @@ class MainWindow(QMainWindow):
         self.save_as_act = QAction("Save as", self)
 
         # add actions to main window to allow shortcuts
-        self.addActions([self.remove_act, self.hide_act, self.show_hidden_act,
-                         self.sum_act, self.mean_act, self.collapse_all_act,
+        self.addActions([self.remove_variables_act, self.hide_act,
+                         self.show_hidden_act, self.sum_variables_act,
+                         self.avg_variables_act, self.collapse_all_act,
                          self.expand_all_act, self.tree_act])
 
         # disable actions as these will be activated on selection
         self.close_all_act.setEnabled(False)
-        self.remove_act.setEnabled(False)
+        self.remove_variables_act.setEnabled(False)
         self.hide_act.setEnabled(False)
         self.show_hidden_act.setEnabled(False)
 
@@ -213,8 +213,13 @@ class MainWindow(QMainWindow):
 
     @property
     def current_view(self):
-        """ A currently selected outputs file. """
+        """ Currently selected outputs file. """
         return self.tab_wgt.currentWidget()
+
+    @property
+    def all_views(self):
+        """ All tabs content. """
+        return [self.tab_wgt.widget(i) for i in range(self.tab_wgt.count())]
 
     def closeEvent(self, event):
         """ Shutdown all the background stuff. """
@@ -343,13 +348,20 @@ class MainWindow(QMainWindow):
         if not self.tab_wgt.is_empty():
             self.toolbar.totals_btn.setEnabled(True)
 
-    def build_view(self, variables, proxy_variables, interval, units):
+    def build_view(self, variables):
         """ Create a new view when any of related settings change """
         is_tree = self.view_tools_wgt.tree_requested()
         filter_str = self.view_tools_wgt.get_filter_str()
 
         if not self.current_view:
             return
+
+        view_order = self.current_view.settings["header"]
+        interval = Settings.INTERVAL
+        units = (Settings.RATE_TO_ENERGY, Settings.UNITS_SYSTEM,
+                 Settings.ENERGY_UNITS, Settings.POWER_UNITS)
+
+        proxy_variables = create_proxy(variables, view_order, *units)
 
         self.current_view.update_model(variables, proxy_variables, is_tree,
                                        interval, units, filter_str=filter_str)
@@ -361,34 +373,24 @@ class MainWindow(QMainWindow):
 
         # handle actions availability
         self.hide_act.setEnabled(True)
-        self.remove_act.setEnabled(True)
+        self.remove_variables_act.setEnabled(True)
 
         # check if variables can be aggregated
         units = verify_units([var.units for var in outputs])
 
-        if len(outputs) > 1 and units:
-            self.toolbar.set_tools_btns_enabled("sum", "mean", "remove")
-        else:
-            self.toolbar.set_tools_btns_enabled("sum", "mean", "remove",
-                                                enabled=False)
-
-        # store current selection in the model
-        self.selectionUpdated.emit(outputs)
+        enabled = len(outputs) > 1 and units
+        self.toolbar.set_tools_btns_enabled("sum", "mean", "remove",
+                                            enabled=enabled)
 
     def on_selection_cleared(self):
         """ Handle behaviour when no variables are selected. """
         # handle actions availability
         self.hide_act.setEnabled(False)
-        self.remove_act.setEnabled(False)
-
-        # switch to show hidden action, handle visibility based on child action
-        self.toolbar.hide_btn.set_primary_state()
-        self.toolbar.hide_btn.setEnabled(self.show_hidden_act.isEnabled())
+        self.remove_variables_act.setEnabled(False)
 
         # disable export xlsx as there are no variables to be exported
         self.toolbar.set_tools_btns_enabled("sum", "mean",
                                             "remove", enabled=False)
-        self.selectionUpdated.emit([])
 
     def create_view_wgt(self, id_, name):
         """ Create a 'View' widget and connect its actions. """
@@ -397,9 +399,9 @@ class MainWindow(QMainWindow):
         wgt = View(id_, name)
         wgt.selectionCleared.connect(self.on_selection_cleared)
         wgt.selectionPopulated.connect(self.on_selection_populated)
-        wgt.treeNodeChanged.connect(self.build_view)
+        wgt.treeNodeChanged.connect(self.on_settings_changed)
         wgt.itemDoubleClicked.connect(self.rename_variable)
-        wgt.context_menu_actions = [self.remove_act,
+        wgt.context_menu_actions = [self.remove_variables_act,
                                     self.hide_act,
                                     self.show_hidden_act]
         return wgt
@@ -437,11 +439,16 @@ class MainWindow(QMainWindow):
         """ Update view when tabChanged event is fired. """
         if index == -1:
             # there aren't any widgets available
-            self.on_selection_cleared()
+            self.hide_act.setEnabled(False)
+            self.remove_variables_act.setEnabled(False)
             self.toolbar.set_initial_layout()
         else:
-            self.tabChanged.emit(self.current_view.id_,
-                                 self.current_view.settings["header"])
+            self.viewUpdateRequested.emit(self.current_view.id_)
+
+    def on_settings_changed(self):
+        """ Update view when settings change. """
+        if self.current_view:
+            self.viewUpdateRequested.emit(self.current_view.id_)
 
     def load_files_from_os(self):
         """ Select eso files from explorer and start processing. """
@@ -474,25 +481,54 @@ class MainWindow(QMainWindow):
         self.tab_wgt.setTabText(tab_index, name)
         self.fileRenamed.emit(view.id_, name, totals_name)
 
+    def remove_variables(self):
+        """ Remove selected variables. """
+        variables = self.current_view.get_selected_variables()
+
+        if not variables:
+            return
+
+        all_ = self.toolbar.all_files_requested()
+        nm = self.tab_wgt.tabText(self.tab_wgt.currentIndex())
+
+        files = "all files" if all_ else f"file '{nm}'"
+        text = f"Delete following variables from {files}: "
+
+        inf_text = "\n".join([" | ".join(var[1:3]) for var in variables])
+
+        dialog = ConfirmationDialog(self, text, det_text=inf_text)
+
+        if dialog.exec_() == 0:
+            return
+
+        for v in self.all_views if all_ else [self.current_view]:
+            v.set_next_update_forced()
+
+        self.variablesRemoved.emit(id_, variables)
+
     def rename_variable(self, var):
         """ Rename given variable. """
         # retrieve variable name from ui
-        view = self.tab_wgt.widget(tab_index)
         msg = "Rename variable: "
         kwargs = {"variable name": var.variable,
                   "key name": var.key}
 
         dialog = MulInputDialog(msg, self, **kwargs)
 
-        res = dialog.exec_()
-
-        if res == 0:
+        if dialog.exec_() == 0:
             return
 
         var_nm = dialog.get_inputs_dct()["variable name"]
         key_nm = dialog.get_inputs_dct()["key name"]
 
-        self.variableRenamed.emit(view.id_, var_nm, key_nm, var)
+        for v in self.all_views if all_ else [self.current_view]:
+            v.set_next_update_forced()
+
+        self.variableRenamed.emit(self.current_view.id_, var_nm, key_nm, var)
+
+    def aggregate_variables(self, func):
+        """ Aggregate variables using given function. """
+        pass
 
     def connect_ui_signals(self):
         """ Create actions which depend on user actions """
@@ -504,12 +540,15 @@ class MainWindow(QMainWindow):
         self.tree_act.triggered.connect(self.view_tools_wgt.tree_view_btn.toggle)
         self.collapse_all_act.triggered.connect(self.collapse_all)
         self.expand_all_act.triggered.connect(self.expand_all)
+        self.remove_variables_act.triggered.connect(self.remove_variables)
+        self.sum_variables_act.triggered.connect(partial(self.aggregate_variables, "sum"))
+        self.avg_variables_act.triggered.connect(partial(self.aggregate_variables, "mean"))
 
         # ~~~~ View Signals ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.view_tools_wgt.textFiltered.connect(self.filter_view)
         self.view_tools_wgt.expandRequested.connect(self.expand_all)
         self.view_tools_wgt.collapseRequested.connect(self.collapse_all)
-        self.view_tools_wgt.structureChanged.connect(self.settingsChanged.emit)
+        self.view_tools_wgt.structureChanged.connect(self.on_settings_changed)
 
         # ~~~~ Tab Signals ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.tab_wgt.tabClosed.connect(self.on_tab_closed)
@@ -518,7 +557,7 @@ class MainWindow(QMainWindow):
         self.tab_wgt.drop_btn.clicked.connect(self.load_files_from_os)
 
         # ~~~~ Toolbar Signals ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.toolbar.settingsUpdated.connect(self.settingsChanged.emit)
-        self.toolbar.sum_btn.connect_action(self.sum_act)
-        self.toolbar.mean_btn.connect_action(self.mean_act)
-        self.toolbar.remove_btn.connect_action(self.remove_act)
+        self.toolbar.settingsUpdated.connect(self.on_settings_changed)
+        self.toolbar.sum_btn.connect_action(self.sum_variables_act)
+        self.toolbar.mean_btn.connect_action(self.avg_variables_act)
+        self.toolbar.remove_btn.connect_action(self.remove_variables_act)

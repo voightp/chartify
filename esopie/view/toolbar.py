@@ -184,8 +184,6 @@ class Toolbar(QFrame):
         self.remove_btn.set_icons(Pixmap(root + "remove.png", *c1),
                                   Pixmap(root + "remove.png", *c1, a=0.5))
 
-
-
     def all_files_requested(self):
         """ Check if results from all eso files are requested. """
         return self.all_files_btn.isChecked() and self.all_files_btn.isEnabled()
