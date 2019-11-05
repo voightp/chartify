@@ -1,4 +1,5 @@
 import ctypes
+import os
 
 from PySide2.QtWidgets import (QWidget, QSplitter, QHBoxLayout, QVBoxLayout,
                                QToolButton, QAction, QFileDialog, QSizePolicy,
@@ -31,16 +32,17 @@ class MainWindow(QMainWindow):
     QCoreApplication.setOrganizationDomain("piecomp.foo")
     QCoreApplication.setApplicationName("piepie")
 
-    css = CssTheme(Settings.CSS_PATH)
-    palette = parse_palette(Settings.PALETTE_PATH, Settings.PALETTE_NAME)
-
     viewUpdateRequested = Signal(str)
     paletteChanged = Signal(Palette)
     fileProcessingRequested = Signal(list)
     fileRenamed = Signal(str, str, str)
     variableRenamed = Signal(str, str, str, QObject)
     variablesRemoved = Signal(str, list)
+    variablesAggregated = Signal(str, list, str, str, str)
     tabClosed = Signal(str)
+    appClosedRequested = Signal()
+
+    _CLOSE_FLAG = False
 
     def __init__(self):
         super(MainWindow, self).__init__()
@@ -49,6 +51,11 @@ class MainWindow(QMainWindow):
         self.setFocusPolicy(Qt.StrongFocus)
         self.resize(Settings.SIZE)
         self.move(Settings.POSITION)
+
+        # ~~~~ Main Window colors ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.css = CssTheme(Settings.CSS_PATH)
+        self.palette = parse_palette(Settings.PALETTE_PATH,
+                                     Settings.PALETTE_NAME)
 
         # ~~~~ Main Window widgets ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.central_wgt = QWidget(self)
@@ -223,21 +230,25 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event):
         """ Shutdown all the background stuff. """
-        Settings.SIZE = self.size()
-        Settings.POSITION = self.pos()
+        # it's needed to terminate threads in controller
+        # and close app programmatically
+        self.appClosedRequested.emit()
 
-        Settings.write_settings()
+        if self._CLOSE_FLAG:
+            event.accept()
+        else:
+            event.ignore()
 
     def keyPressEvent(self, event):
         """ Manage keyboard events. """
         if event.key() == Qt.Key_Escape:
 
             if not self.tab_wgt.is_empty():
-                self.current_view.clear_selected()
+                self.current_view.deselect_variables()
 
         elif event.key() == Qt.Key_Delete:
             if self.hasFocus():
-                self.remove_vars()
+                self.remove_variables()
 
     def load_scheme_btn_icons(self):
         """ Create scheme button icons. """
@@ -348,7 +359,7 @@ class MainWindow(QMainWindow):
         if not self.tab_wgt.is_empty():
             self.toolbar.totals_btn.setEnabled(True)
 
-    def build_view(self, variables):
+    def build_view(self, variables, scroll_to=None):
         """ Create a new view when any of related settings change """
         is_tree = self.view_tools_wgt.tree_requested()
         filter_str = self.view_tools_wgt.get_filter_str()
@@ -360,16 +371,18 @@ class MainWindow(QMainWindow):
         interval = Settings.INTERVAL
         units = (Settings.RATE_TO_ENERGY, Settings.UNITS_SYSTEM,
                  Settings.ENERGY_UNITS, Settings.POWER_UNITS)
+        totals = Settings.TOTALS
 
         proxy_variables = create_proxy(variables, view_order, *units)
 
         self.current_view.update_model(variables, proxy_variables, is_tree,
-                                       interval, units, filter_str=filter_str)
+                                       interval, units, totals,
+                                       filter_str=filter_str, scroll_to=scroll_to)
 
     def on_selection_populated(self, outputs):
         """ Store current selection in main app. """
         out_str = [" | ".join(var) for var in outputs]
-        print("STORING!\n\t{}".format("\n\t".join(out_str)))
+        print("SELECTION!\n\t{}".format("\n\t".join(out_str)))
 
         # handle actions availability
         self.hide_act.setEnabled(True)
@@ -378,7 +391,7 @@ class MainWindow(QMainWindow):
         # check if variables can be aggregated
         units = verify_units([var.units for var in outputs])
 
-        enabled = len(outputs) > 1 and units
+        enabled = len(outputs) > 1 and units is not None
         self.toolbar.set_tools_btns_enabled("sum", "mean", "remove",
                                             enabled=enabled)
 
@@ -396,7 +409,7 @@ class MainWindow(QMainWindow):
         """ Create a 'View' widget and connect its actions. """
         # create an empty 'View' widget - the data will be
         # automatically populated on 'onTabChanged' signal
-        wgt = View(id_, name)
+        wgt = View(str(id_), name)
         wgt.selectionCleared.connect(self.on_selection_cleared)
         wgt.selectionPopulated.connect(self.on_selection_populated)
         wgt.treeNodeChanged.connect(self.on_settings_changed)
@@ -456,7 +469,7 @@ class MainWindow(QMainWindow):
                                                     Settings.FS_PATH, "*.eso")
         if file_pths:
             # store last path for future
-            Settings.FS_PATH = file_pths[0]
+            Settings.FS_PATH = os.path.dirname(file_pths[0])
             self.fileProcessingRequested.emit(file_pths)
 
     def rename_file(self, tab_index):
@@ -467,7 +480,7 @@ class MainWindow(QMainWindow):
         check_list = self.tab_wgt.get_all_child_names()[:]
         check_list.remove(orig_name)
 
-        d = MulInputDialog("Enter a new file name.", self,
+        d = MulInputDialog(self, "Enter a new file name.",
                            check_list=check_list, name=orig_name)
         res = d.exec_()
 
@@ -513,7 +526,7 @@ class MainWindow(QMainWindow):
         kwargs = {"variable name": var.variable,
                   "key name": var.key}
 
-        dialog = MulInputDialog(msg, self, **kwargs)
+        dialog = MulInputDialog(self, msg, **kwargs)
 
         if dialog.exec_() == 0:
             return
@@ -528,7 +541,35 @@ class MainWindow(QMainWindow):
 
     def aggregate_variables(self, func):
         """ Aggregate variables using given function. """
-        pass
+        variables = self.current_view.get_selected_variables()
+
+        if not variables:
+            return
+
+        var_nm = "Custom Variable"
+        key_nm = "Custom Key"
+
+        if all(map(lambda x: x.variable == variables[0].variable, variables)):
+            var_nm = variables[0].variable
+
+        if all(map(lambda x: x.key == variables[0].key, variables)):
+            key_nm = variables[0].key
+
+        # retrieve custom inputs from a user
+        msg = "Enter details of the new variable: "
+        kwargs = {"variable name": var_nm,
+                  "key name": key_nm}
+
+        dialog = MulInputDialog(self, msg, **kwargs)
+        res = dialog.exec()
+
+        if res == 0:
+            return
+
+        var_nm = dialog.get_inputs_dct()["variable name"]
+        key_nm = dialog.get_inputs_dct()["key name"]
+
+        self.variablesAggregated.emit(id_, variables, var_nm, key_nm, func)
 
     def connect_ui_signals(self):
         """ Create actions which depend on user actions """

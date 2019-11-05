@@ -34,10 +34,13 @@ def kill_child_processes(parent_pid):
 
 def load_file(path, monitor=None, suppress_errors=False):
     """ Process eso file. """
-    std_file = EsoFile(path, monitor=monitor, suppress_errors=suppress_errors)
-    tot_file = BuildingEsoFile(std_file)
-    monitor.building_totals_finished()
-    return std_file, tot_file
+    try:
+        std_file = EsoFile(path, monitor=monitor, suppress_errors=suppress_errors)
+        tot_file = BuildingEsoFile(std_file)
+        monitor.building_totals_finished()
+        return std_file, tot_file
+    except Exception:
+        monitor.processing_failed()
 
 
 def wait_for_results(id_, monitor, queue, future):

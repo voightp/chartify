@@ -2,32 +2,36 @@ from PySide2.QtCore import QSettings, QSize, QPoint
 
 
 class Settings:
+    """
+    Class which represents global application settings.
+
+
+    """
     URL = "http://127.0.0.1:8080/"
-
-    ENERGY_UNITS = QSettings().value("Units/energyUnits", "kWh")
-    POWER_UNITS = QSettings().value("Units/powerUnits", "kW")
-    UNITS_SYSTEM = QSettings().value("Units/unitsSystem", "SI")
-    RATE_TO_ENERGY = bool(QSettings().value("Units/rateToEnergy", 0))
-    CUSTOM_UNITS = bool(QSettings().value("Units/customUnits", 1))
-
-    FS_PATH = QSettings().value("fsPath", "")
-    PALETTE_NAME = QSettings().value("MainWindow/scheme", "default")
     PALETTE_PATH = "./styles/palettes.json"
     CSS_PATH = "./styles/app_style.css"
     ICONS_PATH = "./icons/"
-
-    SIZE = QSettings().value("MainWindow/size", QSize(800, 600))
-    POSITION = QSettings().value("MainWindow/pos", QPoint(50, 50))
-
-    INTERVAL = QSettings().value("interval", None)
-    ALL_FILES = bool(QSettings().value("allFiles", 0))
-    TOTALS = bool(QSettings().value("totals", 0))
-    TREE_VIEW = bool(QSettings().value("treeView", 0))
 
     IP_ENERGY_UNITS = ["Btu", "kBtu", "MBtu"]
     IP_POWER_UNITS = ["Btu/h", "kBtu/h", "MBtu/h", "W"]
     SI_ENERGY_UNITS = ["Wh", "kWh", "MWh", "J", "MJ", "GJ"]
     SI_POWER_UNITS = ["W", "kW", "MW"]
+
+    ENERGY_UNITS = None
+    POWER_UNITS = None
+    UNITS_SYSTEM = None
+    RATE_TO_ENERGY = None
+    CUSTOM_UNITS = None
+    FS_PATH = None
+    PALETTE_NAME = None
+
+    INTERVAL = None
+    ALL_FILES = None
+    TOTALS = None
+    TREE_VIEW = None
+
+    SIZE = None
+    POSITION = None
 
     @classmethod
     def as_str(cls):
@@ -40,17 +44,37 @@ class Settings:
             f"\n\tCustom units: '{cls.CUSTOM_UNITS}'"
 
     @classmethod
-    def write_settings(cls):
-        """ Store toolbar settings. """
-        QSettings().setValue("Units/energyUnits", cls.ENERGY_UNITS)
-        QSettings().setValue("Units/powerUnits", cls.POWER_UNITS)
-        QSettings().setValue("Units/unitsSystem", cls.UNITS_SYSTEM)
-        QSettings().setValue("Units/customUnits", int(cls.CUSTOM_UNITS))
-        QSettings().setValue("Units/rateToEnergy", int(cls.RATE_TO_ENERGY))
-        QSettings().setValue("allFiles", int(cls.ALL_FILES))
-        QSettings().setValue("treeView", int(cls.TREE_VIEW))
-        QSettings().setValue("paletteName", cls.PALETTE_NAME)
-        QSettings().setValue("fsPath", cls.FS_PATH)
-        QSettings().setValue("MainWindow/size", cls.SIZE)
-        QSettings().setValue("MainWindow/pos", cls.POSITION)
-        QSettings().setValue("MainWindow/scheme", cls.PALETTE_NAME)
+    def load_reg_settings(cls):
+        """ Load application settings. """
+        s = QSettings()
+        cls.ENERGY_UNITS = s.value("Units/energyUnits", "kWh")
+        cls.POWER_UNITS = s.value("Units/powerUnits", "kW")
+        cls.UNITS_SYSTEM = s.value("Units/unitsSystem", "SI")
+        cls.RATE_TO_ENERGY = bool(s.value("Units/rateToEnergy", 0))
+        cls.CUSTOM_UNITS = bool(s.value("Units/customUnits", 1))
+        cls.FS_PATH = s.value("MainWindow/loadPath", "")
+        cls.PALETTE_NAME = s.value("MainWindow/scheme", "default")
+
+        cls.INTERVAL = s.value("MainWindow/interval", None)
+        cls.ALL_FILES = bool(s.value("MainWindow/allFiles", 0))
+        cls.TOTALS = bool(s.value("MainWindow/totals", 0))
+        cls.TREE_VIEW = bool(s.value("MainWindow/treeView", 0))
+
+        cls.SIZE = QSettings().value("MainWindow/size", QSize(800, 600))
+        cls.POSITION = QSettings().value("MainWindow/pos", QPoint(50, 50))
+
+    @classmethod
+    def write_reg_settings(cls):
+        """ Store application settings. """
+        s = QSettings()
+        s.setValue("Units/energyUnits", cls.ENERGY_UNITS)
+        s.setValue("Units/powerUnits", cls.POWER_UNITS)
+        s.setValue("Units/unitsSystem", cls.UNITS_SYSTEM)
+        s.setValue("Units/customUnits", int(cls.CUSTOM_UNITS))
+        s.setValue("Units/rateToEnergy", int(cls.RATE_TO_ENERGY))
+        s.setValue("MainWindow/allFiles", int(cls.ALL_FILES))
+        s.setValue("MainWindow/treeView", int(cls.TREE_VIEW))
+        s.setValue("MainWindow/scheme", cls.PALETTE_NAME)
+        s.setValue("MainWindow/loadPath", cls.FS_PATH)
+        s.setValue("MainWindow/size", cls.SIZE)
+        s.setValue("MainWindow/pos", cls.POSITION)

@@ -165,7 +165,7 @@ class MulInputDialog(QDialog):
 
     """
 
-    def __init__(self, text, parent, check_list=None, **kwargs):
+    def __init__(self, parent, text, check_list=None, **kwargs):
         super().__init__(parent, Qt.FramelessWindowHint)
         self.line_edits = {}
         self.check_list = [] if check_list is None else check_list

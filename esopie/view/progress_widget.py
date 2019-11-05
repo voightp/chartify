@@ -82,7 +82,6 @@ class ProgressContainer(QWidget):
         if i is not None:
             self.widgets[i].update_value()
 
-        # check if file visible position has changed
         if self.position_changed(f):
             self.update_bar()
 
@@ -132,6 +131,13 @@ class ProgressContainer(QWidget):
         if i is not None:
             self.widgets[i].update_all_refs()
             self.widgets[i].set_failed_status()
+
+    def set_pending(self, id_):
+        """ Set pending status on the given file. """
+        self.files[id_].set_pending()
+        i = self.visible_index(self.files[id_])
+        if i is not None:
+            self.widgets[i].update_all_refs()
 
     def remove_file(self, id_):
         """ Remove file from the container. """
@@ -189,6 +195,11 @@ class ProgressFile:
     def set_value(self, val):
         """ Set current progress value. """
         self._value = val
+
+    def set_pending(self):
+        """ Set infinite pending value. """
+        self.set_value(0)
+        self.set_maximum(0)
 
     def set_failed(self):
         """ Set failed values. """

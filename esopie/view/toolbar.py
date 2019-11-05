@@ -333,12 +333,11 @@ class Toolbar(QFrame):
 
         self.populate_intervals_group(hide_disabled=False)
 
-    def update_rate_to_energy_state(self):
+    def update_rate_to_energy_state(self, interval):
         """ Enable or disable rate to energy button. """
         # rate to energy should be enabled only for daily+ intervals
         if self.custom_units_toggle.isChecked():
-            b = self.get_selected_interval() not in [TS, H]
-            self.rate_energy_btn.setEnabled(b)
+            self.rate_energy_btn.setEnabled(interval not in [TS, H])
         else:
             self.rate_energy_btn.setEnabled(False)
 
@@ -426,7 +425,7 @@ class Toolbar(QFrame):
         for btn in self.units_btns[:3]:
             btn.setEnabled(enabled)
 
-        self.update_rate_to_energy_state()
+        self.update_rate_to_energy_state(Settings.INTERVAL)
         self.settingsUpdated.emit()
 
     def filter_energy_power_units(self, units_system):
@@ -483,15 +482,16 @@ class Toolbar(QFrame):
 
     def interval_changed(self):
         """ Request view update when interval changes. """
-        Settings.INTERVAL = self.get_selected_interval()
-        self.update_rate_to_energy_state()
+        interval = self.get_selected_interval()
+        Settings.INTERVAL = interval
+        self.update_rate_to_energy_state(interval)
         self.settingsUpdated.emit()
 
     def connect_actions(self):
         """ Connect toolbar actions. """
         # ~~~~ Interval buttons Signals ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         for btn in self.interval_btns.values():
-            btn.clicked.connect(self.settingsUpdated.emit)
+            btn.clicked.connect(self.interval_changed)
 
         # ~~~~ Totals Signal ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.totals_btn.toggled.connect(self.totals_toggled)

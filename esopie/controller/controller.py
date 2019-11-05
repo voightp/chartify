@@ -1,9 +1,8 @@
-from functools import partial
 import os
+from multiprocessing import Manager
 from queue import Queue
 
 from PySide2.QtCore import QThreadPool
-from multiprocessing import Manager
 from functools import partial
 
 from esopie.settings import Settings
@@ -19,6 +18,11 @@ class AppController:
         self.v = view
         self.m = model
 
+        # ~~~~ Queues ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.file_queue = Queue()
+        self.manager = Manager()
+        self.progress_queue = self.manager.Queue()
+
         # ~~~~ Monitoring threads ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.watcher = EsoFileWatcher(self.file_queue)
         self.watcher.loaded.connect(self.on_file_loaded)
@@ -30,38 +34,44 @@ class AppController:
         # ~~~~ Thread executor ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.thread_pool = QThreadPool()
 
-        # ~~~~ Queues ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.file_queue = Queue()
-        self.manager = Manager()
-        self.progress_queue = self.manager.Queue()
-
         # ~~~~ Process executor ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.pool = create_pool()
 
+        # ~~~~ Connect signals ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.connect_view_signals()
+        self.connect_model_signals()
+
     def tear_down(self):
+        """ Clean up application resources. """
+        Settings.SIZE = self.v.size()
+        Settings.POSITION = self.v.pos()
+        Settings.write_reg_settings()
+
         self.watcher.terminate()
         self.monitor.terminate()
         self.manager.shutdown()
 
-        # terminate background processes
         kill_child_processes(os.getpid())
+
+        self.v._CLOSE_FLAG = True
+        self.v.close()
 
     def connect_view_signals(self):
         self.v.viewUpdateRequested.connect(self.handle_view_update)
-        self.v.paletteChanged.connect()
+        self.v.paletteChanged.connect(lambda x: x)
         self.v.fileProcessingRequested.connect(self.handle_file_processing)
-        self.v.fileRenamed.connect()
+        self.v.fileRenamed.connect(lambda x: x)
         self.v.variableRenamed.connect(self.handle_rename_variable)
         self.v.variablesRemoved.connect(self.handle_remove_variables)
-        self.v.tabClosed.connect()
+        self.v.variablesAggregated.connect(self.handle_aggregate_variables)
+        self.v.tabClosed.connect(lambda x: x)
+        self.v.appClosedRequested.connect(self.tear_down)
 
-        self.v.close_all_act.triggered.connect(self.close_all_tabs)
+        self.v.close_all_act.triggered.connect(lambda x: x)
         self.v.hide_act.triggered.connect(self.hide_vars)
         self.v.remove_hidden_act.triggered.connect(self.remove_hidden_vars)
         self.v.show_hidden_act.triggered.connect(self.show_hidden_vars)
 
-        self.v.sum_act.triggered.connect(partial(self.add_var, "sum"))
-        self.v.mean_act.triggered.connect(partial(self.add_var, "mean"))
         self.v.save_act.triggered.connect(lambda x: print("SAVE ACT!"))
         self.v.save_as_act.triggered.connect(lambda x: print("SAVE AS ACT!"))
 
@@ -72,6 +82,7 @@ class AppController:
         self.monitor.text_updated.connect(self.v.progress_cont.update_progress_text)
         self.monitor.bar_updated.connect(self.v.progress_cont.update_file_progress)
         self.monitor.preprocess_finished.connect(self.v.progress_cont.set_max_value)
+        self.monitor.finished.connect(self.v.progress_cont.set_pending)
         self.monitor.failed.connect(self.v.progress_cont.set_failed)
 
     def handle_view_update(self, id_):
@@ -81,9 +92,10 @@ class AppController:
         # update interface to enable only available interval buttons
         # and rate to energy button when applicable
         self.v.toolbar.update_intervals_state(file.available_intervals)
-        self.v.toolbar.update_rate_to_energy_state()
+        self.v.toolbar.update_rate_to_energy_state(Settings.INTERVAL)
 
-        self.v.build_view(list(file.header_dct[Settings.INTERVAL].values()))
+        variables = self.m.fetch_file_header_variables(id_, Settings.INTERVAL)
+        self.v.build_view(variables)
 
     def handle_file_processing(self, paths):
         """ Load new files. """
@@ -110,7 +122,28 @@ class AppController:
         self.m.add_file_to_db(f"s{id_}", std_file)
         self.m.add_file_to_db(f"t{id_}", tot_file)
 
+        self.v.add_new_tab(id_, name)
         self.v.progress_cont.remove_file(id_)
+
+    def apply_async(self, id_, func, *args, **kwargs):
+        """ A wrapper to apply functions to current views. """
+        file = self.m.fetch_file(id_)
+        other_files = None
+
+        if Settings.ALL_FILES:
+            ids = self.m.get_all_file_ids()
+            ids.remove(id_)
+            other_files = self.m.fetch_files(*ids)
+
+        # apply function to the current file
+        val = func(file, *args, **kwargs)
+
+        # apply function to all other widgets asynchronously
+        if other_files:
+            w = IterWorker(func, other_files, *args, **kwargs)
+            self.thread_pool.start(w)
+
+        return val
 
     @staticmethod
     def rename_var(file, var_nm, key_nm, variable):
@@ -118,22 +151,11 @@ class AppController:
         return file.rename_variable(variable, var_nm, key_nm)
 
     def handle_rename_variable(self, id_, var_nm, key_nm, variable):
-        current_file = self.m.fetch_file(id_)
-        other_files = None
+        """ Overwrite variable name. """
+        var = self.apply_async(id_, self.rename_var, var_nm, key_nm, variable)
 
-        if Settings.ALL_FILES:
-            ids = self.m.get_all_file_ids(Settings.TOTALS)
-            ids.remove(id_)
-            other_files = self.m.fetch_files(*ids)
-
-        var = self.apply_async(self.rename_var, current_file, var_nm,
-                               key_nm, variable, others=other_files)
-
-        self.v.current_view.select_variables(var)
-        self.v.current_view.scroll_to(var)
-
-        variables = list(current_file.header_dct[Settings.INTERVAL].values())
-        self.v.build_view(variables)
+        variables = self.m.fetch_file_header_variables(id_, Settings.INTERVAL)
+        self.v.build_view(variables, scroll_to=var)
 
     def handle_file_rename(self):
         pass
@@ -145,21 +167,13 @@ class AppController:
 
     def handle_remove_variables(self, id_, variables):
         """ Remove variables from a file or all files. """
-        file = self.m.fetch_file(id_)
-        other_files = None
+        self.apply_async(id_, self.dump_vars, variables)
+        variables = self.m.fetch_file_header_variables(id_, Settings.INTERVAL)
 
-        if Settings.ALL_FILES:
-            ids = self.m.get_all_file_ids(Settings.TOTALS)
-            ids.remove(id_)
-            other_files = self.m.fetch_files(*ids)
-
-        self.apply_async(self.dump_vars, file,
-                         variables, others=other_files)
-
-        self.v.build_view(list(file.header_dct[Settings.INTERVAL].values()))
+        self.v.build_view(variables)
 
     @staticmethod
-    def aggr_vars(file, var_nm, key_nm, variables, func):
+    def aggr_vars(file, variables, var_nm, key_nm, func):
         """ Add a new aggregated variable to the file. """
         res = file.aggregate_variables(variables, func,
                                        key_nm=key_nm,
@@ -169,34 +183,12 @@ class AppController:
             var_id, var = res
             return var
 
-    def add_var(self, aggr_func):
-        """ Create a new variable using given aggr function. """
-        variables = self.get_current_request()
+    def handle_aggregate_variables(self, id_, variables, var_nm, key_nm, func):
+        """ Create a new variable using given aggregation function. """
+        var = self.apply_async(id_, self.aggr_vars, variables, var_nm, key_nm, func)
+        variables = self.m.fetch_file_header_variables(id_, Settings.INTERVAL)
 
-        # retrieve variable name from ui
-        msg = "Enter details of the new variable: "
-        res = self.get_new_name(variables, msg=msg)
-
-        if res:
-            var_nm, key_nm = res
-            var = self.apply_async(self.aggr_vars, var_nm, key_nm,
-                                   variables, aggr_func)
-
-            self.selected = [var]
-            self.rebuild_view()
-            self.current_view_wgt.scroll_to(var)
-
-    def apply_async(self, func, first, *args, others=None, **kwargs):
-        """ A wrapper to apply functions to current views. """
-        # apply function to the current file
-        val = func(first, *args, **kwargs)
-
-        # apply function to all other widgets asynchronously
-        if others:
-            w = IterWorker(func, others, *args, **kwargs)
-            self.thread_pool.start(w)
-
-        return val
+        self.v.build_view(variables, scroll_to=var)
 
     def hide_vars(self):
         """ Temporarily hide variables. """
@@ -224,3 +216,20 @@ class AppController:
         """ Remove hidden variables. """
         for view in self.current_view_wgts:
             view.remove_hidden_header_variables()
+
+    def get_results(self, callback=None, **kwargs):
+        """ Get output values for given variables. """
+        rate_to_energy, units_system, energy, power = self.get_units_settings()
+        rate_to_energy_dct = {self.get_current_interval(): rate_to_energy}
+
+        ids = self.get_current_file_ids()
+        files = self.get_files_from_db(*ids)
+
+        args = (files, self.selected_variables)
+        kwargs = {"rate_units": power, "energy_units": energy,
+                  "add_file_name": "column",
+                  "rate_to_energy_dct": rate_to_energy_dct,
+                  **kwargs}
+
+        self.thread_pool.start(ResultsFetcher(get_results, *args,
+                                              callback=callback, **kwargs))
