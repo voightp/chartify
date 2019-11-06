@@ -41,31 +41,40 @@ class AppModel:
         """ Get a list of already used ids (without s,t identifier). """
         return [id_[1:] for id_ in self.get_all_file_ids()]
 
-    def get_all_names_from_db(self):
+    def get_all_file_names(self):
         """ Get all file names. """
         return [f.file_name for f in self.database.values()]
 
-    def delete_sets_from_db(self, *args):
-        """ Delete the eso file from the database. """
-        for id_ in args:
-            try:
-                print(f"Deleting file id: '{id_}' from database.")
-                del self.database[id_]
-            except KeyError:
-                print(f"Cannot delete eso file: id '{id_}',"
-                      f"\nFile was not found in database.")
+    def delete_file(self, id_):
+        """ Delete file from the database. """
+        try:
+            print(f"Deleting file id: '{id_}' from the database.")
+            del self.database[id_]
+        except KeyError:
+            print(f"Cannot delete set: id '{id_}',"
+                  f"\nFile was not found in the database.")
 
-    def rename_file_in_db(self, id_, f_name, totals_f_name):
+    def delete_sets(self, *args):
+        """ Delete specified sets from the database. """
+        for id_ in args:
+            self.delete_file(f"s{id_}")
+            self.delete_file(f"t{id_}")
+
+    def rename_file(self, id_, name):
         """ Rename file in the databases. """
         try:
-            f_set = self.database[id_]
-            f_set[f"s{id_}"].rename(f_name)
-            f_set[f"t{id_}"].rename(totals_f_name)
+            file = self.fetch_file(id_)
+            file.rename(name)
         except KeyError:
-            print(f"Cannot rename eso file: id '{id_}',"
+            print(f"Cannot rename file: id '{id_}',"
                   f"\nFile was not found in database.")
 
-    def add_file_to_db(self, id_, file):
+    def rename_set(self, id_, name, totals_name):
+        """ Delete specified sets from the database. """
+        self.rename_file(self.fetch_file(f"s{id_}"), name)
+        self.rename_file(self.fetch_file(f"s{id_}"), totals_name)
+
+    def add_file(self, id_, file):
         """ Add processed eso file to the database. """
         try:
             self.database[id_] = file

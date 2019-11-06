@@ -60,17 +60,13 @@ class AppController:
         self.v.viewUpdateRequested.connect(self.handle_view_update)
         self.v.paletteChanged.connect(lambda x: x)
         self.v.fileProcessingRequested.connect(self.handle_file_processing)
-        self.v.fileRenamed.connect(lambda x: x)
+        self.v.fileRenamed.connect(self.handle_file_rename)
         self.v.variableRenamed.connect(self.handle_rename_variable)
         self.v.variablesRemoved.connect(self.handle_remove_variables)
         self.v.variablesAggregated.connect(self.handle_aggregate_variables)
-        self.v.tabClosed.connect(lambda x: x)
+        self.v.tabClosed.connect(self.handle_close_tab)
         self.v.appClosedRequested.connect(self.tear_down)
-
         self.v.close_all_act.triggered.connect(lambda x: x)
-        self.v.hide_act.triggered.connect(self.hide_vars)
-        self.v.remove_hidden_act.triggered.connect(self.remove_hidden_vars)
-        self.v.show_hidden_act.triggered.connect(self.show_hidden_vars)
 
         self.v.save_act.triggered.connect(lambda x: print("SAVE ACT!"))
         self.v.save_as_act.triggered.connect(lambda x: print("SAVE AS ACT!"))
@@ -113,14 +109,14 @@ class AppController:
 
     def on_file_loaded(self, id_, std_file, tot_file):
         """ Add eso file into 'tab' widget. """
-        names = self.m.get_all_names_from_db()
+        names = self.m.get_all_file_names()
         name = get_str_identifier(std_file.file_name, names)
 
         std_file.rename(name)
         tot_file.rename(f"{name} - totals")
 
-        self.m.add_file_to_db(f"s{id_}", std_file)
-        self.m.add_file_to_db(f"t{id_}", tot_file)
+        self.m.add_file(f"s{id_}", std_file)
+        self.m.add_file(f"t{id_}", tot_file)
 
         self.v.add_new_tab(id_, name)
         self.v.progress_cont.remove_file(id_)
@@ -162,7 +158,7 @@ class AppController:
 
     def handle_file_rename(self, id_, name, totals_name):
         """ Update file name. """
-        self.m.rename_file_in_db(id_, name, totals_name)
+        self.m.rename_set(id_, name, totals_name)
 
     @staticmethod
     def dump_vars(file, variables):
@@ -193,6 +189,10 @@ class AppController:
         variables = self.m.fetch_file_header_variables(id_, Settings.INTERVAL)
 
         self.v.build_view(variables, scroll_to=var)
+
+    def handle_close_tab(self, id_):
+        """ Delete set from the database. """
+        self.m.delete_sets(id_)
 
     def get_results(self, callback=None, **kwargs):
         """ Get output values for given variables. """
