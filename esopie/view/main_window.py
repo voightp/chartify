@@ -11,7 +11,8 @@ from PySide2.QtWebEngineWidgets import QWebEngineView
 
 from esopie.view.icons import Pixmap, filled_circle_pixmap
 from esopie.view.progress_widget import ProgressContainer
-from esopie.view.misc_widgets import (DropFrame, TabWidget, MulInputDialog)
+from esopie.view.misc_widgets import (DropFrame, TabWidget, MulInputDialog,
+                                      ConfirmationDialog)
 from esopie.view.buttons import MenuButton, IconMenuButton
 from esopie.view.toolbar import Toolbar
 from esopie.view.view_tools import ViewTools
@@ -517,7 +518,7 @@ class MainWindow(QMainWindow):
         for v in self.all_views if all_ else [self.current_view]:
             v.set_next_update_forced()
 
-        self.variablesRemoved.emit(id_, variables)
+        self.variablesRemoved.emit(self.current_view.id_, variables)
 
     def rename_variable(self, var):
         """ Rename given variable. """
@@ -569,7 +570,8 @@ class MainWindow(QMainWindow):
         var_nm = dialog.get_inputs_dct()["variable name"]
         key_nm = dialog.get_inputs_dct()["key name"]
 
-        self.variablesAggregated.emit(id_, variables, var_nm, key_nm, func)
+        self.variablesAggregated.emit(self.current_view.id_, variables,
+                                      var_nm, key_nm, func)
 
     def connect_ui_signals(self):
         """ Create actions which depend on user actions """
