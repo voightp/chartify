@@ -237,7 +237,7 @@ MenuButton#settingsButton {
 }
 
 MenuButton::menu-indicator {
-    image: URL(./icons/plus.png)#PRIMARY_COLOR;
+    image: URL(./icons/transparent.png);
     margin: 3px;
     width: 10px;
     height: 10px;
