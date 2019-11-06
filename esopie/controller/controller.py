@@ -126,9 +126,8 @@ class AppController:
         other_files = None
 
         if Settings.ALL_FILES:
-            ids = self.m.get_all_file_ids()
-            ids.remove(id_)
-            other_files = self.m.fetch_files(*ids)
+            other_files = self.m.fetch_all_files()
+            other_files.remove(file)
 
         # apply function on the current file
         val = func(file, *args, **kwargs)

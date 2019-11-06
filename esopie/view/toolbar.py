@@ -475,6 +475,12 @@ class Toolbar(QFrame):
         Settings.TOTALS = state
         self.settingsUpdated.emit()
 
+    def all_files_toggled(self, state):
+        """ Request view update when totals requested. """
+        # settings does not need to be updated as
+        # this does not have an impact on the UI
+        Settings.ALL_FILES = state
+
     def rate_to_energy_clicked(self, state):
         """ Request view update when rate to energy button clicked. """
         Settings.RATE_TO_ENERGY = state
@@ -495,6 +501,9 @@ class Toolbar(QFrame):
 
         # ~~~~ Totals Signal ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.totals_btn.toggled.connect(self.totals_toggled)
+
+        # ~~~~ All Files Signal ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.all_files_btn.toggled.connect(self.all_files_toggled)
 
         # ~~~~ Units Signals ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.rate_energy_btn.clicked.connect(self.rate_to_energy_clicked)

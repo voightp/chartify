@@ -15,9 +15,18 @@ class AppModel:
             raise KeyError(f"Cannot find file {id_} in database!")
 
     def fetch_files(self, *args):
-        """ Fetch eso files from the database. """
+        """ Fetch results files from the database. """
         files = []
         for id_ in args:
+            f = self.fetch_file(id_)
+            if f:
+                files.append(f)
+        return files
+
+    def fetch_all_files(self):
+        """ Fetch eso files from the database. """
+        files = []
+        for id_ in self.get_all_set_ids():
             f = self.fetch_file(id_)
             if f:
                 files.append(f)
