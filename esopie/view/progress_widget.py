@@ -6,9 +6,15 @@ from PySide2.QtCore import Signal, Qt
 
 class ProgressContainer(QWidget):
     """
+
     A container to hold all progress widgets.
 
+    All the currently processed files are stored as 'masks'.
+    Masks data is being updated using signals mechanism from
+    application controller.
+
     """
+
     MAX_VISIBLE_JOBS = 5
     CHILD_SPACING = 3
 
@@ -75,15 +81,18 @@ class ProgressContainer(QWidget):
 
     def update_file_progress(self, id_, val):
         """ Update file progress. """
-        f = self.files[id_]
-        f.set_value(val)
+        try:
+            f = self.files[id_]
+            f.set_value(val)
 
-        i = self.visible_index(f)
-        if i is not None:
-            self.widgets[i].update_value()
+            i = self.visible_index(f)
+            if i is not None:
+                self.widgets[i].update_value()
 
-        if self.position_changed(f):
-            self.update_bar()
+            if self.position_changed(f):
+                self.update_bar()
+        except KeyError:
+            pass
 
     def update_bar(self):
         """ Update progress widget display on the status bar. """
@@ -117,12 +126,15 @@ class ProgressContainer(QWidget):
 
     def set_max_value(self, id_, max_value):
         """ Set up maximum progress value. """
-        f = self.files[id_]
-        f.set_maximum(max_value)
+        try:
+            f = self.files[id_]
+            f.set_maximum(max_value)
 
-        i = self.visible_index(f)
-        if i is not None:
-            self.widgets[i].update_max()
+            i = self.visible_index(f)
+            if i is not None:
+                self.widgets[i].update_max()
+        except KeyError:
+            pass
 
     def set_failed(self, id_):
         """ Set failed status on the given file. """
@@ -134,10 +146,13 @@ class ProgressContainer(QWidget):
 
     def set_pending(self, id_):
         """ Set pending status on the given file. """
-        self.files[id_].set_pending()
-        i = self.visible_index(self.files[id_])
-        if i is not None:
-            self.widgets[i].update_all_refs()
+        try:
+            self.files[id_].set_pending()
+            i = self.visible_index(self.files[id_])
+            if i is not None:
+                self.widgets[i].update_all_refs()
+        except KeyError:
+            pass
 
     def remove_file(self, id_):
         """ Remove file from the container. """

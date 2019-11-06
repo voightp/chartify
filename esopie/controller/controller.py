@@ -75,7 +75,6 @@ class AppController:
         """ Create monitor actions. """
         self.monitor.initialized.connect(self.v.progress_cont.add_file)
         self.monitor.started.connect(self.v.progress_cont.update_progress_text)
-        self.monitor.text_updated.connect(self.v.progress_cont.update_progress_text)
         self.monitor.bar_updated.connect(self.v.progress_cont.update_file_progress)
         self.monitor.preprocess_finished.connect(self.v.progress_cont.set_max_value)
         self.monitor.finished.connect(self.v.progress_cont.set_pending)

@@ -8,7 +8,6 @@ from eso_reader.building_eso_file import BuildingEsoFile
 # noinspection PyUnresolvedReferences
 class Monitor(QThread):
     bar_updated = Signal(int, int)
-    text_updated = Signal(int, str)
     finished = Signal(int)
     preprocess_finished = Signal(int, int)
     started = Signal(int, str)
@@ -30,11 +29,11 @@ class Monitor(QThread):
             def send_started():
                 self.started.emit(mon_id, mon_name)
 
+            def send_preprocessing_finished():
+                self.preprocess_finished.emit(mon_id, monitor.n_steps)
+
             def send_finished():
                 self.finished.emit(mon_id)
-
-            def preprocessing_finished():
-                self.preprocess_finished.emit(mon_id, monitor.n_steps)
 
             def send_update_progress_bar():
                 self.bar_updated.emit(mon_id, message)
@@ -49,7 +48,7 @@ class Monitor(QThread):
                 -1: send_failed,
                 0: send_initialized,
                 1: send_started,
-                2: preprocessing_finished,
+                2: send_preprocessing_finished,
                 3: do_not_report,  # header finished
                 4: do_not_report,  # body finished
                 5: do_not_report,  # intervals finished
