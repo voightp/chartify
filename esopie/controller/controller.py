@@ -135,7 +135,7 @@ class AppController:
             ids.remove(id_)
             other_files = self.m.fetch_files(*ids)
 
-        # apply function to the current file
+        # apply function on the current file
         val = func(file, *args, **kwargs)
 
         # apply function to all other widgets asynchronously
@@ -148,17 +148,21 @@ class AppController:
     @staticmethod
     def rename_var(file, var_nm, key_nm, variable):
         """ Rename given 'Variable'. """
-        return file.rename_variable(variable, var_nm, key_nm)
+        res = file.rename_variable(variable, var_nm, key_nm)
+        if res:
+            var_id, var = res
+            return var
 
-    def handle_rename_variable(self, id_, var_nm, key_nm, variable):
+    def handle_rename_variable(self, id_, variable, var_nm, key_nm):
         """ Overwrite variable name. """
         var = self.apply_async(id_, self.rename_var, var_nm, key_nm, variable)
 
         variables = self.m.fetch_file_header_variables(id_, Settings.INTERVAL)
         self.v.build_view(variables, scroll_to=var)
 
-    def handle_file_rename(self):
-        pass
+    def handle_file_rename(self, id_, name, totals_name):
+        """ Update file name. """
+        self.m.rename_file_in_db(id_, name, totals_name)
 
     @staticmethod
     def dump_vars(file, variables):
@@ -189,33 +193,6 @@ class AppController:
         variables = self.m.fetch_file_header_variables(id_, Settings.INTERVAL)
 
         self.v.build_view(variables, scroll_to=var)
-
-    def hide_vars(self):
-        """ Temporarily hide variables. """
-        variables = self.get_current_request()
-        self.apply_async(self.dump_vars, variables)
-
-        # allow showing variables again
-        self.show_hidden_act.setEnabled(True)
-        self.toolbar.hide_btn.setEnabled(True)
-
-        self.rebuild_view()
-
-    def show_hidden_vars(self):
-        """ Show previously hidden variables. """
-        for view in self.current_view_wgts:
-            view.show_hidden_header_variables()
-            view.set_next_update_forced()
-
-        self.show_hidden_act.setEnabled(False)
-        self.toolbar.hide_btn.setEnabled(False)
-
-        self.rebuild_view()
-
-    def remove_hidden_vars(self):
-        """ Remove hidden variables. """
-        for view in self.current_view_wgts:
-            view.remove_hidden_header_variables()
 
     def get_results(self, callback=None, **kwargs):
         """ Get output values for given variables. """

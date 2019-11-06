@@ -235,6 +235,8 @@ class View(QTreeView):
             self.filter_view(filter_str)
 
         if scroll_to:
+            self.deselect_variables()
+            self.select_variables(scroll_to)
             self.scroll_to(scroll_to)
 
         # update visual appearance of the view to be consistent

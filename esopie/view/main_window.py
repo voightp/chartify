@@ -37,7 +37,7 @@ class MainWindow(QMainWindow):
     paletteChanged = Signal(Palette)
     fileProcessingRequested = Signal(list)
     fileRenamed = Signal(str, str, str)
-    variableRenamed = Signal(str, str, str, QObject)
+    variableRenamed = Signal(str, tuple, str, str)
     variablesRemoved = Signal(str, list)
     variablesAggregated = Signal(str, list, str, str, str)
     tabClosed = Signal(str)
@@ -151,14 +151,6 @@ class MainWindow(QMainWindow):
 
         self.remove_variables_act = QAction("Delete", self)
 
-        self.hide_act = QAction("Hide", self)
-        self.hide_act.setShortcut(QKeySequence("Ctrl+H"))
-
-        self.remove_hidden_act = QAction("Remove hidden", self)
-
-        self.show_hidden_act = QAction("Show hidden", self)
-        self.show_hidden_act.setShortcut(QKeySequence("Ctrl+Shift+H"))
-
         self.sum_variables_act = QAction("Sum", self)
         self.sum_variables_act.setShortcut(QKeySequence("Ctrl+S"))
 
@@ -179,16 +171,13 @@ class MainWindow(QMainWindow):
         self.save_as_act = QAction("Save as", self)
 
         # add actions to main window to allow shortcuts
-        self.addActions([self.remove_variables_act, self.hide_act,
-                         self.show_hidden_act, self.sum_variables_act,
+        self.addActions([self.remove_variables_act, self.sum_variables_act,
                          self.avg_variables_act, self.collapse_all_act,
                          self.expand_all_act, self.tree_act])
 
         # disable actions as these will be activated on selection
         self.close_all_act.setEnabled(False)
         self.remove_variables_act.setEnabled(False)
-        self.hide_act.setEnabled(False)
-        self.show_hidden_act.setEnabled(False)
 
         acts = [self.load_file_act, self.close_all_act]
         self.load_file_btn = MenuButton("Load file | files", self,
@@ -386,7 +375,6 @@ class MainWindow(QMainWindow):
         print("SELECTION!\n\t{}".format("\n\t".join(out_str)))
 
         # handle actions availability
-        self.hide_act.setEnabled(True)
         self.remove_variables_act.setEnabled(True)
 
         # check if variables can be aggregated
@@ -399,7 +387,6 @@ class MainWindow(QMainWindow):
     def on_selection_cleared(self):
         """ Handle behaviour when no variables are selected. """
         # handle actions availability
-        self.hide_act.setEnabled(False)
         self.remove_variables_act.setEnabled(False)
 
         # disable export xlsx as there are no variables to be exported
@@ -415,9 +402,7 @@ class MainWindow(QMainWindow):
         wgt.selectionPopulated.connect(self.on_selection_populated)
         wgt.treeNodeChanged.connect(self.on_settings_changed)
         wgt.itemDoubleClicked.connect(self.rename_variable)
-        wgt.context_menu_actions = [self.remove_variables_act,
-                                    self.hide_act,
-                                    self.show_hidden_act]
+        wgt.context_menu_actions = [self.remove_variables_act]
         return wgt
 
     def filter_view(self, filter_string):
@@ -453,7 +438,6 @@ class MainWindow(QMainWindow):
         """ Update view when tabChanged event is fired. """
         if index == -1:
             # there aren't any widgets available
-            self.hide_act.setEnabled(False)
             self.remove_variables_act.setEnabled(False)
             self.toolbar.set_initial_layout()
         else:
@@ -535,10 +519,10 @@ class MainWindow(QMainWindow):
         var_nm = dialog.get_inputs_dct()["variable name"]
         key_nm = dialog.get_inputs_dct()["key name"]
 
-        for v in self.all_views if all_ else [self.current_view]:
+        for v in self.all_views if Settings.ALL_FILES else [self.current_view]:
             v.set_next_update_forced()
 
-        self.variableRenamed.emit(self.current_view.id_, var_nm, key_nm, var)
+        self.variableRenamed.emit(self.current_view.id_, var, var_nm, key_nm)
 
     def aggregate_variables(self, func):
         """ Aggregate variables using given function. """
@@ -569,6 +553,9 @@ class MainWindow(QMainWindow):
 
         var_nm = dialog.get_inputs_dct()["variable name"]
         key_nm = dialog.get_inputs_dct()["key name"]
+
+        for v in self.all_views if Settings.ALL_FILES else [self.current_view]:
+            v.set_next_update_forced()
 
         self.variablesAggregated.emit(self.current_view.id_, variables,
                                       var_nm, key_nm, func)
