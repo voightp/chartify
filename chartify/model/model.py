@@ -1,4 +1,4 @@
-from esopie.settings import Settings
+from chartify.settings import Settings
 
 
 class AppModel:

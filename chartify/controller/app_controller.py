@@ -5,12 +5,12 @@ from queue import Queue
 from PySide2.QtCore import QThreadPool
 from functools import partial
 
-from esopie.settings import Settings
-from esopie.utils.process_utils import (create_pool, kill_child_processes,
-                                        load_file, wait_for_results)
-from esopie.controller.threads import (EsoFileWatcher, GuiMonitor, ResultsFetcher,
-                                       IterWorker, Monitor)
-from esopie.utils.utils import generate_ids, get_str_identifier
+from chartify.settings import Settings
+from chartify.utils.process_utils import (create_pool, kill_child_processes,
+                                          load_file, wait_for_results)
+from chartify.controller.threads import (EsoFileWatcher, GuiMonitor, ResultsFetcher,
+                                         IterWorker, Monitor)
+from chartify.utils.utils import generate_ids, get_str_identifier
 
 
 class AppController:

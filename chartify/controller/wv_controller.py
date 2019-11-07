@@ -1,22 +1,46 @@
 from PySide2.QtCore import QObject, Slot, Signal, QJsonValue
 
 from functools import partial
-from esopie.charts.charts import Chart
-from esopie.charts.chart_settings import get_item
+from chartify.charts.charts import Chart
+from chartify.charts.chart_settings import get_item
+
+from PySide2.QtWebEngineWidgets import QWebEnginePage
+from PySide2 import QtWebChannel
+
+
+class MyPage(QWebEnginePage):
+    def __init__(self):
+        super().__init__()
+
+    def javaScriptConsoleMessage(self, level, msg, line, source):
+        print(f"JS >> {source} {line} {msg}")
 
 
 class WVController(QObject):
+    """
+    A controller to provide communication between
+    web view instance and core application.
+
+    """
     appearanceUpdated = Signal(bool, "QVariantMap", "QVariantMap")
     chartUpdated = Signal(str, "QVariantMap", "QVariantMap", "QVariantList")
     componentAdded = Signal(str, "QVariantMap", "QVariantMap")
 
-    def __init__(self, app, palette):
+    def __init__(self, model, web_view):
         super().__init__()
+        self.m = model
+        self.wv = web_view
+
+        page = MyPage()
+        self.wv.setPage(page)
+
+        self.channel = QtWebChannel.QWebChannel(self)
+        self.channel.registerObject("bridge", self)
+        self.wv.page().setWebChannel(self.channel)
+
         self.components = {}
         self.items = {}
-        self.app = app
         self.counter = 0
-        self.palette = palette
 
     def set_appearance(self, palette):
         if palette != self.palette:

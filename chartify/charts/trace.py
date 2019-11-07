@@ -1,4 +1,4 @@
-from esopie.charts.chart_settings import get_appearance, gen_dom_matrices
+from chartify.charts.chart_settings import get_appearance, gen_dom_matrices
 from collections import defaultdict
 
 

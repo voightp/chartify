@@ -3,7 +3,7 @@ from PySide2.QtWidgets import (QSizePolicy, QLineEdit, QHBoxLayout, QTabWidget,
                                QDialogButtonBox, QWidget, QTextEdit, QLabel,
                                QFrame)
 from PySide2.QtCore import Qt, QFileInfo, Signal
-from esopie.view.view_widget import View
+from chartify.view.view_widget import View
 
 
 def update_appearance(wgt):

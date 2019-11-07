@@ -9,21 +9,21 @@ from PySide2.QtCore import (QSize, Qt, QCoreApplication, Signal, QObject, QUrl)
 from PySide2.QtGui import QIcon, QKeySequence, QColor
 from PySide2.QtWebEngineWidgets import QWebEngineView
 
-from esopie.view.icons import Pixmap, filled_circle_pixmap
-from esopie.view.progress_widget import ProgressContainer
-from esopie.view.misc_widgets import (DropFrame, TabWidget, MulInputDialog,
-                                      ConfirmationDialog)
-from esopie.view.buttons import MenuButton, IconMenuButton
-from esopie.view.toolbar import Toolbar
-from esopie.view.view_tools import ViewTools
-from esopie.view.css_theme import CssTheme, parse_palette, Palette
-from esopie.view.view_functions import create_proxy
-from esopie.settings import Settings
+from chartify.view.icons import Pixmap, filled_circle_pixmap
+from chartify.view.progress_widget import ProgressContainer
+from chartify.view.misc_widgets import (DropFrame, TabWidget, MulInputDialog,
+                                        ConfirmationDialog)
+from chartify.view.buttons import MenuButton, IconMenuButton
+from chartify.view.toolbar import Toolbar
+from chartify.view.view_tools import ViewTools
+from chartify.view.css_theme import CssTheme, parse_palette, Palette
+from chartify.view.view_functions import create_proxy
+from chartify.settings import Settings
 
 from eso_reader.convertor import verify_units
 
 from functools import partial
-from esopie.view.view_widget import View
+from chartify.view.view_widget import View
 
 
 # noinspection PyPep8Naming,PyUnresolvedReferences

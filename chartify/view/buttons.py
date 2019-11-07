@@ -2,7 +2,7 @@ from PySide2.QtWidgets import (QToolButton, QVBoxLayout, QHBoxLayout, QLabel,
                                QSizePolicy, QFrame, QAction, QSlider, QMenu)
 from PySide2.QtCore import Qt, Signal, QSize
 from PySide2.QtGui import QIcon
-from esopie.view.misc_widgets import update_appearance
+from chartify.view.misc_widgets import update_appearance
 
 
 class ClickButton(QToolButton):

@@ -4,7 +4,7 @@ from PySide2.QtCore import (Qt, QSortFilterProxyModel, QItemSelectionModel,
                             Signal)
 
 from PySide2.QtGui import QStandardItemModel, QStandardItem, QDrag, QPixmap
-from esopie.view.view_functions import as_tree_dct, create_proxy
+from chartify.view.view_functions import as_tree_dct, create_proxy
 
 
 class View(QTreeView):

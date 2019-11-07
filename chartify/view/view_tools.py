@@ -2,7 +2,7 @@ from PySide2.QtWidgets import (QWidget, QHBoxLayout, QToolButton, QLabel,
                                QSpacerItem, QSizePolicy, QFrame, )
 from PySide2.QtCore import Signal, QTimer
 
-from esopie.view.misc_widgets import LineEdit
+from chartify.view.misc_widgets import LineEdit
 
 
 class ViewTools(QFrame):

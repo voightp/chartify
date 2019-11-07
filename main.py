@@ -3,11 +3,11 @@ import sys
 from PySide2.QtWidgets import QApplication
 from PySide2.QtGui import QFontDatabase
 
-from esopie.view.main_window import MainWindow
-from esopie.controller.app_controller import AppController
-from esopie.model.model import AppModel
-from esopie.utils.utils import install_fonts
-from esopie.settings import Settings
+from chartify.view.main_window import MainWindow
+from chartify.controller.app_controller import AppController
+from chartify.model.model import AppModel
+from chartify.utils.utils import install_fonts
+from chartify.settings import Settings
 
 if __name__ == "__main__":
     app = QApplication()

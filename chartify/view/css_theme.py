@@ -2,8 +2,7 @@ import re
 import json
 
 from collections import namedtuple
-from esopie.view.icons import Pixmap
-from eso_reader.performance import perf
+from chartify.view.icons import Pixmap
 
 Color = namedtuple("Color", "r, g, b")
 
@@ -157,7 +156,6 @@ class CssTheme:
         self.content = None
         self._temp = []
 
-    @perf
     def populate_content(self):
         """ Process multiple css files. """
         self.content = ""

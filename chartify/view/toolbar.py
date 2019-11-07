@@ -3,9 +3,9 @@ from PySide2.QtWidgets import (QVBoxLayout, QGridLayout, QToolButton,
                                QFrame)
 from PySide2.QtCore import Qt, Signal
 
-from esopie.settings import Settings
-from esopie.view.icons import Pixmap
-from esopie.view.buttons import (TitledButton, ToggleButton, CheckableButton, DualActionButton, ClickButton)
+from chartify.settings import Settings
+from chartify.view.icons import Pixmap
+from chartify.view.buttons import (TitledButton, ToggleButton, CheckableButton, DualActionButton, ClickButton)
 
 from eso_reader.constants import TS, D, H, M, A, RP
 
