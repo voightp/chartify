@@ -48,7 +48,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
         # ~~~~ Main Window setup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.setWindowTitle("pie pie")
+        self.setWindowTitle("chartify")
         self.setFocusPolicy(Qt.StrongFocus)
         self.resize(Settings.SIZE)
         self.move(Settings.POSITION)
