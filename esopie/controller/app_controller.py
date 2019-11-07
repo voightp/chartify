@@ -14,6 +14,22 @@ from esopie.utils.utils import generate_ids, get_str_identifier
 
 
 class AppController:
+    """
+    Controller class to connect application
+    view with application model.
+
+    All background threads and processes are controlled
+    in this class.
+
+    Attributes & Parameters
+    -----------------------
+    v : MainWindow
+        A main application view.
+    m : AppModel
+        An access to application database.
+
+    """
+
     def __init__(self, model, view):
         self.v = view
         self.m = model

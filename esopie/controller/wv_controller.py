@@ -5,7 +5,7 @@ from esopie.charts.charts import Chart
 from esopie.charts.chart_settings import get_item
 
 
-class Bridge(QObject):
+class WVController(QObject):
     appearanceUpdated = Signal(bool, "QVariantMap", "QVariantMap")
     chartUpdated = Signal(str, "QVariantMap", "QVariantMap", "QVariantList")
     componentAdded = Signal(str, "QVariantMap", "QVariantMap")

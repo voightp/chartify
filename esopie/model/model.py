@@ -2,12 +2,21 @@ from esopie.settings import Settings
 
 
 class AppModel:
+    """
+    A class which holds and provides access to the
+    application database.
+
+    The database is being held in memory as it works
+    as a standard python  dictionary at the moment.
+
+    """
+
     def __init__(self):
         # ~~~~ Database ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.database = {}
 
     def fetch_file(self, id_):
-        """ Fetch file from database. """
+        """ Fetch a single file from the database. """
         id_ = f"t{id_}" if Settings.TOTALS else f"s{id_}"
         try:
             return self.database[id_]
@@ -15,7 +24,7 @@ class AppModel:
             raise KeyError(f"Cannot find file {id_} in database!")
 
     def fetch_files(self, *args):
-        """ Fetch results files from the database. """
+        """ Fetch multiple files from the database. """
         files = []
         for id_ in args:
             f = self.fetch_file(id_)
@@ -24,7 +33,7 @@ class AppModel:
         return files
 
     def fetch_all_files(self):
-        """ Fetch eso files from the database. """
+        """ Fetch all files from the database. """
         files = []
         for id_ in self.get_all_set_ids():
             f = self.fetch_file(id_)
@@ -33,13 +42,13 @@ class AppModel:
         return files
 
     def fetch_file_header_variables(self, id_, interval):
-        """ Fetch file header variables for a given interval. """
+        """ Fetch a file header variables for a given interval. """
         file = self.fetch_file(id_)
         if file:
             return list(file.header_dct[interval].values())
 
     def get_all_file_ids(self):
-        """ Return all file ids for given state. """
+        """ Return all file ids for a current state. """
         ids = []
         for id_ in self.database.keys():
             if id_.startswith("t" if Settings.TOTALS else "s"):
@@ -51,7 +60,7 @@ class AppModel:
         return [id_[1:] for id_ in self.get_all_file_ids()]
 
     def get_all_file_names(self):
-        """ Get all file names. """
+        """ Get all used file names. """
         return [f.file_name for f in self.database.values()]
 
     def delete_file(self, id_):
@@ -79,12 +88,12 @@ class AppModel:
                   f"\nFile was not found in database.")
 
     def rename_set(self, id_, name, totals_name):
-        """ Delete specified sets from the database. """
+        """ Rename a file set in the database. """
         self.rename_file(self.fetch_file(f"s{id_}"), name)
         self.rename_file(self.fetch_file(f"s{id_}"), totals_name)
 
     def add_file(self, id_, file):
-        """ Add processed eso file to the database. """
+        """ Add processed results file to the database. """
         try:
             self.database[id_] = file
         except BrokenPipeError:

@@ -4,7 +4,7 @@ from PySide2.QtWidgets import QApplication
 from PySide2.QtGui import QFontDatabase
 
 from esopie.view.main_window import MainWindow
-from esopie.controller.controller import AppController
+from esopie.controller.app_controller import AppController
 from esopie.model.model import AppModel
 from esopie.utils.utils import install_fonts
 from esopie.settings import Settings

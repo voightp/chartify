@@ -1,7 +1,7 @@
 from PySide2.QtWebEngineWidgets import QWebEnginePage
 from PySide2 import QtWebChannel
 
-from esopie.controller.bridge import Bridge
+from esopie.controller.wv_controller import WVController
 
 
 class MyPage(QWebEnginePage):
@@ -18,7 +18,7 @@ class WebviewController:
         page = MyPage()
         self.wv.setPage(page)
 
-        self.bridge = Bridge(parent, palette)
+        self.bridge = WVController(parent, palette)
         self.channel = QtWebChannel.QWebChannel(self)
         self.channel.registerObject("bridge", self.bridge)
 
