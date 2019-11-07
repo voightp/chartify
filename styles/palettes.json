@@ -16,8 +16,8 @@
         "SECONDARY_TEXT_COLOR": "rgb(238,238,238)",
         "BACKGROUND_COLOR": "rgb(194,194,194)",
         "SURFACE_COLOR": "rgb(245,245,245)",
-        "ERROR_COLOR": "rgb(183,28,28)",
-        "OK_COLOR": "rgb(100,221,23)"
+        "ERROR_COLOR": "rgb(229,115,115)",
+        "OK_COLOR": "rgb(165,214,167)"
     },
     "dark": {
         "PRIMARY_COLOR": "rgb(180,180,180)",
@@ -27,6 +27,6 @@
         "BACKGROUND_COLOR": "rgb(45,45,45)",
         "SURFACE_COLOR": "rgb(65,65,65)",
         "ERROR_COLOR": "rgb(183,28,28)",
-        "OK_COLOR": "rgb(100,221,23)"
+        "OK_COLOR": "rgb(97,97,97)"
     }
 }

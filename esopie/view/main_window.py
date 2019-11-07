@@ -29,9 +29,9 @@ from esopie.view.view_widget import View
 # noinspection PyPep8Naming,PyUnresolvedReferences
 class MainWindow(QMainWindow):
     """ Main application instance. """
-    QCoreApplication.setOrganizationName("piecompany")
-    QCoreApplication.setOrganizationDomain("piecomp.foo")
-    QCoreApplication.setApplicationName("piepie")
+    QCoreApplication.setOrganizationName("chartify")
+    QCoreApplication.setOrganizationDomain("chartify.foo")
+    QCoreApplication.setApplicationName("chartify")
 
     viewUpdateRequested = Signal(str)
     paletteChanged = Signal(Palette)
