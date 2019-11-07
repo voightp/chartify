@@ -34,6 +34,8 @@ class AppController:
         self.v = view
         self.m = model
 
+        self.v.load_css(self.m.palette)
+
         # ~~~~ Queues ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.file_queue = Queue()
         self.manager = Manager()
@@ -73,8 +75,8 @@ class AppController:
         self.v.close()
 
     def connect_view_signals(self):
+        self.v.paletteUpdateRequested.connect(lambda x: x)
         self.v.viewUpdateRequested.connect(self.handle_view_update)
-        self.v.paletteChanged.connect(lambda x: x)
         self.v.fileProcessingRequested.connect(self.handle_file_processing)
         self.v.fileRenamed.connect(self.handle_file_rename)
         self.v.variableRenamed.connect(self.handle_rename_variable)

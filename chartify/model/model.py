@@ -1,4 +1,5 @@
 from chartify.settings import Settings
+from chartify.view.css_theme import parse_palette
 
 
 class AppModel:
@@ -14,6 +15,10 @@ class AppModel:
     def __init__(self):
         # ~~~~ Database ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.database = {}
+
+        # ~~~~ Palette ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.palette = parse_palette(Settings.PALETTE_PATH,
+                                     Settings.PALETTE_NAME)
 
     def fetch_file(self, id_):
         """ Fetch a single file from the database. """

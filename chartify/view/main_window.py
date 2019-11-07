@@ -16,7 +16,7 @@ from chartify.view.misc_widgets import (DropFrame, TabWidget, MulInputDialog,
 from chartify.view.buttons import MenuButton, IconMenuButton
 from chartify.view.toolbar import Toolbar
 from chartify.view.view_tools import ViewTools
-from chartify.view.css_theme import CssTheme, parse_palette, Palette
+from chartify.view.css_theme import CssTheme, parse_palette
 from chartify.view.view_functions import create_proxy
 from chartify.settings import Settings
 
@@ -34,7 +34,7 @@ class MainWindow(QMainWindow):
     QCoreApplication.setApplicationName("chartify")
 
     viewUpdateRequested = Signal(str)
-    paletteChanged = Signal(Palette)
+    paletteUpdateRequested = Signal(str)
     fileProcessingRequested = Signal(list)
     fileRenamed = Signal(str, str, str)
     variableRenamed = Signal(str, tuple, str, str)
@@ -112,13 +112,13 @@ class MainWindow(QMainWindow):
         self.status_bar.addWidget(self.progress_cont)
 
         self.def_scheme = QAction("default", self)
-        self.def_scheme.triggered.connect(partial(self.set_palette, "default"))
+        self.def_scheme.triggered.connect(partial(self.on_scheme_changed, "default"))
 
         self.mono_scheme = QAction("monochrome", self)
-        self.mono_scheme.triggered.connect(partial(self.set_palette, "monochrome"))
+        self.mono_scheme.triggered.connect(partial(self.on_scheme_changed, "monochrome"))
 
         self.dark_scheme = QAction("dark", self)
-        self.dark_scheme.triggered.connect(partial(self.set_palette, "dark"))
+        self.dark_scheme.triggered.connect(partial(self.on_scheme_changed, "dark"))
 
         actions = {"default": self.def_scheme,
                    "monochrome": self.mono_scheme,
@@ -199,7 +199,6 @@ class MainWindow(QMainWindow):
 
         # ~~~~ Set up main widgets and layouts ~~~~~~~~~~~~~~~~~~~~~~~~~
         self.set_up_base_ui()
-        self.load_css()
 
         # ~~~~ Set up web view ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.web_view.load(QUrl(Settings.URL))
@@ -257,10 +256,10 @@ class MainWindow(QMainWindow):
             act.setIcon(filled_circle_pixmap(size, c1, col2=c2,
                                              border_col=border_col))
 
-    def load_icons(self):
+    def load_icons(self, palette):
         root = Settings.ICONS_PATH
-        c1 = self.palette.get_color("PRIMARY_TEXT_COLOR", as_tuple=True)
-        c2 = self.palette.get_color("SECONDARY_TEXT_COLOR", as_tuple=True)
+        c1 = palette.get_color("PRIMARY_TEXT_COLOR", as_tuple=True)
+        c2 = palette.get_color("SECONDARY_TEXT_COLOR", as_tuple=True)
 
         myappid = 'foo'  # arbitrary string
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(
@@ -315,23 +314,20 @@ class MainWindow(QMainWindow):
         """ Mirror the layout. """
         self.central_splitter.insertWidget(0, self.central_splitter.widget(1))
 
-    def set_palette(self, name):
+    def on_scheme_changed(self, name):
         """ Update the application palette. """
-        if name != self.palette.name:
-            Settings.PALETTE_NAME = name
-            self.palette = parse_palette(Settings.PALETTE_PATH, name)
-            self.load_css()
-            self.paletteChanged.emit(self.palette)
+        if name != Settings.PALETTE_NAME:
+            self.paletteUpdateRequested.emit(name)
 
-    def load_css(self):
+    def load_css(self, palette):
         """ Turn the CSS on and off. """
-        self.css.set_palette(self.palette)
+        self.css.set_palette(palette)
 
         # update the application appearance
         # css needs to be cleared to repaint the window
         self.setStyleSheet("")
         self.setStyleSheet(self.css.content)
-        self.load_icons()
+        self.load_icons(palette)
 
     def add_new_tab(self, id_, name):
         """ Add file on the UI. """
