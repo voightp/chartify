@@ -53,11 +53,6 @@ class MainWindow(QMainWindow):
         self.resize(Settings.SIZE)
         self.move(Settings.POSITION)
 
-        # ~~~~ Main Window colors ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.css = CssTheme(Settings.CSS_PATH)
-        self.palette = parse_palette(Settings.PALETTE_PATH,
-                                     Settings.PALETTE_NAME)
-
         # ~~~~ Main Window widgets ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.central_wgt = QWidget(self)
         self.central_layout = QHBoxLayout(self.central_wgt)
@@ -239,7 +234,7 @@ class MainWindow(QMainWindow):
             if self.hasFocus():
                 self.remove_variables()
 
-    def load_scheme_btn_icons(self):
+    def load_scheme_btn_icons(self, palettes):
         """ Create scheme button icons. """
         names = ["default", "dark", "monochrome"]
         acts = [self.def_scheme, self.dark_scheme, self.mono_scheme]
@@ -250,36 +245,53 @@ class MainWindow(QMainWindow):
         border_col = QColor(255, 255, 255)
 
         for name, act in zip(names, acts):
-            p = parse_palette(Settings.PALETTE_PATH, name)
-            c1 = QColor(*p.get_color(k1, as_tuple=True))
-            c2 = QColor(*p.get_color(k2, as_tuple=True))
+            c1 = QColor(*palettes[name].get_color(k1, as_tuple=True))
+            c2 = QColor(*palettes[name].get_color(k2, as_tuple=True))
             act.setIcon(filled_circle_pixmap(size, c1, col2=c2,
                                              border_col=border_col))
 
-    def load_icons(self, palette):
-        root = Settings.ICONS_PATH
-        c1 = palette.get_color("PRIMARY_TEXT_COLOR", as_tuple=True)
-        c2 = palette.get_color("SECONDARY_TEXT_COLOR", as_tuple=True)
+    def load_icons(self, c1, c2):
+        """ Load application icons. """
+        # this sets toolbar icon on win 7
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("foo")
 
-        myappid = 'foo'  # arbitrary string
-        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(
-            myappid)  # this sets toolbar icon on win 7
+        r = Settings.ICONS_PATH
+        self.setWindowIcon(Pixmap(r + "smile.png", 255, 255, 255))
 
-        self.setWindowIcon(Pixmap(root + "smile.png", 255, 255, 255))
+        self.load_file_btn.setIcon(QIcon(Pixmap(r + "file.png", *c1)))
+        self.save_btn.setIcon(QIcon(Pixmap(r + "save.png", *c1)))
+        self.about_btn.setIcon(QIcon(Pixmap(r + "help.png", *c1)))
+        self.close_all_act.setIcon(QIcon(Pixmap(r + "remove.png", *c1)))
+        self.load_file_act.setIcon(QIcon(Pixmap(r + "add_file.png", *c1)))
 
-        self.load_file_btn.setIcon(QIcon(Pixmap(root + "file.png", *c1)))
-        self.save_btn.setIcon(QIcon(Pixmap(root + "save.png", *c1)))
-        self.about_btn.setIcon(QIcon(Pixmap(root + "help.png", *c1)))
-        self.close_all_act.setIcon(QIcon(Pixmap(root + "remove.png", *c1)))
-        self.load_file_act.setIcon(QIcon(Pixmap(root + "add_file.png", *c1)))
-
-        self.tab_wgt.drop_btn.setIcon(Pixmap(root + "drop_file.png", *c1))
+        self.tab_wgt.drop_btn.setIcon(Pixmap(r + "drop_file.png", *c1))
         self.tab_wgt.drop_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
         self.tab_wgt.drop_btn.setIconSize(QSize(50, 50))
 
-        # TODO once colors have been decided, this can be moved to scheme btn init
-        self.load_scheme_btn_icons()
-        self.toolbar.load_icons(root, c1, c2)
+        self.toolbar.totals_btn.set_icons(Pixmap(r + "building.png", *c1),
+                                          Pixmap(r + "building.png", *c1, a=0.5),
+                                          Pixmap(r + "building.png", *c2),
+                                          Pixmap(r + "building.png", *c2, a=0.5))
+
+        self.toolbar.all_files_btn.set_icons(Pixmap(r + "all_files.png", *c1),
+                                             Pixmap(r + "all_files.png", *c1, a=0.5),
+                                             Pixmap(r + "all_files.png", *c2),
+                                             Pixmap(r + "all_files.png", *c2, a=0.5))
+
+        self.toolbar.sum_btn.set_icons(Pixmap(r + "sigma.png", *c1),
+                                       Pixmap(r + "sigma.png", *c1, a=0.5))
+        self.toolbar.mean_btn.set_icons(Pixmap(r + "mean.png", *c1),
+                                        Pixmap(r + "mean.png", *c1, a=0.5))
+
+        self.toolbar.remove_btn.set_icons(Pixmap(r + "remove.png", *c1),
+                                          Pixmap(r + "remove.png", *c1, a=0.5))
+
+    def set_stylesheet(self, stylesheet):
+        """ Turn the CSS on and off. """
+        # update the application appearance, css needs
+        # to be cleared to repaint the window properly
+        self.setStyleSheet("")
+        self.setStyleSheet(stylesheet)
 
     def set_up_base_ui(self):
         """ Set up appearance of main widgets. """
@@ -317,17 +329,8 @@ class MainWindow(QMainWindow):
     def on_scheme_changed(self, name):
         """ Update the application palette. """
         if name != Settings.PALETTE_NAME:
+            Settings.PALETTE_NAME = name
             self.paletteUpdateRequested.emit(name)
-
-    def load_css(self, palette):
-        """ Turn the CSS on and off. """
-        self.css.set_palette(palette)
-
-        # update the application appearance
-        # css needs to be cleared to repaint the window
-        self.setStyleSheet("")
-        self.setStyleSheet(self.css.content)
-        self.load_icons(palette)
 
     def add_new_tab(self, id_, name):
         """ Add file on the UI. """

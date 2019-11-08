@@ -16,9 +16,15 @@ class AppModel:
         # ~~~~ Database ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.database = {}
 
-        # ~~~~ Palette ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.palette = parse_palette(Settings.PALETTE_PATH,
-                                     Settings.PALETTE_NAME)
+        # ~~~~ Palettes ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.palettes = parse_palette(Settings.PALETTE_PATH)
+
+    def fetch_palette(self, name):
+        """ Get 'Palette' object with a specified name. """
+        try:
+            return self.palettes[name]
+        except KeyError:
+            raise KeyError(f"Cannot find palette '{name}'.")
 
     def fetch_file(self, id_):
         """ Fetch a single file from the database. """

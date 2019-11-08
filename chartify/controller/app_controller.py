@@ -11,6 +11,7 @@ from chartify.utils.process_utils import (create_pool, kill_child_processes,
 from chartify.controller.threads import (EsoFileWatcher, GuiMonitor, ResultsFetcher,
                                          IterWorker, Monitor)
 from chartify.utils.utils import generate_ids, get_str_identifier
+from chartify.view.css_theme import CssTheme, parse_palette
 
 
 class AppController:
@@ -34,7 +35,8 @@ class AppController:
         self.v = view
         self.m = model
 
-        self.v.load_css(self.m.palette)
+        # ~~~~ Application layout ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.update_appearance()
 
         # ~~~~ Queues ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.file_queue = Queue()
@@ -74,8 +76,24 @@ class AppController:
         self.v._CLOSE_FLAG = True
         self.v.close()
 
+    def update_appearance(self):
+        """ Update application appearance. """
+        palette = self.m.palettes[Settings.PALETTE_NAME]
+
+        css = CssTheme(Settings.CSS_PATH)
+        css.populate_content(palette)
+
+        self.v.set_stylesheet(css.content)
+
+        c1 = palette.get_color("PRIMARY_TEXT_COLOR", as_tuple=True)
+        c2 = palette.get_color("SECONDARY_TEXT_COLOR", as_tuple=True)
+
+        self.v.load_scheme_btn_icons(self.m.palettes)
+        self.v.load_icons(c1, c2)
+
     def connect_view_signals(self):
-        self.v.paletteUpdateRequested.connect(lambda x: x)
+        """ Connect view signals. """
+        self.v.paletteUpdateRequested.connect(self.update_appearance)
         self.v.viewUpdateRequested.connect(self.handle_view_update)
         self.v.fileProcessingRequested.connect(self.handle_file_processing)
         self.v.fileRenamed.connect(self.handle_file_rename)
@@ -90,7 +108,7 @@ class AppController:
         self.v.save_as_act.triggered.connect(lambda x: print("SAVE AS ACT!"))
 
     def connect_model_signals(self):
-        """ Create monitor actions. """
+        """ Create monitor signals. """
         self.monitor.initialized.connect(self.v.progress_cont.add_file)
         self.monitor.started.connect(self.v.progress_cont.update_progress_text)
         self.monitor.bar_updated.connect(self.v.progress_cont.update_file_progress)
