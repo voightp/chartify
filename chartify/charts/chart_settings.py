@@ -1,13 +1,105 @@
 from collections import defaultdict
+from chartify.view.icons import combine_colors
 import copy
 import math
 
-SIMPLE = ("scatter", "bar", "line")
-STATISTICAL_CHARTS = ("box", "histogram")
-ONE_DIM_CHARTS = ("pie")
+
+def combine_traces(traces):
+    """ Group multiple traces into a single one. """
+    values, labels, colors, trace_ids, priorities = [], [], [], [], []
+    for trace in traces:
+        values.append(abs(trace.total_value))
+        labels.append(trace.name)
+        colors.append(trace.color)
+        trace_ids.append(trace.trace_id)
+        priorities.append(trace.priority)
+
+    return values, labels, colors, trace_ids, priorities
 
 
-def appearance(type_, color, priority="normal"):
+def group_by_units(traces):
+    """ Group units as dict with units as keys. """
+    groups = defaultdict(list)
+    for trace in traces:
+        groups[trace.units].append(trace)
+    return groups
+
+
+def get_all_units(traces):
+    """ Get a list of all used units. """
+    full = [tr.units for tr in traces]
+    setlist = []
+    for e in full:
+        if e not in setlist:
+            setlist.append(e)
+    return setlist
+
+
+def get_axis_inputs(type_, values, timestamps, xaxis, yaxis):
+    props = {
+        "scatter": {
+            "x": timestamps,
+            "y": values,
+            "xaxis": xaxis,
+            "yaxis": yaxis,
+        },
+        "bubble": {
+            "x": timestamps,
+            "y": values,
+            "xaxis": xaxis,
+            "yaxis": yaxis,
+        },
+        "histogram": {
+            "type": "hist",
+            "y": values,
+            "xaxis": xaxis,
+            "yaxis": yaxis,
+        },
+        "box": {
+            "type": "box",
+            "y": values,
+            "xaxis": xaxis,
+            "yaxis": yaxis,
+        },
+    }
+
+    if type_ in ["scatter", "bar", "line"]:
+        type_ = "scatter"
+
+    return props[type_]
+
+
+def get_shared_attributes(item_id, trace_id, name, color):
+    return {
+        "itemId": item_id,
+        "traceId": trace_id,
+        "name": name,
+        "color": color,
+        "hoverlabel": {
+            "namelength": -1,
+        },
+    }
+
+
+def get_pie_appearance(priorities, colors, background_color):
+    weights = {
+        "low": 0.3,
+        "normal": 0.7,
+        "high": 1
+    }
+
+    new_colors = []
+    for p, c in zip(priorities, colors):
+        new_colors.append(combine_colors(c, background_color, weights[p]))
+
+    return {
+        "marker": {
+            "colors": new_colors,
+        },
+    }
+
+
+def get_appearance(type_, color, priority="normal"):
     weights = {
         "low": {
             "markerSize": 5,
@@ -32,6 +124,9 @@ def appearance(type_, color, priority="normal"):
 
     props = {
         "scatter": {
+            "type": "scattergl",
+            "mode": "markers",
+            "hoverinfo": "all",
             "marker": {
                 "size": weights[priority]["markerSize"],
                 "color": color,
@@ -39,6 +134,9 @@ def appearance(type_, color, priority="normal"):
             }
         },
         "line": {
+            "type": "scattergl",
+            "mode": "lines+markers",
+            "hoverinfo": "all",
             "marker": {
                 "size": weights[priority]["markerSize"],
                 "color": color,
@@ -51,18 +149,19 @@ def appearance(type_, color, priority="normal"):
 
         },
         "bar": {
-
+            "type": "bar",
+            "hoverinfo": "all",
         },
         "bubble": {
 
         },
-        "pie": {
-
-        },
         "histogram": {
-
+            "type": "hist",
+            "hoverinfo": "name+y",
         },
         "box": {
+            "type": "box",
+            "hoverinfo": "name+y",
             "jitter": 0.5,
             "boxpoints": "false",  # all | outliers |suspectedoutliers | false
             "whiskerwidth": 0.2,
@@ -277,11 +376,8 @@ def add_shared_yaxis_data(yaxis_dct, increment):
         yaxis_dct[k]["side"] = "left" if j == 0 else "right"
 
 
-def get_yaxis_settings(n=1, increment=0.1, titles=None,
-                       y_domains=None, palette=None):
+def get_yaxis_settings(n, c1, c2, increment=0.1, titles=None, y_domains=None):
     dct = defaultdict(dict)
-    c1 = palette.get_color("PRIMARY_COLOR")
-    c2 = palette.get_color("PRIMARY_COLOR", 0.3)
 
     shared = {
         "color": c1,
@@ -326,14 +422,11 @@ def get_shared_xdomain(n_yaxis, increment):
     return domain
 
 
-def get_xaxis_settings(n_yaxis=1, increment=0.1, x_domains=None,
-                       chart_type="scatter", palette=None):
+def get_xaxis_settings(n_yaxis, c1, c2, increment=0.1,
+                       x_domains=None, chart_type="scatter"):
     dct = defaultdict(dict)
     types = ["scatter", "bar", "bubble", "line"]
     axis_type = "date" if chart_type in types else "-"
-
-    c1 = palette.get_color("PRIMARY_COLOR")
-    c2 = palette.get_color("PRIMARY_COLOR", 0.3)
 
     shared = {
         "color": c1,

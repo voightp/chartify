@@ -70,12 +70,8 @@ def text_to_pixmap(text, font, color, size=None):
     return pix
 
 
-def filled_circle_pixmap(size, col1, col2=None,
-                         border_col=None, border_w=1, fr=0.7):
-    """
-    Draw a pixmap with single or two colors filled circle.
-
-    """
+def filled_circle_pixmap(size, c1, c2=None, border_col=None, border_w=1, fr=0.7):
+    """ Draw a pixmap with single or two colors filled circle. """
     pix = QPixmap(size)
     pix.fill(Qt.transparent)
 
@@ -88,15 +84,15 @@ def filled_circle_pixmap(size, col1, col2=None,
     rect_y = h * fr
 
     rect = QRectF(x, y, rect_w, rect_y)
-    p.setBrush(col1)
+    p.setBrush(c1)
     p.setPen(QPen(Qt.transparent, 0))
 
-    if not col2:
+    if not c2:
         # draw full circle
         p.drawChord(rect, 0, 360 * 16)
     else:
         p.drawChord(rect, -90 * 16, -180 * 16)
-        p.setBrush(col2)
+        p.setBrush(c2)
         p.drawChord(rect, -90 * 16, 180 * 16)
 
     if border_col:
@@ -108,3 +104,15 @@ def filled_circle_pixmap(size, col1, col2=None,
     p.end()
 
     return pix
+
+
+def combine_colors(c1, c2, fr):
+    """ Combine given colors. """
+    # colors need to be passed as rgb tuple
+    # fr define fraction of the first color
+    rgb = []
+    for i in range(3):
+        c = c1[i] * fr + c2[i] * (1 - fr)
+        rgb.append(int(c))
+
+    return tuple(rgb)

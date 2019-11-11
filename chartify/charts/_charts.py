@@ -1,7 +1,7 @@
 import pandas as pd
 
 from eso_reader.building_eso_file import averaged_units
-from chartify.charts.trace import Trace, PieTrace
+from chartify.charts.trace import Trace, plot_pie_chart
 from chartify.utils.utils import (get_str_identifier, update_recursively,
                                   merge_dcts, remove_recursively)
 from chartify.charts.chart_settings import (get_xaxis_settings, get_yaxis_settings,
@@ -47,9 +47,7 @@ class Chart:
     hold chart related data.
 
     """
-    LEGEND_MAX_HEIGHT = 100
-    LEGEND_TRACE_HEIGHT = 19
-    LEGEND_GAP = 10
+
 
     def __init__(self, chart_id, item_id, palette, type_="scatter"):
         self.chart_id = chart_id
@@ -218,16 +216,6 @@ class Chart:
 
         return self.plot_chart()
 
-    def get_top_margin(self):
-        """ Calculate chart top margin. """
-        n_traces = self.get_n_traces()
-        if self.show_custom_legend:
-            m = n_traces * self.LEGEND_TRACE_HEIGHT
-            m = m if m <= self.LEGEND_MAX_HEIGHT else self.LEGEND_MAX_HEIGHT
-        else:
-            m = layout_dct["margin"]["t"]
-        return m + self.LEGEND_GAP
-
     @update_attr("layout")
     def clean_up_layout(self):
         """ clean up previous xaxis and yaxis assignment. """
@@ -236,43 +224,6 @@ class Chart:
             if "yaxis" in k or "xaxis" in k:
                 remove_dct[k] = None
         return remove_dct
-
-    @update_attr("layout")
-    def update_layout(self):
-        """ Generate chart layout properties. """
-        units = self.get_all_units()
-        n = len(units)
-        x_doms, y_doms = None, None
-        update_dct = {"margin": {"t": self.get_top_margin()}}
-
-        if self.type_ != "pie":
-            # pie chart does not require x, y axes
-            if not self.shared_axes:
-                x_doms, y_doms = gen_dom_matrices(units, max_columns=3, gap=0.05,
-                                                  flat=True, is_square=True)
-
-            yaxis = get_yaxis_settings(n, increment=0.08, titles=units,
-                                       y_domains=y_doms, palette=self.palette)
-
-            xaxis = get_xaxis_settings(n_yaxis=n, increment=0.08, x_domains=x_doms,
-                                       chart_type=self.type_, palette=self.palette)
-
-            update_dct = {**update_dct, **yaxis, **xaxis}
-
-        return update_dct
-
-    def plot_traces(self, traces=None):
-        """ Transform 'raw' trace objects into 'plotly' dicts. """
-        if self.type_ == "pie":
-            # pie chart returns dict {id_1: data_1, id_2: data_2}
-            traces_dct = PieTrace(traces)
-
-        else:
-            traces_dct = {}
-            for trace in traces:
-                traces_dct[trace.trace_id] = trace.plot_trace()
-
-        return traces_dct
 
     def handle_trace_selected(self, trace_id):
         """ Reverse 'selected' attribute for the given trace. """

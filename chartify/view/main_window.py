@@ -247,7 +247,7 @@ class MainWindow(QMainWindow):
         for name, act in zip(names, acts):
             c1 = QColor(*palettes[name].get_color(k1, as_tuple=True))
             c2 = QColor(*palettes[name].get_color(k2, as_tuple=True))
-            act.setIcon(filled_circle_pixmap(size, c1, col2=c2,
+            act.setIcon(filled_circle_pixmap(size, c1, c2=c2,
                                              border_col=border_col))
 
     def load_icons(self, c1, c2):
