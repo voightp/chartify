@@ -1,7 +1,7 @@
 from PySide2.QtCore import QObject, Slot, Signal, QJsonValue
 
 from functools import partial
-from chartify.charts.charts import Chart
+from chartify.charts._charts import Chart
 from chartify.charts.chart_settings import get_item
 
 from PySide2.QtWebEngineWidgets import QWebEnginePage

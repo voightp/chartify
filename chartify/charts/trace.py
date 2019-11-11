@@ -1,4 +1,4 @@
-from chartify.charts.chart_settings import get_appearance, gen_dom_matrices
+from chartify.charts.chart_settings import appearance, gen_dom_matrices
 from collections import defaultdict
 
 
@@ -44,7 +44,36 @@ def PieTrace(raw_traces):
     return pies
 
 
-class GenericTrace:
+def shared(trace):
+    return {
+        "itemId": trace.item_id,
+        "traceId": trace.trace_id,
+        "name": trace.name,
+        "color": trace.color,
+        "hoverlabel": {
+            "namelength": -1,
+        },
+    }
+
+
+def scatter(traces):
+    data = []
+    for trace in traces:
+        attr1 = shared(trace)
+        attr2 = appearance(trace.type_, trace.color, trace.priority)
+        attr3 = {
+            "type": "scattergl",
+            "mode": "markers",
+            "hoverinfo": "all",
+            "x": trace.js_timestamps,
+            "y": trace.values,
+            "xaxis": trace.xaxis,
+            "yaxis": trace.yaxis,
+        }
+        data.append({**attr1, **attr2, **attr3})
+
+
+class Trace:
     def __init__(self, item_id, trace_id, info_tup, values, total_value,
                  timestamps, color, type_="scatter", xaxis="x", yaxis="y",
                  selected=False, priority="normal"):
@@ -75,15 +104,6 @@ class GenericTrace:
         return f"{self.interval} | {self.file_name}<br>" \
             f"{self.key} | {self.variable} | {self.units}"
 
-    @property
-    def appearance(self):
-        return get_appearance(self.type_, self.color, self.priority)
-
-    def set_priority(self, priority):
-        if self.priority != priority:
-            self.priority = priority
-            return self.appearance
-
     def plot_trace(self):
         types = {
             "scatter": self.as_scatter,
@@ -94,19 +114,6 @@ class GenericTrace:
             "box": self.as_box
         }
         return {**types[self.type_](), **self.shared()}
-
-    def shared(self):
-        ap = get_appearance(self.type_, self.color, self.priority)
-        return {
-            "itemId": self.item_id,
-            "traceId": self.trace_id,
-            "name": self.name,
-            "color": self.color,
-            "hoverlabel": {
-                "namelength": -1,
-            },
-            **ap
-        }
 
     def as_scatter(self):
         return {

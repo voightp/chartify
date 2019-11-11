@@ -7,7 +7,7 @@ STATISTICAL_CHARTS = ("box", "histogram")
 ONE_DIM_CHARTS = ("pie")
 
 
-def get_appearance(type_, color, priority="normal"):
+def appearance(type_, color, priority="normal"):
     weights = {
         "low": {
             "markerSize": 5,

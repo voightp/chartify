@@ -1,7 +1,7 @@
 import pandas as pd
 
 from eso_reader.building_eso_file import averaged_units
-from chartify.charts.trace import GenericTrace, PieTrace
+from chartify.charts.trace import Trace, PieTrace
 from chartify.utils.utils import (get_str_identifier, update_recursively,
                                   merge_dcts, remove_recursively)
 from chartify.charts.chart_settings import (get_xaxis_settings, get_yaxis_settings,
@@ -94,15 +94,6 @@ class Chart:
                 }
         return update_dct
 
-    def get_all_units(self):
-        """ Get a list of all used units. """
-        full = [points.units for points in self.traces]
-        setlist = []
-        for e in full:
-            if e not in setlist:
-                setlist.append(e)
-        return setlist
-
     def get_trace(self, trace_id):
         """ Return traces  for given id. """
         if "#" in trace_id:
@@ -128,10 +119,6 @@ class Chart:
     def get_selected_ids(self):
         """ Get all currently selected trace ids. """
         return [tr.trace_id for tr in self.traces if tr.selected]
-
-    def any_trace_selected(self):
-        """ Check if there's at least one trace selected. """
-        return any(map(lambda x: x.selected, self.traces))
 
     def gen_id(self):
         """ Generate unique trace id. """
@@ -194,7 +181,7 @@ class Chart:
                     total_value, timestamps, color)
             kwargs = {"priority": priority, "type_": self.type_}
 
-            trace = GenericTrace(*args, **kwargs)
+            trace = Trace(*args, **kwargs)
 
             new_traces.append(trace)
             self.traces.append(trace)
@@ -274,29 +261,6 @@ class Chart:
 
         return update_dct
 
-    def set_trace_axes(self, traces):
-        """ Assign trace 'x' and 'y' axes (based on units). """
-        update_dct = {}
-
-        units = self.get_all_units()
-        units_x_dct = get_units_axis_dct(units, axis="x")
-        units_y_dct = get_units_axis_dct(units, axis="y")
-
-        for trace in traces:
-            yaxis = units_y_dct[trace.units]
-
-            if self.shared_axes:
-                xaxis = "x"
-            else:
-                xaxis = units_x_dct[trace.units]
-
-            trace.xaxis = xaxis
-            trace.yaxis = yaxis
-
-            update_dct[trace.trace_id] = {"yaxis": yaxis, "xaxis": xaxis}
-
-        return update_dct
-
     def plot_traces(self, traces=None):
         """ Transform 'raw' trace objects into 'plotly' dicts. """
         if self.type_ == "pie":
@@ -309,25 +273,6 @@ class Chart:
                 traces_dct[trace.trace_id] = trace.plot_trace()
 
         return traces_dct
-
-    def set_trace_emphasis(self, normal=True):
-        """ Set emphasised trace appearance. """
-        update_dct = {}
-
-        for trace in self.traces:
-
-            if normal:
-                pr = "normal"
-            elif trace.selected:
-                pr = "high"
-            else:
-                pr = "low"
-            out = trace.set_priority(pr)
-
-            if out:
-                update_dct[trace.trace_id] = out
-
-        return update_dct
 
     def handle_trace_selected(self, trace_id):
         """ Reverse 'selected' attribute for the given trace. """
