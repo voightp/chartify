@@ -187,6 +187,8 @@ config = {
 x_axis_dct = {
     "xaxis": {
         "domain": [0, 1],
+        "autorange": True,
+        "type": "linear",
         "rangeselector": {
             "y": 1.05,
             "yanchor": "top",
@@ -221,7 +223,7 @@ x_axis_dct = {
     },
 }
 
-layout_dct = {
+base_layout = {
     "autosize": True,
     "hovermode": "closest",
     "modebar": {
@@ -232,18 +234,6 @@ layout_dct = {
     "paper_bgcolor": "transparent",
     "plot_bgcolor": "transparent",
     "showlegend": False,
-    "xaxis": {
-        "autorange": True,
-        "range": [],
-        "type": "linear",
-    },
-    "yaxis": {
-        "autorange": True,
-        "range": [],
-        "rangemode": "tozero",
-        "type": "linear",
-        "side": "left",
-    },
     "margin": {
         "l": 50,
         "t": 50,
@@ -274,7 +264,7 @@ def color_generator(i=0):
         i += 1
 
 
-def get_item(frame_id, type_):
+def generate_grid_item(frame_id, type_):
     shared = {
         "i": frame_id,
         "x": 0,
@@ -326,7 +316,7 @@ def dom_gen(n, gap):
         start = end + gap
 
 
-def gen_dom_matrices(items, gap=0.05, max_columns=3, flat=True, is_square=True):
+def gen_domain_matrices(items, gap=0.05, max_columns=3, flat=True, is_square=True):
     ref_matrix = gen_ref_matrix(items, max_columns, is_square)
 
     x_dom_mx = copy.deepcopy(ref_matrix)
@@ -376,14 +366,13 @@ def add_shared_yaxis_data(yaxis_dct, increment):
         yaxis_dct[k]["side"] = "left" if j == 0 else "right"
 
 
-def get_yaxis_settings(n, c1, c2, increment=0.1, titles=None, y_domains=None):
-    dct = defaultdict(dict)
-
-    shared = {
-        "color": c1,
-        "linecolor": c1,
-        "zerolinecolor": c1,
-        "gridcolor": c2,
+def get_yaxis_settings(n, line_color, grid_color, increment=0.1,
+                       titles=None, y_domains=None, range_y=None):
+    shared_attributes = {
+        "color": line_color,
+        "linecolor": line_color,
+        "zerolinecolor": line_color,
+        "gridcolor": grid_color,
         "showline": True,
         "linewidth": 1,
         "showgrid": True,
@@ -391,25 +380,31 @@ def get_yaxis_settings(n, c1, c2, increment=0.1, titles=None, y_domains=None):
         "zeroline": True,
         "zerolinewidth": 2
     }
+    yaxes = defaultdict(dict)
 
     for i in range(n):
         nm = "yaxis" if i == 0 else f"yaxis{i + 1}"
 
         if titles:
-            dct[nm]["title"] = titles[i]
+            yaxes[nm]["title"] = titles[i]
 
-        dct[nm]["rangemode"] = "tozero"
+        yaxes[nm]["rangemode"] = "tozero"
+        yaxes[nm]["type"] = "linear"
 
     if not y_domains:
-        add_shared_yaxis_data(dct, increment)
+        add_shared_yaxis_data(yaxes, increment)
     else:
-        for i, k in enumerate(dct.keys()):
-            dct[k] = {**dct[k],
-                      "domain": y_domains[i],
-                      "anchor": "x" if i == 0 else f"x{i + 1}",
-                      "side": "left",
-                      **shared}
-    return dct
+        for i, k in enumerate(yaxes.keys()):
+            yaxes[k] = {**yaxes[k],
+                        "domain": y_domains[i],
+                        "anchor": "x" if i == 0 else f"x{i + 1}",
+                        "side": "left",
+                        **shared_attributes}
+
+    if range_y:
+        yaxes["yaxis"]["range"] = range_y
+
+    return yaxes
 
 
 def get_shared_xdomain(n_yaxis, increment):
@@ -422,17 +417,13 @@ def get_shared_xdomain(n_yaxis, increment):
     return domain
 
 
-def get_xaxis_settings(n_yaxis, c1, c2, increment=0.1,
-                       x_domains=None, chart_type="scatter"):
-    dct = defaultdict(dict)
-    types = ["scatter", "bar", "bubble", "line"]
-    axis_type = "date" if chart_type in types else "-"
-
-    shared = {
-        "color": c1,
-        "linecolor": c1,
-        "gridcolor": c2,
-        "zerolinecolor": c1,
+def get_xaxis_settings(n_yaxis, line_color, grid_color, increment=0.1,
+                       x_domains=None, date_axis=True, range_x=None):
+    shared_attributes = {
+        "color": line_color,
+        "linecolor": line_color,
+        "zerolinecolor": line_color,
+        "gridcolor": grid_color,
         "showline": True,
         "linewidth": 1,
         "showgrid": True,
@@ -441,23 +432,29 @@ def get_xaxis_settings(n_yaxis, c1, c2, increment=0.1,
         "zerolinewidth": 2
     }
 
+    xaxes = defaultdict(dict)
+    axis_type = "date" if date_axis else "-"
+
     if not x_domains:
         x_dom = get_shared_xdomain(n_yaxis, increment)
-        dct["xaxis"] = x_axis_dct["xaxis"]
-        dct["xaxis"] = {"domain": x_dom,
-                        "type": axis_type,
-                        **shared}
+        xaxes["xaxis"] = x_axis_dct["xaxis"]
+        xaxes["xaxis"] = {"domain": x_dom,
+                          "type": axis_type,
+                          **shared_attributes}
 
     else:
         for i in range(len(x_domains)):
             nm = "xaxis" if i == 0 else f"xaxis{i + 1}"
-            dct[nm] = {"side": "bottom",
-                       "type": axis_type,
-                       "domain": x_domains[i],
-                       "anchor": "y" if i == 0 else f"y{i + 1}",
-                       **shared}
+            xaxes[nm] = {"side": "bottom",
+                         "type": axis_type,
+                         "domain": x_domains[i],
+                         "anchor": "y" if i == 0 else f"y{i + 1}",
+                         **shared_attributes}
 
-    return dct
+    if range_x:
+        xaxes["xaxis"]["range"] = range_x
+
+    return xaxes
 
 
 def get_units_axis_dct(units_lst, axis="x"):

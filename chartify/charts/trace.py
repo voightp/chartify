@@ -1,15 +1,15 @@
 class Trace:
-    def __init__(self, item_id, trace_id, info_tuple, values, total_value,
-                 timestamps, color, type_="scatter", xaxis="x", yaxis="y",
-                 selected=False, priority="normal"):
+    def __init__(self, item_id, trace_id, file_name,
+                 interval, key, variable, units, values, total_value,
+                 timestamps, color, type_="scatter", xaxis="x",
+                 yaxis="y", selected=False, priority="normal"):
         self.item_id = item_id
         self.trace_id = trace_id
-        self.file_name = info_tuple[0]
-        self.variable_id = info_tuple[1]
-        self.interval = info_tuple[2]
-        self.key = info_tuple[3]
-        self.variable = info_tuple[4]
-        self.units = info_tuple[5]
+        self.file_name = file_name
+        self.interval = interval
+        self.key = key
+        self.variable = variable
+        self.units = units
         self.values = values
         self.total_value = total_value
         self.timestamps = timestamps

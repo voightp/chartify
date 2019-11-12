@@ -5,21 +5,8 @@ from chartify.charts.trace import Trace, plot_pie_chart
 from chartify.utils.utils import (get_str_identifier, update_recursively,
                                   merge_dcts, remove_recursively)
 from chartify.charts.chart_settings import (get_xaxis_settings, get_yaxis_settings,
-                                            style, config, layout_dct, color_generator,
-                                            get_units_axis_dct, gen_dom_matrices, STATISTICAL_CHARTS, ONE_DIM_CHARTS)
-
-
-def calculate_totals(df):
-    """ Calculate df sum or average (based on units). """
-    units = df.columns.get_level_values("units")
-    cnd = units.isin(averaged_units)
-
-    avg_df = df.loc[:, cnd].mean()
-    sum_df = df.loc[:, [not b for b in cnd]].sum()
-
-    sr = pd.concat([avg_df, sum_df])
-
-    return sr
+                                            style, config, base_layout, color_generator,
+                                            get_units_axis_dct, gen_domain_matrices, STATISTICAL_CHARTS, ONE_DIM_CHARTS)
 
 
 def update_attr(attr_name):
@@ -42,11 +29,6 @@ def update_attr(attr_name):
 
 
 class Chart:
-    """
-    A class to handle chart operation and to
-    hold chart related data.
-
-    """
 
 
     def __init__(self, chart_id, item_id, palette, type_="scatter"):
@@ -56,7 +38,7 @@ class Chart:
         self.type_ = type_
         self.traces = []
         self.trace_ids = []
-        self.layout = layout_dct
+        self.layout = base_layout
         self.show_custom_legend = True
         self.shared_axes = False
         self.color_gen = color_generator(0)
@@ -158,33 +140,6 @@ class Chart:
         rm_dct = {k: v for k, v in rm_dct.items() if v}
 
         return upd_dct, rm_dct, rm_ids
-
-    def process_data(self, df):
-        """ Process raw pd.DataFrame and store the data. """
-        totals_sr = calculate_totals(df)
-        timestamps = [dt.timestamp() for dt in df.index.to_pydatetime()]
-
-        new_traces = []
-        for col_ix, val_sr in df.iteritems():
-            trace_id = self.gen_id()
-
-            # channel cannot handle numpy.float
-            total_value = float(totals_sr.loc[col_ix])
-
-            # create a new color to distinguish traces and set emphasis
-            color = next(self.color_gen)
-            priority = "low" if self.any_trace_selected() else "normal"
-
-            args = (self.item_id, trace_id, col_ix, val_sr.tolist(),
-                    total_value, timestamps, color)
-            kwargs = {"priority": priority, "type_": self.type_}
-
-            trace = Trace(*args, **kwargs)
-
-            new_traces.append(trace)
-            self.traces.append(trace)
-
-        return self.plot_chart(new_traces)
 
     def clean_up_traces(self):
         """ Remove redundant chart attributes. """

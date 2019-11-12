@@ -4,8 +4,8 @@ from chartify.charts.chart_settings import *
 def plot_pie_chart(traces, background_color):
     """ Plot a 'special' pie chart data. """
     groups = group_by_units(traces)
-    x_doms, y_doms = gen_dom_matrices(groups.keys(), max_columns=3, gap=0,
-                                      flat=True, is_square=True)
+    x_doms, y_doms = gen_domain_matrices(groups.keys(), max_columns=3, gap=0,
+                                         flat=True, is_square=True)
     data = []
     for x_dom, y_dom, traces in zip(x_doms, y_doms, groups.values()):
         values, labels, colors, trace_ids, priorities = combine_traces(traces)
@@ -42,6 +42,11 @@ def plot_2d_chart(traces, type_="scatter", custom=False):
 
 
 class Chart:
+    """
+    A class to handle chart operation and to
+    hold chart related data.
+
+    """
     LEGEND_MAX_HEIGHT = 100
     LEGEND_TRACE_HEIGHT = 19
     LEGEND_GAP = 10
@@ -53,6 +58,8 @@ class Chart:
         self.custom = False
         self.shared_axes = False
         self.show_custom_legend = True
+        self.range_x = []
+        self.range_y = []
 
     def set_trace_axes(self, traces, shared_axes):
         """ Assign trace 'x' and 'y' axes (based on units). """
@@ -83,16 +90,19 @@ class Chart:
                 trace.priority = "low"
 
     def generate_data(self, traces, background_color):
+        """ Generate chart data (traces). """
+        data = []
         if self.type_ in ["pie", "histogram", "box"]:
             self.shared_axes = False
 
-        self.set_trace_axes(traces, self.shared_axes)
-        self.set_trace_priority(traces)
+        if traces:
+            self.set_trace_axes(traces, self.shared_axes)
+            self.set_trace_priority(traces)
 
-        if self.type_ == "pie":
-            data = plot_pie_chart(traces, background_color)
-        else:
-            data = plot_2d_chart(traces)
+            if self.type_ == "pie":
+                data = plot_pie_chart(traces, background_color)
+            else:
+                data = plot_2d_chart(traces)
 
         return data
 
@@ -102,43 +112,46 @@ class Chart:
             m = n_traces * self.LEGEND_TRACE_HEIGHT
             m = m if m <= self.LEGEND_MAX_HEIGHT else self.LEGEND_MAX_HEIGHT
         else:
-            m = layout_dct["margin"]["t"]
+            m = base_layout["margin"]["t"]
 
         layout["margin"]["t"] = m + self.LEGEND_GAP
 
-    def generate_layout(self, n_traces, units, grid_color1, grid_color2):
+    def generate_layout(self, n_traces, units, line_color, grid_color):
         """ Generate chart layout properties. """
-        layout = copy.deepcopy(layout_dct)
+        layout = copy.deepcopy(base_layout)
         self.set_top_margin(layout, n_traces)
 
-        if self.type_ != "pie":
+        if self.type_ != "pie" and n_traces != 0:
             # pie chart does not require x, y axes
             if self.shared_axes:
-                x_doms, y_doms = None, None
+                x_domains, y_domains = None, None
             else:
-                x_doms, y_doms = gen_dom_matrices(units, max_columns=3, gap=0.05,
-                                                  flat=True, is_square=True)
+                x_domains, y_domains = gen_domain_matrices(units, max_columns=3,
+                                                           gap=0.05, flat=True,
+                                                           is_square=True)
 
-            yaxis = get_yaxis_settings(len(units), grid_color1, grid_color2,
-                                       increment=0.08, titles=units,
-                                       y_domains=y_doms)
+            y_axes = get_yaxis_settings(len(units), line_color, grid_color,
+                                        titles=units, y_domains=y_domains,
+                                        increment=0.08, range_y=self.range_y)
 
-            xaxis = get_xaxis_settings(len(yaxis.keys()), grid_color1, grid_color2,
-                                       increment=0.08, x_domains=x_doms,
-                                       chart_type=self.type_)
+            date_axis = self.type_ in ["scatter", "bar", "bubble", "line"]
+            x_axes = get_xaxis_settings(len(y_axes.keys()), line_color, grid_color,
+                                        increment=0.08, x_domains=x_domains,
+                                        date_axis=date_axis, range_x=self.range_x)
         else:
-            xaxis, yaxis = {}, {}
+            x_axes, y_axes = {}, {}
 
-        return {**layout, **yaxis, **xaxis}
+        return {**layout, **y_axes, **x_axes}
 
-    def plot_chart(self, traces, grid_color1, grid_color2, background_color):
+    def as_plotly(self, traces, line_color, grid_color, background_color):
+        """ Create 'plotly' like chart. """
         data = self.generate_data(traces, background_color)
         layout = self.generate_layout(len(traces), get_all_units(traces),
-                                      grid_color1, grid_color2)
-
+                                      line_color, grid_color)
         return {
-            "itemType": "chart",
+            "componentType": "chart",
             "showCustomLegend": self.show_custom_legend,
+            "sharedAxes": self.shared_axes,
             "chartType": self.type_,
             "divId": self.chart_id,
             "layout": layout,

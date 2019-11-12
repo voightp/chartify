@@ -1,11 +1,28 @@
-from PySide2.QtCore import QObject, Slot, Signal, QJsonValue
+from PySide2.QtCore import QObject, Slot, Signal, QJsonValue, QJsonArray
 
 from functools import partial
-from chartify.charts._charts import Chart
-from chartify.charts.chart_settings import get_item
+from chartify.charts.chart import Chart
+from chartify.charts.chart_settings import generate_grid_item
+from chartify.utils.utils import int_generator, calculate_totals
+from chartify.settings import Settings
+from chartify.charts.trace import Trace
 
 from PySide2.QtWebEngineWidgets import QWebEnginePage
 from PySide2 import QtWebChannel
+
+
+def pythonify(func):
+    """ Wraps function to convert QJSON to dict. """
+
+    def wrapper(*args):
+        new_args = []
+        for a in args:
+            if isinstance(a, QJsonValue):
+                a = a.toObject()
+            new_args.append(a)
+        return func(*args)
+
+    return wrapper
 
 
 class MyPage(QWebEnginePage):
@@ -23,8 +40,11 @@ class WVController(QObject):
 
     """
     appearanceUpdated = Signal(bool, "QVariantMap", "QVariantMap")
-    chartUpdated = Signal(str, "QVariantMap", "QVariantMap", "QVariantList")
+    chartUpdated = Signal(str, "QVariantMap")
     componentAdded = Signal(str, "QVariantMap", "QVariantMap")
+
+    trace_counter = int_generator()
+    item_counter = int_generator()
 
     def __init__(self, model, web_view):
         super().__init__()
@@ -38,9 +58,81 @@ class WVController(QObject):
         self.channel.registerObject("bridge", self)
         self.wv.page().setWebChannel(self.channel)
 
-        self.components = {}
-        self.items = {}
-        self.counter = 0
+        self.counter = int_generator()
+
+    def gen_trace_id(self):
+        """ Generate unique trace id. """
+        while True:
+            trace_id = f"trace-{next(self.trace_counter)}"
+            if trace_id not in self.m.fetch_all_trace_ids():
+                break
+        return trace_id
+
+    def gen_component_ids(self, name):
+        """ Generate unique chart ids. """
+        while True:
+            i = next(self.item_counter)
+            item_id = f"trace-{next(self.trace_counter)}"
+            if item_id not in self.m.fetch_all_item_ids():
+                break
+
+        return item_id, f"{name}-{i}", f"frame-{i}"
+
+    def process_traces(self, item_id, df):
+        """ Process raw pd.DataFrame and store the data. """
+        totals_sr = calculate_totals(df)
+        timestamps = [dt.timestamp() for dt in df.index.to_pydatetime()]
+
+        for col_ix, val_sr in df.iteritems():
+            trace_id = self.gen_trace_id()
+            color = next(self.color_gen)
+            values = val_sr.tolist()
+            total_value = float(totals_sr.loc[col_ix])
+            file_name, _, interval, key, variable, units = col_ix
+
+            args = (item_id, trace_id, file_name, interval,
+                    key, variable, units, values, total_value,
+                    timestamps, color)
+            kwargs = {"priority": "normal", "type_": self.type_}
+
+            self.m.add_trace(trace_id, Trace(*args, **kwargs))
+
+    def plot_component(self, item_id):
+        """ Request UI update for given component. """
+        component = self.m.components[item_id]
+        palette = self.m.fetch_palette(Settings.PALETTE_NAME)
+
+        line_color = palette.get_color("PRIMARY_TEXT_COLOR", as_tuple=True)
+        grid_color = palette.get_color("PRIMARY_TEXT_COLOR", opacity=0.3, as_tuple=True)
+        background_color = palette.get_color("BACKGROUND_COLOR", as_tuple=True)
+
+        if isinstance(component, Chart):
+            traces = self.m.fetch_traces(item_id)
+            chart = component.as_plotly(traces, line_color, grid_color,
+                                        background_color)
+            self.chartUpdated.emit(item_id, chart)
+
+    @Slot(str)
+    def addNewChart(self, chart_type):
+        """ Handle new 'chart' object request. """
+        print(f"PY addNewChart {chart_type}")
+        # create reference ids to backtrack user
+        # interaction with layout elements on the UI
+        item_id, frame_id, chart_id = self.gen_component_ids("chart")
+
+        chart = Chart(item_id, chart_id, chart_type)
+        self.m.components[item_id] = chart
+
+        item = generate_grid_item(frame_id, "chart")
+        self.m.items[item_id] = item
+
+        self.plot_component(item_id)
+
+    @pythonify
+    @Slot(QJsonValue)
+    def storeGridLayout(self, layout):
+        print("PY storeGridLayout")
+        self.m.store_frid_layout(layout)
 
     def set_appearance(self, palette):
         if palette != self.palette:
@@ -59,11 +151,6 @@ class WVController(QObject):
         # TODO handle 'Flat' assignment
         self.appearanceUpdated.emit(True, self.palette.get_all_colors(), {})
 
-    @Slot(QJsonValue)
-    def storeGridLayout(self, items):
-        print("PY storeGridLayout")
-        self.items = items.toObject()
-
     @Slot(str)
     def removeItem(self, item_id):
         print(f"PY removeItem", item_id)
@@ -79,36 +166,20 @@ class WVController(QObject):
     def addTextArea(self):
         pass
 
-    @Slot(str)
-    def addNewChart(self, chart_type):
-        print(f"PY addChart {chart_type}")
-        i = self.counter
-        item_id = f"item-{i}"
-        frame_id = f"frame-{i}"
-        chart_id = f"chart-{i}"
+    def plot_all_components(self):
+        pass
 
-        self.counter += 1
-
-        chart = Chart(chart_id, item_id, self.palette, chart_type)
-        item = get_item(frame_id, "chart")
-
-        self.components[item_id] = chart
-        self.items[item_id] = item
-
-        self.componentAdded.emit(item_id,
-                                 item,
-                                 chart.figure)
-
+    @pythonify
     @Slot(str, QJsonValue)
-    def onChartLayoutChange(self, item_id, layout):
-        layout = layout.toObject()
+    def onChartLayoutChange(self, item_id, ranges):
+        """ Handle chart resize interaction. """
         chart = self.components[item_id]
-        chart.layout = layout
+        chart.ranges = ranges
 
     def add_chart_data(self, item_id, df):
         print("add_chart_data", item_id)
-        chart = self.components[item_id]
-        upd_dct, rm_dct, rm_traces = chart.process_data(df)
+
+        self.process_traces(item_id, df)
         # print(json.dumps(update_dct, indent=4))
 
         self.chartUpdated.emit(item_id, upd_dct, rm_dct, rm_traces)

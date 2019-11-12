@@ -13,11 +13,48 @@ class AppModel:
     """
 
     def __init__(self):
-        # ~~~~ Database ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # ~~~~ File Database ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.database = {}
+
+        # ~~~~ Webview Database ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.traces = {}
+        self.components = {}
+        self.items = {}
 
         # ~~~~ Palettes ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.palettes = parse_palette(Settings.PALETTE_PATH)
+
+    def store_grid_layout(self, layout):
+        """ Store current grid layout. """
+        self.items = layout
+
+    def add_trace(self, trace_id, trace):
+        """ Add trace into database. """
+        self.traces[trace_id] = trace
+
+    def fetch_all_trace_ids(self):
+        """ Get all used trace ids. """
+        return list(self.traces.keys())
+
+    def fetch_all_item_ids(self):
+        """ Get all used item ids. """
+        return list(self.items.keys())
+
+    def fetch_traces(self, item_id):
+        """ Get traces assigned for a given chart. """
+        traces = []
+        for trace in self.traces.values():
+            if trace.item_id == item_id:
+                traces.append(trace)
+
+        return traces
+
+    def fetch_component(self, item_id):
+        """ Get displayed object from the database."""
+        try:
+            return self.components[item_id]
+        except KeyError:
+            raise KeyError(f"Cannot find component '{item_id}'.")
 
     def fetch_palette(self, name):
         """ Get 'Palette' object with a specified name. """
