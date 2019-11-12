@@ -1,5 +1,6 @@
 from chartify.settings import Settings
 from chartify.view.css_theme import parse_palette
+from chartify.controller.threads import ResultsFetcher
 
 
 class AppModel:
@@ -23,6 +24,24 @@ class AppModel:
 
         # ~~~~ Palettes ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.palettes = parse_palette(Settings.PALETTE_PATH)
+
+    def get_results(self, variables, callback=None, **kwargs):
+        """ Get output values for given variables. """
+
+        ids = self.get_current_file_ids()
+        files = self.get_files_from_db(*ids)
+
+        args = (files, variables)
+        kwargs = {"rate_units": Settings.POWER_UNITS,
+                  "energy_units": Settings.ENERGY_UNITS,
+                  "add_file_name": "column",
+                  "rate_to_energy_dct": {
+                      Settings.INTERVAL: Settings.RATE_TO_ENERGY
+                  },
+                  **kwargs}
+
+        self.thread_pool.start(ResultsFetcher(get_results, *args,
+                                              callback=callback, **kwargs))
 
     def store_grid_layout(self, layout):
         """ Store current grid layout. """

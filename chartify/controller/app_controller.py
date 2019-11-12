@@ -8,10 +8,10 @@ from functools import partial
 from chartify.settings import Settings
 from chartify.utils.process_utils import (create_pool, kill_child_processes,
                                           load_file, wait_for_results)
-from chartify.controller.threads import (EsoFileWatcher, GuiMonitor, ResultsFetcher,
+from chartify.controller.threads import (EsoFileWatcher, GuiMonitor,
                                          IterWorker, Monitor)
 from chartify.utils.utils import generate_ids, get_str_identifier
-from chartify.view.css_theme import CssTheme, parse_palette
+from chartify.view.css_theme import CssTheme
 
 
 class AppController:
@@ -227,20 +227,3 @@ class AppController:
     def handle_close_tab(self, id_):
         """ Delete set from the database. """
         self.m.delete_sets(id_)
-
-    def get_results(self, callback=None, **kwargs):
-        """ Get output values for given variables. """
-        rate_to_energy, units_system, energy, power = self.get_units_settings()
-        rate_to_energy_dct = {self.get_current_interval(): rate_to_energy}
-
-        ids = self.get_current_file_ids()
-        files = self.get_files_from_db(*ids)
-
-        args = (files, self.selected_variables)
-        kwargs = {"rate_units": power, "energy_units": energy,
-                  "add_file_name": "column",
-                  "rate_to_energy_dct": rate_to_energy_dct,
-                  **kwargs}
-
-        self.thread_pool.start(ResultsFetcher(get_results, *args,
-                                              callback=callback, **kwargs))

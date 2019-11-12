@@ -173,7 +173,7 @@ class WVController(QObject):
     @Slot(str, QJsonValue)
     def onChartLayoutChange(self, item_id, ranges):
         """ Handle chart resize interaction. """
-        chart = self.components[item_id]
+        chart = self.m.fetch_component(item_id)
         chart.ranges = ranges
 
     def add_chart_data(self, item_id, df):
