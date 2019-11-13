@@ -37,6 +37,7 @@ class MainWindow(QMainWindow):
     paletteUpdateRequested = Signal(str)
     fileProcessingRequested = Signal(list)
     fileRenamed = Signal(str, str, str)
+    selectionChanged = Signal(list)
     variableRenamed = Signal(str, tuple, str, str)
     variablesRemoved = Signal(str, list)
     variablesAggregated = Signal(str, list, str, str, str)
@@ -193,6 +194,7 @@ class MainWindow(QMainWindow):
         self.mini_menu_layout.addWidget(self.about_btn)
 
         # ~~~~ Set up main widgets and layouts ~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.css = ""
         self.set_up_base_ui()
 
         # ~~~~ Set up web view ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -233,6 +235,14 @@ class MainWindow(QMainWindow):
         elif event.key() == Qt.Key_Delete:
             if self.hasFocus():
                 self.remove_variables()
+
+    def set_css(self, css):
+        """ Set application css. """
+        self.css = css
+
+        # css needs to be cleared to repaint the window properly
+        self.setStyleSheet("")
+        self.setStyleSheet(self.css.content)
 
     def load_scheme_btn_icons(self, palettes):
         """ Create scheme button icons. """
@@ -285,13 +295,6 @@ class MainWindow(QMainWindow):
 
         self.toolbar.remove_btn.set_icons(Pixmap(r + "remove.png", *c1),
                                           Pixmap(r + "remove.png", *c1, a=0.5))
-
-    def set_stylesheet(self, stylesheet):
-        """ Turn the CSS on and off. """
-        # update the application appearance, css needs
-        # to be cleared to repaint the window properly
-        self.setStyleSheet("")
-        self.setStyleSheet(stylesheet)
 
     def set_up_base_ui(self):
         """ Set up appearance of main widgets. """
@@ -348,7 +351,7 @@ class MainWindow(QMainWindow):
         if not self.tab_wgt.is_empty():
             self.toolbar.totals_btn.setEnabled(True)
 
-    def build_view(self, variables, scroll_to=None):
+    def build_view(self, variables, selected=None, scroll_to=None):
         """ Create a new view when any of related settings change """
         is_tree = self.view_tools_wgt.tree_requested()
         filter_str = self.view_tools_wgt.get_filter_str()
@@ -368,29 +371,32 @@ class MainWindow(QMainWindow):
                                        interval, units, totals,
                                        filter_str=filter_str, scroll_to=scroll_to)
 
-    def on_selection_populated(self, outputs):
+    def on_selection_populated(self, variables):
         """ Store current selection in main app. """
-        out_str = [" | ".join(var) for var in outputs]
-        print("SELECTION!\n\t{}".format("\n\t".join(out_str)))
+        out_str = [" | ".join(var) for var in variables]
+        print("on_selection_populated!\n\t{}".format("\n\t".join(out_str)))
 
         # handle actions availability
         self.remove_variables_act.setEnabled(True)
 
         # check if variables can be aggregated
-        units = verify_units([var.units for var in outputs])
+        units = verify_units([var.units for var in variables])
 
-        enabled = len(outputs) > 1 and units is not None
+        enabled = len(variables) > 1 and units is not None
         self.toolbar.set_tools_btns_enabled("sum", "mean", "remove",
                                             enabled=enabled)
+        self.selectionChanged.emit(variables)
 
     def on_selection_cleared(self):
         """ Handle behaviour when no variables are selected. """
+        print("on_selection_cleared")
         # handle actions availability
         self.remove_variables_act.setEnabled(False)
 
         # disable export xlsx as there are no variables to be exported
         self.toolbar.set_tools_btns_enabled("sum", "mean",
                                             "remove", enabled=False)
+        self.selectionChanged.emit([])
 
     def create_view_wgt(self, id_, name):
         """ Create a 'View' widget and connect its actions. """
@@ -439,8 +445,10 @@ class MainWindow(QMainWindow):
             # there aren't any widgets available
             self.remove_variables_act.setEnabled(False)
             self.toolbar.set_initial_layout()
+            Settings.CURRENT_SET_ID = None
         else:
             self.viewUpdateRequested.emit(self.current_view.id_)
+            Settings.CURRENT_SET_ID = self.current_view.id_
 
     def on_settings_changed(self):
         """ Update view when settings change. """

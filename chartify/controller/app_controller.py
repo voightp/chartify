@@ -82,12 +82,10 @@ class AppController:
 
         css = CssTheme(Settings.CSS_PATH)
         css.populate_content(palette)
-
-        self.v.set_stylesheet(css.content)
+        self.v.set_css(css)
 
         c1 = palette.get_color("PRIMARY_TEXT_COLOR", as_tuple=True)
         c2 = palette.get_color("SECONDARY_TEXT_COLOR", as_tuple=True)
-
         self.v.load_scheme_btn_icons(self.m.palettes)
         self.v.load_icons(c1, c2)
 
@@ -139,7 +137,7 @@ class AppController:
             future = self.pool.submit(load_file, path, monitor=monitor,
                                       suppress_errors=False)
 
-            func = partial(wait_for_results, id_, monitor, self.file_queue)
+            func = partial(wait_for_results, id_, self.file_queue)
             future.add_done_callback(func)
 
     def on_file_loaded(self, id_, std_file, tot_file):
