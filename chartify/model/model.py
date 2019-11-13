@@ -1,6 +1,8 @@
 from chartify.settings import Settings
 from chartify.view.css_theme import parse_palette
-from chartify.controller.threads import ResultsFetcher
+
+from eso_reader.eso_file import get_results
+import pandas as pd
 
 
 class AppModel:
@@ -17,6 +19,9 @@ class AppModel:
         # ~~~~ File Database ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.database = {}
 
+        # ~~~~ Temporary ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.selected_variables = []
+
         # ~~~~ Webview Database ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.traces = {}
         self.components = {}
@@ -25,23 +30,25 @@ class AppModel:
         # ~~~~ Palettes ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.palettes = parse_palette(Settings.PALETTE_PATH)
 
-    def get_results(self, variables, callback=None, **kwargs):
+    def get_results(self, **kwargs) -> pd.DataFrame:
         """ Get output values for given variables. """
+        if Settings.ALL_FILES:
+            files = self.fetch_all_files()
+        else:
+            files = self.fetch_file(Settings.CURRENT_SET_ID)
 
-        ids = self.get_current_file_ids()
-        files = self.get_files_from_db(*ids)
+        args = (files, self.selected_variables)
+        kwargs = {
+            "rate_units": Settings.POWER_UNITS,
+            "energy_units": Settings.ENERGY_UNITS,
+            "add_file_name": "column",
+            "rate_to_energy_dct": {
+                Settings.INTERVAL: Settings.RATE_TO_ENERGY
+            },
+            **kwargs
+        }
 
-        args = (files, variables)
-        kwargs = {"rate_units": Settings.POWER_UNITS,
-                  "energy_units": Settings.ENERGY_UNITS,
-                  "add_file_name": "column",
-                  "rate_to_energy_dct": {
-                      Settings.INTERVAL: Settings.RATE_TO_ENERGY
-                  },
-                  **kwargs}
-
-        self.thread_pool.start(ResultsFetcher(get_results, *args,
-                                              callback=callback, **kwargs))
+        return get_results(*args, **kwargs)
 
     def store_grid_layout(self, layout):
         """ Store current grid layout. """

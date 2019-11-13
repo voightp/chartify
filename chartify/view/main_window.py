@@ -197,10 +197,6 @@ class MainWindow(QMainWindow):
         self.css = ""
         self.set_up_base_ui()
 
-        # ~~~~ Set up web view ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.web_view.load(QUrl(Settings.URL))
-        self.web_view.setAcceptDrops(True)
-
         # ~~~~ Connect main ui user actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.connect_ui_signals()
 
@@ -368,15 +364,11 @@ class MainWindow(QMainWindow):
         proxy_variables = create_proxy(variables, view_order, *units)
 
         self.current_view.update_model(variables, proxy_variables, is_tree,
-                                       interval, units, totals,
-                                       filter_str=filter_str, scroll_to=scroll_to)
+                                       interval, units, totals, filter_str=filter_str,
+                                       selected=selected, scroll_to=scroll_to)
 
     def on_selection_populated(self, variables):
         """ Store current selection in main app. """
-        out_str = [" | ".join(var) for var in variables]
-        print("on_selection_populated!\n\t{}".format("\n\t".join(out_str)))
-
-        # handle actions availability
         self.remove_variables_act.setEnabled(True)
 
         # check if variables can be aggregated
@@ -389,8 +381,6 @@ class MainWindow(QMainWindow):
 
     def on_selection_cleared(self):
         """ Handle behaviour when no variables are selected. """
-        print("on_selection_cleared")
-        # handle actions availability
         self.remove_variables_act.setEnabled(False)
 
         # disable export xlsx as there are no variables to be exported

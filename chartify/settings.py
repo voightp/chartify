@@ -17,6 +17,8 @@ class Settings:
     SI_ENERGY_UNITS = ["Wh", "kWh", "MWh", "J", "MJ", "GJ"]
     SI_POWER_UNITS = ["W", "kW", "MW"]
 
+    CURRENT_SET_ID = None
+
     ENERGY_UNITS = None
     POWER_UNITS = None
     UNITS_SYSTEM = None

@@ -100,10 +100,17 @@ class AppController:
         self.v.variablesAggregated.connect(self.handle_aggregate_variables)
         self.v.tabClosed.connect(self.handle_close_tab)
         self.v.appClosedRequested.connect(self.tear_down)
+        self.v.selectionChanged.connect(self.handle_selection_change)
         self.v.close_all_act.triggered.connect(lambda x: x)
 
         self.v.save_act.triggered.connect(lambda x: print("SAVE ACT!"))
         self.v.save_as_act.triggered.connect(lambda x: print("SAVE AS ACT!"))
+
+    def handle_selection_change(self, variables: list) -> None:
+        """ Handle selection update. """
+        out_str = [" | ".join(var) for var in variables]
+        print("handle_selection_change!\n\t{}".format("\n\t".join(out_str)))
+        self.m.selected_variables = variables
 
     def connect_model_signals(self):
         """ Create monitor signals. """
@@ -124,7 +131,9 @@ class AppController:
         self.v.toolbar.update_rate_to_energy_state(Settings.INTERVAL)
 
         variables = self.m.fetch_file_header_variables(id_, Settings.INTERVAL)
-        self.v.build_view(variables)
+        selected = self.m.selected_variables
+
+        self.v.build_view(variables, selected=selected)
 
     def handle_file_processing(self, paths):
         """ Load new files. """
@@ -186,7 +195,7 @@ class AppController:
         var = self.apply_async(id_, self.rename_var, var_nm, key_nm, variable)
 
         variables = self.m.fetch_file_header_variables(id_, Settings.INTERVAL)
-        self.v.build_view(variables, scroll_to=var)
+        self.v.build_view(variables, scroll_to=var, selected=[var])
 
     def handle_file_rename(self, id_, name, totals_name):
         """ Update file name. """
@@ -220,7 +229,7 @@ class AppController:
         var = self.apply_async(id_, self.aggr_vars, variables, var_nm, key_nm, func)
         variables = self.m.fetch_file_header_variables(id_, Settings.INTERVAL)
 
-        self.v.build_view(variables, scroll_to=var)
+        self.v.build_view(variables, scroll_to=var, selected=[var])
 
     def handle_close_tab(self, id_):
         """ Delete set from the database. """

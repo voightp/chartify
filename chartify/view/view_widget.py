@@ -13,13 +13,11 @@ class View(QTreeView):
     itemDoubleClicked = Signal(object)
     treeNodeChanged = Signal()
 
-    selected = []
     settings = {"widths": {"interactive": 200,
                            "fixed": 70},
                 "order": ("variable", Qt.AscendingOrder),
                 "header": ("variable", "key", "units"),
-                "expanded": set(),
-                "selected": []}
+                "expanded": set()}
 
     def __init__(self, id_, name):
         super().__init__()
@@ -185,7 +183,6 @@ class View(QTreeView):
 
     def deselect_variables(self):
         """ Deselect all currently selected variables. """
-        self.selected = []
         self.selectionModel().clearSelection()
         self.selectionCleared.emit()
 
@@ -201,14 +198,15 @@ class View(QTreeView):
         self._select_items(proxy_selection)
 
         proxy_rows = proxy_selection.indexes()
-        outputs = [proxy_model.data_from_index(index) for index in proxy_rows]
+        variables = [proxy_model.data_from_index(index) for index in proxy_rows]
 
-        # outputs are temporarily stored to allow automatic
-        # selection when the settings or tab changes
-        self.selected = outputs
+        if variables:
+            self.selectionPopulated.emit(variables)
+        else:
+            self.selectionCleared.emit()
 
     def update_model(self, variables, proxy_variables, is_tree, interval,
-                     units, totals, filter_str="", scroll_to=None):
+                     units, totals, filter_str="", selected=None, scroll_to=None):
         """ Set the model and define behaviour of the tree view. """
         view_order = self.settings["header"]
         tree_key = view_order[0] if is_tree else None
@@ -228,15 +226,17 @@ class View(QTreeView):
             self.store_settings(interval, tree_key, units, totals)
             self.reconnect_actions()
 
-            # update selection only if the model changes
-            self.select_variables(self.selected)
+        # clear selections to avoid having visually
+        # selected items from previous selection
+        self.deselect_variables()
+
+        if selected:
+            self.select_variables(selected)
 
         if filter_str:
             self.filter_view(filter_str)
 
         if scroll_to:
-            self.deselect_variables()
-            self.select_variables(scroll_to)
             self.scroll_to(scroll_to)
 
         # update visual appearance of the view to be consistent
@@ -390,10 +390,8 @@ class View(QTreeView):
             drag.setPixmap(pix)
             drag.exec_(Qt.CopyAction)
 
-            self.selected = outputs
             self.selectionPopulated.emit(outputs)
         else:
-            self.selected = []
             self.selectionCleared.emit()
 
     def get_selected_variables(self):
