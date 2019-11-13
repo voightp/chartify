@@ -350,6 +350,7 @@ LineEdit, QLineEdit{
 ProgressWidget QPushButton {
     image: URL(./icons/remove.png)#ERROR_COLOR;
     margin-bottom: 2px;
+    background: transparent;
 }
 
 ProgressWidget QProgressBar {
