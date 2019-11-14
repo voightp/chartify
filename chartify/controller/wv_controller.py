@@ -12,24 +12,8 @@ from chartify.charts.trace import Trace
 from chartify.model.model import AppModel
 from chartify.controller.threads import Worker
 import json
-from chartify.view.main_window import MainWindow
 
-from pandas import DataFrame
 from typing import Tuple
-
-
-def pythonify(func):
-    """ Wraps function to convert QJSON to dict. """
-
-    def wrapper(*args):
-        new_args = []
-        for a in args:
-            if isinstance(a, QJsonValue):
-                a = a.toObject()
-            new_args.append(a)
-        return func(*args)
-
-    return wrapper
 
 
 class MyPage(QWebEnginePage):
