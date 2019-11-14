@@ -197,7 +197,7 @@ class WVController(QObject):
                                        key, variable, units, val_sr.tolist(),
                                        total_value, timestamps, color, type_=type_))
 
-            self.update_component(item_id)
+        self.update_component(item_id)
 
     @Slot(str, str)
     def onTraceDropped(self, item_id, chart_type):
