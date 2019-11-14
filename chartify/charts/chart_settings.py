@@ -332,21 +332,21 @@ def gen_domain_matrices(items, gap=0.05, max_columns=3, flat=True, is_square=Tru
     return x_dom_mx, y_dom_mx
 
 
-def add_shared_yaxis_data(yaxis_dct, increment):
+def set_yaxes_positions(yaxes, increment):
     # modify gaps between y axes, initial domain is [0, 1]
     s = 0
     e = 1 + increment
 
-    for i, k in enumerate(yaxis_dct.keys()):
+    for i, k in enumerate(yaxes.keys()):
 
         # skip first y axis as this axis is a 'base' one
         # and has its settings defined in default layout
         if i == 0:
             continue
 
-        yaxis_dct[k] = {**yaxis_dct[k],
-                        "anchor": "free",
-                        "overlaying": "y"}
+        yaxes[k] = {**yaxes[k],
+                    "anchor": "free",
+                    "overlaying": "y"}
         j = i % 2
 
         if j == 0:
@@ -356,8 +356,10 @@ def add_shared_yaxis_data(yaxis_dct, increment):
             e -= increment
             pos = round(e, 2)
 
-        yaxis_dct[k]["position"] = pos
-        yaxis_dct[k]["side"] = "left" if j == 0 else "right"
+        yaxes[k]["position"] = pos
+        yaxes[k]["side"] = "left" if j == 0 else "right"
+
+    return yaxes
 
 
 def get_yaxis_settings(n, line_color, grid_color, increment=0.1,
@@ -374,6 +376,10 @@ def get_yaxis_settings(n, line_color, grid_color, increment=0.1,
         "zeroline": True,
         "zerolinewidth": 2
     }
+
+    if n == 0:
+        return {"yaxis": shared_attributes}
+
     yaxes = defaultdict(dict)
 
     for i in range(n):
@@ -386,14 +392,17 @@ def get_yaxis_settings(n, line_color, grid_color, increment=0.1,
         yaxes[nm]["type"] = "linear"
 
     if not y_domains:
-        add_shared_yaxis_data(yaxes, increment)
+        yaxes = set_yaxes_positions(yaxes, increment)
     else:
         for i, k in enumerate(yaxes.keys()):
             yaxes[k] = {**yaxes[k],
                         "domain": y_domains[i],
                         "anchor": "x" if i == 0 else f"x{i + 1}",
-                        "side": "left",
-                        **shared_attributes}
+                        "side": "left"}
+
+    for k in yaxes.keys():
+        yaxes[k] = {**yaxes[k],
+                    **shared_attributes}
 
     if range_y:
         yaxes["yaxis"]["range"] = range_y

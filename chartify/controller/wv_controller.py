@@ -56,12 +56,26 @@ class WVController(QObject):
         self.thread_pool = QThreadPool()
         self.m.appearanceUpdateRequested.connect(self.on_appearance_updated)
 
+    def on_appearance_updated(self, colors):
+        components = {}
+        for id_ in self.m.components.keys():
+            component = self.plot_component(id_)
+            components[id_] = component
+
+        self.appearanceUpdated.emit(components, colors)
+
+    @Slot()
+    def onConnectionInitialized(self):
+        colors = self.m.palettes[Settings.PALETTE_NAME].get_all_colors()
+        self.on_appearance_updated(colors)
+
     def gen_trace_id(self) -> str:
         """ Generate unique trace id. """
         while True:
             trace_id = f"trace-{next(self.trace_counter)}"
             if trace_id not in self.m.fetch_all_trace_ids():
                 break
+
         return trace_id
 
     def gen_component_ids(self, name: str) -> Tuple[str, str, str]:
@@ -125,19 +139,6 @@ class WVController(QObject):
         print(json.dumps(l))
         self.m.items = l
 
-    def on_appearance_updated(self, colors):
-        components = {}
-        for id_ in self.m.components.keys():
-            component = self.plot_component(id_)
-            components[id_] = component
-
-        self.appearanceUpdated.emit(components, colors)
-
-    @Slot()
-    def onConnectionInitialized(self):
-        pass
-        # self.appearanceUpdated.emit(True, self.palette.get_all_colors(), {})
-
     @Slot(str)
     def removeItem(self, item_id):
         print(f"PY removeItem", item_id)
@@ -151,9 +152,6 @@ class WVController(QObject):
 
     @Slot(str)
     def addTextArea(self):
-        pass
-
-    def plot_all_components(self):
         pass
 
     @Slot(str, QJsonValue)

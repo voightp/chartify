@@ -130,25 +130,21 @@ class Chart:
         layout = copy.deepcopy(base_layout)
         self.set_top_margin(layout, n_traces)
 
-        if self.type_ != "pie" and n_traces != 0:
-            # pie chart does not require x, y axes
-            if self.shared_axes:
-                x_domains, y_domains = None, None
-            else:
-                x_domains, y_domains = gen_domain_matrices(units, max_columns=3,
-                                                           gap=0.05, flat=True,
-                                                           is_square=True)
-
-            y_axes = get_yaxis_settings(len(units), line_color, grid_color,
-                                        titles=units, y_domains=y_domains,
-                                        increment=0.08, range_y=self.range_y)
-
-            date_axis = self.type_ in ["scatter", "bar", "bubble", "line"]
-            x_axes = get_xaxis_settings(len(y_axes.keys()), line_color, grid_color,
-                                        increment=0.08, x_domains=x_domains,
-                                        date_axis=date_axis, range_x=self.range_x)
+        if self.shared_axes:
+            x_domains, y_domains = None, None
         else:
-            x_axes, y_axes = {}, {}
+            x_domains, y_domains = gen_domain_matrices(units, max_columns=3,
+                                                       gap=0.05, flat=True,
+                                                       is_square=True)
+
+        y_axes = get_yaxis_settings(len(units), line_color, grid_color,
+                                    titles=units, y_domains=y_domains,
+                                    increment=0.08, range_y=self.range_y)
+
+        date_axis = self.type_ in ["scatter", "bar", "bubble", "line"]
+        x_axes = get_xaxis_settings(len(y_axes.keys()), line_color, grid_color,
+                                    increment=0.08, x_domains=x_domains,
+                                    date_axis=date_axis, range_x=self.range_x)
 
         return {**layout, **y_axes, **x_axes}
 
