@@ -28,16 +28,23 @@ def plot_pie_chart(traces, background_color):
     return data
 
 
-def plot_2d_chart(traces, type_="scatter", custom=False):
+def plot_2d_chart(traces, type_="scatter"):
     """ Plot a 'standard' 2d chart of a given type. """
     data = []
     for trace in traces:
-        type_ = trace.type_ if custom else type_
-        data.append({**get_appearance(type_, trace.color, trace.priority),
-                     **get_shared_attributes(trace.item_id, trace.trace_id,
-                                             trace.name, trace.color),
-                     **get_axis_inputs(type_, trace.values, trace.js_timestamps,
-                                       trace.xaxis, trace.yaxis)})
+        type_ = trace.type_ if type_ == "custom" else type_
+        data.append({
+            "itemId": trace.item_id,
+            "traceId": trace.trace_id,
+            "name": trace.name,
+            "color": trace.color,
+            "selected": trace.selected,
+            "hoverlabel": {
+                "namelength": -1,
+            },
+            **get_appearance(type_, trace.color, trace.priority),
+            **get_axis_inputs(type_, trace.values, trace.js_timestamps,
+                              trace.xaxis, trace.yaxis)})
     return data
 
 
@@ -51,7 +58,7 @@ class Chart:
     LEGEND_TRACE_HEIGHT = 19
     LEGEND_GAP = 10
 
-    def __init__(self, chart_id, item_id, type_="scatter"):
+    def __init__(self, item_id, chart_id, type_="scatter"):
         self.chart_id = chart_id
         self.item_id = item_id
         self.type_ = type_
@@ -102,7 +109,7 @@ class Chart:
             if self.type_ == "pie":
                 data = plot_pie_chart(traces, background_color)
             else:
-                data = plot_2d_chart(traces)
+                data = plot_2d_chart(traces, type_=self.type_)
 
         return data
 

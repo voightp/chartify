@@ -44,29 +44,6 @@ class Palette:
         self.name = name
         self.colors_dct = self.parse_inst_kwargs(default_color, **kwargs)
 
-    @staticmethod
-    def parse_color(color):
-        """ Get standard plain rgb tuple. """
-        rgb = None
-        if not color:
-            print("Color not specified.")
-            rgb = None
-        elif isinstance(color, tuple) and len(color) == 3:
-            rgb = color
-        elif color.startswith("rgb"):
-            srgb = re.sub('[rgb() ]', '', color)
-            rgb = tuple([int(i) for i in srgb.split(",")])
-        elif color.startswith("#") and len(color) == 7:
-            rgb = tuple([int(color[i: i + 2], 16) for i in range(1, 7, 2)])
-        else:
-            s = color
-            if not isinstance(s, (int, str, float)):
-                #  this is just a basic test
-                s = "".join(s)
-            print(f"Failed to parse color: '{s}'")
-
-        return rgb
-
     def parse_inst_kwargs(self, default_color, **kwargs):
         """ Process input kwargs. """
         dct = {}
@@ -74,7 +51,7 @@ class Palette:
         for c in self.colors:
             try:
                 color = kwargs[c.upper()]
-                rgb = self.parse_color(color)
+                rgb = parse_color(color)
                 if not rgb:
                     print(f"'{c}' assigned as default.")
                     rgb = default_color
@@ -156,7 +133,7 @@ class CssTheme:
         self._temp = []
 
     @staticmethod
-    def parse_color(line, palette, as_tuple=False):
+    def parse_line(line, palette, as_tuple=False):
         """ Parse a line with color. """
         key = next(k for k in palette.colors if k in line)
         pattern = f"(.*){key}#?(\d\d)?;?"
@@ -178,7 +155,7 @@ class CssTheme:
         try:
             tup = re.findall(pattern, line)
             prop, url, col = tup[0]
-            rgb = self.parse_color(col, palette, as_tuple=True)
+            rgb = self.parse_line(col, palette, as_tuple=True)
             if rgb:
                 p = Pixmap(url, *rgb)
                 tf = p.as_temp()
@@ -203,7 +180,7 @@ class CssTheme:
                 line = self.parse_url(line, palette)
 
             elif any(map(lambda x: x in line, palette.colors)):
-                line = self.parse_color(line, palette)
+                line = self.parse_line(line, palette)
 
             css += line
 
@@ -221,6 +198,29 @@ class CssTheme:
                 content += css
 
         self.content = content
+
+
+def parse_color(color: [tuple, str]) -> tuple:
+    """ Get standard plain rgb tuple. """
+    rgb = None
+    if not color:
+        print("Color not specified.")
+        rgb = None
+    elif isinstance(color, tuple) and len(color) == 3:
+        rgb = color
+    elif color.startswith("rgb"):
+        srgb = re.sub('[rgb() ]', '', color)
+        rgb = tuple([int(i) for i in srgb.split(",")])
+    elif color.startswith("#") and len(color) == 7:
+        rgb = tuple([int(color[i: i + 2], 16) for i in range(1, 7, 2)])
+    else:
+        s = color
+        if not isinstance(s, (int, str, float)):
+            #  this is just a basic test
+            s = "".join(s)
+        print(f"Failed to parse color: '{s}'")
+
+    return rgb
 
 
 def parse_palette(pth):

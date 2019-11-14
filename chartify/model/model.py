@@ -23,7 +23,7 @@ class AppModel:
         self.selected_variables = []
 
         # ~~~~ Webview Database ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.traces = {}
+        self.traces = []
         self.components = {}
         self.items = {}
 
@@ -50,30 +50,28 @@ class AppModel:
 
         return get_results(*args, **kwargs)
 
-    def store_grid_layout(self, layout):
-        """ Store current grid layout. """
-        self.items = layout
-
-    def add_trace(self, trace_id, trace):
-        """ Add trace into database. """
-        self.traces[trace_id] = trace
-
     def fetch_all_trace_ids(self):
         """ Get all used trace ids. """
-        return list(self.traces.keys())
+        return [trace.trace_id for trace in self.traces]
 
-    def fetch_all_item_ids(self):
-        """ Get all used item ids. """
-        return list(self.items.keys())
+    def fetch_trace(self, trace_id):
+        """ Get trace of a given id. """
+        for trace in self.traces:
+            if trace.trace_id == trace_id:
+                return trace
 
     def fetch_traces(self, item_id):
-        """ Get traces assigned for a given chart. """
+        """ Get traces assigned for a given item. """
         traces = []
-        for trace in self.traces.values():
+        for trace in self.traces:
             if trace.item_id == item_id:
                 traces.append(trace)
 
         return traces
+
+    def fetch_all_item_ids(self):
+        """ Get all used item ids. """
+        return list(self.items.keys())
 
     def fetch_component(self, item_id):
         """ Get displayed object from the database."""

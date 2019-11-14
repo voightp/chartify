@@ -106,7 +106,7 @@ def filled_circle_pixmap(size, c1, c2=None, border_col=None, border_w=1, fr=0.7)
     return pix
 
 
-def combine_colors(c1, c2, fr):
+def combine_colors(c1: tuple, c2: tuple, fr: float, as_tuple=False):
     """ Combine given colors. """
     # colors need to be passed as rgb tuple
     # fr define fraction of the first color
@@ -115,4 +115,7 @@ def combine_colors(c1, c2, fr):
         c = c1[i] * fr + c2[i] * (1 - fr)
         rgb.append(int(c))
 
-    return tuple(rgb)
+    if as_tuple:
+        return tuple(rgb)
+    else:
+        return f"rgb({', '.join([str(c) for c in rgb])})"

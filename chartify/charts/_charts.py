@@ -161,15 +161,7 @@ class Chart:
 
         return self.plot_chart()
 
-    def delete_selected_traces(self):
-        """ Remove currently selected traces. """
-        ids = self.get_selected_ids()
 
-        for trace_id in ids:
-            trace = self.get_trace(trace_id)
-            self.traces.remove(trace)
-
-        return self.plot_chart()
 
     @update_attr("layout")
     def clean_up_layout(self):

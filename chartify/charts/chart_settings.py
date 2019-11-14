@@ -1,5 +1,6 @@
 from collections import defaultdict
 from chartify.view.icons import combine_colors
+from chartify.view.css_theme import parse_color
 import copy
 import math
 
@@ -69,18 +70,6 @@ def get_axis_inputs(type_, values, timestamps, xaxis, yaxis):
     return props[type_]
 
 
-def get_shared_attributes(item_id, trace_id, name, color):
-    return {
-        "itemId": item_id,
-        "traceId": trace_id,
-        "name": name,
-        "color": color,
-        "hoverlabel": {
-            "namelength": -1,
-        },
-    }
-
-
 def get_pie_appearance(priorities, colors, background_color):
     weights = {
         "low": 0.3,
@@ -90,6 +79,8 @@ def get_pie_appearance(priorities, colors, background_color):
 
     new_colors = []
     for p, c in zip(priorities, colors):
+        if isinstance(c, str):
+            c = parse_color(c)
         new_colors.append(combine_colors(c, background_color, weights[p]))
 
     return {

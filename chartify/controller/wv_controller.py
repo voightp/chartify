@@ -5,12 +5,13 @@ from PySide2 import QtWebChannel
 
 from functools import partial
 from chartify.charts.chart import Chart
-from chartify.charts.chart_settings import generate_grid_item
+from chartify.charts.chart_settings import generate_grid_item, color_generator
 from chartify.utils.utils import int_generator, calculate_totals
 from chartify.settings import Settings
 from chartify.charts.trace import Trace
 from chartify.model.model import AppModel
 from chartify.controller.threads import Worker
+import json
 from chartify.view.main_window import MainWindow
 
 from pandas import DataFrame
@@ -51,6 +52,7 @@ class WVController(QObject):
 
     trace_counter = int_generator()
     item_counter = int_generator()
+    color_generator = color_generator()
 
     def __init__(self, model: AppModel, web_view):
         super().__init__()
@@ -81,14 +83,15 @@ class WVController(QObject):
         """ Generate unique chart ids. """
         while True:
             i = next(self.item_counter)
-            item_id = f"trace-{next(self.trace_counter)}"
+            item_id = f"item-{i}"
             if item_id not in self.m.fetch_all_item_ids():
                 break
 
-        return item_id, f"{name}-{i}", f"frame-{i}"
+        return item_id, f"frame-{i}", f"{name}-{i}",
 
-    def plot_component(self, component) -> dict:
+    def plot_component(self, item_id: str) -> dict:
         """ Request UI update for given component. """
+        component = self.m.components[item_id]
         palette = self.m.fetch_palette(Settings.PALETTE_NAME)
 
         line_color = palette.get_color("PRIMARY_TEXT_COLOR", as_tuple=True)
@@ -99,7 +102,16 @@ class WVController(QObject):
             traces = self.m.fetch_traces(component.item_id)
             component = component.as_plotly(traces, line_color, grid_color,
                                             background_color)
+        print(item_id)
+        print(json.dumps(component, indent=4))
+
         return component
+
+    def update_component(self, item_id: str) -> None:
+        """ Request UI update for given component. """
+        component = self.plot_component(item_id)
+        if component:
+            self.componentUpdated.emit(item_id, component)
 
     @Slot(str)
     def addNewChart(self, chart_type: str) -> None:
@@ -116,16 +128,17 @@ class WVController(QObject):
         self.m.components[item_id] = component
         self.m.items[item_id] = item
 
-        plot = self.plot_component(component)
+        plot = self.plot_component(item_id)
 
         if plot:
             self.componentAdded.emit(item_id, item, plot)
 
-    @pythonify
     @Slot(QJsonValue)
-    def storeGridLayout(self, layout: dict) -> None:
+    def storeGridLayout(self, layout: QJsonValue) -> None:
         print("PY storeGridLayout")
-        self.m.store_grid_layout(layout)
+        l = layout.toObject()
+        print(json.dumps(l))
+        self.m.items = l
 
     def set_appearance(self, palette):
         if palette != self.palette:
@@ -146,9 +159,9 @@ class WVController(QObject):
     @Slot(str)
     def removeItem(self, item_id):
         print(f"PY removeItem", item_id)
-        del self.components[item_id]
+        del self.m.components[item_id]
         try:
-            del self.items[item_id]
+            del self.m.items[item_id]
         except KeyError:
             # the items grid information is updated by 'storeGridLayout'
             # slot therefore self.items should be already empty
@@ -161,14 +174,13 @@ class WVController(QObject):
     def plot_all_components(self):
         pass
 
-    @pythonify
     @Slot(str, QJsonValue)
     def onChartLayoutChange(self, item_id, ranges):
         """ Handle chart resize interaction. """
         chart = self.m.fetch_component(item_id)
-        chart.ranges = ranges
+        chart.ranges = ranges.toObject()
 
-    def add_new_traces(self, item_id: str) -> None:
+    def add_new_traces(self, item_id: str, type_: str) -> None:
         """ Process raw pd.DataFrame and store the data. """
         df = self.m.get_results(include_interval=True, include_id=False)
 
@@ -177,57 +189,44 @@ class WVController(QObject):
 
         for col_ix, val_sr in df.iteritems():
             trace_id = self.gen_trace_id()
-            color = next(self.color_gen)
+            color = next(self.color_generator)
             total_value = float(totals_sr.loc[col_ix])
             file_name, interval, key, variable, units = col_ix
 
-            args = (item_id, trace_id, file_name, interval,
-                    key, variable, units, val_sr.tolist(), total_value,
-                    timestamps, color)
-            kwargs = {"priority": "normal", "type_": self.type_}
+            self.m.traces.append(Trace(item_id, trace_id, file_name, interval,
+                                       key, variable, units, val_sr.tolist(),
+                                       total_value, timestamps, color, type_=type_))
 
-            self.m.add_trace(trace_id, Trace(*args, **kwargs))
+            self.update_component(item_id)
 
-        plot = self.plot_component(item_id)
-
-        if plot:
-            self.componentUpdated(item_id, plot)
-
-    @Slot(str)
-    def onTraceDropped(self, item_id):
-        func = self.add_new_traces
-        self.thread_pool.start(Worker(func, item_id))
+    @Slot(str, str)
+    def onTraceDropped(self, item_id, chart_type):
+        self.thread_pool.start(Worker(self.add_new_traces, item_id, chart_type))
 
     @Slot(str, str)
     def updateChartType(self, item_id, chart_type):
         print(f"PY updateChartType {chart_type}")
 
         chart = self.m.components[item_id]
-        chart.type = chart_type
+        chart.type_ = chart_type
 
         traces = self.m.fetch_traces(item_id)
         for trace in traces:
             trace.type_ = chart_type
 
-        plot = self.plot_component(chart)
-
-        if plot:
-            self.componentUpdated.emit(item_id, plot)
-
-    @Slot(str, str)
-    def onTraceHover(self, item_id, trace_id):
-        pass
+        self.update_component(item_id)
 
     @Slot(str, str)
     def onTraceClick(self, item_id, trace_id):
-        chart = self.components[item_id]
-        update_dct = chart.handle_trace_selected(trace_id)
+        trace = self.m.fetch_trace(trace_id)
+        trace.selected = not trace.selected
 
-        self.componentUpdated.emit(item_id, update_dct, {}, [])
+        self.update_component(item_id)
 
     @Slot(str)
     def deleteSelectedTraces(self, item_id):
-        chart = self.components[item_id]
-        upd_dct, rm_dct, rm_traces = chart.delete_selected_traces()
+        for trace in self.m.fetch_traces(item_id):
+            if trace.selected:
+                self.m.traces.remove(trace)
 
-        self.componentUpdated.emit(item_id, upd_dct, rm_dct, rm_traces)
+        self.update_component(item_id)
