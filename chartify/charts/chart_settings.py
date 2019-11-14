@@ -7,15 +7,16 @@ import math
 
 def combine_traces(traces):
     """ Group multiple traces into a single one. """
-    values, labels, colors, trace_ids, priorities = [], [], [], [], []
+    values, labels, colors, trace_ids, priorities, selected = [], [], [], [], [], []
     for trace in traces:
         values.append(abs(trace.total_value))
         labels.append(trace.name)
         colors.append(trace.color)
         trace_ids.append(trace.trace_id)
         priorities.append(trace.priority)
+        selected.append(trace.selected)
 
-    return values, labels, colors, trace_ids, priorities
+    return values, labels, colors, trace_ids, priorities, selected
 
 
 def group_by_units(traces):

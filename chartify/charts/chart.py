@@ -8,7 +8,8 @@ def plot_pie_chart(traces, background_color):
                                          flat=True, is_square=True)
     data = []
     for x_dom, y_dom, traces in zip(x_doms, y_doms, groups.values()):
-        values, labels, colors, trace_ids, priorities = combine_traces(traces)
+        (values, labels, colors, trace_ids,
+         priorities, selected) = combine_traces(traces)
         data.append({
             "type": "pie",
             "opacity": 1,
@@ -18,6 +19,7 @@ def plot_pie_chart(traces, background_color):
             "hole": 0,
             "values": values,
             "labels": labels,
+            "selected": selected,
             "domain": {
                 "x": x_dom,
                 "y": y_dom
