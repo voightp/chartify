@@ -79,9 +79,9 @@ class WVController(QObject):
         component = self.m.components[item_id]
         palette = self.m.fetch_palette(Settings.PALETTE_NAME)
 
-        line_color = palette.get_color("PRIMARY_TEXT_COLOR", as_tuple=True)
-        grid_color = palette.get_color("PRIMARY_TEXT_COLOR", opacity=0.3, as_tuple=True)
-        background_color = palette.get_color("BACKGROUND_COLOR", as_tuple=True)
+        line_color = palette.get_color("PRIMARY_TEXT_COLOR")
+        grid_color = palette.get_color("PRIMARY_TEXT_COLOR", opacity=0.3)
+        background_color = palette.get_color("BACKGROUND_COLOR")
 
         if isinstance(component, Chart):
             traces = self.m.fetch_traces(component.item_id)

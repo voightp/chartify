@@ -77,6 +77,8 @@ def get_pie_appearance(priorities, colors, background_color):
         "normal": 0.7,
         "high": 1
     }
+    if isinstance(background_color, str):
+        background_color = parse_color(background_color)
 
     new_colors = []
     for p, c in zip(priorities, colors):

@@ -2,11 +2,11 @@ from chartify.settings import Settings
 from chartify.view.css_theme import parse_palette
 
 from eso_reader.eso_file import get_results
-from PySide2.QtCore import Signal
+from PySide2.QtCore import Signal, QObject
 import pandas as pd
 
 
-class AppModel:
+class AppModel(QObject):
     """
     A class which holds and provides access to the
     application database.
@@ -18,6 +18,7 @@ class AppModel:
     appearanceUpdateRequested = Signal(dict)
 
     def __init__(self):
+        super().__init__()
         # ~~~~ File Database ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.database = {}
 
