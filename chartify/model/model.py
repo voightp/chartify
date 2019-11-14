@@ -2,6 +2,7 @@ from chartify.settings import Settings
 from chartify.view.css_theme import parse_palette
 
 from eso_reader.eso_file import get_results
+from PySide2.QtCore import Signal
 import pandas as pd
 
 
@@ -14,6 +15,7 @@ class AppModel:
     as a standard python  dictionary at the moment.
 
     """
+    appearanceUpdateRequested = Signal(dict)
 
     def __init__(self):
         # ~~~~ File Database ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

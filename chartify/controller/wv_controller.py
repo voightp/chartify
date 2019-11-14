@@ -30,7 +30,7 @@ class WVController(QObject):
     web view instance and core application.
 
     """
-    appearanceUpdated = Signal(bool, "QVariantMap", "QVariantMap")
+    appearanceUpdated = Signal("QVariantMap", "QVariantMap")
     componentUpdated = Signal(str, "QVariantMap")
     componentAdded = Signal(str, "QVariantMap", "QVariantMap")
 
@@ -54,6 +54,7 @@ class WVController(QObject):
         self.wv.setAcceptDrops(True)
 
         self.thread_pool = QThreadPool()
+        self.m.appearanceUpdateRequested.connect(self.on_appearance_updated)
 
     def gen_trace_id(self) -> str:
         """ Generate unique trace id. """
@@ -124,16 +125,13 @@ class WVController(QObject):
         print(json.dumps(l))
         self.m.items = l
 
-    def set_appearance(self, palette):
-        if palette != self.palette:
-            update_dct = {}
-            colors = palette.get_all_colors()
+    def on_appearance_updated(self, colors):
+        components = {}
+        for id_ in self.m.components.keys():
+            component = self.plot_component(id_)
+            components[id_] = component
 
-            for id_, component in self.components.items():
-                dct = component.set_layout_colors(palette)
-                update_dct[id_] = {"layout": dct}
-
-            self.appearanceUpdated.emit(colors, update_dct)
+        self.appearanceUpdated.emit(components, colors)
 
     @Slot()
     def onConnectionInitialized(self):

@@ -89,6 +89,8 @@ class AppController:
         self.v.load_scheme_btn_icons(self.m.palettes)
         self.v.load_icons(c1, c2)
 
+        self.m.appearanceUpdateRequested.emit(palette.get_all_colors())
+
     def connect_view_signals(self):
         """ Connect view signals. """
         self.v.paletteUpdateRequested.connect(self.update_appearance)
