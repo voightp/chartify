@@ -64,11 +64,6 @@ class WVController(QObject):
 
         self.appearanceUpdated.emit(components, colors)
 
-    @Slot()
-    def onConnectionInitialized(self):
-        colors = self.m.palettes[Settings.PALETTE_NAME].get_all_colors()
-        self.on_appearance_updated(colors)
-
     def gen_trace_id(self) -> str:
         """ Generate unique trace id. """
         while True:
@@ -112,54 +107,6 @@ class WVController(QObject):
         if component:
             self.componentUpdated.emit(item_id, component)
 
-    @Slot(str)
-    def addNewChart(self, chart_type: str) -> None:
-        """ Handle new 'chart' object request. """
-        print(f"PY addNewChart {chart_type}")
-
-        # create reference ids to backtrack user
-        # interaction with layout elements on the UI
-        item_id, frame_id, chart_id = self.gen_component_ids("chart")
-
-        component = Chart(item_id, chart_id, chart_type)
-        item = generate_grid_item(frame_id, "chart")
-
-        self.m.components[item_id] = component
-        self.m.items[item_id] = item
-
-        plot = self.plot_component(item_id)
-
-        if plot:
-            self.componentAdded.emit(item_id, item, plot)
-
-    @Slot(QJsonValue)
-    def storeGridLayout(self, layout: QJsonValue) -> None:
-        print("PY storeGridLayout")
-        l = layout.toObject()
-        print(json.dumps(l))
-        self.m.items = l
-
-    @Slot(str)
-    def removeItem(self, item_id):
-        print(f"PY removeItem", item_id)
-        del self.m.components[item_id]
-        try:
-            del self.m.items[item_id]
-        except KeyError:
-            # the items grid information is updated by 'storeGridLayout'
-            # slot therefore self.items should be already empty
-            pass
-
-    @Slot(str)
-    def addTextArea(self):
-        pass
-
-    @Slot(str, QJsonValue)
-    def onChartLayoutChange(self, item_id, ranges):
-        """ Handle chart resize interaction. """
-        chart = self.m.fetch_component(item_id)
-        chart.ranges = ranges.toObject()
-
     def add_new_traces(self, item_id: str, type_: str) -> None:
         """ Process raw pd.DataFrame and store the data. """
         df = self.m.get_results(include_interval=True, include_id=False)
@@ -179,12 +126,67 @@ class WVController(QObject):
 
         self.update_component(item_id)
 
-    @Slot(str, str)
-    def onTraceDropped(self, item_id, chart_type):
-        self.thread_pool.start(Worker(self.add_new_traces, item_id, chart_type))
+    @Slot(str)
+    def onNewChartRequested(self, chart_type: str) -> None:
+        """ Handle new 'chart' object request. """
+        print(f"PY addNewChart {chart_type}")
+
+        # create reference ids to backtrack user
+        # interaction with layout elements on the UI
+        item_id, frame_id, chart_id = self.gen_component_ids("chart")
+
+        component = Chart(item_id, chart_id, chart_type)
+        item = generate_grid_item(frame_id, "chart")
+
+        self.m.components[item_id] = component
+        self.m.items[item_id] = item
+
+        plot = self.plot_component(item_id)
+
+        if plot:
+            self.componentAdded.emit(item_id, item, plot)
+
+    @Slot()
+    def onConnectionInitialized(self):
+        colors = self.m.palettes[Settings.PALETTE_NAME].get_all_colors()
+        self.on_appearance_updated(colors)
+
+    @Slot(str)
+    def onItemRemoved(self, item_id):
+        print(f"PY removeItem", item_id)
+        del self.m.components[item_id]
+        try:
+            del self.m.items[item_id]
+        except KeyError:
+            # grid information should be updated by 'storeGridLayout'
+            pass
+
+    @Slot(str, QJsonValue)
+    def onChartLayoutChanged(self, item_id, layout):
+        """ Handle chart resize interaction. """
+        chart = self.m.fetch_component(item_id)
+        layout = layout.toObject()
+
+        chart.ranges_x = {}
+        chart.ranges_y = {}
+
+        if self.m.fetch_traces(item_id):
+            # only store data for non empty layouts as this would
+            # introduce unwanted zoom effect when adding initial traces
+            for k, v in layout.items():
+                if "xaxis" in k:
+                    chart.ranges_x[k] = layout[k]["range"]
+
+                elif "yaxis" in k:
+                    chart.ranges_y[k] = layout[k]["range"]
+
+    @Slot(QJsonValue)
+    def onGridLayoutChanged(self, layout: QJsonValue) -> None:
+        print("PY storeGridLayout")
+        self.m.items = layout.toObject()
 
     @Slot(str, str)
-    def updateChartType(self, item_id, chart_type):
+    def onChartTypeUpdated(self, item_id, chart_type):
         print(f"PY updateChartType {chart_type}")
 
         chart = self.m.components[item_id]
@@ -197,6 +199,10 @@ class WVController(QObject):
         self.update_component(item_id)
 
     @Slot(str, str)
+    def onTraceDropped(self, item_id, chart_type):
+        self.thread_pool.start(Worker(self.add_new_traces, item_id, chart_type))
+
+    @Slot(str, str)
     def onTraceClick(self, item_id, trace_id):
         trace = self.m.fetch_trace(trace_id)
         trace.selected = not trace.selected
@@ -204,7 +210,7 @@ class WVController(QObject):
         self.update_component(item_id)
 
     @Slot(str)
-    def deleteSelectedTraces(self, item_id):
+    def onTracesDeleted(self, item_id):
         for trace in self.m.fetch_traces(item_id):
             if trace.selected:
                 self.m.traces.remove(trace)

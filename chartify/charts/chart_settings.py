@@ -363,7 +363,7 @@ def set_yaxes_positions(yaxes, increment):
 
 
 def get_yaxis_settings(n, line_color, grid_color, increment=0.1,
-                       titles=None, y_domains=None, range_y=None):
+                       titles=None, y_domains=None, ranges_y=None):
     shared_attributes = {
         "color": line_color,
         "linecolor": line_color,
@@ -401,11 +401,11 @@ def get_yaxis_settings(n, line_color, grid_color, increment=0.1,
                         "side": "left"}
 
     for k in yaxes.keys():
+        if k in ranges_y.keys():
+            yaxes[k]["range"] = ranges_y[k]
+
         yaxes[k] = {**yaxes[k],
                     **shared_attributes}
-
-    if range_y:
-        yaxes["yaxis"]["range"] = range_y
 
     return yaxes
 
@@ -421,7 +421,7 @@ def get_shared_xdomain(n_yaxis, increment):
 
 
 def get_xaxis_settings(n_yaxis, line_color, grid_color, increment=0.1,
-                       x_domains=None, date_axis=True, range_x=None):
+                       x_domains=None, date_axis=True, ranges_x=None):
     shared_attributes = {
         "color": line_color,
         "linecolor": line_color,
@@ -454,8 +454,9 @@ def get_xaxis_settings(n_yaxis, line_color, grid_color, increment=0.1,
                          "anchor": "y" if i == 0 else f"y{i + 1}",
                          **shared_attributes}
 
-    if range_x:
-        xaxes["xaxis"]["range"] = range_x
+    for k in ranges_x.keys():
+        if k in xaxes.keys():
+            xaxes[k]["range"] = ranges_x[k]
 
     return xaxes
 
