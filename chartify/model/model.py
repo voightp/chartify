@@ -2,14 +2,13 @@ from chartify.settings import Settings
 from chartify.view.css_theme import parse_palette, Palette
 from chartify.charts.trace import Trace
 from chartify.charts.chart import Chart
+from chartify.utils.typehints import ResultsFile
 
-from eso_reader.eso_file import get_results, BaseResultsFile
+from eso_reader.eso_file import get_results
 from PySide2.QtCore import Signal, QObject
 
-from typing import List, Union, Type
+from typing import List, Union
 import pandas as pd
-
-File = Type[BaseResultsFile]
 
 
 class AppModel(QObject):
@@ -96,7 +95,7 @@ class AppModel(QObject):
         except KeyError:
             raise KeyError(f"Cannot find palette '{name}'.")
 
-    def fetch_file(self, set_id: str) -> File:
+    def fetch_file(self, set_id: str) -> ResultsFile:
         """ Fetch a single file from the database. """
         file_id = f"t{set_id}" if Settings.TOTALS else f"s{set_id}"
         try:
@@ -104,7 +103,7 @@ class AppModel(QObject):
         except KeyError:
             raise KeyError(f"Cannot find file {file_id} in database!")
 
-    def fetch_files(self, *args: str) -> List[File]:
+    def fetch_files(self, *args: str) -> List[ResultsFile]:
         """ Fetch multiple files from the database. """
         files = []
         for set_id in args:
@@ -113,7 +112,7 @@ class AppModel(QObject):
                 files.append(f)
         return files
 
-    def fetch_all_files(self) -> List[File]:
+    def fetch_all_files(self) -> List[ResultsFile]:
         """ Fetch all files from the database. """
         files = []
         for set_id in self.get_all_set_ids():
@@ -172,7 +171,7 @@ class AppModel(QObject):
         self.rename_file(f"s{set_id}", name)
         self.rename_file(f"t{set_id}", totals_name)
 
-    def add_file(self, file_id: str, file: File) -> None:
+    def add_file(self, file_id: str, file: ResultsFile) -> None:
         """ Add processed results file to the database. """
         try:
             self.database[file_id] = file

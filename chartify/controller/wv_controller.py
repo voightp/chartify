@@ -1,9 +1,8 @@
 from PySide2.QtCore import (QObject, Slot, Signal, QJsonValue, QJsonArray,
                             QUrl, QThreadPool)
-from PySide2.QtWebEngineWidgets import QWebEnginePage
+from PySide2.QtWebEngineWidgets import QWebEnginePage, QWebEngineView
 from PySide2 import QtWebChannel
 
-from functools import partial
 from chartify.charts.chart import Chart
 from chartify.charts.chart_settings import generate_grid_item, color_generator
 from chartify.utils.utils import int_generator, calculate_totals
@@ -13,7 +12,7 @@ from chartify.model.model import AppModel
 from chartify.controller.threads import Worker
 import json
 
-from typing import Tuple
+from typing import Tuple, List
 
 
 class MyPage(QWebEnginePage):
@@ -38,7 +37,7 @@ class WVController(QObject):
     item_counter = int_generator()
     color_generator = color_generator()
 
-    def __init__(self, model: AppModel, web_view):
+    def __init__(self, model: AppModel, web_view: QWebEngineView):
         super().__init__()
         self.m = model
         self.wv = web_view
@@ -54,9 +53,10 @@ class WVController(QObject):
         self.wv.setAcceptDrops(True)
 
         self.thread_pool = QThreadPool()
-        self.m.appearanceUpdateRequested.connect(self.on_appearance_updated)
+        self.m.appearanceUpdateRequested.connect(self.handle_appearance_update)
 
-    def on_appearance_updated(self, colors):
+    def handle_appearance_update(self, colors: List[tuple]):
+        """ """
         components = {}
         for id_ in self.m.components.keys():
             component = self.plot_component(id_)
@@ -130,7 +130,6 @@ class WVController(QObject):
     def onNewChartRequested(self, chart_type: str) -> None:
         """ Handle new 'chart' object request. """
         print(f"PY addNewChart {chart_type}")
-
         # create reference ids to backtrack user
         # interaction with layout elements on the UI
         item_id, frame_id, chart_id = self.gen_component_ids("chart")
@@ -147,12 +146,14 @@ class WVController(QObject):
             self.componentAdded.emit(item_id, item, plot)
 
     @Slot()
-    def onConnectionInitialized(self):
+    def onConnectionInitialized(self) -> None:
+        """ Callback from the webview after initialized. """
         colors = self.m.palettes[Settings.PALETTE_NAME].get_all_colors()
-        self.on_appearance_updated(colors)
+        self.handle_appearance_update(colors)
 
     @Slot(str)
-    def onItemRemoved(self, item_id):
+    def onItemRemoved(self, item_id: str) -> None:
+        """ Remove component from app model. """
         print(f"PY removeItem", item_id)
         del self.m.components[item_id]
         try:
@@ -162,7 +163,7 @@ class WVController(QObject):
             pass
 
     @Slot(str, QJsonValue)
-    def onChartLayoutChanged(self, item_id, layout):
+    def onChartLayoutChanged(self, item_id: str, layout: QJsonValue) -> None:
         """ Handle chart resize interaction. """
         chart = self.m.fetch_component(item_id)
         layout = layout.toObject()
@@ -182,13 +183,13 @@ class WVController(QObject):
 
     @Slot(QJsonValue)
     def onGridLayoutChanged(self, layout: QJsonValue) -> None:
-        print("PY storeGridLayout")
+        """ Store current grid layout. """
         self.m.items = layout.toObject()
 
     @Slot(str, str)
-    def onChartTypeUpdated(self, item_id, chart_type):
+    def onChartTypeUpdated(self, item_id: str, chart_type: str) -> None:
+        """ Update chart type for given chart. """
         print(f"PY updateChartType {chart_type}")
-
         chart = self.m.components[item_id]
         chart.type_ = chart_type
 
@@ -199,18 +200,21 @@ class WVController(QObject):
         self.update_component(item_id)
 
     @Slot(str, str)
-    def onTraceDropped(self, item_id, chart_type):
+    def onTraceDropped(self, item_id: str, chart_type: str) -> None:
+        """ Handle trace webview trace drop. """
         self.thread_pool.start(Worker(self.add_new_traces, item_id, chart_type))
 
     @Slot(str, str)
-    def onTraceClick(self, item_id, trace_id):
+    def onTraceClick(self, item_id: str, trace_id: str) -> None:
+        """ Handle trace webview trace click. """
         trace = self.m.fetch_trace(trace_id)
         trace.selected = not trace.selected
 
         self.update_component(item_id)
 
     @Slot(str)
-    def onTracesDeleted(self, item_id):
+    def onTracesDeleted(self, item_id: str) -> None:
+        """ Remove selected traces from app model. """
         for trace in self.m.fetch_traces(item_id):
             if trace.selected:
                 self.m.traces.remove(trace)

@@ -87,22 +87,22 @@ class Palette:
             print(f"Cannot get color for color key '{color_key}' is it's not "
                   f"available, use one of: '{colors_str}'.")
 
-    def get_all_colors(self):
+    def get_all_colors(self, as_tuple=False):
         """ Get all colors key, color dict (color as string). """
         dct = {}
         for k in self.colors_dct.keys():
-            dct[k] = self.get_color(k)
+            dct[k] = self.get_color(k, as_tuple=as_tuple)
         return dct
 
     def set_color(self, **kwargs):
         """ Set specified colors as 'color_key : color' pairs. """
-        try:
-            for k, v in kwargs.items():
+        for k, v in kwargs.items():
+            try:
                 self.colors_dct[k] = v
-        except KeyError:
-            colors_str = ", ".join(self.colors)
-            print(f"Cannot set color '{v}', color key '{k}' is not "
-                  f"available, use one of: '{colors_str}'.")
+            except KeyError:
+                colors_str = ", ".join(self.colors)
+                print(f"Cannot set color '{v}', color key '{k}' is not "
+                      f"available, use one of: '{colors_str}'.")
 
 
 class CssTheme:
