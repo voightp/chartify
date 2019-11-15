@@ -1,9 +1,15 @@
 from chartify.settings import Settings
-from chartify.view.css_theme import parse_palette
+from chartify.view.css_theme import parse_palette, Palette
+from chartify.charts.trace import Trace
+from chartify.charts.chart import Chart
 
-from eso_reader.eso_file import get_results
+from eso_reader.eso_file import get_results, BaseResultsFile
 from PySide2.QtCore import Signal, QObject
+
+from typing import List, Union, Type
 import pandas as pd
+
+File = Type[BaseResultsFile]
 
 
 class AppModel(QObject):
@@ -53,17 +59,17 @@ class AppModel(QObject):
 
         return get_results(*args, **kwargs)
 
-    def fetch_all_trace_ids(self):
+    def fetch_all_trace_ids(self) -> List[str]:
         """ Get all used trace ids. """
         return [trace.trace_id for trace in self.traces]
 
-    def fetch_trace(self, trace_id):
+    def fetch_trace(self, trace_id: str) -> Trace:
         """ Get trace of a given id. """
         for trace in self.traces:
             if trace.trace_id == trace_id:
                 return trace
 
-    def fetch_traces(self, item_id):
+    def fetch_traces(self, item_id: str) -> List[Trace]:
         """ Get traces assigned for a given item. """
         traces = []
         for trace in self.traces:
@@ -72,104 +78,103 @@ class AppModel(QObject):
 
         return traces
 
-    def fetch_all_item_ids(self):
+    def fetch_all_item_ids(self) -> List[str]:
         """ Get all used item ids. """
         return list(self.items.keys())
 
-    def fetch_component(self, item_id):
+    def fetch_component(self, item_id: str) -> Union[Chart]:
         """ Get displayed object from the database."""
         try:
             return self.components[item_id]
         except KeyError:
             raise KeyError(f"Cannot find component '{item_id}'.")
 
-    def fetch_palette(self, name):
+    def fetch_palette(self, name: str) -> Palette:
         """ Get 'Palette' object with a specified name. """
         try:
             return self.palettes[name]
         except KeyError:
             raise KeyError(f"Cannot find palette '{name}'.")
 
-    def fetch_file(self, id_):
+    def fetch_file(self, set_id: str) -> File:
         """ Fetch a single file from the database. """
-        id_ = f"t{id_}" if Settings.TOTALS else f"s{id_}"
+        file_id = f"t{set_id}" if Settings.TOTALS else f"s{set_id}"
         try:
-            return self.database[id_]
+            return self.database[file_id]
         except KeyError:
-            raise KeyError(f"Cannot find file {id_} in database!")
+            raise KeyError(f"Cannot find file {file_id} in database!")
 
-    def fetch_files(self, *args):
+    def fetch_files(self, *args: str) -> List[File]:
         """ Fetch multiple files from the database. """
         files = []
-        for id_ in args:
-            f = self.fetch_file(id_)
+        for set_id in args:
+            f = self.fetch_file(set_id)
             if f:
                 files.append(f)
         return files
 
-    def fetch_all_files(self):
+    def fetch_all_files(self) -> List[File]:
         """ Fetch all files from the database. """
         files = []
-        for id_ in self.get_all_set_ids():
-            f = self.fetch_file(id_)
+        for set_id in self.get_all_set_ids():
+            f = self.fetch_file(set_id)
             if f:
                 files.append(f)
         return files
 
-    def fetch_file_header_variables(self, id_, interval):
+    def fetch_header_variables(self, set_id: str, interval: str) -> List[tuple]:
         """ Fetch a file header variables for a given interval. """
-        file = self.fetch_file(id_)
+        file = self.fetch_file(set_id)
         if file:
             return list(file.header_dct[interval].values())
 
-    def get_all_file_ids(self):
+    def get_all_file_ids(self) -> List[str]:
         """ Return all file ids for a current state. """
         ids = []
-        for id_ in self.database.keys():
-            if id_.startswith("t" if Settings.TOTALS else "s"):
-                ids.append(id_)
+        for file_id in self.database.keys():
+            if file_id.startswith("t" if Settings.TOTALS else "s"):
+                ids.append(file_id)
         return ids
 
-    def get_all_set_ids(self):
+    def get_all_set_ids(self) -> List[str]:
         """ Get a list of already used ids (without s,t identifier). """
         return [id_[1:] for id_ in self.get_all_file_ids()]
 
-    def get_all_file_names(self):
+    def get_all_file_names(self) -> List[str]:
         """ Get all used file names. """
         return [f.file_name for f in self.database.values()]
 
-    def delete_file(self, id_):
+    def delete_file(self, file_id: str) -> None:
         """ Delete file from the database. """
         try:
-            print(f"Deleting file id: '{id_}' from the database.")
-            del self.database[id_]
+            del self.database[file_id]
         except KeyError:
-            print(f"Cannot delete set: id '{id_}',"
+            print(f"Cannot delete file: id '{file_id}',"
                   f"\nFile was not found in the database.")
 
-    def delete_sets(self, *args):
+    def delete_sets(self, *args: str) -> None:
         """ Delete specified sets from the database. """
-        for id_ in args:
-            self.delete_file(f"s{id_}")
-            self.delete_file(f"t{id_}")
+        for set_id in args:
+            self.delete_file(f"s{set_id}")
+            self.delete_file(f"t{set_id}")
 
-    def rename_file(self, id_, name):
-        """ Rename file in the databases. """
+    def rename_file(self, file_id: str, name: str):
+        """ Rename given file. """
         try:
-            file = self.fetch_file(id_)
+            file = self.database[file_id]
             file.rename(name)
         except KeyError:
-            print(f"Cannot rename file: id '{id_}',"
+            print(f"Cannot rename file: '{file_id}',"
                   f"\nFile was not found in database.")
 
-    def rename_set(self, id_, name, totals_name):
+    def rename_set(self, set_id: str, name: str, totals_name: str):
         """ Rename a file set in the database. """
-        self.rename_file(self.fetch_file(f"s{id_}"), name)
-        self.rename_file(self.fetch_file(f"s{id_}"), totals_name)
+        self.rename_file(f"s{set_id}", name)
+        self.rename_file(f"t{set_id}", totals_name)
 
-    def add_file(self, id_, file):
+    def add_file(self, file_id: str, file: File) -> None:
         """ Add processed results file to the database. """
         try:
-            self.database[id_] = file
+            self.database[file_id] = file
         except BrokenPipeError:
             print("Application has been closed - catching broken pipe!")
