@@ -1,10 +1,96 @@
 from collections import defaultdict
+from chartify.view.icons import combine_colors
+from chartify.view.css_theme import parse_color
 import copy
 import math
 
-SIMPLE = ("scatter", "bar", "line")
-STATISTICAL_CHARTS = ("box", "histogram")
-ONE_DIM_CHARTS = ("pie")
+
+def combine_traces(traces):
+    """ Group multiple traces into a single one. """
+    values, labels, colors, trace_ids, priorities, selected = [], [], [], [], [], []
+    for trace in traces:
+        values.append(abs(trace.total_value))
+        labels.append(trace.name)
+        colors.append(trace.color)
+        trace_ids.append(trace.trace_id)
+        priorities.append(trace.priority)
+        selected.append(trace.selected)
+
+    return values, labels, colors, trace_ids, priorities, selected
+
+
+def group_by_units(traces):
+    """ Group units as dict with units as keys. """
+    groups = defaultdict(list)
+    for trace in traces:
+        groups[trace.units].append(trace)
+    return groups
+
+
+def get_all_units(traces):
+    """ Get a list of all used units. """
+    full = [tr.units for tr in traces]
+    setlist = []
+    for e in full:
+        if e not in setlist:
+            setlist.append(e)
+    return setlist
+
+
+def get_axis_inputs(type_, values, timestamps, xaxis, yaxis):
+    props = {
+        "scatter": {
+            "x": timestamps,
+            "y": values,
+            "xaxis": xaxis,
+            "yaxis": yaxis,
+        },
+        "bubble": {
+            "x": timestamps,
+            "y": values,
+            "xaxis": xaxis,
+            "yaxis": yaxis,
+        },
+        "histogram": {
+            "type": "hist",
+            "y": values,
+            "xaxis": xaxis,
+            "yaxis": yaxis,
+        },
+        "box": {
+            "type": "box",
+            "y": values,
+            "xaxis": xaxis,
+            "yaxis": yaxis,
+        },
+    }
+
+    if type_ in ["scatter", "bar", "line"]:
+        type_ = "scatter"
+
+    return props[type_]
+
+
+def get_pie_appearance(priorities, colors, background_color):
+    weights = {
+        "low": 0.3,
+        "normal": 0.7,
+        "high": 1
+    }
+    if isinstance(background_color, str):
+        background_color = parse_color(background_color)
+
+    new_colors = []
+    for p, c in zip(priorities, colors):
+        if isinstance(c, str):
+            c = parse_color(c)
+        new_colors.append(combine_colors(c, background_color, weights[p]))
+
+    return {
+        "marker": {
+            "colors": new_colors,
+        },
+    }
 
 
 def get_appearance(type_, color, priority="normal"):
@@ -32,6 +118,9 @@ def get_appearance(type_, color, priority="normal"):
 
     props = {
         "scatter": {
+            "type": "scattergl",
+            "mode": "markers",
+            "hoverinfo": "all",
             "marker": {
                 "size": weights[priority]["markerSize"],
                 "color": color,
@@ -39,6 +128,9 @@ def get_appearance(type_, color, priority="normal"):
             }
         },
         "line": {
+            "type": "scattergl",
+            "mode": "lines+markers",
+            "hoverinfo": "all",
             "marker": {
                 "size": weights[priority]["markerSize"],
                 "color": color,
@@ -51,18 +143,19 @@ def get_appearance(type_, color, priority="normal"):
 
         },
         "bar": {
-
+            "type": "bar",
+            "hoverinfo": "all",
         },
         "bubble": {
 
         },
-        "pie": {
-
-        },
         "histogram": {
-
+            "type": "hist",
+            "hoverinfo": "name+y",
         },
         "box": {
+            "type": "box",
+            "hoverinfo": "name+y",
             "jitter": 0.5,
             "boxpoints": "false",  # all | outliers |suspectedoutliers | false
             "whiskerwidth": 0.2,
@@ -88,6 +181,8 @@ config = {
 x_axis_dct = {
     "xaxis": {
         "domain": [0, 1],
+        "autorange": True,
+        "type": "linear",
         "rangeselector": {
             "y": 1.05,
             "yanchor": "top",
@@ -122,7 +217,7 @@ x_axis_dct = {
     },
 }
 
-layout_dct = {
+base_layout = {
     "autosize": True,
     "hovermode": "closest",
     "modebar": {
@@ -133,18 +228,6 @@ layout_dct = {
     "paper_bgcolor": "transparent",
     "plot_bgcolor": "transparent",
     "showlegend": False,
-    "xaxis": {
-        "autorange": True,
-        "range": [],
-        "type": "linear",
-    },
-    "yaxis": {
-        "autorange": True,
-        "range": [],
-        "rangemode": "tozero",
-        "type": "linear",
-        "side": "left",
-    },
     "margin": {
         "l": 50,
         "t": 50,
@@ -175,7 +258,7 @@ def color_generator(i=0):
         i += 1
 
 
-def get_item(frame_id, type_):
+def generate_grid_item(frame_id, type_):
     shared = {
         "i": frame_id,
         "x": 0,
@@ -227,7 +310,7 @@ def dom_gen(n, gap):
         start = end + gap
 
 
-def gen_dom_matrices(items, gap=0.05, max_columns=3, flat=True, is_square=True):
+def gen_domain_matrices(items, gap=0.05, max_columns=3, flat=True, is_square=True):
     ref_matrix = gen_ref_matrix(items, max_columns, is_square)
 
     x_dom_mx = copy.deepcopy(ref_matrix)
@@ -249,21 +332,21 @@ def gen_dom_matrices(items, gap=0.05, max_columns=3, flat=True, is_square=True):
     return x_dom_mx, y_dom_mx
 
 
-def add_shared_yaxis_data(yaxis_dct, increment):
+def set_yaxes_positions(yaxes, increment):
     # modify gaps between y axes, initial domain is [0, 1]
     s = 0
     e = 1 + increment
 
-    for i, k in enumerate(yaxis_dct.keys()):
+    for i, k in enumerate(yaxes.keys()):
 
         # skip first y axis as this axis is a 'base' one
         # and has its settings defined in default layout
         if i == 0:
             continue
 
-        yaxis_dct[k] = {**yaxis_dct[k],
-                        "anchor": "free",
-                        "overlaying": "y"}
+        yaxes[k] = {**yaxes[k],
+                    "anchor": "free",
+                    "overlaying": "y"}
         j = i % 2
 
         if j == 0:
@@ -273,21 +356,19 @@ def add_shared_yaxis_data(yaxis_dct, increment):
             e -= increment
             pos = round(e, 2)
 
-        yaxis_dct[k]["position"] = pos
-        yaxis_dct[k]["side"] = "left" if j == 0 else "right"
+        yaxes[k]["position"] = pos
+        yaxes[k]["side"] = "left" if j == 0 else "right"
+
+    return yaxes
 
 
-def get_yaxis_settings(n=1, increment=0.1, titles=None,
-                       y_domains=None, palette=None):
-    dct = defaultdict(dict)
-    c1 = palette.get_color("PRIMARY_COLOR")
-    c2 = palette.get_color("PRIMARY_COLOR", 0.3)
-
-    shared = {
-        "color": c1,
-        "linecolor": c1,
-        "zerolinecolor": c1,
-        "gridcolor": c2,
+def get_yaxis_settings(n, line_color, grid_color, increment=0.1,
+                       titles=None, y_domains=None, ranges_y=None):
+    shared_attributes = {
+        "color": line_color,
+        "linecolor": line_color,
+        "zerolinecolor": line_color,
+        "gridcolor": grid_color,
         "showline": True,
         "linewidth": 1,
         "showgrid": True,
@@ -296,24 +377,37 @@ def get_yaxis_settings(n=1, increment=0.1, titles=None,
         "zerolinewidth": 2
     }
 
+    if n == 0:
+        return {"yaxis": shared_attributes}
+
+    yaxes = defaultdict(dict)
+
     for i in range(n):
         nm = "yaxis" if i == 0 else f"yaxis{i + 1}"
 
         if titles:
-            dct[nm]["title"] = titles[i]
+            yaxes[nm]["title"] = titles[i]
 
-        dct[nm]["rangemode"] = "tozero"
+        yaxes[nm]["rangemode"] = "tozero"
+        yaxes[nm]["type"] = "linear"
 
     if not y_domains:
-        add_shared_yaxis_data(dct, increment)
+        yaxes = set_yaxes_positions(yaxes, increment)
     else:
-        for i, k in enumerate(dct.keys()):
-            dct[k] = {**dct[k],
-                      "domain": y_domains[i],
-                      "anchor": "x" if i == 0 else f"x{i + 1}",
-                      "side": "left",
-                      **shared}
-    return dct
+        for i, k in enumerate(yaxes.keys()):
+            yaxes[k] = {**yaxes[k],
+                        "domain": y_domains[i],
+                        "anchor": "x" if i == 0 else f"x{i + 1}",
+                        "side": "left"}
+
+    for k in yaxes.keys():
+        if k in ranges_y.keys():
+            yaxes[k]["range"] = ranges_y[k]
+
+        yaxes[k] = {**yaxes[k],
+                    **shared_attributes}
+
+    return yaxes
 
 
 def get_shared_xdomain(n_yaxis, increment):
@@ -326,20 +420,13 @@ def get_shared_xdomain(n_yaxis, increment):
     return domain
 
 
-def get_xaxis_settings(n_yaxis=1, increment=0.1, x_domains=None,
-                       chart_type="scatter", palette=None):
-    dct = defaultdict(dict)
-    types = ["scatter", "bar", "bubble", "line"]
-    axis_type = "date" if chart_type in types else "-"
-
-    c1 = palette.get_color("PRIMARY_COLOR")
-    c2 = palette.get_color("PRIMARY_COLOR", 0.3)
-
-    shared = {
-        "color": c1,
-        "linecolor": c1,
-        "gridcolor": c2,
-        "zerolinecolor": c1,
+def get_xaxis_settings(n_yaxis, line_color, grid_color, increment=0.1,
+                       x_domains=None, date_axis=True, ranges_x=None):
+    shared_attributes = {
+        "color": line_color,
+        "linecolor": line_color,
+        "zerolinecolor": line_color,
+        "gridcolor": grid_color,
         "showline": True,
         "linewidth": 1,
         "showgrid": True,
@@ -348,23 +435,30 @@ def get_xaxis_settings(n_yaxis=1, increment=0.1, x_domains=None,
         "zerolinewidth": 2
     }
 
+    xaxes = defaultdict(dict)
+    axis_type = "date" if date_axis else "-"
+
     if not x_domains:
         x_dom = get_shared_xdomain(n_yaxis, increment)
-        dct["xaxis"] = x_axis_dct["xaxis"]
-        dct["xaxis"] = {"domain": x_dom,
-                        "type": axis_type,
-                        **shared}
+        xaxes["xaxis"] = x_axis_dct["xaxis"]
+        xaxes["xaxis"] = {"domain": x_dom,
+                          "type": axis_type,
+                          **shared_attributes}
 
     else:
         for i in range(len(x_domains)):
             nm = "xaxis" if i == 0 else f"xaxis{i + 1}"
-            dct[nm] = {"side": "bottom",
-                       "type": axis_type,
-                       "domain": x_domains[i],
-                       "anchor": "y" if i == 0 else f"y{i + 1}",
-                       **shared}
+            xaxes[nm] = {"side": "bottom",
+                         "type": axis_type,
+                         "domain": x_domains[i],
+                         "anchor": "y" if i == 0 else f"y{i + 1}",
+                         **shared_attributes}
 
-    return dct
+    for k in ranges_x.keys():
+        if k in xaxes.keys():
+            xaxes[k]["range"] = ranges_x[k]
+
+    return xaxes
 
 
 def get_units_axis_dct(units_lst, axis="x"):

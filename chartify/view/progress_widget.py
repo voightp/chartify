@@ -1,45 +1,33 @@
-from PySide2.QtWidgets import QWidget, QLabel, QProgressBar, QStatusBar, \
-    QVBoxLayout, QSizePolicy, \
-    QPushButton, QHBoxLayout
+from PySide2.QtWidgets import (QWidget, QLabel, QProgressBar,
+                               QVBoxLayout, QSizePolicy,
+                               QPushButton, QHBoxLayout)
 from PySide2.QtCore import Signal, Qt
-from esopie.threads import MonitorThread
-
-
-class StatusBar(QStatusBar):
-    """
-    Wrapper class with added functionality to
-    display widgets with file processing progress.
-
-    """
-
-    def __init__(self, parent):
-        super().__init__(parent)
-        self.setFixedHeight(20)
 
 
 class ProgressContainer(QWidget):
     """
+
     A container to hold all progress widgets.
 
-    """
-    max_active_jobs = 5
-    child_width = 140
-    child_spacing = 3
+    All the currently processed files are stored as 'masks'.
+    Masks data is being updated using signals mechanism from
+    application controller.
 
-    def __init__(self, parent, queue):
+    """
+
+    MAX_VISIBLE_JOBS = 5
+    CHILD_SPACING = 3
+
+    def __init__(self, parent):
         super().__init__(parent)
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(self.child_spacing)
+        layout.setSpacing(self.CHILD_SPACING)
         layout.setAlignment(Qt.AlignLeft)
 
         self.files = {}
-
         self.widgets = self.create_widgets()
-        self.monitor = MonitorThread(queue)
-        self.connect_monitor_actions()
-        self.monitor.start()
 
     @property
     def sorted_files(self):
@@ -61,7 +49,7 @@ class ProgressContainer(QWidget):
     def create_widgets(self):
         """ Initialize progress widgets. """
         wgts = []
-        for i in range(self.max_active_jobs):
+        for i in range(self.MAX_VISIBLE_JOBS):
             wgt = ProgressWidget(self)
             wgt.remove.connect(self.remove_file)
             wgt.setVisible(False)
@@ -84,7 +72,7 @@ class ProgressContainer(QWidget):
         if i is None:
             # widget is in pending section, although it
             # can still be being processed on machines with
-            # number of cpu greater than max_active_jobs
+            # number of cpu greater than MAX_VISIBLE_JOBS
             vals = [v.rel_value for v in self.visible_files
                     if not isinstance(v, SummaryFile)]
             return any(map(lambda x: x < (file.rel_value + 3), vals))
@@ -93,22 +81,24 @@ class ProgressContainer(QWidget):
 
     def update_file_progress(self, id_, val):
         """ Update file progress. """
-        f = self.files[id_]
-        f.set_value(val)
+        try:
+            f = self.files[id_]
+            f.set_value(val)
 
-        i = self.visible_index(f)
-        if i is not None:
-            self.widgets[i].update_value()
+            i = self.visible_index(f)
+            if i is not None:
+                self.widgets[i].update_value()
 
-        # check if file visible position has changed
-        if self.position_changed(f):
-            self.update_bar()
+            if self.position_changed(f):
+                self.update_bar()
+        except KeyError:
+            pass
 
     def update_bar(self):
         """ Update progress widget display on the status bar. """
         files = self.sorted_files
         widgets = self.widgets
-        max_ = self.max_active_jobs
+        max_ = self.MAX_VISIBLE_JOBS
         n = len(files)
 
         fill = [None for _ in range(n, max_)]
@@ -136,12 +126,15 @@ class ProgressContainer(QWidget):
 
     def set_max_value(self, id_, max_value):
         """ Set up maximum progress value. """
-        f = self.files[id_]
-        f.set_maximum(max_value)
+        try:
+            f = self.files[id_]
+            f.set_maximum(max_value)
 
-        i = self.visible_index(f)
-        if i is not None:
-            self.widgets[i].update_max()
+            i = self.visible_index(f)
+            if i is not None:
+                self.widgets[i].update_max()
+        except KeyError:
+            pass
 
     def set_failed(self, id_):
         """ Set failed status on the given file. """
@@ -150,6 +143,16 @@ class ProgressContainer(QWidget):
         if i is not None:
             self.widgets[i].update_all_refs()
             self.widgets[i].set_failed_status()
+
+    def set_pending(self, id_):
+        """ Set pending status on the given file. """
+        try:
+            self.files[id_].set_pending()
+            i = self.visible_index(self.files[id_])
+            if i is not None:
+                self.widgets[i].update_all_refs()
+        except KeyError:
+            pass
 
     def remove_file(self, id_):
         """ Remove file from the container. """
@@ -165,16 +168,6 @@ class ProgressContainer(QWidget):
         """ Update text info for a given monitor. """
         pass  # TODO review if needed
         # self.status_bar.progressBars[monitor_id].setText(text)
-
-    def connect_monitor_actions(self):
-        """ Create monitor actions. """
-        self.monitor.initialized.connect(self.add_file)
-        self.monitor.started.connect(self.update_progress_text)
-        self.monitor.progress_text_updated.connect(self.update_progress_text)
-        self.monitor.progress_bar_updated.connect(self.update_file_progress)
-        self.monitor.preprocess_finished.connect(self.set_max_value)
-        self.monitor.finished.connect(self.remove_file)
-        self.monitor.failed.connect(self.set_failed)
 
 
 class ProgressFile:
@@ -218,6 +211,11 @@ class ProgressFile:
         """ Set current progress value. """
         self._value = val
 
+    def set_pending(self):
+        """ Set infinite pending value. """
+        self.set_value(0)
+        self.set_maximum(0)
+
     def set_failed(self):
         """ Set failed values. """
         self._failed = True
@@ -258,6 +256,8 @@ class ProgressWidget(QWidget):
     """
     remove = Signal(ProgressFile)
 
+    WIDTH = 140
+
     def __init__(self, parent):
         super().__init__(parent)
         self.file_ref = None
@@ -267,7 +267,7 @@ class ProgressWidget(QWidget):
         self.main_layout.setSpacing(1)
 
         self.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
-        self.setFixedWidth(ProgressContainer.child_width)
+        self.setFixedWidth(self.WIDTH)
         self.setProperty("failed", False)
 
         wgt = QWidget(self)

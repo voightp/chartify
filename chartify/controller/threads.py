@@ -1,14 +1,13 @@
 from PySide2.QtCore import QThread, Signal, QRunnable
 
 from eso_reader.monitor import DefaultMonitor
-from eso_reader.eso_file import EsoFile, get_results
+from eso_reader.eso_file import EsoFile
 from eso_reader.building_eso_file import BuildingEsoFile
 
 
 # noinspection PyUnresolvedReferences
-class MonitorThread(QThread):
-    progress_bar_updated = Signal(int, int)
-    progress_text_updated = Signal(int, str)
+class Monitor(QThread):
+    bar_updated = Signal(int, int)
     finished = Signal(int)
     preprocess_finished = Signal(int, int)
     started = Signal(int, str)
@@ -26,20 +25,18 @@ class MonitorThread(QThread):
 
             def send_initialized():
                 self.initialized.emit(mon_id, mon_name)
-                self.progress_text_updated.emit(mon_id, message)
 
             def send_started():
                 self.started.emit(mon_id, mon_name)
 
+            def send_preprocessing_finished():
+                self.preprocess_finished.emit(mon_id, monitor.n_steps)
+
             def send_finished():
                 self.finished.emit(mon_id)
 
-            def preprocessing_finished():
-                steps = monitor.n_steps
-                self.preprocess_finished.emit(mon_id, steps)
-
             def send_update_progress_bar():
-                self.progress_bar_updated.emit(mon_id, message)
+                self.bar_updated.emit(mon_id, message)
 
             def do_not_report():
                 pass
@@ -51,7 +48,7 @@ class MonitorThread(QThread):
                 -1: send_failed,
                 0: send_initialized,
                 1: send_started,
-                2: preprocessing_finished,
+                2: send_preprocessing_finished,
                 3: do_not_report,  # header finished
                 4: do_not_report,  # body finished
                 5: do_not_report,  # intervals finished
@@ -80,10 +77,10 @@ class EsoFileWatcher(QThread):
 
 
 class GuiMonitor(DefaultMonitor):
-    def __init__(self, path, id, queue):
+    def __init__(self, path, id_, queue):
         super().__init__(path)
         self.queue = queue
-        self.id = id
+        self.id = id_
         self.send_message(0, "Waiting")
 
     def building_totals_finished(self):
@@ -138,7 +135,7 @@ class IterWorker(QRunnable):
             self.func(i, *self.args, **self.kwargs)
 
 
-class ResultsFetcher(QRunnable):
+class Worker(QRunnable):
     def __init__(self, func, *args, callback=None, **kwargs):
         super().__init__()
         self.func = func
@@ -148,7 +145,7 @@ class ResultsFetcher(QRunnable):
 
     def run(self):
         # TODO catch fetch exceptions, emit signal to handle results
-        df = self.func(*self.args, **self.kwargs)
+        res = self.func(*self.args, **self.kwargs)
 
         if self.callback:
-            self.callback(df)
+            self.callback(res)

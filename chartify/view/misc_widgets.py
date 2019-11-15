@@ -1,11 +1,9 @@
 from PySide2.QtWidgets import (QSizePolicy, QLineEdit, QHBoxLayout, QTabWidget,
                                QToolButton, QDialog, QFormLayout, QVBoxLayout,
-                               QDialogButtonBox, QWidget, QAction,
-                               QPushButton, QMessageBox, QTextEdit, QLabel)
-from PySide2.QtCore import Qt, QFileInfo, Signal, QSize
-from PySide2.QtWidgets import QFrame
-from PySide2.QtGui import QPixmap, QIcon, QKeySequence
-from esopie.view_widget import View
+                               QDialogButtonBox, QWidget, QTextEdit, QLabel,
+                               QFrame)
+from PySide2.QtCore import Qt, QFileInfo, Signal
+from chartify.view.view_widget import View
 
 
 def update_appearance(wgt):
@@ -27,8 +25,6 @@ def filter_eso_files(urls, extensions=("eso",)):
 
 class TabWidget(QTabWidget):
     tabClosed = Signal(View)
-    fileLoadRequested = Signal()
-    tabRenameRequested = Signal(int)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -44,8 +40,6 @@ class TabWidget(QTabWidget):
         layout.addWidget(self.drop_btn)
 
         self.tabCloseRequested.connect(self.close_tab)
-        self.drop_btn.clicked.connect(self.fileLoadRequested.emit)
-        self.tabBarDoubleClicked.connect(self.tabRenameRequested.emit)
 
     def is_empty(self):
         """ Check if there's at least one loaded file. """
@@ -56,9 +50,6 @@ class TabWidget(QTabWidget):
 
     def get_all_child_names(self):
         return [wgt.name for wgt in self.get_all_children()]
-
-    def get_current_widget(self):
-        return self.currentWidget()
 
     def add_tab(self, wgt, title):
         if self.is_empty():
@@ -74,12 +65,6 @@ class TabWidget(QTabWidget):
             self.drop_btn.setVisible(True)
 
         self.tabClosed.emit(wgt)
-
-    def close_all_tabs(self):
-        wgts = [self.widget(i) for i in range(self.count())]
-        self.clear()
-        self.drop_btn.setVisible(True)
-        return wgts
 
 
 class DropFrame(QFrame):
@@ -180,7 +165,7 @@ class MulInputDialog(QDialog):
 
     """
 
-    def __init__(self, text, parent, check_list=None, **kwargs):
+    def __init__(self, parent, text, check_list=None, **kwargs):
         super().__init__(parent, Qt.FramelessWindowHint)
         self.line_edits = {}
         self.check_list = [] if check_list is None else check_list

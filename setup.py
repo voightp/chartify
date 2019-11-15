@@ -15,7 +15,7 @@ setup(
     version="0.1",                              # Version number
     description="MyDescription",                # Description
     options = {"build_exe": build_exe_options}, # <-- the missing line
-    executables=[Executable('C:/Users/vojte/Desktop/Python/EsoReader/app.py',     # Executable python file
+    executables=[Executable('C:/Users/vojte/Desktop/Python/EsoReader/main_window.py',     # Executable python file
                             base = ("Win32GUI" if sys.platform == "win32"
                             else None))],
 )

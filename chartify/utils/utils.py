@@ -1,4 +1,23 @@
 from random import randint
+from eso_reader.building_eso_file import averaged_units
+
+import os
+import pandas as pd
+
+
+def install_fonts(pth, database):
+    files = os.listdir(pth)
+    for file in files:
+        p = os.path.join(pth, file)
+        database.addApplicationFont(p)
+
+
+def int_generator():
+    """ Generate a stream of integers. """
+    i = 0
+    while True:
+        yield i
+        i += 1
 
 
 def generate_ids(used_ids, n=1, max_id=99999):
@@ -11,6 +30,19 @@ def generate_ids(used_ids, n=1, max_id=99999):
             if len(ids) == n:
                 break
     return ids
+
+
+def calculate_totals(df):
+    """ Calculate df sum or average (based on units). """
+    units = df.columns.get_level_values("units")
+    cnd = units.isin(averaged_units)
+
+    avg_df = df.loc[:, cnd].mean()
+    sum_df = df.loc[:, [not b for b in cnd]].sum()
+
+    sr = pd.concat([avg_df, sum_df])
+
+    return sr
 
 
 def generate_id(used_ids, max_id=99999):

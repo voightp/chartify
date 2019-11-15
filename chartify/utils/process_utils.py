@@ -34,22 +34,24 @@ def kill_child_processes(parent_pid):
 
 def load_file(path, monitor=None, suppress_errors=False):
     """ Process eso file. """
-    std_file = EsoFile(path, monitor=monitor, suppress_errors=suppress_errors)
-    tot_file = BuildingEsoFile(std_file)
-    monitor.building_totals_finished()
-    return std_file, tot_file
+    try:
+        std_file = EsoFile(path, monitor=monitor, suppress_errors=suppress_errors)
+        tot_file = BuildingEsoFile(std_file)
+        monitor.building_totals_finished()
+        return std_file, tot_file
+    except IncompleteFile:
+        monitor.processing_failed("Processing failed - incomplete file!")
+    except Exception:
+        monitor.processing_failed("Processing failed!")
 
 
-def wait_for_results(id_, monitor, queue, future):
+def wait_for_results(id_, queue, future):
     """ Put loaded file into the queue and clean up the pool. """
     try:
-        std_file, tot_file = future.result()
-        queue.put((id_, std_file, tot_file))
-
-    except IncompleteFile:
-        print("File '{}' is not complete -"
-              " processing failed.".format(monitor.path))
-        monitor.processing_failed("Processing failed!")
+        res = future.result()
+        if res:
+            std_file, tot_file = res
+            queue.put((id_, std_file, tot_file))
 
     except BrokenPipeError:
         print("The application is being closed - "
