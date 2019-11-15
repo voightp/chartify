@@ -52,9 +52,8 @@ def get_axis_inputs(type_, values, timestamps, xaxis, yaxis):
             "yaxis": yaxis,
         },
         "histogram": {
-            "type": "hist",
-            "y": values,
-            "xaxis": xaxis,
+            "type": "histogram",
+            "x": values,
             "yaxis": yaxis,
         },
         "box": {

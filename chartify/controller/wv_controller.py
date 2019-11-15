@@ -176,10 +176,15 @@ class WVController(QObject):
             # introduce unwanted zoom effect when adding initial traces
             for k, v in layout.items():
                 if "xaxis" in k:
-                    chart.ranges_x[k] = layout[k]["range"]
-
+                    try:
+                        chart.ranges_x[k] = layout[k]["range"]
+                    except KeyError:
+                        pass
                 elif "yaxis" in k:
-                    chart.ranges_y[k] = layout[k]["range"]
+                    try:
+                        chart.ranges_y[k] = layout[k]["range"]
+                    except KeyError:
+                        pass
 
     @Slot(QJsonValue)
     def onGridLayoutChanged(self, layout: QJsonValue) -> None:
