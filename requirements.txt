@@ -1,0 +1,4 @@
+numpy>=1.17.4
+pandas>=0.25.3
+PySide2
+loky>=2.6.0
