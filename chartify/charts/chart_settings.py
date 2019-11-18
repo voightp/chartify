@@ -52,9 +52,9 @@ def get_axis_inputs(type_, values, timestamps, xaxis, yaxis):
             "yaxis": yaxis,
         },
         "histogram": {
-            "type": "histogram",
             "x": values,
             "yaxis": yaxis,
+            "xaxis": xaxis,
         },
         "box": {
             "type": "box",
@@ -144,13 +144,21 @@ def get_appearance(type_, color, priority="normal"):
         "bar": {
             "type": "bar",
             "hoverinfo": "all",
+            "marker": {
+                "color": color
+            }
         },
         "bubble": {
 
         },
         "histogram": {
-            "type": "hist",
-            "hoverinfo": "name+y",
+            "type": "histogram",
+            "hoverinfo": "x+y",
+            "histfunc": "count",  # "count" | "sum" | "avg" | "min" | "max"
+            "histnorm": "percent",  # "" | "percent" | "probability" | "density" | "probability density""
+            "marker": {
+                "color": color
+            }
         },
         "box": {
             "type": "box",
@@ -159,6 +167,9 @@ def get_appearance(type_, color, priority="normal"):
             "boxpoints": "false",  # all | outliers |suspectedoutliers | false
             "whiskerwidth": 0.2,
             "marker_size": 2,
+            "marker": {
+                "color": color
+            }
         },
     }
 
@@ -219,6 +230,7 @@ x_axis_dct = {
 base_layout = {
     "autosize": True,
     "hovermode": "closest",
+    "bargap": 0.05,
     "modebar": {
         "activecolor": "rgba(180,180,180,1)",
         "bgcolor": "transparent",

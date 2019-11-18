@@ -166,10 +166,8 @@ class WVController(QObject):
     def onChartLayoutChanged(self, item_id: str, layout: QJsonValue) -> None:
         """ Handle chart resize interaction. """
         chart = self.m.fetch_component(item_id)
+        chart.ranges = {"x": {}, "y": {}}
         layout = layout.toObject()
-
-        chart.ranges_x = {}
-        chart.ranges_y = {}
 
         if self.m.fetch_traces(item_id):
             # only store data for non empty layouts as this would
@@ -177,12 +175,12 @@ class WVController(QObject):
             for k, v in layout.items():
                 if "xaxis" in k:
                     try:
-                        chart.ranges_x[k] = layout[k]["range"]
+                        chart.ranges["x"][k] = layout[k]["range"]
                     except KeyError:
                         pass
                 elif "yaxis" in k:
                     try:
-                        chart.ranges_y[k] = layout[k]["range"]
+                        chart.ranges["y"][k] = layout[k]["range"]
                     except KeyError:
                         pass
 
@@ -197,6 +195,7 @@ class WVController(QObject):
         print(f"PY updateChartType {chart_type}")
         chart = self.m.components[item_id]
         chart.type_ = chart_type
+        chart.ranges = {"x": {}, "y": {}}
 
         traces = self.m.fetch_traces(item_id)
         for trace in traces:
