@@ -67,8 +67,7 @@ class Chart:
         self.custom = False
         self.shared_axes = False
         self.show_custom_legend = True
-        self.ranges_x = {}
-        self.ranges_y = {}
+        self.ranges = {"x": {}, "y": {}}
 
     def set_trace_axes(self, traces, shared_axes):
         """ Assign trace 'x' and 'y' axes (based on units). """
@@ -139,12 +138,12 @@ class Chart:
 
         y_axes = get_yaxis_settings(len(units), line_color, grid_color,
                                     titles=units, y_domains=y_domains,
-                                    increment=0.08, ranges_y=self.ranges_y)
+                                    increment=0.08, ranges_y=self.ranges["y"])
 
         date_axis = self.type_ in ["scatter", "bar", "bubble", "line"]
         x_axes = get_xaxis_settings(len(y_axes.keys()), line_color, grid_color,
                                     increment=0.08, x_domains=x_domains,
-                                    date_axis=date_axis, ranges_x=self.ranges_x)
+                                    date_axis=date_axis, ranges_x=self.ranges["y"])
 
         return {**layout, **y_axes, **x_axes}
 
