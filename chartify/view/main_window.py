@@ -370,13 +370,13 @@ class MainWindow(QMainWindow):
     def on_selection_populated(self, variables):
         """ Store current selection in main app. """
         self.remove_variables_act.setEnabled(True)
+        self.toolbar.remove_btn.setEnabled(True)
 
         # check if variables can be aggregated
         units = verify_units([var.units for var in variables])
+        if len(variables) > 1 and units is not None:
+            self.toolbar.set_tools_btns_enabled("sum", "mean", enabled=True)
 
-        enabled = len(variables) > 1 and units is not None
-        self.toolbar.set_tools_btns_enabled("sum", "mean", "remove",
-                                            enabled=enabled)
         self.selectionChanged.emit(variables)
 
     def on_selection_cleared(self):
