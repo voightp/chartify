@@ -1,6 +1,7 @@
 from collections import defaultdict
 from chartify.view.icons import combine_colors
 from chartify.view.css_theme import parse_color
+from eso_reader.constants import *
 import copy
 import math
 
@@ -322,7 +323,7 @@ def dom_gen(n, gap):
         start = end + gap
 
 
-def gen_domain_matrices(items, gap=0.05, max_columns=3, flat=True, is_square=True):
+def gen_domain_vectors(items, gap=0.05, max_columns=3, is_square=True):
     ref_matrix = gen_ref_matrix(items, max_columns, is_square)
 
     x_dom_mx = copy.deepcopy(ref_matrix)
@@ -337,11 +338,10 @@ def gen_domain_matrices(items, gap=0.05, max_columns=3, flat=True, is_square=Tru
             x_dom_mx[i][j] = next(x_dom_gen)
             y_dom_mx[i][j] = y_dom
 
-    if flat:
-        x_dom_mx = [a for item in x_dom_mx for a in item]
-        y_dom_mx = [a for item in y_dom_mx for a in item]
+    x_dom_vector = [a for item in x_dom_mx for a in item]
+    y_dom_vector = [a for item in y_dom_mx for a in item]
 
-    return x_dom_mx, y_dom_mx
+    return x_dom_vector, y_dom_vector
 
 
 def set_yaxes_positions(yaxes, increment):
@@ -473,9 +473,48 @@ def get_xaxis_settings(n_yaxis, line_color, grid_color, increment=0.1,
     return xaxes
 
 
-def get_units_axis_dct(units_lst, axis="x"):
-    axis_y = {}
-    for i, u in enumerate(units_lst):
-        y = f"{axis}{i + 1}" if i != 0 else f"{axis}"
-        axis_y[u] = y
-    return axis_y
+def get_units_axis_dct(traces, shared_axes):
+    """ Create units interval dictionary with sorted intervals. """
+    grouped = defaultdict(set)
+    for trace in traces:
+        grouped[trace.units].add(trace.interval)
+
+    # ser expected precedence
+    p = {TS: 0, H: 1, D: 2, M: 3, A: 4, RP: 5}
+
+    xaxes_gen, yaxes_gen = axis_gen("x"), axis_gen("y")
+    xaxes_dct, yaxes_dct = {}, {}
+    for units in grouped.keys():
+        unsorted = list(grouped[units])
+        intervals = sorted(unsorted, key=lambda x: p[x])
+        x, y = next(xaxes_gen), next(yaxes_gen)
+
+        for i, interval in enumerate(intervals):
+            if i == 0:
+                xaxes_dct[units] = {interval: x}
+                yaxes_dct[units] = {interval: y}
+
+            elif shared_axes == "x":
+                xaxes_dct[units] = {interval: (x, next(xaxes_gen))}
+                yaxes_dct[units] = {interval: next(yaxes_gen)}
+
+            elif shared_axes == "x+y":
+                xaxes_dct[units] = {interval: (x, next(xaxes_gen))}
+                xaxes_dct[units] = {interval: (y, next(yaxes_gen))}
+
+            else:
+                xaxes_dct[units] = {interval: next(xaxes_gen)}
+                yaxes_dct[units] = {interval: next(yaxes_gen)}
+
+    return xaxes_dct, yaxes_dct
+
+
+def axis_gen(axis="x"):
+    """ Generate stream of axis identifiers. """
+    # first axis does not have an index
+    yield axis
+    i = 1
+    while True:
+        i += 1
+        # indexing starts at '2'
+        yield f"{axis}{i}"
