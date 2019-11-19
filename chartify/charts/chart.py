@@ -4,19 +4,21 @@ from chartify.charts.chart_settings import *
 def plot_pie_chart(traces, background_color):
     """ Plot a 'special' pie chart data. """
     groups = group_by_units(traces)
-    x_doms, y_doms = gen_domain_matrices(groups.keys(), max_columns=3, gap=0,
+    x_doms, y_doms = gen_domain_matrices(groups.keys(), max_columns=3, gap=0.05,
                                          flat=True, is_square=True)
     data = []
     for x_dom, y_dom, traces in zip(x_doms, y_doms, groups.values()):
+
         (values, labels, colors, trace_ids,
          priorities, selected) = combine_traces(traces)
+
         data.append({
             "type": "pie",
             "opacity": 1,
             "itemId": traces[0].item_id,
             "traceIds": trace_ids,
-            "pull": 0,
-            "hole": 0,
+            "pull": [0.1 if tr.selected else 0 for tr in traces],
+            "hole": 0.3,
             "values": values,
             "labels": labels,
             "selected": selected,
@@ -143,7 +145,7 @@ class Chart:
         date_axis = self.type_ in ["scatter", "bar", "bubble", "line"]
         x_axes = get_xaxis_settings(len(y_axes.keys()), line_color, grid_color,
                                     increment=0.08, x_domains=x_domains,
-                                    date_axis=date_axis, ranges_x=self.ranges["y"])
+                                    date_axis=date_axis, ranges_x=self.ranges["x"])
 
         return {**layout, **y_axes, **x_axes}
 
