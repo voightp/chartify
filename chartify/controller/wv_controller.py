@@ -29,7 +29,7 @@ class WVController(QObject):
     web view instance and core application.
 
     """
-    appearanceUpdated = Signal("QVariantMap", "QVariantMap")
+    fullLayoutUpdated = Signal("QVariantMap", "QVariantMap", "QVariantMap")
     componentUpdated = Signal(str, "QVariantMap")
     componentAdded = Signal(str, "QVariantMap", "QVariantMap")
 
@@ -53,16 +53,16 @@ class WVController(QObject):
         self.wv.setAcceptDrops(True)
 
         self.thread_pool = QThreadPool()
-        self.m.appearanceUpdateRequested.connect(self.handle_appearance_update)
+        self.m.fullUpdateRequested.connect(self.handle_full_layout_update)
 
-    def handle_appearance_update(self, colors: List[tuple]):
-        """ """
+    def handle_full_layout_update(self, colors: List[tuple]):
+        """ Re-render components whet color scheme updates. """
         components = {}
         for id_ in self.m.components.keys():
             component = self.plot_component(id_)
             components[id_] = component
 
-        self.appearanceUpdated.emit(components, colors)
+        self.fullLayoutUpdated.emit(self.m.items, components, colors)
 
     def gen_trace_id(self) -> str:
         """ Generate unique trace id. """
@@ -149,7 +149,7 @@ class WVController(QObject):
     def onConnectionInitialized(self) -> None:
         """ Callback from the webview after initialized. """
         colors = self.m.palettes[Settings.PALETTE_NAME].get_all_colors()
-        self.handle_appearance_update(colors)
+        self.handle_full_layout_update(colors)
 
     @Slot(str)
     def onItemRemoved(self, item_id: str) -> None:

@@ -137,7 +137,8 @@ def get_appearance(type_, color, priority="normal"):
             },
             "line": {
                 "width": weights[priority]["lineWidth"],
-                "color": color
+                "color": color,
+                "shape": "hvh"  # "linear" | "spline" | "hv" | "vh" | "hvh" | "vhv"
             }
 
         },

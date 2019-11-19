@@ -20,7 +20,7 @@ class AppModel(QObject):
     as a standard python  dictionary at the moment.
 
     """
-    appearanceUpdateRequested = Signal(dict)
+    fullUpdateRequested = Signal(dict)
 
     def __init__(self):
         super().__init__()
