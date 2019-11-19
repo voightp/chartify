@@ -5,8 +5,8 @@ from eso_reader.constants import *
 def plot_pie_chart(traces, background_color):
     """ Plot a 'special' pie chart data. """
     groups = group_by_units(traces)
-    x_doms, y_doms = gen_domain_matrices(groups.keys(), max_columns=3, gap=0.05,
-                                         flat=True, is_square=True)
+    x_doms, y_doms = gen_domain_vectors(groups.keys(), max_columns=3, gap=0.05,
+                                        flat=True, is_square=True)
     data = []
     for x_dom, y_dom, traces in zip(x_doms, y_doms, groups.values()):
         (values, labels, colors, trace_ids,
@@ -71,37 +71,11 @@ class Chart:
         self.show_custom_legend = True
         self.ranges = {"x": {}, "y": {}}
 
-    def set_trace_axes(self, traces):
+    def set_trace_axes(self, traces, xaxes, yaxes):
         """ Assign trace 'x' and 'y' axes (based on units). """
-        units = get_all_units(traces)
-        units_x_dct = get_units_axis_dct(units, axis="x")
-        units_y_dct = get_units_axis_dct(units, axis="y")
-
-        grouped = defaultdict(set)
         for trace in traces:
-            grouped[trace.units].add(trace.interval)
-
-        p = {TS: 0, H: 1, D: 2, M: 3, A: 4, RP: 5}
-        dct = {}
-        for units, intervals in grouped.items():
-            dct[units] = {}
-            lowest = 99
-            for interval in intervals:
-                lowest = p[interval] if p[interval] < lowest else lowest
-
-
-
-
-        for trace in traces:
-            yaxis = units_y_dct[trace.units]
-
-            if self.shared_axes:
-                xaxis = "x"
-            else:
-                xaxis = units_x_dct[trace.units]
-
-            trace.xaxis = xaxis
-            trace.yaxis = yaxis
+            trace.xaxis = xaxes[trace.units][trace.interval]
+            trace.yaxis = yaxes[trace.units][trace.interval]
 
     def set_trace_priority(self, traces):
         """ Set emphasised trace appearance. """
@@ -114,14 +88,14 @@ class Chart:
             else:
                 trace.priority = "low"
 
-    def generate_data(self, traces, background_color):
+    def generate_data(self, traces, xaxes, yaxes, background_color):
         """ Generate chart data (traces). """
         data = []
         if self.type_ in ["pie", "histogram", "box"]:
             self.shared_axes = False
 
         if traces:
-            self.set_trace_axes(traces)
+            self.set_trace_axes(traces, xaxes, yaxes)
             self.set_trace_priority(traces)
 
             if self.type_ == "pie":
@@ -141,7 +115,8 @@ class Chart:
 
         layout["margin"]["t"] = m + self.LEGEND_GAP
 
-    def generate_layout(self, n_traces, units, line_color, grid_color):
+    def generate_layout(self, n_traces, xaxes, yaxes, units,
+                        line_color, grid_color):
         """ Generate chart layout properties. """
         layout = copy.deepcopy(base_layout)
         self.set_top_margin(layout, n_traces)
@@ -149,9 +124,8 @@ class Chart:
         if self.shared_axes:
             x_domains, y_domains = None, None
         else:
-            x_domains, y_domains = gen_domain_matrices(units, max_columns=3,
-                                                       gap=0.05, flat=True,
-                                                       is_square=True)
+            x_domains, y_domains = gen_domain_vectors(units, max_columns=3,
+                                                      gap=0.05, is_square=True)
 
         y_axes = get_yaxis_settings(len(units), line_color, grid_color,
                                     titles=units, y_domains=y_domains,
@@ -166,8 +140,11 @@ class Chart:
 
     def as_plotly(self, traces, line_color, grid_color, background_color):
         """ Create 'plotly' like chart. """
-        data = self.generate_data(traces, background_color)
-        layout = self.generate_layout(len(traces), get_all_units(traces),
+        xaxes, yaxes = get_units_axis_dct(traces, self.shared_axes)
+        units = get_all_units(traces)
+
+        data = self.generate_data(traces, xaxes, yaxes, background_color)
+        layout = self.generate_layout(len(traces), xaxes, yaxes, units,
                                       line_color, grid_color)
         return {
             "componentType": "chart",
