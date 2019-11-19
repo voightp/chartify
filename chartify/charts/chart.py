@@ -1,4 +1,5 @@
 from chartify.charts.chart_settings import *
+from eso_reader.constants import *
 
 
 def plot_pie_chart(traces, background_color):
@@ -8,7 +9,6 @@ def plot_pie_chart(traces, background_color):
                                          flat=True, is_square=True)
     data = []
     for x_dom, y_dom, traces in zip(x_doms, y_doms, groups.values()):
-
         (values, labels, colors, trace_ids,
          priorities, selected) = combine_traces(traces)
 
@@ -67,20 +67,35 @@ class Chart:
         self.item_id = item_id
         self.type_ = type_
         self.custom = False
-        self.shared_axes = False
+        self.shared_axes = "x"  # x | x+y | independent
         self.show_custom_legend = True
         self.ranges = {"x": {}, "y": {}}
 
-    def set_trace_axes(self, traces, shared_axes):
+    def set_trace_axes(self, traces):
         """ Assign trace 'x' and 'y' axes (based on units). """
         units = get_all_units(traces)
         units_x_dct = get_units_axis_dct(units, axis="x")
         units_y_dct = get_units_axis_dct(units, axis="y")
 
+        grouped = defaultdict(set)
+        for trace in traces:
+            grouped[trace.units].add(trace.interval)
+
+        p = {TS: 0, H: 1, D: 2, M: 3, A: 4, RP: 5}
+        dct = {}
+        for units, intervals in grouped.items():
+            dct[units] = {}
+            lowest = 99
+            for interval in intervals:
+                lowest = p[interval] if p[interval] < lowest else lowest
+
+
+
+
         for trace in traces:
             yaxis = units_y_dct[trace.units]
 
-            if shared_axes:
+            if self.shared_axes:
                 xaxis = "x"
             else:
                 xaxis = units_x_dct[trace.units]
@@ -106,7 +121,7 @@ class Chart:
             self.shared_axes = False
 
         if traces:
-            self.set_trace_axes(traces, self.shared_axes)
+            self.set_trace_axes(traces)
             self.set_trace_priority(traces)
 
             if self.type_ == "pie":
