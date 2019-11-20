@@ -38,6 +38,16 @@ def get_all_units(traces):
     return setlist
 
 
+def get_all_intervals(traces):
+    """ Get a list of all used units. """
+    full = [tr.interval for tr in traces]
+    setlist = []
+    for e in full:
+        if e not in setlist:
+            setlist.append(e)
+    return setlist
+
+
 def get_axis_inputs(type_, values, timestamps, xaxis, yaxis):
     props = {
         "scatter": {
@@ -323,8 +333,8 @@ def dom_gen(n, gap):
         start = end + gap
 
 
-def gen_domain_vectors(items, gap=0.05, max_columns=3, is_square=True):
-    ref_matrix = gen_ref_matrix(items, max_columns, is_square)
+def gen_domain_vectors(items, gap=0.05, max_columns=3, square=True):
+    ref_matrix = gen_ref_matrix(items, max_columns, square)
 
     x_dom_mx = copy.deepcopy(ref_matrix)
     y_dom_mx = copy.deepcopy(ref_matrix)
@@ -473,48 +483,101 @@ def get_xaxis_settings(n_yaxis, line_color, grid_color, increment=0.1,
     return xaxes
 
 
-def get_units_axis_dct(traces, shared_axes):
-    """ Create units interval dictionary with sorted intervals. """
-    grouped = defaultdict(set)
-    for trace in traces:
-        grouped[trace.units].add(trace.interval)
+def get_xaxes(intervals, start_x=1):
+    xaxes, xaxes_ref = {}, {}
+    xaxes_gen = axis_gen("x", start=start_x)
 
-    # ser expected precedence
     p = {TS: 0, H: 1, D: 2, M: 3, A: 4, RP: 5}
+    intervals = sorted(intervals, key=lambda x: p[x])
+    x = next(xaxes_gen)
 
-    xaxes_gen, yaxes_gen = axis_gen("x"), axis_gen("y")
-    xaxes_dct, yaxes_dct = {}, {}
-    for units in grouped.keys():
-        unsorted = list(grouped[units])
-        intervals = sorted(unsorted, key=lambda x: p[x])
-        x, y = next(xaxes_gen), next(yaxes_gen)
+    if TS in intervals and H in intervals:
+        # hourly and time step results should be
+        # always plotted on the same axis
+        ts = intervals.pop(intervals.index(TS))
+        xaxes[ts] = x
 
-        for i, interval in enumerate(intervals):
-            if i == 0:
-                xaxes_dct[units] = {interval: x}
-                yaxes_dct[units] = {interval: y}
+    xaxes[intervals[0]] = x
+    xaxes_ref[x] = []
+    for dt in intervals[1:]:
+        xi = next(xaxes_gen)
+        xaxes[dt] = xi
+        xaxes_ref[x].append(xi)
 
-            elif shared_axes == "x":
-                xaxes_dct[units] = {interval: (x, next(xaxes_gen))}
-                yaxes_dct[units] = {interval: next(yaxes_gen)}
-
-            elif shared_axes == "x+y":
-                xaxes_dct[units] = {interval: (x, next(xaxes_gen))}
-                xaxes_dct[units] = {interval: (y, next(yaxes_gen))}
-
-            else:
-                xaxes_dct[units] = {interval: next(xaxes_gen)}
-                yaxes_dct[units] = {interval: next(yaxes_gen)}
-
-    return xaxes_dct, yaxes_dct
+    return xaxes, xaxes_ref
 
 
-def axis_gen(axis="x"):
+def get_yaxes(units, shared_y=True):
+    yaxes, yaxes_ref = {}, {}
+    yaxes_gen = axis_gen("y", start=1)
+
+    if not shared_y:
+        for dt in units:
+            yi = next(yaxes_gen)
+            yaxes[dt] = yi
+            yaxes_ref[yi] = []
+    else:
+        y = next(yaxes_gen)
+        yaxes[units[0]] = y
+        yaxes_ref[y] = []
+        for dt in units[1:]:
+            yi = next(yaxes_gen)
+            yaxes[dt] = yi
+            yaxes_ref[y].append(yi)
+
+    return yaxes, yaxes_ref
+
+
+def get_axis_map(traces, shared_axes="x"):
+    xaxes, xaxes_ref = {}, {}
+    units = get_all_units(traces)
+
+    if not shared_axes:
+        start = 1
+        grouped = group_by_units(traces)
+        for u, traces in grouped.items():
+            intervals = get_all_intervals(traces)
+            xaxesi, xaxes_refi = get_xaxes(intervals, start_x=start)
+            xaxes[u] = xaxesi
+            xaxes_ref = {**xaxes_ref, **xaxes_refi}
+            start += len(intervals)
+    else:
+        intervals = get_all_intervals(traces)
+        xaxes, xaxes_ref = get_xaxes(intervals)
+
+    yaxes, yaxes_ref = get_yaxes(units, shared_y=shared_axes == "x+y")
+
+    return xaxes, yaxes, xaxes_ref, yaxes_ref
+
+
+def axis_gen(axis="x", start=1):
     """ Generate stream of axis identifiers. """
-    # first axis does not have an index
-    yield axis
-    i = 1
+    i = start
     while True:
+        # first axis does not have an index
+        yield f"{axis}{i}" if i != 1 else f"{axis}"
         i += 1
-        # indexing starts at '2'
-        yield f"{axis}{i}"
+
+
+class TestTrace:
+    def __init__(self, i, u):
+        self.interval = i
+        self.units = u
+
+
+trcs = [
+    TestTrace(H, "W"),
+    TestTrace(D, "J"),
+    TestTrace(TS, "J"),
+    TestTrace(M, "J"),
+    TestTrace(M, "kWh"),
+    TestTrace(RP, "J"),
+]
+
+out1 = get_axis_map(trcs, shared_axes="x")
+out2 = get_axis_map(trcs, shared_axes="x+y")
+out3 = get_axis_map(trcs, shared_axes="")
+
+print(out1)
+print(out2)
+print(out3)
