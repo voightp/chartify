@@ -67,16 +67,9 @@ class Chart:
         self.item_id = item_id
         self.type_ = type_
         self.custom = False
-        self.shared_axes = "x"  # x | x+y | independent
+        self.shared_axes = "x"  # 'x' | 'x+y' | ''
         self.show_custom_legend = True
         self.ranges = {"x": {}, "y": {}}
-
-    @staticmethod
-    def set_trace_axes(traces, xaxes, yaxes):
-        """ Assign trace 'x' and 'y' axes (based on units). """
-        for trace in traces:
-            trace.xaxis = xaxes[trace.units][trace.interval]
-            trace.yaxis = yaxes[trace.units][trace.interval]
 
     @staticmethod
     def set_trace_priority(traces):
@@ -89,6 +82,16 @@ class Chart:
                 trace.priority = "high"
             else:
                 trace.priority = "low"
+
+    def set_trace_axes(self, traces, xaxes, yaxes):
+        """ Assign trace 'x' and 'y' axes (based on units). """
+        for trace in traces:
+            if not self.shared_axes:
+                trace.xaxis = xaxes[trace.units][trace.interval]
+            else:
+                trace.xaxis = xaxes[trace.interval]
+
+            trace.yaxis = yaxes[trace.units]
 
     def generate_data(self, traces, xaxes, yaxes, background_color):
         """ Generate chart data (traces). """
@@ -117,7 +120,7 @@ class Chart:
 
         layout["margin"]["t"] = m + self.LEGEND_GAP
 
-    def generate_layout(self, n_traces, xaxes, yaxes, units,
+    def generate_layout(self, n_traces, xaxes_ref, yaxes_ref, units,
                         line_color, grid_color):
         """ Generate chart layout properties. """
         layout = copy.deepcopy(base_layout)
@@ -145,7 +148,7 @@ class Chart:
         xaxes, yaxes, xaxes_ref, yaxes_ref = get_axis_map(traces, self.shared_axes)
         units = get_all_units(traces)
         data = self.generate_data(traces, xaxes, yaxes, background_color)
-        layout = self.generate_layout(len(traces), xaxes, yaxes, units,
+        layout = self.generate_layout(len(traces), xaxes_ref, yaxes_ref, units,
                                       line_color, grid_color)
         return {
             "componentType": "chart",
