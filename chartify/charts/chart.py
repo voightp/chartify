@@ -6,7 +6,7 @@ def plot_pie_chart(traces, background_color):
     """ Plot a 'special' pie chart data. """
     groups = group_by_units(traces)
     x_doms, y_doms = gen_domain_vectors(groups.keys(), max_columns=3, gap=0.05,
-                                        flat=True, is_square=True)
+                                        flat=True, square=True)
     data = []
     for x_dom, y_dom, traces in zip(x_doms, y_doms, groups.values()):
         (values, labels, colors, trace_ids,
@@ -71,13 +71,15 @@ class Chart:
         self.show_custom_legend = True
         self.ranges = {"x": {}, "y": {}}
 
-    def set_trace_axes(self, traces, xaxes, yaxes):
+    @staticmethod
+    def set_trace_axes(traces, xaxes, yaxes):
         """ Assign trace 'x' and 'y' axes (based on units). """
         for trace in traces:
             trace.xaxis = xaxes[trace.units][trace.interval]
             trace.yaxis = yaxes[trace.units][trace.interval]
 
-    def set_trace_priority(self, traces):
+    @staticmethod
+    def set_trace_priority(traces):
         """ Set emphasised trace appearance. """
         all_normal = all(map(lambda x: not x.selected, traces))
         for trace in traces:
@@ -125,7 +127,7 @@ class Chart:
             x_domains, y_domains = None, None
         else:
             x_domains, y_domains = gen_domain_vectors(units, max_columns=3,
-                                                      gap=0.05, is_square=True)
+                                                      gap=0.05, square=True)
 
         y_axes = get_yaxis_settings(len(units), line_color, grid_color,
                                     titles=units, y_domains=y_domains,
@@ -140,9 +142,8 @@ class Chart:
 
     def as_plotly(self, traces, line_color, grid_color, background_color):
         """ Create 'plotly' like chart. """
-        xaxes, yaxes = get_units_axis_dct(traces, self.shared_axes)
+        xaxes, yaxes, xaxes_ref, yaxes_ref = get_axis_map(traces, self.shared_axes)
         units = get_all_units(traces)
-
         data = self.generate_data(traces, xaxes, yaxes, background_color)
         layout = self.generate_layout(len(traces), xaxes, yaxes, units,
                                       line_color, grid_color)
