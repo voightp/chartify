@@ -484,6 +484,11 @@ def get_xaxis_settings(n_yaxis, line_color, grid_color, increment=0.1,
 
 
 def get_xaxes(intervals, start_x=1):
+    """ Assign x axes and create x reference map. """
+
+    def long_name(short_name):
+        return short_name.replace("x", "xaxis")
+
     xaxes, xaxes_ref = {}, {}
     xaxes_gen = axis_gen("x", start=start_x)
 
@@ -498,16 +503,21 @@ def get_xaxes(intervals, start_x=1):
         xaxes[ts] = x
 
     xaxes[intervals[0]] = x
-    xaxes_ref[x] = []
+    xaxes_ref[long_name(x)] = []
     for dt in intervals[1:]:
         xi = next(xaxes_gen)
         xaxes[dt] = xi
-        xaxes_ref[x].append(xi)
+        xaxes_ref[long_name(x)].append(long_name(xi))
 
     return xaxes, xaxes_ref
 
 
 def get_yaxes(units, shared_y=True):
+    """ Assign y axes and create y reference map. """
+
+    def long_name(short_name):
+        return short_name.replace("y", "yaxis")
+
     yaxes, yaxes_ref = {}, {}
     yaxes_gen = axis_gen("y", start=1)
 
@@ -515,20 +525,21 @@ def get_yaxes(units, shared_y=True):
         for dt in units:
             yi = next(yaxes_gen)
             yaxes[dt] = yi
-            yaxes_ref[yi] = []
+            yaxes_ref[long_name(yi)] = []
     else:
         y = next(yaxes_gen)
         yaxes[units[0]] = y
-        yaxes_ref[y] = []
+        yaxes_ref[long_name(y)] = []
         for dt in units[1:]:
             yi = next(yaxes_gen)
             yaxes[dt] = yi
-            yaxes_ref[y].append(yi)
+            yaxes_ref[long_name(y)].append(long_name(yi))
 
     return yaxes, yaxes_ref
 
 
 def get_axis_map(traces, shared_axes="x"):
+    """ Create axis reference dictionaries. """
     xaxes, xaxes_ref = {}, {}
     units = get_all_units(traces)
 
@@ -537,9 +548,9 @@ def get_axis_map(traces, shared_axes="x"):
         grouped = group_by_units(traces)
         for u, traces in grouped.items():
             intervals = get_all_intervals(traces)
-            xaxesi, xaxes_refi = get_xaxes(intervals, start_x=start)
-            xaxes[u] = xaxesi
-            xaxes_ref = {**xaxes_ref, **xaxes_refi}
+            xaxes_i, xaxes_ref_i = get_xaxes(intervals, start_x=start)
+            xaxes[u] = xaxes_i
+            xaxes_ref = {**xaxes_ref, **xaxes_ref_i}
             start += len(intervals)
     else:
         intervals = get_all_intervals(traces)
@@ -566,12 +577,14 @@ class TestTrace:
 
 
 trcs = [
+    TestTrace(TS, "W"),
     TestTrace(H, "W"),
     TestTrace(D, "J"),
     TestTrace(TS, "J"),
     TestTrace(M, "J"),
     TestTrace(M, "kWh"),
     TestTrace(RP, "J"),
+    # TestTrace("", "J"),
 ]
 
 out1 = get_axis_map(trcs, shared_axes="x")
