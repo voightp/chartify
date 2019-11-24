@@ -31,6 +31,12 @@ class AppModel(QObject):
         self.selected_variables = []
 
         # ~~~~ Webview Database ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.wv_database = {
+            "trace_data": [],
+            "traces": [],
+            "components": [],
+            "items": []
+        }
         self.traces = []
         self.components = {}
         self.items = {}
