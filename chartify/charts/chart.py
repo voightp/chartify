@@ -69,7 +69,7 @@ class Chart:
         self.custom = False
         self.shared_axes = "x"  # 'x' | 'x+y' | ''
         self.show_custom_legend = True
-        self.ranges = {"x": {}, "y": {}}
+        self.ranges = {"x": {}, "y": {}, "z": {}}
 
     @staticmethod
     def set_trace_priority(traces):
@@ -143,7 +143,7 @@ class Chart:
 
         return {**layout, **y_axes, **x_axes}
 
-    def as_plotly(self, traces, line_color, grid_color, background_color):
+    def as_plotly(self, traces, trace_data, line_color, grid_color, background_color):
         """ Create 'plotly' like chart. """
         xaxes, yaxes, xaxes_ref, yaxes_ref = get_axis_map(traces, self.shared_axes)
         units = get_all_units(traces)

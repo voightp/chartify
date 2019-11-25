@@ -1,6 +1,6 @@
 from chartify.settings import Settings
 from chartify.view.css_theme import parse_palette, Palette
-from chartify.charts.trace import Trace
+from chartify.charts.trace import Trace, TraceData
 from chartify.charts.chart import Chart
 from chartify.utils.typehints import ResultsFile
 
@@ -34,12 +34,9 @@ class AppModel(QObject):
         self.wv_database = {
             "trace_data": [],
             "traces": [],
-            "components": [],
-            "items": []
+            "components": {},
+            "items": {}
         }
-        self.traces = []
-        self.components = {}
-        self.items = {}
 
         # ~~~~ Palettes ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.palettes = parse_palette(Settings.PALETTE_PATH)
@@ -64,35 +61,53 @@ class AppModel(QObject):
 
         return get_results(*args, **kwargs)
 
-    def fetch_all_trace_ids(self) -> List[str]:
-        """ Get all used trace ids. """
-        return [trace.trace_id for trace in self.traces]
+    def fetch_all_components(self):
+        """ Get all components. """
+        return self.wv_database["components"]
+
+    def fetch_all_items(self):
+        """ Get all items. """
+        return self.wv_database["items"]
+
+    def fetch_component(self, item_id: str) -> Union[Chart]:
+        """ Get component of a given id. """
+        for component in self.wv_database["components"]:
+            if component.item_id == item_id:
+                return component
 
     def fetch_trace(self, trace_id: str) -> Trace:
         """ Get trace of a given id. """
-        for trace in self.traces:
+        for trace in self.wv_database["traces"]:
             if trace.trace_id == trace_id:
                 return trace
+
+    def fetch_trace_data(self, trace_data_id: str) -> TraceData:
+        """ Get trace of a given id. """
+        for trace_data in self.wv_database["traces"]:
+            if trace_data.trace_data_id == trace_data_id:
+                return trace_data
 
     def fetch_traces(self, item_id: str) -> List[Trace]:
         """ Get traces assigned for a given item. """
         traces = []
-        for trace in self.traces:
+        for trace in self.wv_database["traces"]:
             if trace.item_id == item_id:
                 traces.append(trace)
 
         return traces
 
+    def fetch_traces_data(self, item_id: str) -> List[TraceData]:
+        """ Get traces assigned for a given item. """
+        trace_data = []
+        for trace_dt in self.wv_database["trace_data"]:
+            if trace_dt.item_id == item_id:
+                trace_data.append(trace_data)
+
+        return trace_data
+
     def fetch_all_item_ids(self) -> List[str]:
         """ Get all used item ids. """
-        return list(self.items.keys())
-
-    def fetch_component(self, item_id: str) -> Union[Chart]:
-        """ Get displayed object from the database."""
-        try:
-            return self.components[item_id]
-        except KeyError:
-            raise KeyError(f"Cannot find component '{item_id}'.")
+        return [item.item_id for item in self.wv_database["items"]]
 
     def fetch_palette(self, name: str) -> Palette:
         """ Get 'Palette' object with a specified name. """
