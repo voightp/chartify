@@ -32,3 +32,15 @@ class Trace:
         self.zaxis = zaxis
         self.selected = selected
         self.priority = priority
+
+    @property
+    def x_units(self):
+        return self.x_ref.units if isinstance(self.x_ref, TraceData) else None
+
+    @property
+    def y_units(self):
+        return self.y_ref.units if isinstance(self.y_ref, TraceData) else None
+
+    @property
+    def z_units(self):
+        return self.z_ref.units if isinstance(self.z_ref, TraceData) else None
