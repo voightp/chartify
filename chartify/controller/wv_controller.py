@@ -89,9 +89,7 @@ class WVController(QObject):
             trace_data = self.m.fetch_traces_data(component.item_id)
             component = component.as_plotly(traces, trace_data, line_color,
                                             grid_color, background_color)
-
         print(json.dumps(component, indent=4))
-
         return component
 
     def update_component(self, item_id: str) -> None:
@@ -123,7 +121,7 @@ class WVController(QObject):
                 # automatically create a new trace to be added into chart layout
                 trace_id = uuid.uuid1()
                 trace = Trace(item_id, trace_id, name, units, color,
-                              x_ref=trace_data_id, y_ref="datetime", type_=type_)
+                              x_ref="datetime", y_ref=trace_dt, type_=type_)
 
                 self.m.wv_database["traces"].append(trace)
 
