@@ -538,10 +538,19 @@ def get_yaxes(units, shared_y=True):
     return yaxes, yaxes_ref
 
 
-def get_axis_map(traces, shared_axes="x"):
+def get_axis_map(traces, trace_data, shared_axes="x"):
     """ Create axis reference dictionaries. """
+    x_types, y_types = [], []
+
+    for trace in traces:
+        if trace.x_ref == "datetime":
+
+        x_data = next(dt for dt in trace_data if trace.x_ref == dt.trace_data_id)
+        x_type = trace.units if isinstance(trace)
+
+
     xaxes, xaxes_ref = {}, {}
-    units = get_all_units(traces)
+    units = get_all_units(traces, trace_data)
 
     if not shared_axes:
         start = 1
