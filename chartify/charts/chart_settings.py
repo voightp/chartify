@@ -553,18 +553,18 @@ def get_axis_types(traces):
     return x_types, y_types, z_types
 
 
-def get_shared_axis_map(x_types, y_types):
-    xy_ref = defaultdict(list)
-    for x, y in zip(x_types, y_types):
-        if x not in xy_ref and y not in xy_ref[x]:
-            xy_ref[x].append(y)
+def get_shared_axis_map(traces, x_types, y_types):
+    grouped = defaultdict(list)
+    for trace, x, y in zip(traces, x_types, y_types):
+        grouped[x].append(trace)
+    return list(grouped.values())
 
 
-def get_independent_axis_map(x_types, y_types):
-    xy_ref = []
-    for x, y in zip(x_types, y_types):
-        if (x, y) not in xy_ref:
-            xy_ref.append((x, y))
+def get_independent_axis_map(traces, x_types, y_types):
+    grouped = defaultdict(list)
+    for trace, x, y in zip(traces, x_types, y_types):
+        grouped[(x, y)].append(trace)
+    return list(grouped.values())
 
 
 def get_axis_map(traces, shared_axes="x", chart3d=False):
@@ -576,17 +576,15 @@ def get_axis_map(traces, shared_axes="x", chart3d=False):
     else:
         for x, y in zip(x_types, y_types):
             if x is None or y is None:
-                # ignore incompletely defined traces
-                pass
-            elif shared_axes == "x" or shared_axes == "x+y":
-                pass
+                pass  # ignore incompletely defined traces
+            elif shared_axes == "x":
+                grouped = get_shared_axis_map(traces, x_types, y_types)
+            elif shared_axes == "x+y":
+                grouped = get_shared_axis_map(traces, x_types, y_types)
             else:
-                pass
-
-    if shared_axes
+                grouped = get_independent_axis_map(traces, x_types, y_types)
 
     xaxes, xaxes_ref = {}, {}
-    units = get_all_units(traces, trace_data)
 
     if not shared_axes:
         start = 1
