@@ -539,7 +539,7 @@ def get_yaxes(units, shared_y=True):
 
 
 def get_axis_types(traces):
-    """ Get unique list of types for each axis. """
+    """ Get unique list of types for each trace. """
     x_types, y_types, z_types = [], [], []
     for trace in traces:
         refs = [trace.x_ref, trace.y_ref, trace.z_ref]
@@ -553,9 +553,37 @@ def get_axis_types(traces):
     return x_types, y_types, z_types
 
 
-def get_axis_map(traces, trace_data, shared_axes="x"):
+def get_shared_axis_map(x_types, y_types):
+    xy_ref = defaultdict(list)
+    for x, y in zip(x_types, y_types):
+        if x not in xy_ref and y not in xy_ref[x]:
+            xy_ref[x].append(y)
+
+
+def get_independent_axis_map(x_types, y_types):
+    xy_ref = []
+    for x, y in zip(x_types, y_types):
+        if (x, y) not in xy_ref:
+            xy_ref.append((x, y))
+
+
+def get_axis_map(traces, shared_axes="x", chart3d=False):
     """ Create axis reference dictionaries. """
     x_types, y_types, z_types = get_axis_types(traces)
+
+    if chart3d:
+        pass
+    else:
+        for x, y in zip(x_types, y_types):
+            if x is None or y is None:
+                # ignore incompletely defined traces
+                pass
+            elif shared_axes == "x" or shared_axes == "x+y":
+                pass
+            else:
+                pass
+
+    if shared_axes
 
     xaxes, xaxes_ref = {}, {}
     units = get_all_units(traces, trace_data)

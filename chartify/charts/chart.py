@@ -6,7 +6,7 @@ def plot_pie_chart(traces, background_color):
     """ Plot a 'special' pie chart data. """
     groups = group_by_units(traces)
     x_doms, y_doms = gen_domain_vectors(groups.keys(), max_columns=3, gap=0.05,
-                                        flat=True, square=True)
+                                        square=True)
     data = []
     for x_dom, y_dom, traces in zip(x_doms, y_doms, groups.values()):
         (values, labels, colors, trace_ids,
@@ -143,7 +143,7 @@ class Chart:
 
         return {**layout, **y_axes, **x_axes}
 
-    def as_plotly(self, traces, trace_data, line_color, grid_color, background_color):
+    def as_plotly(self, traces, line_color, grid_color, background_color):
         """ Create 'plotly' like chart. """
         xaxes, yaxes, xaxes_ref, yaxes_ref = get_axis_map(traces, self.shared_axes)
         units = get_all_units(traces)
