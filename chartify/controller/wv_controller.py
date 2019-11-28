@@ -111,17 +111,21 @@ class WVController(QObject):
             color = next(self.color_generator)
             name = " | ".join(col_ix)  # file_name | interval | key | variable | units
             units = col_ix[-1]
+            interval = col_ix[1]
             total_value = float(totals_sr.loc[col_ix])
             trace_dt = TraceData(item_id, trace_data_id, name, val_sr.tolist(),
-                                 total_value, units, timestamps=timestamps)
+                                 total_value, units, timestamps=timestamps,
+                                 interval=interval)
 
             self.m.wv_database["trace_data"].append(trace_dt)
 
             if not chart.custom:
                 # automatically create a new trace to be added into chart layout
                 trace_id = uuid.uuid1()
-                trace = Trace(item_id, trace_id, name, units, color,
-                              x_ref="datetime", y_ref=trace_dt, type_=type_)
+                trace = Trace(item_id, trace_id, name, units, color, type_=type_)
+
+                trace.x_ref = "datetime"
+                trace.y_ref = trace_dt
 
                 self.m.wv_database["traces"].append(trace)
 

@@ -553,7 +553,7 @@ def get_axis_types(traces):
     return x_types, y_types, z_types
 
 
-def get_shared_axis_map(traces, x_types, y_types):
+def group_traces(traces, x_types, y_types):
     grouped = defaultdict(list)
     for trace, x, y in zip(traces, x_types, y_types):
         grouped[x].append(trace)
@@ -567,25 +567,21 @@ def get_independent_axis_map(traces, x_types, y_types):
     return list(grouped.values())
 
 
-def get_axis_map(traces, shared_axes="x", chart3d=False):
+def get_axis_map(traces, shared_axes="x"):
     """ Create axis reference dictionaries. """
-    x_types, y_types, z_types = get_axis_types(traces)
+    x_types, y_types, _ = get_axis_types(traces)
 
-    if chart3d:
-        pass
+    if shared_axes == "x":
+        # y axes are vertically stacked
+        grouped = group_traces(traces, x_types, y_types)
+    elif shared_axes == "x+y":
+        # y axes are placed next to each other
+        grouped = group_traces(traces, x_types, y_types)
     else:
-        for x, y in zip(x_types, y_types):
-            if x is None or y is None:
-                pass  # ignore incompletely defined traces
-            elif shared_axes == "x":
-                grouped = get_shared_axis_map(traces, x_types, y_types)
-            elif shared_axes == "x+y":
-                grouped = get_shared_axis_map(traces, x_types, y_types)
-            else:
-                grouped = get_independent_axis_map(traces, x_types, y_types)
+        # each x and y combination placed in independent chart
+        grouped = get_independent_axis_map(traces, x_types, y_types)
 
     xaxes, xaxes_ref = {}, {}
-
     if not shared_axes:
         start = 1
         grouped = group_by_units(traces)
