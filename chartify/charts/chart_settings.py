@@ -484,14 +484,14 @@ def get_xaxis_settings(n_yaxis, line_color, grid_color, increment=0.1,
     return xaxes
 
 
-def get_axes(intervals, axis="x", start=1):
+def get_interval_axes(traces, axes_gen, axis="x", shared=True):
     """ Assign x axes and create x reference map. """
 
     def long_name(short_name):
         return short_name.replace(axis, f"{axis}axis")
 
+    intervals = get_intervals(traces)
     axes, axes_ref = {}, {}
-    axes_gen = axis_gen(axis, start=start)
 
     p = {TS: 0, H: 1, D: 2, M: 3, A: 4, RP: 5}
     intervals = sorted(intervals, key=lambda x: p[x])
@@ -503,12 +503,18 @@ def get_axes(intervals, axis="x", start=1):
         ts = intervals.pop(intervals.index(TS))
         axes[ts] = a
 
-    axes[intervals[0]] = a
-    axes_ref[long_name(a)] = []
-    for dt in intervals[1:]:
-        xi = next(axes_gen)
-        axes[dt] = xi
-        axes_ref[long_name(a)].append(long_name(xi))
+    if shared:
+        axes[intervals[0]] = a
+        axes_ref[long_name(a)] = []
+        for dt in intervals[1:]:
+            ai = next(axes_gen)
+            axes[dt] = ai
+            axes_ref[long_name(a)].append(long_name(ai))
+    else:
+        for dt in intervals:
+            ai = next(axes_gen)
+            axes[dt] = ai
+            axes_ref[long_name(ai)] = []
 
     return axes, axes_ref
 
@@ -571,46 +577,51 @@ def get_independent_axis_map(traces, x_types, y_types):
 def get_axis_map(traces, shared_axes="x"):
     """ Create axis reference dictionaries. """
     x_types, y_types, _ = get_axis_types(traces)
-    start_x, start_y = 1, 1
+    x_axes_gen = axis_gen("x", start=1)
+    y_axes_gen = axis_gen("y", start=1)
+
     xaxes, xaxes_ref = {}, {}
     yaxes, yaxes_ref = {}, {}
 
     if shared_axes == "x":
-        # y axes are vertically stacked
-        grouped = group_traces(traces, x_types, y_types)
-        for x in grouped.keys():
-            if x == "datetime":
-                all_traces = [tr for trs in grouped[x].values() for tr in trs]
-                x_intervals = get_intervals(all_traces)
-            else:
-                pass
-            for y, traces in grouped[x].items():
-                if y == "datetime":
-                    pass
-                else:
-                    pass
-
+        shared_x = True
+        shared_y = False
     elif shared_axes == "x+y":
-        # y axes are placed next to each other
-        grouped = group_traces(traces, x_types, y_types)
+        shared_x = True
+        shared_y = True
     else:
-        # each x and y combination placed in independent chart
-        grouped = get_independent_axis_map(traces, x_types, y_types)
+        shared_x = False
+        shared_y = False
 
-    if not shared_axes:
-        start = 1
-        grouped = group_by_units(traces)
-        for u, traces in grouped.items():
-            intervals = get_intervals(traces)
-            xaxes_i, xaxes_ref_i = get_axes(intervals, axis="x", start=start)
-            xaxes[u] = xaxes_i
-            xaxes_ref = {**xaxes_ref, **xaxes_ref_i}
-            start += len(intervals)
-    else:
-        intervals = get_intervals(traces)
-        xaxes, xaxes_ref = get_axes(intervals)
+    grouped = group_traces(traces, x_types, y_types)
+    for x in grouped.keys():
+        if x == "datetime":
+            traces = [tr for trs in grouped[x].values() for tr in trs]
+            xaxes_i, xaxes_ref_i = get_interval_axes(traces, x_axes_gen,
+                                                     axis="x", shared=shared_x)
+        else:
+            a = next(x_axes_gen)
+            xaxes_i = {a: []}
+            xaxes_ref_i = {a.replace("x", "xaxis"): []}
 
-    yaxes, yaxes_ref = get_yaxes(units, shared_y=shared_axes == "x+y")
+        xaxes[x] = xaxes_i
+        xaxes_ref.update(xaxes_ref_i)
+
+        for y, traces in grouped[x].items():
+            if y == "datetime":
+                yaxes_i, yaxes_ref_i = get_interval_axes(traces, y_axes_gen,
+                                                         axis="y", shared=shared_y)
+            else:
+                a = next(y_axes_gen)
+                yaxes_i = {a: []}
+                yaxes_ref_i = {a.replace("y", "yaxis"): []}
+
+            yaxes[x] = yaxes_i
+            yaxes_ref.update(yaxes_ref_i)
+
+            if shared_axes == "x+y":
+                # y axes are placed next to each other
+                pass
 
     return xaxes, yaxes, xaxes_ref, yaxes_ref
 
