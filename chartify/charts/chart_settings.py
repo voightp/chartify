@@ -1,4 +1,5 @@
 from collections import defaultdict
+from functools import partial
 from chartify.view.icons import combine_colors
 from chartify.view.css_theme import parse_color
 from eso_reader.constants import *
@@ -38,12 +39,12 @@ def get_all_units(traces):
     return setlist
 
 
-def get_all_intervals(traces):
+def get_intervals(traces):
     """ Get a list of all used units. """
-    full = [tr.interval for tr in traces]
+    full = [tr.get_interval() for tr in traces]
     setlist = []
     for e in full:
-        if e not in setlist:
+        if e not in setlist and e:
             setlist.append(e)
     return setlist
 
@@ -483,33 +484,33 @@ def get_xaxis_settings(n_yaxis, line_color, grid_color, increment=0.1,
     return xaxes
 
 
-def get_xaxes(intervals, start_x=1):
+def get_axes(intervals, axis="x", start=1):
     """ Assign x axes and create x reference map. """
 
     def long_name(short_name):
-        return short_name.replace("x", "xaxis")
+        return short_name.replace(axis, f"{axis}axis")
 
-    xaxes, xaxes_ref = {}, {}
-    xaxes_gen = axis_gen("x", start=start_x)
+    axes, axes_ref = {}, {}
+    axes_gen = axis_gen(axis, start=start)
 
     p = {TS: 0, H: 1, D: 2, M: 3, A: 4, RP: 5}
     intervals = sorted(intervals, key=lambda x: p[x])
-    x = next(xaxes_gen)
+    a = next(axes_gen)
 
     if TS in intervals and H in intervals:
         # hourly and time step results should be
         # always plotted on the same axis
         ts = intervals.pop(intervals.index(TS))
-        xaxes[ts] = x
+        axes[ts] = a
 
-    xaxes[intervals[0]] = x
-    xaxes_ref[long_name(x)] = []
+    axes[intervals[0]] = a
+    axes_ref[long_name(a)] = []
     for dt in intervals[1:]:
-        xi = next(xaxes_gen)
-        xaxes[dt] = xi
-        xaxes_ref[long_name(x)].append(long_name(xi))
+        xi = next(axes_gen)
+        axes[dt] = xi
+        axes_ref[long_name(a)].append(long_name(xi))
 
-    return xaxes, xaxes_ref
+    return axes, axes_ref
 
 
 def get_yaxes(units, shared_y=True):
@@ -554,26 +555,41 @@ def get_axis_types(traces):
 
 
 def group_traces(traces, x_types, y_types):
-    grouped = defaultdict(list)
+    grouped = defaultdict(partial(defaultdict, list))
     for trace, x, y in zip(traces, x_types, y_types):
-        grouped[x].append(trace)
-    return list(grouped.values())
+        grouped[x][y].append(trace)
+    return grouped
 
 
 def get_independent_axis_map(traces, x_types, y_types):
     grouped = defaultdict(list)
     for trace, x, y in zip(traces, x_types, y_types):
         grouped[(x, y)].append(trace)
-    return list(grouped.values())
+    return grouped
 
 
 def get_axis_map(traces, shared_axes="x"):
     """ Create axis reference dictionaries. """
     x_types, y_types, _ = get_axis_types(traces)
+    start_x, start_y = 1, 1
+    xaxes, xaxes_ref = {}, {}
+    yaxes, yaxes_ref = {}, {}
 
     if shared_axes == "x":
         # y axes are vertically stacked
         grouped = group_traces(traces, x_types, y_types)
+        for x in grouped.keys():
+            if x == "datetime":
+                all_traces = [tr for trs in grouped[x].values() for tr in trs]
+                x_intervals = get_intervals(all_traces)
+            else:
+                pass
+            for y, traces in grouped[x].items():
+                if y == "datetime":
+                    pass
+                else:
+                    pass
+
     elif shared_axes == "x+y":
         # y axes are placed next to each other
         grouped = group_traces(traces, x_types, y_types)
@@ -581,19 +597,18 @@ def get_axis_map(traces, shared_axes="x"):
         # each x and y combination placed in independent chart
         grouped = get_independent_axis_map(traces, x_types, y_types)
 
-    xaxes, xaxes_ref = {}, {}
     if not shared_axes:
         start = 1
         grouped = group_by_units(traces)
         for u, traces in grouped.items():
-            intervals = get_all_intervals(traces)
-            xaxes_i, xaxes_ref_i = get_xaxes(intervals, start_x=start)
+            intervals = get_intervals(traces)
+            xaxes_i, xaxes_ref_i = get_axes(intervals, axis="x", start=start)
             xaxes[u] = xaxes_i
             xaxes_ref = {**xaxes_ref, **xaxes_ref_i}
             start += len(intervals)
     else:
-        intervals = get_all_intervals(traces)
-        xaxes, xaxes_ref = get_xaxes(intervals)
+        intervals = get_intervals(traces)
+        xaxes, xaxes_ref = get_axes(intervals)
 
     yaxes, yaxes_ref = get_yaxes(units, shared_y=shared_axes == "x+y")
 
