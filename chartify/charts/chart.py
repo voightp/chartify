@@ -145,8 +145,17 @@ class Chart:
 
     def as_plotly(self, traces, line_color, grid_color, background_color):
         """ Create 'plotly' like chart. """
-        xaxes, yaxes, xaxes_ref, yaxes_ref = get_axis_map(traces, self.shared_axes)
-        units = get_all_units(traces)
+        if self.shared_axes == "x":
+            shared_x = True
+            shared_y = False
+        elif self.shared_axes == "x+y":
+            shared_x = True
+            shared_y = True
+        else:
+            shared_x = False
+            shared_y = False
+
+        xaxes, yaxes, xaxes_ref, yaxes_ref = get_axis_map(traces, shared_x, shared_y)
         data = self.generate_data(traces, xaxes, yaxes, background_color)
         layout = self.generate_layout(len(traces), xaxes_ref, yaxes_ref, units,
                                       line_color, grid_color)

@@ -2,6 +2,7 @@ from collections import defaultdict
 from functools import partial
 from chartify.view.icons import combine_colors
 from chartify.view.css_theme import parse_color
+from chartify.charts.trace import Axis
 from eso_reader.constants import *
 import copy
 import math
@@ -484,39 +485,29 @@ def get_xaxis_settings(n_yaxis, line_color, grid_color, increment=0.1,
     return xaxes
 
 
-def get_interval_axes(traces, axes_gen, axis="x", shared=True):
+def get_interval_axes(traces, axes_gen):
     """ Assign x axes and create x reference map. """
-
-    def long_name(short_name):
-        return short_name.replace(axis, f"{axis}axis")
-
     intervals = get_intervals(traces)
-    axes, axes_ref = {}, {}
+    axes = {}
 
     p = {TS: 0, H: 1, D: 2, M: 3, A: 4, RP: 5}
     intervals = sorted(intervals, key=lambda x: p[x])
-    a = next(axes_gen)
+    axis_name = next(axes_gen)
 
     if TS in intervals and H in intervals:
-        # hourly and time step results should be
-        # always plotted on the same axis
-        ts = intervals.pop(intervals.index(TS))
-        axes[ts] = a
+        # hourly and timestep results should be always plotted
+        # on the same axis, hourly title should be used for both
+        intervals.remove(TS)
+        axes[TS] = axis_name
 
-    if shared:
-        axes[intervals[0]] = a
-        axes_ref[long_name(a)] = []
-        for dt in intervals[1:]:
-            ai = next(axes_gen)
-            axes[dt] = ai
-            axes_ref[long_name(a)].append(long_name(ai))
-    else:
-        for dt in intervals:
-            ai = next(axes_gen)
-            axes[dt] = ai
-            axes_ref[long_name(ai)] = []
+    parent = Axis(axis_name, intervals[0])
 
-    return axes, axes_ref
+    for dt in intervals[1:]:
+        axis_name = next(axes_gen)
+        axes[dt] = axis_name
+        parent.children.append(Axis(axis_name, dt, visible=False))
+
+    return axes, parent
 
 
 def get_yaxes(units, shared_y=True):
@@ -545,19 +536,22 @@ def get_yaxes(units, shared_y=True):
     return yaxes, yaxes_ref
 
 
-def get_axis_types(traces):
+def get_axis_types(traces, group_datetime=True):
     """ Get unique list of types for each trace. """
     x_types, y_types, z_types = [], [], []
     for trace in traces:
-        refs = [trace.x_ref, trace.y_ref, trace.z_ref]
-        types = [x_types, y_types, z_types]
+        refs = [trace.x_ref, trace.y_ref]
+        types = [x_types, y_types]
         for r, t in zip(refs, types):
             if r == "datetime":
-                t.append("datetime")
+                if group_datetime:
+                    t.append("datetime")
+                else:
+                    t.append(trace.get_interval())
             elif r.units:
                 t.append(r.units)
 
-    return x_types, y_types, z_types
+    return x_types, y_types
 
 
 def group_traces(traces, x_types, y_types):
@@ -567,61 +561,44 @@ def group_traces(traces, x_types, y_types):
     return grouped
 
 
-def get_independent_axis_map(traces, x_types, y_types):
-    grouped = defaultdict(list)
-    for trace, x, y in zip(traces, x_types, y_types):
-        grouped[(x, y)].append(trace)
-    return grouped
-
-
-def get_axis_map(traces, shared_axes="x"):
+def get_axis_map(traces, shared_x=True, shared_y=True):
     """ Create axis reference dictionaries. """
-    x_types, y_types, _ = get_axis_types(traces)
+    # group axis based on x data type, different intervals will be plotted
+    # as independent charts when shared x is not requested
+    x_types, y_types = get_axis_types(traces, group_datetime=shared_x)
+
     x_axes_gen = axis_gen("x", start=1)
     y_axes_gen = axis_gen("y", start=1)
 
-    xaxes, xaxes_ref = {}, {}
-    yaxes, yaxes_ref = {}, {}
-
-    if shared_axes == "x":
-        shared_x = True
-        shared_y = False
-    elif shared_axes == "x+y":
-        shared_x = True
-        shared_y = True
-    else:
-        shared_x = False
-        shared_y = False
+    xaxes, xaxes_ref = {}, []
+    yaxes, yaxes_ref = defaultdict(dict), []
 
     grouped = group_traces(traces, x_types, y_types)
     for x in grouped.keys():
         if x == "datetime":
             traces = [tr for trs in grouped[x].values() for tr in trs]
-            xaxes_i, xaxes_ref_i = get_interval_axes(traces, x_axes_gen,
-                                                     axis="x", shared=shared_x)
+            xaxes[x], axis = get_interval_axes(traces, x_axes_gen)
+            xaxes_ref.append(axis)
         else:
-            a = next(x_axes_gen)
-            xaxes_i = {a: []}
-            xaxes_ref_i = {a.replace("x", "xaxis"): []}
+            axis_name = next(x_axes_gen)
+            xaxes[x] = axis_name
+            xaxes_ref.append(Axis(axis_name, x))
 
-        xaxes[x] = xaxes_i
-        xaxes_ref.update(xaxes_ref_i)
-
-        for y, traces in grouped[x].items():
+        for i, (y, traces) in enumerate(grouped[x].items()):
             if y == "datetime":
-                yaxes_i, yaxes_ref_i = get_interval_axes(traces, y_axes_gen,
-                                                         axis="y", shared=shared_y)
+                yaxes[x][y], axis = get_interval_axes(traces, y_axes_gen)
             else:
-                a = next(y_axes_gen)
-                yaxes_i = {a: []}
-                yaxes_ref_i = {a.replace("y", "yaxis"): []}
+                axis_name = next(y_axes_gen)
+                yaxes[x][y] = axis_name
+                axis = Axis(axis_name, y)
 
-            yaxes[x] = yaxes_i
-            yaxes_ref.update(yaxes_ref_i)
-
-            if shared_axes == "x+y":
-                # y axes are placed next to each other
-                pass
+            if shared_y:
+                if i == 0:
+                    yaxes_ref.append(axis)
+                else:
+                    yaxes_ref[-1].children.append(axis)
+            else:
+                yaxes_ref.append(axis)
 
     return xaxes, yaxes, xaxes_ref, yaxes_ref
 
@@ -633,29 +610,3 @@ def axis_gen(axis="x", start=1):
         # first axis does not have an index
         yield f"{axis}{i}" if i != 1 else f"{axis}"
         i += 1
-
-
-class TestTrace:
-    def __init__(self, i, u):
-        self.interval = i
-        self.units = u
-
-
-trcs = [
-    TestTrace(TS, "W"),
-    TestTrace(H, "W"),
-    TestTrace(D, "J"),
-    TestTrace(TS, "J"),
-    TestTrace(M, "J"),
-    TestTrace(M, "kWh"),
-    TestTrace(RP, "J"),
-    # TestTrace("", "J"),
-]
-
-out1 = get_axis_map(trcs, shared_axes="x")
-out2 = get_axis_map(trcs, shared_axes="x+y")
-out3 = get_axis_map(trcs, shared_axes="")
-
-print(out1)
-print(out2)
-print(out3)
