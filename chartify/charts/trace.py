@@ -1,3 +1,17 @@
+class Axis:
+    def __init__(self, axis_name, title, parent_axis=None, visible=True):
+        self.axis_name = axis_name
+        self.title = title
+        self.parent_axis = parent_axis
+        self.visible = visible
+        self.children = []
+
+    @property
+    def long_axis_name(self):
+        axis = self.axis_name[0]
+        return self.axis_name.replace(axis, f"{axis}axis")
+
+
 class TraceData:
     def __init__(self, item_id, trace_data_id, name, values,
                  total_value, units, timestamps=None, interval=None):
