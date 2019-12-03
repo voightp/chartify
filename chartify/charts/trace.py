@@ -1,14 +1,56 @@
 class Axis:
-    def __init__(self, name, title, visible=True):
+    def __init__(self, name, title, anchor=None, visible=True, overlaying=None):
         self.name = name
         self.title = title
         self.visible = visible
+        self._anchor = anchor
+        self._overlaying = overlaying
         self.children = []
+        self.position = []
+        self.domain = []
+
+    @property
+    def visible_children(self):
+        return [axis for axis in self.children if axis.visible]
+
+    @property
+    def hidden_children(self):
+        return [axis for axis in self.children if not axis.visible]
 
     @property
     def long_name(self):
         axis = self.name[0]
         return self.name.replace(axis, f"{axis}axis")
+
+    @property
+    def anchor(self):
+        return self._anchor
+
+    @property
+    def overlaying(self):
+        return self._overlaying
+
+    @anchor.setter
+    def anchor(self, anchor):
+        self._anchor = anchor
+        for child in self.children:
+            child.anchor = anchor
+
+    @overlaying.setter
+    def overlaying(self, overlaying):
+        self._overlaying = overlaying
+        for child in self.children:
+            child.overlaying = overlaying
+
+    def add_child(self, axis):
+        axis.overlaying = self.name
+        self.children.append(axis)
+
+    def set_position(self, start, end):
+        self.position = [start, end]
+
+    def set_domain(self, start, end):
+        self.domain = [start, end]
 
 
 class TraceData:

@@ -5,7 +5,7 @@ from eso_reader.constants import *
 def plot_pie_chart(traces, background_color):
     """ Plot a 'special' pie chart data. """
     groups = group_by_units(traces)
-    x_domains, y_domains = gen_domain_vectors(groups.keys(), max_columns=3,
+    x_domains, y_domains = gen_domain_vectors(len(groups.keys()), max_columns=3,
                                               gap=0.05, square=True)
     data = []
     for x_dom, y_dom, traces in zip(x_domains, y_domains, groups.values()):
@@ -93,20 +93,7 @@ class Chart:
             else:
                 trace.priority = "low"
 
-    def generate_pie_data(self, traces, background_color):
-        """ Generate pie chart data. """
-        data = plot_pie_chart(traces, background_color)
-        return data
-
-    def generate_2d_data(self, traces):
-        """ Generate 2d chart data. """
-        data = []
-        if traces:
-            data = plot_2d_chart(traces, type_=self.type_)
-
-        return data
-
-    def set_top_margin(self, layout, n_traces):
+    def get_top_margin(self, n_traces):
         """ Set chart top margin. """
         if self.show_custom_legend:
             m = n_traces * self.LEGEND_TRACE_HEIGHT
@@ -114,45 +101,48 @@ class Chart:
         else:
             m = base_layout["margin"]["t"]
 
-        layout["margin"]["t"] = m + self.LEGEND_GAP
+        return m + self.LEGEND_GAP
 
-    def generate_layout(self, n_traces, axes_ref, line_color, grid_color):
+    def generate_layout_axes(self, axes_map, line_color, grid_color):
         """ Generate chart layout properties. """
-        layout = copy.deepcopy(base_layout)
-        self.set_top_margin(layout, n_traces)
+        x_axes, y_axes = {}, {}
 
-        x_domains, y_domains = gen_domain_vectors(axes_ref.keys(), max_columns=3,
-                                                  gap=0.05, square=True)
+        for xaxis, yaxis in axes_map:
+            y_axes = get_yaxis_settings(yaxis, y_dom, line_color,
+                                        grid_color, increment=0.08,
+                                        ranges_y=self.ranges["y"])
 
-        y_axes = get_yaxis_settings(axes_ref.values(), y_domains, line_color, grid_color,
-                                    increment=0.08, ranges_y=self.ranges["y"])
+            x_axes = get_xaxis_settings(len(y_axes.keys()), line_color, grid_color,
+                                        increment=0.08, x_domains=x_domains,
+                                        date_axis=date_axis, ranges_x=self.ranges["x"])
 
-        date_axis = self.type_ in ["scatter", "bar", "bubble", "line"]
-        x_axes = get_xaxis_settings(len(y_axes.keys()), line_color, grid_color,
-                                    increment=0.08, x_domains=x_domains,
-                                    date_axis=date_axis, ranges_x=self.ranges["x"])
+        return {**y_axes, **x_axes}
 
-        return {**layout, **y_axes, **x_axes}
-
-    def as_plotly(self, traces, line_color, grid_color, background_color):
+    def as_plotly(self, traces, modebar_active_color, modebar_color,
+                  line_color, grid_color, background_color):
         """ Create 'plotly' like chart. """
-        # assign priority to properly display traces
+        # assign priority to set an appearance for each trace
         self.set_trace_priority(traces)
 
+        # copy layout to avoid overriding base parameters
+        top_margin = self.get_top_margin(len(traces))
+        layout = get_base_layout(top_margin, modebar_active_color, modebar_color)
+
         if self.type_ == "pie":
-            data = self.generate_pie_data(traces, background_color)
+            axes = {}
+            data = plot_pie_chart(traces, background_color)
         else:
             axis_map = create_2d_axis_map(traces, self.shared_x, self.shared_y)
-            data = self.generate_2d_data(traces)
+            axes = self.generate_layout_axes(axis_map, line_color, grid_color)
+            data = plot_2d_chart(traces, type_=self.type_)
 
-        layout = self.generate_layout(len(traces), axis_map, line_color, grid_color)
         return {
             "componentType": "chart",
             "showCustomLegend": self.show_custom_legend,
             "sharedAxes": self.shared_axes,
             "chartType": self.type_,
             "divId": self.chart_id,
-            "layout": layout,
+            "layout": {**layout, **axes},
             "data": data,
             "style": style,
             "config": config,
