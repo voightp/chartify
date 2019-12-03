@@ -86,8 +86,7 @@ class WVController(QObject):
 
         if isinstance(component, Chart):
             traces = self.m.fetch_traces(component.item_id)
-            trace_data = self.m.fetch_traces_data(component.item_id)
-            component = component.as_plotly(traces, trace_data, line_color,
+            component = component.as_plotly(traces, line_color,
                                             grid_color, background_color)
         print(json.dumps(component, indent=4))
         return component

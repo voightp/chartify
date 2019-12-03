@@ -42,7 +42,7 @@ def get_all_units(traces):
 
 def get_intervals(traces):
     """ Get a list of all used units. """
-    full = [tr.get_interval() for tr in traces]
+    full = [tr.interval for tr in traces]
     setlist = []
     for e in full:
         if e not in setlist and e:
@@ -310,12 +310,10 @@ def generate_grid_item(frame_id, type_):
 
 def gen_ref_matrix(items, max_columns, square):
     m = [[]]
-
     i = math.sqrt(len(items))
     if square and i.is_integer() and max_columns > i:
         # override number of columns to create a 'square' matrix
         max_columns = i
-
     row = 0
     for item in items:
         if len(m[row]) < max_columns:
@@ -386,8 +384,8 @@ def set_yaxes_positions(yaxes, increment):
     return yaxes
 
 
-def get_yaxis_settings(n, line_color, grid_color, increment=0.1,
-                       titles=None, y_domains=None, ranges_y=None):
+def get_yaxis_settings(yaxes_refs, y_domains, line_color, grid_color, increment=0.1,
+                       ranges_y=None):
     shared_attributes = {
         "color": line_color,
         "linecolor": line_color,
@@ -400,6 +398,9 @@ def get_yaxis_settings(n, line_color, grid_color, increment=0.1,
         "zeroline": True,
         "zerolinewidth": 2
     }
+
+    for refs, domain in zip(yaxes_refs, y_domains):
+        for ref in refs:
 
     if n == 0:
         return {"yaxis": shared_attributes}
@@ -485,10 +486,44 @@ def get_xaxis_settings(n_yaxis, line_color, grid_color, increment=0.1,
     return xaxes
 
 
-def get_interval_axes(traces, axes_gen):
-    """ Assign x axes and create x reference map. """
+def group_traces(traces, x_types, y_types):
+    """ Group traces based on axis types. """
+    grouped = defaultdict(partial(defaultdict, list))
+    for trace, x, y in zip(traces, x_types, y_types):
+        grouped[x][y].append(trace)
+    return grouped
+
+
+def get_axis_types(traces, group_datetime=True):
+    """ Get unique list of types for each trace. """
+    x_types, y_types, = [], []
+    for trace in traces:
+        refs = [trace.x_ref, trace.y_ref]
+        types = [x_types, y_types]
+        for r, t in zip(refs, types):
+            if r == "datetime":
+                if group_datetime:
+                    t.append("datetime")
+                else:
+                    t.append(trace.interval)
+            elif r.units:
+                t.append(r.units)
+
+    return x_types, y_types
+
+
+def axis_gen(axis="x", start=1):
+    """ Generate stream of axis identifiers. """
+    i = start
+    while True:
+        # first axis does not have an index
+        yield f"{axis}{i}" if i != 1 else f"{axis}"
+        i += 1
+
+
+def shared_interval_axis(traces, axes_gen, axes):
+    """ Assign trace interval reference and create parent axis. """
     intervals = get_intervals(traces)
-    axes = {}
 
     p = {TS: 0, H: 1, D: 2, M: 3, A: 4, RP: 5}
     intervals = sorted(intervals, key=lambda x: p[x])
@@ -500,113 +535,73 @@ def get_interval_axes(traces, axes_gen):
         intervals.remove(TS)
         axes[TS] = axis_name
 
+    axes[intervals[0]] = axis_name
     parent = Axis(axis_name, intervals[0])
 
-    for dt in intervals[1:]:
+    for interval in intervals[1:]:
         axis_name = next(axes_gen)
-        axes[dt] = axis_name
-        parent.children.append(Axis(axis_name, dt, visible=False))
+        axes[interval] = axis_name
+        parent.children.append(Axis(axis_name, interval, visible=False))
 
-    return axes, parent
-
-
-def get_yaxes(units, shared_y=True):
-    """ Assign y axes and create y reference map. """
-
-    def long_name(short_name):
-        return short_name.replace("y", "yaxis")
-
-    yaxes, yaxes_ref = {}, {}
-    yaxes_gen = axis_gen("y", start=1)
-
-    if not shared_y:
-        for dt in units:
-            yi = next(yaxes_gen)
-            yaxes[dt] = yi
-            yaxes_ref[long_name(yi)] = []
-    else:
-        y = next(yaxes_gen)
-        yaxes[units[0]] = y
-        yaxes_ref[long_name(y)] = []
-        for dt in units[1:]:
-            yi = next(yaxes_gen)
-            yaxes[dt] = yi
-            yaxes_ref[long_name(y)].append(long_name(yi))
-
-    return yaxes, yaxes_ref
+    return parent
 
 
-def get_axis_types(traces, group_datetime=True):
-    """ Get unique list of types for each trace. """
-    x_types, y_types, z_types = [], [], []
+def assign_trace_axes(traces, xaxes, yaxes):
+    """ Assign trace 'x' and 'y' axes. """
     for trace in traces:
-        refs = [trace.x_ref, trace.y_ref]
-        types = [x_types, y_types]
-        for r, t in zip(refs, types):
-            if r == "datetime":
-                if group_datetime:
-                    t.append("datetime")
-                else:
-                    t.append(trace.get_interval())
-            elif r.units:
-                t.append(r.units)
+        if trace.x_ref == "datetime":
+            trace.xaxis = xaxes[trace.interval]
+        else:
+            trace.xaxis = xaxes[trace.x_type]
 
-    return x_types, y_types
+        if trace.y_ref == "datetime":
+            trace.yaxis = yaxes[trace.interval]
+        else:
+            trace.yaxis = yaxes[trace.y_type]
 
 
-def group_traces(traces, x_types, y_types):
-    grouped = defaultdict(partial(defaultdict, list))
-    for trace, x, y in zip(traces, x_types, y_types):
-        grouped[x][y].append(trace)
-    return grouped
-
-
-def get_axis_map(traces, shared_x=True, shared_y=True):
+def create_2d_axis_map(traces, shared_x=True, shared_y=True):
     """ Create axis reference dictionaries. """
     # group axis based on x data type, different intervals will be plotted
     # as independent charts when shared x is not requested
     x_types, y_types = get_axis_types(traces, group_datetime=shared_x)
 
+    axes_ref = {}
     x_axes_gen = axis_gen("x", start=1)
     y_axes_gen = axis_gen("y", start=1)
 
-    xaxes, xaxes_ref = {}, []
-    yaxes, yaxes_ref = defaultdict(dict), []
-
     grouped = group_traces(traces, x_types, y_types)
-    for x in grouped.keys():
-        if x == "datetime":
-            traces = [tr for trs in grouped[x].values() for tr in trs]
-            xaxes[x], axis = get_interval_axes(traces, x_axes_gen)
-            xaxes_ref.append(axis)
+    for x_type in grouped.keys():
+        # initialize temporary axis reference dictionaries,
+        # these are used to assign axis for each trace group
+        xaxes, yaxes = {}, {}
+
+        if x_type == "datetime":
+            traces = [tr for trs in grouped[x_type].values() for tr in trs]
+            xaxis = shared_interval_axis(traces, x_axes_gen, xaxes)
         else:
             axis_name = next(x_axes_gen)
-            xaxes[x] = axis_name
-            xaxes_ref.append(Axis(axis_name, x))
+            xaxes[x_type] = axis_name
+            xaxis = Axis(axis_name, x_type)
 
-        for i, (y, traces) in enumerate(grouped[x].items()):
-            if y == "datetime":
-                yaxes[x][y], axis = get_interval_axes(traces, y_axes_gen)
+        axes_ref[xaxis] = []
+        for i, (y_type, traces) in enumerate(grouped[x_type].items()):
+            if y_type == "datetime":
+                axis = shared_interval_axis(traces, y_axes_gen, yaxes)
             else:
                 axis_name = next(y_axes_gen)
-                yaxes[x][y] = axis_name
-                axis = Axis(axis_name, y)
+                yaxes[x_type][y_type] = axis_name
+                axis = Axis(axis_name, y_type)
 
             if shared_y:
                 if i == 0:
-                    yaxes_ref.append(axis)
+                    axes_ref[xaxis].append(axis)
                 else:
-                    yaxes_ref[-1].children.append(axis)
+                    axes_ref[xaxis][-1].children.append(axis)
             else:
-                yaxes_ref.append(axis)
+                axes_ref[xaxis].append(axis)
 
-    return xaxes, yaxes, xaxes_ref, yaxes_ref
+            # set axis reference for the current trace group
+            assign_trace_axes(traces, xaxes, yaxes)
 
-
-def axis_gen(axis="x", start=1):
-    """ Generate stream of axis identifiers. """
-    i = start
-    while True:
-        # first axis does not have an index
-        yield f"{axis}{i}" if i != 1 else f"{axis}"
-        i += 1
+    return axes_ref

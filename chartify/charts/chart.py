@@ -5,10 +5,10 @@ from eso_reader.constants import *
 def plot_pie_chart(traces, background_color):
     """ Plot a 'special' pie chart data. """
     groups = group_by_units(traces)
-    x_doms, y_doms = gen_domain_vectors(groups.keys(), max_columns=3, gap=0.05,
-                                        square=True)
+    x_domains, y_domains = gen_domain_vectors(groups.keys(), max_columns=3,
+                                              gap=0.05, square=True)
     data = []
-    for x_dom, y_dom, traces in zip(x_doms, y_doms, groups.values()):
+    for x_dom, y_dom, traces in zip(x_domains, y_domains, groups.values()):
         (values, labels, colors, trace_ids,
          priorities, selected) = combine_traces(traces)
 
@@ -71,6 +71,16 @@ class Chart:
         self.show_custom_legend = True
         self.ranges = {"x": {}, "y": {}, "z": {}}
 
+    @property
+    def shared_x(self):
+        """ Check if datetime axis is shared for all intervals. """
+        return self.shared_axes == "x" or self.shared_axes == "x+y"
+
+    @property
+    def shared_y(self):
+        """ Check if 'y' axis should be shared or stacked. """
+        return self.shared_axes == "x+y"
+
     @staticmethod
     def set_trace_priority(traces):
         """ Set emphasised trace appearance. """
@@ -83,30 +93,16 @@ class Chart:
             else:
                 trace.priority = "low"
 
-    def set_trace_axes(self, traces, xaxes, yaxes):
-        """ Assign trace 'x' and 'y' axes (based on units). """
-        for trace in traces:
-            if not self.shared_axes:
-                trace.xaxis = xaxes[trace.units][trace.interval]
-            else:
-                trace.xaxis = xaxes[trace.interval]
+    def generate_pie_data(self, traces, background_color):
+        """ Generate pie chart data. """
+        data = plot_pie_chart(traces, background_color)
+        return data
 
-            trace.yaxis = yaxes[trace.units]
-
-    def generate_data(self, traces, xaxes, yaxes, background_color):
-        """ Generate chart data (traces). """
+    def generate_2d_data(self, traces):
+        """ Generate 2d chart data. """
         data = []
-        if self.type_ in ["pie", "histogram", "box"]:
-            self.shared_axes = False
-
         if traces:
-            self.set_trace_axes(traces, xaxes, yaxes)
-            self.set_trace_priority(traces)
-
-            if self.type_ == "pie":
-                data = plot_pie_chart(traces, background_color)
-            else:
-                data = plot_2d_chart(traces, type_=self.type_)
+            data = plot_2d_chart(traces, type_=self.type_)
 
         return data
 
@@ -120,20 +116,15 @@ class Chart:
 
         layout["margin"]["t"] = m + self.LEGEND_GAP
 
-    def generate_layout(self, n_traces, xaxes_ref, yaxes_ref, units,
-                        line_color, grid_color):
+    def generate_layout(self, n_traces, axes_ref, line_color, grid_color):
         """ Generate chart layout properties. """
         layout = copy.deepcopy(base_layout)
         self.set_top_margin(layout, n_traces)
 
-        if self.shared_axes:
-            x_domains, y_domains = None, None
-        else:
-            x_domains, y_domains = gen_domain_vectors(units, max_columns=3,
-                                                      gap=0.05, square=True)
+        x_domains, y_domains = gen_domain_vectors(axes_ref.keys(), max_columns=3,
+                                                  gap=0.05, square=True)
 
-        y_axes = get_yaxis_settings(len(units), line_color, grid_color,
-                                    titles=units, y_domains=y_domains,
+        y_axes = get_yaxis_settings(axes_ref.values(), y_domains, line_color, grid_color,
                                     increment=0.08, ranges_y=self.ranges["y"])
 
         date_axis = self.type_ in ["scatter", "bar", "bubble", "line"]
@@ -145,20 +136,16 @@ class Chart:
 
     def as_plotly(self, traces, line_color, grid_color, background_color):
         """ Create 'plotly' like chart. """
-        if self.shared_axes == "x":
-            shared_x = True
-            shared_y = False
-        elif self.shared_axes == "x+y":
-            shared_x = True
-            shared_y = True
-        else:
-            shared_x = False
-            shared_y = False
+        # assign priority to properly display traces
+        self.set_trace_priority(traces)
 
-        xaxes, yaxes, xaxes_ref, yaxes_ref = get_axis_map(traces, shared_x, shared_y)
-        data = self.generate_data(traces, xaxes, yaxes, background_color)
-        layout = self.generate_layout(len(traces), xaxes_ref, yaxes_ref, units,
-                                      line_color, grid_color)
+        if self.type_ == "pie":
+            data = self.generate_pie_data(traces, background_color)
+        else:
+            axis_map = create_2d_axis_map(traces, self.shared_x, self.shared_y)
+            data = self.generate_2d_data(traces)
+
+        layout = self.generate_layout(len(traces), axis_map, line_color, grid_color)
         return {
             "componentType": "chart",
             "showCustomLegend": self.show_custom_legend,
