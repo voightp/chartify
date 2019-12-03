@@ -260,6 +260,19 @@ base_layout = {
 }
 
 
+def get_base_layout(top_margin, modebar_active_color, modebar_color):
+    mod = {
+        "modebar": {
+            "activecolor": modebar_active_color,
+            "color": modebar_color
+        },
+        "margin": {
+            "t": top_margin
+        }
+    }
+    return {**base_layout, **mod}
+
+
 def color_generator(i=0):
     colors = [
         "rgb(31, 119, 180)",
@@ -308,18 +321,18 @@ def generate_grid_item(frame_id, type_):
     return {**shared, **cases[type_]}
 
 
-def gen_ref_matrix(items, max_columns, square):
+def gen_ref_matrix(n, max_columns, square):
     m = [[]]
-    i = math.sqrt(len(items))
+    i = math.sqrt(n)
     if square and i.is_integer() and max_columns > i:
         # override number of columns to create a 'square' matrix
         max_columns = i
     row = 0
-    for item in items:
+    for i in range(n):
         if len(m[row]) < max_columns:
-            m[row].append(item)
+            m[row].append(i)
         else:
-            m.append([item])
+            m.append([i])
             row += 1
     return m
 
@@ -333,8 +346,8 @@ def dom_gen(n, gap):
         start = end + gap
 
 
-def gen_domain_vectors(items, gap=0.05, max_columns=3, square=True):
-    ref_matrix = gen_ref_matrix(items, max_columns, square)
+def gen_domain_vectors(n, gap=0.05, max_columns=3, square=True):
+    ref_matrix = gen_ref_matrix(n, max_columns, square)
 
     x_dom_mx = copy.deepcopy(ref_matrix)
     y_dom_mx = copy.deepcopy(ref_matrix)
@@ -354,10 +367,18 @@ def gen_domain_vectors(items, gap=0.05, max_columns=3, square=True):
     return x_dom_vector, y_dom_vector
 
 
-def set_yaxes_positions(yaxes, increment):
+def assign_domains(axes_map, shared_y, max_columns=3, gap=0.05, square=True):
+    x_domains, y_domains = gen_domain_vectors(len(axes_map), max_columns=3,
+                                              gap=0.05, square=True)
+    for (x, y), x_dom, y_dom in zip(axes_map, x_domains, y_domains):
+        start_x, start_y = x_dom[0], x_dom[1]
+        end_x, end_y = x_dom[1], y_dom[1]
+
+
+def set_yaxes_positions(yaxes, start, end, increment):
     # modify gaps between y axes, initial domain is [0, 1]
-    s = 0
-    e = 1 + increment
+    s = start
+    e = end + increment
 
     for i, k in enumerate(yaxes.keys()):
 
@@ -384,7 +405,7 @@ def set_yaxes_positions(yaxes, increment):
     return yaxes
 
 
-def get_yaxis_settings(yaxes_refs, y_domains, line_color, grid_color, increment=0.1,
+def get_yaxis_settings(yaxis, y_domain, line_color, grid_color, increment=0.1,
                        ranges_y=None):
     shared_attributes = {
         "color": line_color,
@@ -399,22 +420,23 @@ def get_yaxis_settings(yaxes_refs, y_domains, line_color, grid_color, increment=
         "zerolinewidth": 2
     }
 
-    for refs, domain in zip(yaxes_refs, y_domains):
-        for ref in refs:
-
-    if n == 0:
+    if not yaxis:
         return {"yaxis": shared_attributes}
 
     yaxes = defaultdict(dict)
+    yaxes[yaxis.long_name] = {
+        "title": yaxis.title,
+        "anchor": yaxis.anchor,
+        "rangemode": "tozero",
+        "type": "linear",
+        **shared_attributes
+    }
 
-    for i in range(n):
-        nm = "yaxis" if i == 0 else f"yaxis{i + 1}"
+    for child in yaxis.visible_children:
+        pass
 
-        if titles:
-            yaxes[nm]["title"] = titles[i]
-
-        yaxes[nm]["rangemode"] = "tozero"
-        yaxes[nm]["type"] = "linear"
+    for child in yaxis.hidden_children:
+        pass
 
     if not y_domains:
         yaxes = set_yaxes_positions(yaxes, increment)
@@ -428,9 +450,6 @@ def get_yaxis_settings(yaxes_refs, y_domains, line_color, grid_color, increment=
     for k in yaxes.keys():
         if k in ranges_y.keys():
             yaxes[k]["range"] = ranges_y[k]
-
-        yaxes[k] = {**yaxes[k],
-                    **shared_attributes}
 
     return yaxes
 
@@ -541,7 +560,7 @@ def shared_interval_axis(traces, axes_gen, axes):
     for interval in intervals[1:]:
         axis_name = next(axes_gen)
         axes[interval] = axis_name
-        parent.children.append(Axis(axis_name, interval, visible=False))
+        parent.add_child(Axis(axis_name, interval, visible=False))
 
     return parent
 
@@ -566,7 +585,7 @@ def create_2d_axis_map(traces, shared_x=True, shared_y=True):
     # as independent charts when shared x is not requested
     x_types, y_types = get_axis_types(traces, group_datetime=shared_x)
 
-    axes_ref = {}
+    axes_map = []
     x_axes_gen = axis_gen("x", start=1)
     y_axes_gen = axis_gen("y", start=1)
 
@@ -584,7 +603,6 @@ def create_2d_axis_map(traces, shared_x=True, shared_y=True):
             xaxes[x_type] = axis_name
             xaxis = Axis(axis_name, x_type)
 
-        axes_ref[xaxis] = []
         for i, (y_type, traces) in enumerate(grouped[x_type].items()):
             if y_type == "datetime":
                 axis = shared_interval_axis(traces, y_axes_gen, yaxes)
@@ -593,15 +611,17 @@ def create_2d_axis_map(traces, shared_x=True, shared_y=True):
                 yaxes[x_type][y_type] = axis_name
                 axis = Axis(axis_name, y_type)
 
-            if shared_y:
-                if i == 0:
-                    axes_ref[xaxis].append(axis)
-                else:
-                    axes_ref[xaxis][-1].children.append(axis)
+            if i == 0:
+                yaxis = axis
+                xaxis.anchor = yaxis.name
             else:
-                axes_ref[xaxis].append(axis)
+                yaxis.add_child(axis)
 
             # set axis reference for the current trace group
             assign_trace_axes(traces, xaxes, yaxes)
 
-    return axes_ref
+        axes_map.append((xaxis, yaxis))
+
+    assign_domains(axes_map, shared_y, max_columns=3, gap=0.05, square=True)
+
+    return axes_map
