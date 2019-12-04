@@ -1,18 +1,19 @@
 from collections import defaultdict
 from functools import partial
+from typing import Tuple, List, Dict, Union
 from chartify.view.icons import combine_colors
 from chartify.view.css_theme import parse_color
-from chartify.charts.trace import Axis
+from chartify.charts.trace import Axis, Trace
 from eso_reader.constants import *
 import copy
 import math
 
 
-def combine_traces(traces):
+def combine_traces(traces: List[Trace]) -> Tuple[List, List, List, List, List, List]:
     """ Group multiple traces into a single one. """
     values, labels, colors, trace_ids, priorities, selected = [], [], [], [], [], []
     for trace in traces:
-        values.append(abs(trace.total_value))
+        values.append(abs(trace.total_value))  # TODO fix this
         labels.append(trace.name)
         colors.append(trace.color)
         trace_ids.append(trace.trace_id)
@@ -22,7 +23,7 @@ def combine_traces(traces):
     return values, labels, colors, trace_ids, priorities, selected
 
 
-def group_by_units(traces):
+def group_by_units(traces: List[Trace]) -> Dict[str, List[Trace]]:
     """ Group units as dict with units as keys. """
     groups = defaultdict(list)
     for trace in traces:
@@ -30,22 +31,12 @@ def group_by_units(traces):
     return groups
 
 
-def get_all_units(traces):
+def get_all_units(traces: List[Trace]) -> List[str]:
     """ Get a list of all used units. """
     full = [tr.units for tr in traces]
     setlist = []
     for e in full:
         if e not in setlist:
-            setlist.append(e)
-    return setlist
-
-
-def get_intervals(traces):
-    """ Get a list of all used units. """
-    full = [tr.interval for tr in traces]
-    setlist = []
-    for e in full:
-        if e not in setlist and e:
             setlist.append(e)
     return setlist
 
@@ -321,7 +312,7 @@ def generate_grid_item(frame_id, type_):
     return {**shared, **cases[type_]}
 
 
-def gen_ref_matrix(n, max_columns, square):
+def gen_ref_matrix(n: int, max_columns: int, square: bool) -> List[List[int]]:
     m = [[]]
     i = math.sqrt(n)
     if square and i.is_integer() and max_columns > i:
@@ -346,7 +337,8 @@ def dom_gen(n, gap):
         start = end + gap
 
 
-def gen_domain_vectors(n, gap=0.05, max_columns=3, square=True):
+def gen_domain_vectors(n: int, gap: float = 0.05, max_columns: int = 3,
+                       square: bool = True) -> Tuple[List[int], List[int]]:
     ref_matrix = gen_ref_matrix(n, max_columns, square)
 
     x_dom_mx = copy.deepcopy(ref_matrix)
@@ -370,39 +362,42 @@ def gen_domain_vectors(n, gap=0.05, max_columns=3, square=True):
 def assign_domains(axes_map, shared_y, max_columns=3, gap=0.05, square=True):
     x_domains, y_domains = gen_domain_vectors(len(axes_map), max_columns=3,
                                               gap=0.05, square=True)
-    for (x, y), x_dom, y_dom in zip(axes_map, x_domains, y_domains):
+    for (xaxis, yaxis), x_dom, y_dom in zip(axes_map, x_domains, y_domains):
         start_x, start_y = x_dom[0], x_dom[1]
         end_x, end_y = x_dom[1], y_dom[1]
 
+        if shared_y:
+            set_shared_yaxis_positions(xaxis, yaxis)
 
-def set_yaxes_positions(yaxes, start, end, increment):
-    # modify gaps between y axes, initial domain is [0, 1]
-    s = start
-    e = end + increment
 
-    for i, k in enumerate(yaxes.keys()):
+def set_shared_yaxis_positions(xaxis, yaxis, x_domain, y_domain, increment):
+    yaxis.domain = y_domain
+    n = len(yaxis.children)
 
-        # skip first y axis as this axis is a 'base' one
-        # and has its settings defined in default layout
-        if i == 0:
-            continue
+    x_left = x_domain[0] - increment
+    x_right = x_domain[1] if n == 0 else x_domain[1] + increment
 
-        yaxes[k] = {**yaxes[k],
-                    "anchor": "free",
-                    "overlaying": "y"}
+    # assign axis from outer to inner chart space
+    for i, child in enumerate(yaxis.children[::-1]):
+        child.domain = y_domain
+        child.anchor = "free"
+
+        if n % 2 == 0:
+            # start from left for even number of child axis
+            i += 1
+
         j = i % 2
-
         if j == 0:
-            s += increment
-            pos = round(s, 2)
+            x_right -= increment
+            child.position = round(x_right, 2)
+            child.side = "right"
         else:
-            e -= increment
-            pos = round(e, 2)
+            x_left += increment
+            child.position = round(x_left, 2)
+            child.side = "left"
 
-        yaxes[k]["position"] = pos
-        yaxes[k]["side"] = "left" if j == 0 else "right"
-
-    return yaxes
+    x_left += increment
+    xaxis.domain = [x_left, x_right]
 
 
 def get_yaxis_settings(yaxis, y_domain, line_color, grid_color, increment=0.1,
@@ -439,7 +434,7 @@ def get_yaxis_settings(yaxis, y_domain, line_color, grid_color, increment=0.1,
         pass
 
     if not y_domains:
-        yaxes = set_yaxes_positions(yaxes, increment)
+        yaxes = set_shared_yaxis_positions(yaxes, increment)
     else:
         for i, k in enumerate(yaxes.keys()):
             yaxes[k] = {**yaxes[k],
@@ -538,6 +533,16 @@ def axis_gen(axis="x", start=1):
         # first axis does not have an index
         yield f"{axis}{i}" if i != 1 else f"{axis}"
         i += 1
+
+
+def get_intervals(traces):
+    """ Get a list of all used units. """
+    full = [tr.interval for tr in traces]
+    setlist = []
+    for e in full:
+        if e not in setlist and e:
+            setlist.append(e)
+    return setlist
 
 
 def shared_interval_axis(traces, axes_gen, axes):

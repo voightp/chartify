@@ -6,8 +6,9 @@ class Axis:
         self._anchor = anchor
         self._overlaying = overlaying
         self.children = []
-        self.position = []
         self.domain = []
+        self.position = None
+        self.side = None
 
     @property
     def visible_children(self):
