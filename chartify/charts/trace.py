@@ -71,23 +71,42 @@ class TraceData:
 
 
 class Trace:
-    def __init__(self, item_id, trace_id, name, units, color, type_="scatter",
-                 xaxis="x", yaxis="y", zaxis="z", selected=False, priority="normal"):
+    def __init__(self, item_id: str, trace_id: str, color: str,
+                 type_: str, selected: bool, priority: str):
         self.item_id = item_id
         self.trace_id = trace_id
-        self.name = name
-        self.units = units
         self.color = color
         self.type_ = type_
-        self.xaxis = xaxis
-        self.yaxis = yaxis
-        self.zaxis = zaxis
         self.selected = selected
         self.priority = priority
+
+
+class Trace1D(Trace):
+    def __init__(self, ref, *args):
+        super().__init__(*args)
+        self.ref = ref
+
+    @property
+    def values(self):
+        return self.ref.values if self.ref else None
+
+    @property
+    def total_value(self):
+        return self.ref.total_value if self.ref else None
+
+
+class Trace2D(Trace):
+    def __init__(self, name, *args):
+        super().__init__(*args)
+        self.name = name
+        self.xaxis = None
+        self.yaxis = None
         self._x_ref = None
         self._y_ref = None
         self._z_ref = None
         self._num_values = None
+        self._interval = None
+        self._timestamps = None
 
     @property
     def x_ref(self):
@@ -97,42 +116,42 @@ class Trace:
     def y_ref(self):
         return self._y_ref
 
-    @property
-    def z_ref(self):
-        return self._z_ref
+    def _validate_ref(self, ref):
+        """ Check if the reference can be assigned. """
+        if ref == "datetime":
+            valid = True
+        elif isinstance(ref, TraceData):
+            num_check = not self._num_values or len(ref.values) == self._num_values
+            int_check = not self._interval or not ref.interval or \
+                        ref.interval == self._interval
+            valid = num_check and int_check
+        else:
+            valid = False
+
+        if not valid:
+            print(f"Cannot set ref: '{ref.name}',"
+                  f"number of values or interval does not match!")
+        else:
+            # assign number of values, interval or timestamps for
+            # cases where any of those hasn't been assigned already
+            if not self._num_values:
+                self._num_values = len(ref.values)
+            if not self._interval and ref.interval:
+                self._interval = ref.interval
+            if not self._timestamps and ref.timestamps:
+                self._timestamps = ref.timestamps
+
+        return valid
 
     @x_ref.setter
     def x_ref(self, x_ref):
-        if x_ref == "datetime":
-            self._x_ref = "datetime"
-        elif self._num_values == len(x_ref.values) or not self._num_values:
-            self._num_values = len(x_ref.values)
+        if self._validate_ref(x_ref):
             self._x_ref = x_ref
-        else:
-            print(f"Cannot set x_ref: '{x_ref.name}',"
-                  f"number of values does not match!")
 
     @y_ref.setter
     def y_ref(self, y_ref):
-        if y_ref == "datetime":
-            self._y_ref = "datetime"
-        elif self._num_values == len(y_ref.values) or not self._num_values:
-            self._num_values = len(y_ref.values)
+        if self._validate_ref(y_ref):
             self._y_ref = y_ref
-        else:
-            print(f"Cannot set y_ref: '{y_ref.name}',"
-                  f"number of values does not match!")
-
-    @z_ref.setter
-    def z_ref(self, z_ref):
-        if z_ref == "datetime":
-            self._z_ref = "datetime"
-        elif self._num_values == len(z_ref.values) or not self._num_values:
-            self._num_values = len(z_ref.values)
-            self._z_ref = z_ref
-        else:
-            print(f"Cannot set z_ref: '{z_ref.name}',"
-                  f"number of values does not match!")
 
     @property
     def x_values(self):
@@ -143,10 +162,6 @@ class Trace:
         return self._y_ref.values if isinstance(self._y_ref, TraceData) else None
 
     @property
-    def z_values(self):
-        return self._z_ref.values if isinstance(self._z_ref, TraceData) else None
-
-    @property
     def x_type(self):
         return self._x_ref.units if isinstance(self._x_ref, TraceData) else self._x_ref
 
@@ -155,34 +170,30 @@ class Trace:
         return self._y_ref.units if isinstance(self._y_ref, TraceData) else self._y_ref
 
     @property
+    def js_timestamps(self):
+        if self._timestamps:
+            return [ts * 1000 for ts in self._timestamps]
+
+
+class Trace3D(Trace2D):
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.zaxis = None
+        self._z_ref = None
+
+    @property
+    def z_ref(self):
+        return self._z_ref
+
+    @z_ref.setter
+    def z_ref(self, z_ref):
+        if self._validate_ref(z_ref):
+            self._z_ref = z_ref
+
+    @property
+    def z_values(self):
+        return self._z_ref.values if isinstance(self._z_ref, TraceData) else None
+
+    @property
     def z_type(self):
         return self._z_ref.units if isinstance(self._z_ref, TraceData) else self._z_ref
-
-    @property
-    def timestamps(self):
-        if isinstance(self._x_ref, TraceData) and self._x_ref.timestamps:
-            return self._x_ref.timestamps
-        elif isinstance(self._y_ref, TraceData) and self._y_ref.timestamps:
-            return self._y_ref.timestamps
-        elif isinstance(self._z_ref, TraceData) and self._z_ref.timestamps:
-            return self._z_ref.timestamps
-        else:
-            print(f"Any TraceData of '{self.name}' does "
-                  f"not include timestamp information.")
-
-    @property
-    def js_timestamps(self):
-        if self.timestamps:
-            return [ts * 1000 for ts in self.timestamps]
-
-    @property
-    def interval(self):
-        if isinstance(self._x_ref, TraceData) and self._x_ref.timestamps:
-            return self._x_ref.interval
-        elif isinstance(self._y_ref, TraceData) and self._y_ref.timestamps:
-            return self._y_ref.interval
-        elif isinstance(self._z_ref, TraceData) and self._z_ref.timestamps:
-            return self._z_ref.interval
-        else:
-            print(f"Any TraceData of '{self.name}' does "
-                  f"not include interval information.")
