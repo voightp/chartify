@@ -34,6 +34,18 @@ class TestChartLayout(unittest.TestCase):
         self.dt5 = TraceData("item-4", uuid.uuid1(), "trace data 5",
                              [random.random() for _ in range(n_hourly)], 3.123, "")
 
+        self.a0 = Axis("x", "hourly")
+        self.a1 = Axis("x2", "daily")
+        self.a2 = Axis("x3", "monthly")
+        self.a3 = Axis("x4", "W")
+        self.a4 = Axis("x5", "J")
+
+        self.a0 = Axis("y", "K")
+        self.a1 = Axis("y2", "W")
+        self.a2 = Axis("y3", "J")
+        self.a3 = Axis("y4", "datetime")
+        self.a4 = Axis("y5", "hourly")
+
     def tearDown(self) -> None:
         pass
 
@@ -128,7 +140,18 @@ class TestChartLayout(unittest.TestCase):
                 self.assertAlmostEqual(iy, ires_y, 4)
 
     def test_create_2d_axis_map(self):
-        pass
+        t0 = Trace2D("item-1", uuid.uuid1(), "rgb(10,10,10)", "line", "trace-0")
+        t0.x_ref = self.dt0
+        t0.y_ref = self.dt4
+        t1 = Trace2D("item-1", uuid.uuid1(), "rgb(10,10,10)", "line", "trace-0")
+        t1.x_ref = self.dt0
+        t1.y_ref = self.dt4
+        t2 = Trace2D("item-1", uuid.uuid1(), "rgb(10,10,10)", "line", "trace-0")
+        t2.x_ref = self.dt4
+        t2.y_ref = self.dt0
+
+        traces = [t0, t1, t2]
+        create_2d_axis_map(traces)
 
 
 if __name__ == "__main__":

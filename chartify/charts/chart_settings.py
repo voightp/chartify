@@ -328,9 +328,9 @@ def gen_ref_matrix(n: int, max_columns: int, square: bool) -> List[List[int]]:
     return m
 
 
-def dom_gen(n, gap):
-    w = (1 - ((n - 1) * gap)) / n
-    start = 0
+def dom_gen(n: int, gap: float, start: float = 0, end: float = 1) -> List[float]:
+    w = (end - ((n - end) * gap)) / n
+    start = start
     for _ in range(n):
         end = start + w
         yield [start, end]
@@ -338,7 +338,7 @@ def dom_gen(n, gap):
 
 
 def gen_domain_vectors(n: int, gap: float = 0.05, max_columns: int = 3,
-                       square: bool = True) -> Tuple[List[int], List[int]]:
+                       square: bool = True) -> Tuple[List[List[int]], List[List[int]]]:
     ref_matrix = gen_ref_matrix(n, max_columns, square)
 
     x_dom_mx = copy.deepcopy(ref_matrix)
@@ -359,18 +359,8 @@ def gen_domain_vectors(n: int, gap: float = 0.05, max_columns: int = 3,
     return x_dom_vector, y_dom_vector
 
 
-def assign_domains(axes_map, shared_y, max_columns=3, gap=0.05, square=True):
-    x_domains, y_domains = gen_domain_vectors(len(axes_map), max_columns=3,
-                                              gap=0.05, square=True)
-    for (xaxis, yaxis), x_dom, y_dom in zip(axes_map, x_domains, y_domains):
-        start_x, start_y = x_dom[0], x_dom[1]
-        end_x, end_y = x_dom[1], y_dom[1]
-
-        if shared_y:
-            set_shared_yaxis_positions(xaxis, yaxis)
-
-
-def set_shared_yaxis_positions(xaxis, yaxis, x_domain, y_domain, increment):
+def set_shared_y_positions(yaxis: Axis, x_domain: List[float],
+                           y_domain: List[float], increment: float) -> List[float]:
     yaxis.domain = y_domain
     n = len(yaxis.children)
 
@@ -397,7 +387,33 @@ def set_shared_yaxis_positions(xaxis, yaxis, x_domain, y_domain, increment):
             child.side = "left"
 
     x_left += increment
-    xaxis.domain = [x_left, x_right]
+    x_domain = [x_left, x_right]
+
+    return x_domain
+
+
+def set_independent_y_positions(yaxis: Axis, y_domain: List[float], increment: float) -> None:
+    n = len(yaxis.children)
+    gen = dom_gen(n + 1, increment, y_domain[0], y_domain[1])
+    yaxis.domain = next(gen)
+    for child in yaxis.children:
+        child.domain = next(gen)
+
+
+def assign_domains(axes_map, shared_y, max_columns=3, gap=0.05, square=True):
+    x_domains, y_domains = gen_domain_vectors(len(axes_map), max_columns=max_columns,
+                                              gap=gap, square=square)
+    for (xaxis, yaxis), x_dom, y_dom in zip(axes_map, x_domains, y_domains):
+        # create anchor reference for main axes
+        xaxis.anchor = yaxis.name
+        yaxis.anchor = xaxis.name
+
+        if shared_y:
+            x_dom = set_shared_y_positions(yaxis, x_dom, y_dom, 0.08)
+        else:
+            set_independent_y_positions(yaxis, y_dom, 0.02)
+
+        xaxis.domain = x_dom
 
 
 def get_yaxis_settings(yaxis, y_domain, line_color, grid_color, increment=0.1,
@@ -434,7 +450,7 @@ def get_yaxis_settings(yaxis, y_domain, line_color, grid_color, increment=0.1,
         pass
 
     if not y_domains:
-        yaxes = set_shared_yaxis_positions(yaxes, increment)
+        yaxes = set_shared_y_positions(yaxes, increment)
     else:
         for i, k in enumerate(yaxes.keys()):
             yaxes[k] = {**yaxes[k],
@@ -613,12 +629,11 @@ def create_2d_axis_map(traces, shared_x=True, shared_y=True):
                 axis = shared_interval_axis(traces, y_axes_gen, yaxes)
             else:
                 axis_name = next(y_axes_gen)
-                yaxes[x_type][y_type] = axis_name
+                yaxes[y_type] = axis_name
                 axis = Axis(axis_name, y_type)
 
             if i == 0:
                 yaxis = axis
-                xaxis.anchor = yaxis.name
             else:
                 yaxis.add_child(axis)
 
@@ -630,3 +645,39 @@ def create_2d_axis_map(traces, shared_x=True, shared_y=True):
     assign_domains(axes_map, shared_y, max_columns=3, gap=0.05, square=True)
 
     return axes_map
+
+
+ax = Axis("x", "J")
+ay = Axis("y", "J")
+b = Axis("y2", "J")
+c = Axis("y3", "J")
+d = Axis("y4", "J")
+
+ay.add_child(b)
+ay.add_child(c)
+ay.add_child(d)
+
+a1x = Axis("x2", "J")
+a1y = Axis("y5", "J")
+b1 = Axis("y6", "J")
+c1 = Axis("y7", "J")
+d1 = Axis("y8", "J")
+
+a1y.add_child(b1)
+a1y.add_child(c1)
+a1y.add_child(d1)
+
+# set_shared_y_positions(ax, ay, [0, 1], [0, 1], 0.05)
+assign_domains([(ax, ay), (a1x, a1y)], False)
+
+print(ax)
+print(ay)
+print(b)
+print(c)
+
+print(a1x)
+print(a1y)
+print(b1)
+print(c1)
+
+# assign_domains([(ax, ay), (a1x, a1y)], False)
