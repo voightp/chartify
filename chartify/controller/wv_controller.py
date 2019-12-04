@@ -82,8 +82,8 @@ class WVController(QObject):
 
         line_color = palette.get_color("PRIMARY_TEXT_COLOR")
         grid_color = palette.get_color("PRIMARY_TEXT_COLOR", opacity=0.3)
-        modebar_color = palette.get_all_colors("PRIMARY_TEXT_COLOR")
-        modebar_active_color = palette.get_all_colors("PRIMARY_TEXT_COLOR")
+        modebar_color = palette.get_color("PRIMARY_TEXT_COLOR", opacity=0.5)
+        modebar_active_color = palette.get_color("PRIMARY_TEXT_COLOR")
         background_color = palette.get_color("BACKGROUND_COLOR")
 
         if isinstance(component, Chart):
@@ -103,18 +103,18 @@ class WVController(QObject):
     def add_new_traces(self, item_id: str, type_: str) -> None:
         """ Process raw pd.DataFrame and store the data. """
         df = self.m.get_results(include_interval=True, include_id=False)
-        totals_sr = calculate_totals(df)
+        totals = calculate_totals(df)
         timestamps = [dt.timestamp() for dt in df.index.to_pydatetime()]
         chart = self.m.fetch_component(item_id)
 
-        for col_ix, val_sr in df.iteritems():
+        for col_ix, values in df.iteritems():
             trace_data_id = uuid.uuid1()
             color = next(self.color_generator)
             name = " | ".join(col_ix)  # file_name | interval | key | variable | units
             units = col_ix[-1]
             interval = col_ix[1]
-            total_value = float(totals_sr.loc[col_ix])
-            trace_dt = TraceData(item_id, trace_data_id, name, val_sr.tolist(),
+            total_value = float(totals.loc[col_ix])
+            trace_dt = TraceData(item_id, trace_data_id, name, values.tolist(),
                                  total_value, units, timestamps=timestamps,
                                  interval=interval)
 
