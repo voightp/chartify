@@ -73,7 +73,7 @@ class TraceData:
 
 class Trace:
     def __init__(self, item_id: str, trace_id: str, color: str,
-                 type_: str, selected: bool, priority: str):
+                 type_: str, selected: bool = False, priority: str = "normal"):
         self.item_id = item_id
         self.trace_id = trace_id
         self.color = color
@@ -83,8 +83,8 @@ class Trace:
 
 
 class Trace1D(Trace):
-    def __init__(self, ref, *args):
-        super().__init__(*args)
+    def __init__(self, ref, *args,**kwargs):
+        super().__init__(*args, **kwargs)
         self.ref = ref
 
     @property
@@ -97,8 +97,8 @@ class Trace1D(Trace):
 
 
 class Trace2D(Trace):
-    def __init__(self, name, *args):
-        super().__init__(*args)
+    def __init__(self, name, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.name = name
         self.xaxis = None
         self.yaxis = None
@@ -177,8 +177,8 @@ class Trace2D(Trace):
 
 
 class Trace3D(Trace2D):
-    def __init__(self, *args):
-        super().__init__(*args)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.zaxis = None
         self._z_ref = None
 
