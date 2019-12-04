@@ -10,6 +10,16 @@ class Axis:
         self.position = None
         self.side = None
 
+    def __repr__(self):
+        return f"Axis: {self.name}\n" \
+            f"\tTitle: {self.title}\n" \
+            f"\tVisible: {self.visible}\n" \
+            f"\tAnchor: {self.anchor}\n" \
+            f"\tOverlaying: {self._overlaying}\n" \
+            f"\tDomain: {', '.join([str(d) for d in self.domain]) if self.domain else []}\n" \
+            f"\tPosition: {self.position}\n" \
+            f"\tSide: {self.side}\n"
+
     @property
     def visible_children(self):
         return [axis for axis in self.children if axis.visible]
@@ -83,7 +93,7 @@ class Trace:
 
 
 class Trace1D(Trace):
-    def __init__(self, ref, *args,**kwargs):
+    def __init__(self, ref, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.ref = ref
 
