@@ -139,6 +139,83 @@ class TestChartLayout(unittest.TestCase):
             for iy, ires_y in zip(y, res_y):
                 self.assertAlmostEqual(iy, ires_y, 4)
 
+    def test_set_shared_x_positions(self):
+        a = Axis("x", "W")
+        for i in range(2, 6):
+            a.add_child(Axis(f"x{i}", f"foo{i}", visible=(i % 2 == 0)))
+
+        y_domain = [0.3, 0.7]
+        increment = 0.02
+
+        y_bottom, y_top = set_shared_x_positions(a, y_domain, increment)
+        self.assertAlmostEqual(y_bottom, 0.34, 5)
+        self.assertEqual(y_top, 0.7)
+
+        pos = 0.3
+        for ch in a.children[::-1]:
+            if ch.visible:
+                self.assertEqual(ch.anchor, "free")
+                self.assertAlmostEqual(ch.position, pos, 4)
+                pos += increment
+            else:
+                self.assertIsNone(ch.anchor)
+                self.assertIsNone(ch.position)
+
+    def test_set_shared_y_positions(self):
+        a = Axis("y", "W")
+        for i in range(2, 7):
+            a.add_child(Axis(f"y{i}", f"foo{i}", visible=(i % 2 == 0)))
+
+        x_domain = [0.3, 0.7]
+        increment = 0.02
+
+        x_left, x_right = set_shared_y_positions(a, x_domain, increment)
+        self.assertAlmostEqual(x_left, 0.32, 5)
+        self.assertAlmostEqual(x_right, 0.68, 5)
+
+        left, right = x_domain[0], x_domain[1]
+        for i, ch in enumerate(a.visible_children[::-1]):
+            self.assertEqual(ch.anchor, "free")
+            if i % 2 == 0:
+                self.assertAlmostEqual(ch.position, right, 4)
+                self.assertEqual(ch.side, "right")
+                right -= increment
+            else:
+                self.assertAlmostEqual(ch.position, left, 4)
+                self.assertEqual(ch.side, "left")
+                left += increment
+
+        for i, ch in enumerate(a.hidden_children[::-1]):
+            self.assertIsNone(ch.anchor)
+            self.assertIsNone(ch.position)
+
+        # reduce one visible and one invisible child
+        a.children.pop(0)
+        a.children.pop(0)
+
+        x_left, x_right = set_shared_y_positions(a, x_domain, increment)
+        self.assertAlmostEqual(x_left, 0.32, 5)
+        self.assertAlmostEqual(x_right, 0.7, 5)
+
+        left, right = x_domain[0], x_domain[1]
+        for i, ch in enumerate(a.visible_children[::-1]):
+            self.assertEqual(ch.anchor, "free")
+            if i % 2 == 1:
+                self.assertAlmostEqual(ch.position, right, 4)
+                self.assertEqual(ch.side, "right")
+                right -= increment
+            else:
+                self.assertAlmostEqual(ch.position, left, 4)
+                self.assertEqual(ch.side, "left")
+                left += increment
+
+        for i, ch in enumerate(a.hidden_children[::-1]):
+            self.assertIsNone(ch.anchor)
+            self.assertIsNone(ch.position)
+
+    def test_assign_domains(self):
+        pass
+
     def test_create_2d_axis_map(self):
         t0 = Trace2D("item-1", uuid.uuid1(), "rgb(10,10,10)", "line", "trace-0")
         t0.x_ref = self.dt0
