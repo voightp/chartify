@@ -9,59 +9,131 @@ from eso_reader.constants import *
 
 class TestChartLayout(unittest.TestCase):
     def setUp(self) -> None:
+        n_monthly = 2
         n_daily = 8
         n_hourly = 48
+        n_timestamp = 96
 
         base_date = datetime.datetime.utcnow()
-        daily = [base_date + datetime.timedelta(days=i) for i in range(n_daily)]
+        timestep = [base_date + datetime.timedelta(minutes=i * 30) for i in range(n_timestamp)]
         hourly = [base_date + datetime.timedelta(hours=i) for i in range(n_hourly)]
+        daily = [base_date + datetime.timedelta(days=i) for i in range(n_daily)]
+        monthly = [base_date + datetime.timedelta(days=31 * i) for i in range(n_monthly)]
         runperiod = [base_date + datetime.timedelta(days=random.randint(100, 400))]
 
-        self.dt0 = TraceData("item-0", uuid.uuid1(), "trace data 0",
-                             [random.random() for _ in range(n_hourly)], 5.123, "W",
-                             timestamps=hourly, interval=H)
-        self.dt1 = TraceData("item-1", uuid.uuid1(), "trace data 1",
-                             [random.random() for _ in range(n_hourly)], 5.123, "W",
-                             timestamps=hourly, interval=H)
-        self.dt2 = TraceData("item-2", uuid.uuid1(), "trace data 2",
-                             [random.random() for _ in range(n_daily)], 3.123, "J",
-                             timestamps=daily, interval=D)
-        self.dt3 = TraceData("item-3", uuid.uuid1(), "trace data 3",
-                             random.random(), 3.123, "W",
-                             timestamps=runperiod, interval=RP)
-        self.dt4 = TraceData("item-4", uuid.uuid1(), "trace data 4",
-                             [random.random() for _ in range(n_hourly)], 3.123, "W")
-        self.dt5 = TraceData("item-4", uuid.uuid1(), "trace data 5",
-                             [random.random() for _ in range(n_hourly)], 3.123, "")
+        # timestamp trace data
+        self.ts_dt0 = TraceData("item-0", uuid.uuid1(), "ts-0",
+                                [random.random() for _ in range(n_timestamp)],
+                                5.123, "W", timestamps=timestep, interval=H)
 
-        self.a0 = Axis("x", "hourly")
-        self.a1 = Axis("x2", "daily")
-        self.a2 = Axis("x3", "monthly")
-        self.a3 = Axis("x4", "W")
-        self.a4 = Axis("x5", "J")
+        # hourly trace data
+        self.h_dt0 = TraceData("item-0", uuid.uuid1(), "h-0",
+                               [random.random() for _ in range(n_hourly)],
+                               5.123, "W", timestamps=hourly, interval=H)
+        self.h_dt1 = TraceData("item-0", uuid.uuid1(), "h-1",
+                               [random.random() for _ in range(n_hourly)],
+                               5.123, "W", timestamps=hourly, interval=H)
+        self.h_dt2 = TraceData("item-0", uuid.uuid1(), "h-2",
+                               [random.random() for _ in range(n_hourly)],
+                               5.123, "kWh", timestamps=hourly, interval=H)
+        self.h_dt3 = TraceData("item-0", uuid.uuid1(), "h-3",
+                               [random.random() for _ in range(n_hourly)],
+                               5.123, "W", timestamps=hourly, interval=H)
 
-        self.a0 = Axis("y", "K")
-        self.a1 = Axis("y2", "W")
-        self.a2 = Axis("y3", "J")
-        self.a3 = Axis("y4", "datetime")
-        self.a4 = Axis("y5", "hourly")
+        # daily trace data
+        self.d_dt0 = TraceData("item-0", uuid.uuid1(), "d-0",
+                               [random.random() for _ in range(n_daily)],
+                               3.123, "J", timestamps=daily, interval=D)
+        self.d_dt1 = TraceData("item-0", uuid.uuid1(), "d-1",
+                               [random.random() for _ in range(n_daily)],
+                               3.123, "", timestamps=daily, interval=D)
+
+        # monthly trace data
+        self.m_dt0 = TraceData("item-0", uuid.uuid1(), "m-0",
+                               [random.random() for _ in range(n_monthly)],
+                               3.123, "kWh", timestamps=monthly, interval=M)
+        self.m_dt1 = TraceData("item-0", uuid.uuid1(), "m-1",
+                               [random.random() for _ in range(n_monthly)],
+                               3.123, "J", timestamps=monthly, interval=M)
+
+        # runperiod trace data
+        self.rp_dt0 = TraceData("item-0", uuid.uuid1(), "rp-0",
+                                [random.random()], 3.123, "W",
+                                timestamps=runperiod, interval=RP)
+
+        # no interval trace data
+        self.ni_dt0 = TraceData("item-0", uuid.uuid1(), "ni-0",
+                                [random.random() for _ in range(n_hourly)],
+                                1.123, "")
+        self.ni_dt1 = TraceData("item-0", uuid.uuid1(), "ni-1",
+                                [random.random() for _ in range(n_daily)],
+                                7.123, "")
+        self.ni_dt2 = TraceData("item-0", uuid.uuid1(), "ni-2",
+                                [random.random() for _ in range(n_monthly)],
+                                7.123, "")
+        self.ni_dt3 = TraceData("item-0", uuid.uuid1(), "ni-3",
+                                [random.random() for _ in range(1)],
+                                7.123, "")
+
+        # timestamp traces
+        self.ts_trace0 = Trace2D("item-0", uuid.uuid1(), "rgb(10,10,10)", "line", "trace-0")
+        self.ts_trace0.x_ref = "datetime"
+        self.ts_trace0.y_ref = self.ts_dt0
+
+        # hourly traces
+        self.h_trace0 = Trace2D("item-0", uuid.uuid1(), "rgb(10,10,10)", "line", "trace-0")
+        self.h_trace0.x_ref = "datetime"
+        self.h_trace0.y_ref = self.h_dt0
+        self.h_trace1 = Trace2D("item-0", uuid.uuid1(), "rgb(10,10,10)", "line", "trace-0")
+        self.h_trace1.x_ref = "datetime"
+        self.h_trace1.y_ref = self.h_dt1
+        self.h_trace2 = Trace2D("item-0", uuid.uuid1(), "rgb(10,10,10)", "line", "trace-0")
+        self.h_trace2.x_ref = self.h_dt2
+        self.h_trace2.y_ref = self.h_dt3
+
+        # daily traces
+        self.d_trace0 = Trace2D("item-0", uuid.uuid1(), "rgb(10,10,10)", "line", "trace-0")
+        self.d_trace0.x_ref = "datetime"
+        self.d_trace0.y_ref = self.d_dt0
+        self.d_trace1 = Trace2D("item-0", uuid.uuid1(), "rgb(10,10,10)", "line", "trace-0")
+        self.d_trace1.x_ref = self.d_dt1
+        self.d_trace1.y_ref = "datetime"
+        self.d_trace2 = Trace2D("item-0", uuid.uuid1(), "rgb(10,10,10)", "line", "trace-0")
+        self.d_trace2.x_ref = self.d_dt1
+        self.d_trace2.y_ref = self.d_dt0
+
+        # monthly traces
+        self.m_trace0 = Trace2D("item-0", uuid.uuid1(), "rgb(10,10,10)", "line", "trace-0")
+        self.m_trace0.x_ref = "datetime"
+        self.m_trace0.y_ref = self.d_dt0
+        self.m_trace1 = Trace2D("item-0", uuid.uuid1(), "rgb(10,10,10)", "line", "trace-0")
+        self.m_trace1.x_ref = self.d_dt1
+        self.m_trace1.y_ref = "datetime"
+        self.m_trace2 = Trace2D("item-0", uuid.uuid1(), "rgb(10,10,10)", "line", "trace-0")
+        self.m_trace2.x_ref = self.d_dt1
+        self.m_trace2.y_ref = self.d_dt0
+
+        # runperiod traces
+        self.rp_trace0 = Trace2D("item-0", uuid.uuid1(), "rgb(10,10,10)", "line", "trace-0")
+        self.rp_trace0.x_ref = "datetime"
+        self.rp_trace0.y_ref = self.rp_dt0
 
     def tearDown(self) -> None:
         pass
 
     def test_trace2d(self):
         t0 = Trace2D("item-1", uuid.uuid1(), "rgb(10,10,10)", "line", "trace-0")
-        t0.x_ref = self.dt0
+        t0.x_ref = self.h_dt0
 
-        self.assertIs(t0.x_ref, self.dt0)
+        self.assertIs(t0.x_ref, self.h_dt0)
         self.assertEqual(t0._interval, H)
         self.assertEqual(t0._num_values, 48)
 
-        t0.y_ref = self.dt4
-        self.assertIs(t0.y_ref, self.dt4)
+        t0.y_ref = self.h_dt1
+        self.assertIs(t0.y_ref, self.h_dt1)
 
-        t0.y_ref = self.dt2
-        self.assertIs(t0.y_ref, self.dt4)
+        t0.y_ref = self.ts_dt0
+        self.assertIs(t0.y_ref, self.h_dt1)
 
     def test_gen_ref_matrix(self):
         m = gen_ref_matrix(0, 3, True)
@@ -214,21 +286,56 @@ class TestChartLayout(unittest.TestCase):
             self.assertIsNone(ch.position)
 
     def test_assign_domains(self):
-        pass
+        x0 = Axis("x", "hourly")
+        x0.add_child(Axis("x2", "kg"))
+        x0.add_child(Axis("x3", "daily", visible=False))
+        x0.add_child(Axis("x4", "monthly", visible=False))
+
+        y0 = Axis("y", "C")
+        y0.add_child(Axis("y2", "W"))
+        y0.add_child(Axis("y3", "J"))
+        y0.add_child(Axis("y4", ""))
+
+        x1 = Axis("x5", "m3")
+        x1.add_child(Axis("x6", "kg"))
+        x1.add_child(Axis("x7", "daily", visible=False))
+        x1.add_child(Axis("x8", "monthly", visible=False))
+
+        y1 = Axis("y", "C")
+        y1.add_child(Axis("y2", "W"))
+        y1.add_child(Axis("y3", "J"))
+        y1.add_child(Axis("y4", ""))
+
+        y2 = Axis("y5", "hourly")
+        y2.add_child(Axis("y6", "daily", visible=False))
+        y2.add_child(Axis("y6", "daily", visible=False))
+
+        y1.add_child(y2)
+
+        assign_domains([(x0, y0)], True, True)
+
+        print(x0)
+        print(y0)
+
+        for ch in x0.children:
+            print(ch)
+
+        for ch in y0.children:
+            print(ch)
 
     def test_create_2d_axis_map(self):
-        t0 = Trace2D("item-1", uuid.uuid1(), "rgb(10,10,10)", "line", "trace-0")
-        t0.x_ref = self.dt0
-        t0.y_ref = self.dt4
-        t1 = Trace2D("item-1", uuid.uuid1(), "rgb(10,10,10)", "line", "trace-0")
-        t1.x_ref = self.dt0
-        t1.y_ref = self.dt4
-        t2 = Trace2D("item-1", uuid.uuid1(), "rgb(10,10,10)", "line", "trace-0")
-        t2.x_ref = self.dt4
-        t2.y_ref = self.dt0
-
-        traces = [t0, t1, t2]
-        create_2d_axis_map(traces)
+        traces = [
+            self.ts_trace0,
+            self.h_trace0,
+            self.h_trace1,
+            self.h_trace2,
+            self.d_trace0,
+            self.d_trace1,
+            self.d_trace2,
+            self.m_trace0,
+            self.m_trace1,
+        ]
+        mp1 = create_2d_axis_map(traces)
 
 
 if __name__ == "__main__":
