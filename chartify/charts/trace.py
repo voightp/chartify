@@ -7,8 +7,8 @@ class Axis:
         self._overlaying = overlaying
         self.children = []
         self.domain = []
-        self.position = None
-        self.side = None
+        self._position = None
+        self._side = None
 
     def __repr__(self):
         return f"Axis: {self.name}\n" \
@@ -41,10 +41,18 @@ class Axis:
     def overlaying(self):
         return self._overlaying
 
+    @property
+    def position(self):
+        return self._position
+
+    @property
+    def side(self):
+        return self._side
+
     @anchor.setter
     def anchor(self, anchor):
         self._anchor = anchor
-        for child in self.children:
+        for child in self.hidden_children:
             child.anchor = anchor
 
     @overlaying.setter
@@ -53,15 +61,25 @@ class Axis:
         for child in self.children:
             child.overlaying = overlaying
 
+    @position.setter
+    def position(self, position):
+        self._position = position
+        for child in self.hidden_children:
+            child.position = position
+
+    @side.setter
+    def side(self, side):
+        self._side = side
+        for child in self.hidden_children:
+            child.side = side
+
     def add_child(self, axis):
-        axis.overlaying = self.name
+        if self.overlaying:
+            axis.overlaying = self.overlaying
+        else:
+            axis.overlaying = self.name
+
         self.children.append(axis)
-
-    def set_position(self, start, end):
-        self.position = [start, end]
-
-    def set_domain(self, start, end):
-        self.domain = [start, end]
 
 
 class TraceData:
@@ -129,7 +147,7 @@ class Trace2D(Trace):
 
     def _validate_ref(self, ref):
         """ Check if the reference can be assigned. """
-        if ref == "datetime":
+        if isinstance(ref, str):
             valid = True
         elif isinstance(ref, TraceData):
             num_check = not self._num_values or len(ref.values) == self._num_values
@@ -142,7 +160,7 @@ class Trace2D(Trace):
         if not valid:
             print(f"Cannot set ref: '{ref.name}',"
                   f"number of values or interval does not match!")
-        else:
+        elif isinstance(ref, TraceData):
             # assign number of values, interval or timestamps for
             # cases where any of those hasn't been assigned already
             if not self._num_values:
@@ -184,6 +202,10 @@ class Trace2D(Trace):
     def js_timestamps(self):
         if self._timestamps:
             return [ts * 1000 for ts in self._timestamps]
+
+    @property
+    def interval(self):
+        return self._interval
 
 
 class Trace3D(Trace2D):

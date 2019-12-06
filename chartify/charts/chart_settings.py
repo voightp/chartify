@@ -3,7 +3,7 @@ from functools import partial
 from typing import Tuple, List, Dict, Union
 from chartify.view.icons import combine_colors
 from chartify.view.css_theme import parse_color
-from chartify.charts.trace import Axis, Trace
+from chartify.charts.trace import Axis, Trace, TraceData
 from eso_reader.constants import *
 import copy
 import math
@@ -537,20 +537,19 @@ def group_traces(traces, x_types, y_types):
     return grouped
 
 
-def get_axis_types(traces, group_datetime=True):
+def get_xy_types(traces, group_datetime=True):
     """ Get unique list of types for each trace. """
     x_types, y_types, = [], []
     for trace in traces:
         refs = [trace.x_ref, trace.y_ref]
         types = [x_types, y_types]
         for r, t in zip(refs, types):
-            if r == "datetime":
-                if group_datetime:
-                    t.append("datetime")
-                else:
-                    t.append(trace.interval)
-            elif r.units:
+            if r == "datetime" and not group_datetime:
+                t.append(trace.interval)
+            elif isinstance(r, TraceData):
                 t.append(r.units)
+            else:
+                t.append(r)
 
     return x_types, y_types
 
@@ -565,8 +564,8 @@ def axis_gen(axis="x", start=1):
 
 
 def get_intervals(traces):
-    """ Get a list of all used units. """
-    full = [tr.interval for tr in traces]
+    """ Get a list of all trace intervals. """
+    full = [trace.interval for trace in traces]
     setlist = []
     for e in full:
         if e not in setlist and e:
@@ -624,7 +623,7 @@ def create_2d_axis_map(traces, group_datetime=True, shared_x=True, shared_y=True
     """ Create axis reference dictionaries. """
     # group axis based on x data type, different intervals will be plotted
     # as independent charts when shared x is not requested
-    x_types, y_types = get_axis_types(traces, group_datetime=group_datetime)
+    x_types, y_types = get_xy_types(traces, group_datetime=group_datetime)
     grouped = group_traces(traces, x_types, y_types)
 
     axes_map = []
@@ -632,6 +631,7 @@ def create_2d_axis_map(traces, group_datetime=True, shared_x=True, shared_y=True
     x_axes_gen = axis_gen("x", start=1)
     y_axes_gen = axis_gen("y", start=1)
 
+    # each chart in layout grid has only one main x and y axis
     main_x, main_y = None, None
     for x_type, y_traces in grouped.items():
         # initialize temporary axis reference dictionaries,
@@ -648,6 +648,7 @@ def create_2d_axis_map(traces, group_datetime=True, shared_x=True, shared_y=True
             main_x = xaxis
         else:
             if shared_x:
+                # there's only one main x axis for shared x
                 main_x.add_child(xaxis)
             else:
                 main_x = None
@@ -672,39 +673,3 @@ def create_2d_axis_map(traces, group_datetime=True, shared_x=True, shared_y=True
     assign_domains(axes_map, shared_x, shared_y, max_columns=3, gap=0.05, square=True)
 
     return axes_map
-
-
-ax = Axis("x", "J")
-ay = Axis("y", "J")
-b = Axis("y2", "J")
-c = Axis("y3", "J")
-d = Axis("y4", "J")
-
-ay.add_child(b)
-ay.add_child(c)
-ay.add_child(d)
-
-a1x = Axis("x2", "J")
-a1y = Axis("y5", "J")
-b1 = Axis("y6", "J")
-c1 = Axis("y7", "J")
-d1 = Axis("y8", "J")
-
-a1y.add_child(b1)
-a1y.add_child(c1)
-a1y.add_child(d1)
-
-# set_shared_y_positions(ax, ay, [0, 1], [0, 1], 0.05)
-assign_domains([(ax, ay), (a1x, a1y)], True, True)
-
-print(ax)
-print(ay)
-print(b)
-print(c)
-
-print(a1x)
-print(a1y)
-print(b1)
-print(c1)
-
-# assign_domains([(ax, ay), (a1x, a1y)], False)
