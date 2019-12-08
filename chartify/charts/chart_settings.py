@@ -441,8 +441,7 @@ def set_axes_position(axes_map: List[Tuple[Axis, Axis]], shared_x: bool, shared_
             child.domain = x_dom
 
 
-def get_yaxis_settings(yaxis, y_domain, line_color, grid_color, increment=0.1,
-                       ranges_y=None):
+def get_axis_settings(axis, line_color, grid_color, ranges=None):
     shared_attributes = {
         "color": line_color,
         "linecolor": line_color,
@@ -456,89 +455,17 @@ def get_yaxis_settings(yaxis, y_domain, line_color, grid_color, increment=0.1,
         "zerolinewidth": 2
     }
 
-    if not yaxis:
+    if not axis:
         return {"yaxis": shared_attributes}
 
-    yaxes = defaultdict(dict)
-    yaxes[yaxis.long_name] = {
-        "title": yaxis.title,
-        "anchor": yaxis.anchor,
-        "rangemode": "tozero",
-        "type": "linear",
-        **shared_attributes
-    }
+    yaxes = axis.as_plotly()
 
-    for child in yaxis.visible_children:
-        pass
-
-    for child in yaxis.hidden_children:
-        pass
-
-    if not y_domains:
-        yaxes = set_shared_y_positions(yaxes, increment)
-    else:
-        for i, k in enumerate(yaxes.keys()):
-            yaxes[k] = {**yaxes[k],
-                        "domain": y_domains[i],
-                        "anchor": "x" if i == 0 else f"x{i + 1}",
-                        "side": "left"}
-
-    for k in yaxes.keys():
-        if k in ranges_y.keys():
-            yaxes[k]["range"] = ranges_y[k]
+    for k, attributes in yaxes.items():
+        yaxes[k] = {**attributes, **shared_attributes}
+        if k in ranges.keys():
+            yaxes[k]["range"] = ranges[k]
 
     return yaxes
-
-
-def get_shared_xdomain(n_yaxis, increment):
-    domain = [0, 1]
-    if n_yaxis > 2:
-        for i in range(n_yaxis - 1):
-            j = i % 2
-            inc = increment if j == 0 else -increment
-            domain[j] = round(domain[j] + inc, 2)
-    return domain
-
-
-def get_xaxis_settings(n_yaxis, line_color, grid_color, increment=0.1,
-                       x_domains=None, date_axis=True, ranges_x=None):
-    shared_attributes = {
-        "color": line_color,
-        "linecolor": line_color,
-        "zerolinecolor": line_color,
-        "gridcolor": grid_color,
-        "showline": True,
-        "linewidth": 1,
-        "showgrid": True,
-        "gridwidth": 1,
-        "zeroline": True,
-        "zerolinewidth": 2
-    }
-
-    xaxes = defaultdict(dict)
-    axis_type = "date" if date_axis else "-"
-
-    if not x_domains:
-        x_dom = get_shared_xdomain(n_yaxis, increment)
-        xaxes["xaxis"] = x_axis_dct["xaxis"]
-        xaxes["xaxis"] = {"domain": x_dom,
-                          "type": axis_type,
-                          **shared_attributes}
-
-    else:
-        for i in range(len(x_domains)):
-            nm = "xaxis" if i == 0 else f"xaxis{i + 1}"
-            xaxes[nm] = {"side": "bottom",
-                         "type": axis_type,
-                         "domain": x_domains[i],
-                         "anchor": "y" if i == 0 else f"y{i + 1}",
-                         **shared_attributes}
-
-    for k in ranges_x.keys():
-        if k in xaxes.keys():
-            xaxes[k]["range"] = ranges_x[k]
-
-    return xaxes
 
 
 def group_traces(traces, x_types, y_types):

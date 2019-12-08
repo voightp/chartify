@@ -1,3 +1,5 @@
+from eso_reader.constants import *
+
 class Axis:
     def __init__(self, name, title, anchor=None, visible=True, overlaying=None):
         self.name = name
@@ -18,9 +20,9 @@ class Axis:
             f"\tOverlaying: {self._overlaying}\n" \
             f"\tDomain: {', '.join([str(d) for d in self.domain]) if self.domain else []}\n" \
             f"\tPosition: {self.position}\n" \
-            f"\tSide: {self.side}\n"\
-            f"\tChildren: {', '.join([ch.name for ch in self.children])}\n"\
-            f"\t\tVisible: {', '.join([ch.name for ch in self.children if ch.visible])}\n"\
+            f"\tSide: {self.side}\n" \
+            f"\tChildren: {', '.join([ch.name for ch in self.children])}\n" \
+            f"\t\tVisible: {', '.join([ch.name for ch in self.children if ch.visible])}\n" \
             f"\t\tHidden: {', '.join([ch.name for ch in self.children if not ch.visible])}\n"
 
     @property
@@ -55,6 +57,10 @@ class Axis:
     @property
     def domain(self):
         return self._domain
+
+    @property
+    def type(self):
+        return "date" if self.name in [TS, H, D, M, A, RP, "datetime"] else "linear"
 
     @anchor.setter
     def anchor(self, anchor):
@@ -93,6 +99,21 @@ class Axis:
             axis.overlaying = self.name
 
         self.children.append(axis)
+
+    def as_plotly(self):
+        attributes = {
+            "title": self.title,
+            "visible": self.visible,
+            "anchor": self.anchor,
+            "overlaying": self.overlaying,
+            "domain": self.domain,
+            "position": self.position,
+            "side": self.side,
+            "type": self.type,
+            "rangemode": "tozero",
+        }
+        children = {ch.long_name: ch.as_plotly() for ch in self.children}
+        return {self.long_name: attributes, **children}
 
 
 class TraceData:
