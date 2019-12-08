@@ -1,6 +1,6 @@
 from collections import defaultdict
 from functools import partial
-from typing import Tuple, List, Dict, Union
+from typing import Tuple, List, Dict, Union, Generator
 from chartify.view.icons import combine_colors
 from chartify.view.css_theme import parse_color
 from chartify.charts.trace import Axis, Trace, TraceData
@@ -313,6 +313,7 @@ def generate_grid_item(frame_id, type_):
 
 
 def gen_ref_matrix(n: int, max_columns: int, square: bool) -> List[List[int]]:
+    """ Create reference n x m matrix. """
     m = [[]]
     i = math.sqrt(n)
     if square and i.is_integer() and max_columns > i:
@@ -328,26 +329,28 @@ def gen_ref_matrix(n: int, max_columns: int, square: bool) -> List[List[int]]:
     return m
 
 
-def dom_gen(n: int, gap: float, start: float = 0, end: float = 1) -> List[float]:
-    w = (end - ((n - end) * gap)) / n
+def domain_gen(n: int, gap: float, start: float = 0, end: float = 1) -> List[float]:
+    """ Generate axis domain list. """
+    w = ((end - ((n - end) * gap)) / n)
     start = start
     for _ in range(n):
         end = start + w
-        yield [start, end]
+        yield [round(start, 4), round(end, 4)]
         start = end + gap
 
 
 def gen_domain_vectors(n: int, gap: float = 0.05, max_columns: int = 3,
                        square: bool = True) -> Tuple[List[List[float]], List[List[float]]]:
+    """ Create x and y list with domain data. """
     ref_matrix = gen_ref_matrix(n, max_columns, square)
 
     x_dom_mx = copy.deepcopy(ref_matrix)
     y_dom_mx = copy.deepcopy(ref_matrix)
 
-    y_dom_gen = dom_gen(len(ref_matrix), gap)
+    y_dom_gen = domain_gen(len(ref_matrix), gap)
 
     for i, row in enumerate(ref_matrix):
-        x_dom_gen = dom_gen(len(row), gap)
+        x_dom_gen = domain_gen(len(row), gap)
         y_dom = next(y_dom_gen)
         for j, item in enumerate(row):
             x_dom_mx[i][j] = next(x_dom_gen)
@@ -361,6 +364,7 @@ def gen_domain_vectors(n: int, gap: float = 0.05, max_columns: int = 3,
 
 def set_shared_x_positions(xaxis: Axis, y_domain: List[float],
                            increment: float) -> List[float]:
+    """ Set x axis position for shared x axis charts. """
     y_bottom = y_domain[0] - increment
     for i, child in enumerate(xaxis.visible_children[::-1]):
         child.anchor = "free"
@@ -368,13 +372,12 @@ def set_shared_x_positions(xaxis: Axis, y_domain: List[float],
         child.position = y_bottom
 
     y_bottom += increment
-    xaxis.position = y_bottom
-
-    return [y_bottom, y_domain[1]]
+    return [round(y_bottom, 3), round(y_domain[1], 3)]
 
 
 def set_shared_y_positions(yaxis: Axis, x_domain: List[float],
                            increment: float) -> List[float]:
+    """ Set y axis position for shared y axis charts. """
     n = len(yaxis.visible_children)
     x_left = x_domain[0] - increment
     x_right = x_domain[1] if n == 0 else x_domain[1] + increment
@@ -398,10 +401,14 @@ def set_shared_y_positions(yaxis: Axis, x_domain: List[float],
             child.side = "left"
 
     x_left += increment
-    return [x_left, x_right]
+    return [round(x_left, 3), round(x_right, 3)]
 
 
-def assign_domains(axes_map, shared_x, shared_y, max_columns=3, gap=0.05, square=True):
+def set_axes_position(axes_map: List[Tuple[Axis, Axis]], shared_x: bool, shared_y: bool,
+                      max_columns: int = 3, gap: float = 0.05, square: bool = True,
+                      stacked_y_gap: float = 0.02, shared_x_gap: float = 0.08,
+                      shared_y_gap: float = 0.08) -> None:
+    """ Assign position and domain for all axes at given axes map. """
     x_domains, y_domains = gen_domain_vectors(len(axes_map), max_columns=max_columns,
                                               gap=gap, square=square)
 
@@ -410,22 +417,27 @@ def assign_domains(axes_map, shared_x, shared_y, max_columns=3, gap=0.05, square
         yaxis.anchor = xaxis.name
 
         if shared_x:
-            y_dom = set_shared_x_positions(xaxis, y_dom, 0.08)
+            y_dom = set_shared_x_positions(xaxis, y_dom, shared_x_gap)
+        else:
+            for child in xaxis.children:
+                child.anchor = yaxis.name
 
         if shared_y:
-            x_dom = set_shared_y_positions(yaxis, x_dom, 0.08)
+            x_dom = set_shared_y_positions(yaxis, x_dom, shared_y_gap)
             yaxis.domain = y_dom
-            for child in yaxis.children:
+            for child in yaxis.visible_children:
                 child.domain = y_dom
         else:
             n = len(yaxis.children)
-            gen = dom_gen(n + 1, 0.02, y_dom[0], y_dom[1])
+            gen = domain_gen(n + 1, stacked_y_gap, y_dom[0], y_dom[1])
             yaxis.domain = next(gen)
-            for child in yaxis.children:
+            for child in yaxis.visible_children:
                 child.domain = next(gen)
+                child.anchor = xaxis.name
+                child.side = "left"
 
         xaxis.domain = x_dom
-        for child in xaxis.children:
+        for child in xaxis.visible_children:
             child.domain = x_dom
 
 
@@ -554,7 +566,7 @@ def get_xy_types(traces, group_datetime=True):
     return x_types, y_types
 
 
-def axis_gen(axis="x", start=1):
+def axis_gen(axis: str = "x", start: int = 1) -> Generator[str, None, None]:
     """ Generate stream of axis identifiers. """
     i = start
     while True:
@@ -563,7 +575,7 @@ def axis_gen(axis="x", start=1):
         i += 1
 
 
-def get_intervals(traces):
+def get_intervals(traces: List[Trace]) -> List[str]:
     """ Get a list of all trace intervals. """
     full = [trace.interval for trace in traces]
     setlist = []
@@ -573,14 +585,15 @@ def get_intervals(traces):
     return setlist
 
 
-def standard_axis(type_, axes_gen, axes):
+def standard_axis(type_: str, axes_gen: Generator, axes: Dict[str, str]) -> Axis:
     """ Create standard axis and add axes reference. """
     axis_name = next(axes_gen)
     axes[type_] = axis_name
     return Axis(axis_name, type_)
 
 
-def shared_interval_axis(traces, axes_gen, axes):
+def shared_interval_axis(traces: List[Trace], axes_gen: Generator,
+                         axes: Dict[str, str]) -> Axis:
     """ Assign trace interval reference and create parent axis. """
     intervals = get_intervals(traces)
 
@@ -619,7 +632,7 @@ def assign_trace_axes(traces, xaxes, yaxes):
             trace.yaxis = yaxes[trace.y_type]
 
 
-def create_2d_axis_map(traces, group_datetime=True, shared_x=True, shared_y=True):
+def create_2d_axis_map(traces, group_datetime=True, shared_x=True):
     """ Create axis reference dictionaries. """
     # group axis based on x data type, different intervals will be plotted
     # as independent charts when shared x is not requested
@@ -645,13 +658,15 @@ def create_2d_axis_map(traces, group_datetime=True, shared_x=True, shared_y=True
             xaxis = standard_axis(x_type, x_axes_gen, xaxes)
 
         if not main_x:
+            # always set first x axis as main
             main_x = xaxis
         else:
             if shared_x:
                 # there's only one main x axis for shared x
+                # all consequent axes will be added as children
                 main_x.add_child(xaxis)
             else:
-                main_x = None
+                main_x = xaxis
 
         main_y = main_y if shared_x else None
         for y_type, traces in y_traces.items():
@@ -668,8 +683,8 @@ def create_2d_axis_map(traces, group_datetime=True, shared_x=True, shared_y=True
             # set axis reference for the current trace group
             assign_trace_axes(traces, xaxes, yaxes)
 
-        axes_map.append((main_x, main_y))
-
-    assign_domains(axes_map, shared_x, shared_y, max_columns=3, gap=0.05, square=True)
+        if (main_x, main_y) not in axes_map:
+            # avoid adding other main pairs for shared x scenarios
+            axes_map.append((main_x, main_y))
 
     return axes_map

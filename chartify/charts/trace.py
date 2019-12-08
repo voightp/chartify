@@ -3,10 +3,10 @@ class Axis:
         self.name = name
         self.title = title
         self.visible = visible
+        self.children = []
         self._anchor = anchor
         self._overlaying = overlaying
-        self.children = []
-        self.domain = []
+        self._domain = []
         self._position = None
         self._side = None
 
@@ -18,7 +18,10 @@ class Axis:
             f"\tOverlaying: {self._overlaying}\n" \
             f"\tDomain: {', '.join([str(d) for d in self.domain]) if self.domain else []}\n" \
             f"\tPosition: {self.position}\n" \
-            f"\tSide: {self.side}\n"
+            f"\tSide: {self.side}\n"\
+            f"\tChildren: {', '.join([ch.name for ch in self.children])}\n"\
+            f"\t\tVisible: {', '.join([ch.name for ch in self.children if ch.visible])}\n"\
+            f"\t\tHidden: {', '.join([ch.name for ch in self.children if not ch.visible])}\n"
 
     @property
     def visible_children(self):
@@ -49,6 +52,10 @@ class Axis:
     def side(self):
         return self._side
 
+    @property
+    def domain(self):
+        return self._domain
+
     @anchor.setter
     def anchor(self, anchor):
         self._anchor = anchor
@@ -72,6 +79,12 @@ class Axis:
         self._side = side
         for child in self.hidden_children:
             child.side = side
+
+    @domain.setter
+    def domain(self, domain):
+        self._domain = domain
+        for child in self.hidden_children:
+            child.domain = domain
 
     def add_child(self, axis):
         if self.overlaying:
