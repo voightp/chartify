@@ -132,8 +132,13 @@ class Chart:
             axes = {}
             data = plot_pie_chart(traces, background_color)
         else:
-            axis_map = create_2d_axis_map(traces, self.shared_x, self.shared_y)
-            axes = self.generate_layout_axes(axis_map, line_color, grid_color)
+            axes_map = create_2d_axis_map(traces, self.shared_x, self.shared_y)
+            set_axes_position(axes_map, self.shared_x, self.shared_y,
+                              max_columns=3, gap=0.05, square=True,
+                              stacked_y_gap=0.02, shared_x_gap=0.08,
+                              shared_y_gap=0.08)
+
+            axes = self.generate_layout_axes(axes_map, line_color, grid_color)
             data = plot_2d_chart(traces, type_=self.type_)
 
         return {

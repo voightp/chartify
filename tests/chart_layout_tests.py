@@ -2,6 +2,7 @@ import unittest
 import uuid
 import datetime
 import random
+import copy
 from chartify.charts.trace import Trace, TraceData, Trace2D
 from chartify.charts.chart_settings import *
 from eso_reader.constants import *
@@ -152,17 +153,17 @@ class TestChartLayout(unittest.TestCase):
         self.assertEqual(m, [[0, 1, 2], [3]])
 
     def test_dom_gen(self):
-        gen = dom_gen(3, 0.1)
+        gen = domain_gen(3, 0.1)
 
         d0 = next(gen)
         d1 = next(gen)
         d2 = next(gen)
 
         self.assertAlmostEqual(d0[0], 0)
-        self.assertAlmostEqual(d0[1], 0.26666, 4)
-        self.assertAlmostEqual(d1[0], 0.36666, 4)
-        self.assertAlmostEqual(d1[1], 0.63333, 4)
-        self.assertAlmostEqual(d2[0], 0.733333, 4)
+        self.assertAlmostEqual(d0[1], 0.267, 3)
+        self.assertAlmostEqual(d1[0], 0.367, 3)
+        self.assertAlmostEqual(d1[1], 0.633, 3)
+        self.assertAlmostEqual(d2[0], 0.733, 3)
         self.assertAlmostEqual(d2[1], 1)
 
         with self.assertRaises(StopIteration):
@@ -172,16 +173,16 @@ class TestChartLayout(unittest.TestCase):
         x_domains, y_domains = gen_domain_vectors(5, gap=0.1,
                                                   max_columns=2, square=False)
         res_xs = [[0, 0.45], [0.55, 1.0], [0, 0.45], [0.55, 1.0], [0, 1.0]]
-        res_ys = [[0, 0.266666], [0, 0.266666], [0.366666, 0.633333],
-                  [0.3666667, 0.6333333], [0.7333333, 1.0]]
+        res_ys = [[0, 0.267], [0, 0.267], [0.367, 0.633],
+                  [0.367, 0.633], [0.733, 1.0]]
 
         for x, res_x in zip(x_domains, res_xs):
             for ix, ires_x in zip(x, res_x):
-                self.assertAlmostEqual(ix, ires_x, 4)
+                self.assertAlmostEqual(ix, ires_x, 3)
 
         for y, res_y in zip(y_domains, res_ys):
             for iy, ires_y in zip(y, res_y):
-                self.assertAlmostEqual(iy, ires_y, 4)
+                self.assertAlmostEqual(iy, ires_y, 3)
 
         x_domains, y_domains = gen_domain_vectors(4, gap=0.1,
                                                   max_columns=2, square=True)
@@ -191,25 +192,25 @@ class TestChartLayout(unittest.TestCase):
 
         for x, res_x in zip(x_domains, res_xs):
             for ix, ires_x in zip(x, res_x):
-                self.assertAlmostEqual(ix, ires_x, 4)
+                self.assertAlmostEqual(ix, ires_x, 3)
 
         for y, res_y in zip(y_domains, res_ys):
             for iy, ires_y in zip(y, res_y):
-                self.assertAlmostEqual(iy, ires_y, 4)
+                self.assertAlmostEqual(iy, ires_y, 3)
 
         x_domains, y_domains = gen_domain_vectors(4, gap=0.1,
                                                   max_columns=3, square=False)
 
-        res_xs = [[0, 0.266666], [0.3666667, 0.6333333], [0.733333, 1.0], [0, 1.0]]
+        res_xs = [[0, 0.267], [0.367, 0.633], [0.733, 1.0], [0, 1.0]]
         res_ys = [[0, 0.45], [0, 0.45], [0, 0.45], [0.55, 1.0]]
 
         for x, res_x in zip(x_domains, res_xs):
             for ix, ires_x in zip(x, res_x):
-                self.assertAlmostEqual(ix, ires_x, 4)
+                self.assertAlmostEqual(ix, ires_x, 3)
 
         for y, res_y in zip(y_domains, res_ys):
             for iy, ires_y in zip(y, res_y):
-                self.assertAlmostEqual(iy, ires_y, 4)
+                self.assertAlmostEqual(iy, ires_y, 3)
 
     def test_set_shared_x_positions(self):
         a = Axis("x", "W")
@@ -285,43 +286,136 @@ class TestChartLayout(unittest.TestCase):
             self.assertIsNone(ch.anchor)
             self.assertIsNone(ch.position)
 
-    def test_assign_domains(self):
-        x0 = Axis("x", "hourly")
-        x0.add_child(Axis("x2", "kg"))
-        x0.add_child(Axis("x3", "daily", visible=False))
-        x0.add_child(Axis("x4", "monthly", visible=False))
+    def test_set_axes_position(self):
+        x0 = Axis("x0", "hourly")
+        x0ch0 = Axis("x0ch0", "kg")
+        x0ch1 = Axis("x0ch1", "daily", visible=False)
+        x0.add_child(x0ch0)
+        x0.add_child(x0ch1)
 
-        y0 = Axis("y", "C")
-        y0.add_child(Axis("y2", "W"))
-        y0.add_child(Axis("y3", "J"))
-        y0.add_child(Axis("y4", ""))
+        y0 = Axis("y0", "C")
+        y0ch0 = Axis("y0ch0", "W")
+        y0ch1 = Axis("y0ch1", "J")
+        y0ch2 = Axis("y0ch2", "")
+        y0.add_child(y0ch0)
+        y0.add_child(y0ch1)
+        y0.add_child(y0ch2)
 
-        x1 = Axis("x5", "m3")
-        x1.add_child(Axis("x6", "kg"))
-        x1.add_child(Axis("x7", "daily", visible=False))
-        x1.add_child(Axis("x8", "monthly", visible=False))
+        x1 = Axis("x1", "m3")
+        x1ch0 = Axis("x1ch0", "kg")
+        x1ch1 = Axis("x1ch1", "daily", visible=False)
+        x1.add_child(x1ch0)
+        x1.add_child(x1ch1)
 
-        y1 = Axis("y", "C")
-        y1.add_child(Axis("y2", "W"))
-        y1.add_child(Axis("y3", "J"))
-        y1.add_child(Axis("y4", ""))
+        y1 = Axis("y1", "C")
+        y1ch0 = Axis("y1ch0", "W")
+        y1.add_child(y1ch0)
 
-        y2 = Axis("y5", "hourly")
-        y2.add_child(Axis("y6", "daily", visible=False))
-        y2.add_child(Axis("y6", "daily", visible=False))
+        x2 = Axis("x2", "hourly")
+        x2ch0 = Axis("x2ch0", "daily", visible=False)
+        x2.add_child(x2ch0)
+        x1.add_child(x2)
 
+        y2 = Axis("y2", "hourly")
+        y2ch0 = Axis("y2ch0", "daily", visible=False)
+        y2.add_child(y2ch0)
         y1.add_child(y2)
 
-        assign_domains([(x0, y0)], True, True)
+        set_axes_position([(x0, y0), (x1, y1)], True, True)
 
-        print(x0)
-        print(y0)
+        self.assertEqual(x0.anchor, "y0")
+        self.assertAlmostEqual(x0.domain[0], 0.08, 2)
+        self.assertAlmostEqual(x0.domain[1], 0.395, 3)
+        self.assertIsNone(x0.position)
 
-        for ch in x0.children:
-            print(ch)
+        self.assertEqual(x0ch0.anchor, "free")
+        self.assertEqual(x0ch0.domain, x0.domain)
+        self.assertEqual(x0ch0.position, 0.0)
 
-        for ch in y0.children:
-            print(ch)
+        self.assertEqual(x0ch1.anchor, "y0")
+        self.assertEqual(x0ch0.domain, x0.domain)
+        self.assertIsNone(x0ch1.position)
+
+        self.assertEqual(x1.anchor, "y1")
+        self.assertAlmostEqual(x1.domain[0], 0.605, 3)
+        self.assertAlmostEqual(x1.domain[1], 1.0, 2)
+        self.assertIsNone(x1.position)
+
+        self.assertEqual(x1ch0.anchor, "free")
+        self.assertEqual(x1ch0.domain, x1.domain)
+        self.assertEqual(x1ch0.position, 0.08)
+
+        self.assertEqual(x1ch1.anchor, "y1")
+        self.assertEqual(x1ch0.domain, x1.domain)
+        self.assertIsNone(x1ch1.position)
+
+        self.assertEqual(y0.anchor, "x0")
+        self.assertAlmostEqual(y0.domain[0], 0.08, 2)
+        self.assertAlmostEqual(y0.domain[1], 1.0, 2)
+        self.assertIsNone(y0.position)
+
+        self.assertEqual(y0ch0.anchor, "free")
+        self.assertEqual(y0ch0.domain, y0.domain)
+        self.assertAlmostEqual(y0ch0.position, 0.39)
+        self.assertEqual(y0ch0.side, "right")
+
+        self.assertEqual(y0ch1.anchor, "free")
+        self.assertEqual(y0ch0.domain, y0.domain)
+        self.assertAlmostEqual(y0ch1.position, 0.0)
+        self.assertEqual(y0ch1.side, "left")
+
+        self.assertEqual(y0ch2.anchor, "free")
+        self.assertEqual(y0ch0.domain, y0.domain)
+        self.assertAlmostEqual(y0ch2.position, 0.47)
+        self.assertEqual(y0ch2.side, "right")
+
+        self.assertEqual(y1.anchor, "x1")
+        self.assertAlmostEqual(y1.domain[0], 0.16, 2)
+        self.assertAlmostEqual(y1.domain[1], 1.0, 2)
+        self.assertIsNone(y1.position)
+
+        self.assertEqual(y1ch0.anchor, "free")
+        self.assertEqual(y1ch0.domain, y1.domain)
+        self.assertAlmostEqual(y1ch0.position, 1.0)
+        self.assertEqual(y1ch0.side, "right")
+
+        self.assertEqual(y2.anchor, "free")
+        self.assertEqual(y1ch0.domain, y1.domain)
+        self.assertAlmostEqual(y2.position, 0.53)
+        self.assertEqual(y2.side, "left")
+
+        set_axes_position([(x0, y0)], False, False)
+
+        self.assertEqual(x0.anchor, "y0")
+        self.assertEqual(x0.domain[0], 0)
+        self.assertAlmostEqual(x0.domain[1], 1.0, 1)
+
+        self.assertEqual(x0ch0.anchor, "y0")
+        self.assertEqual(x0ch0.domain, x0.domain)
+
+        self.assertEqual(x0ch1.anchor, "y0")
+        self.assertEqual(x0ch1.domain, x0.domain)
+
+        self.assertEqual(y0.anchor, "x0")
+        self.assertEqual(y0.domain[0], 0)
+        self.assertAlmostEqual(y0.domain[1], 0.235, 3)
+        self.assertIsNone(y0.position)
+
+        self.assertEqual(y0ch0.anchor, "x0")
+        self.assertAlmostEqual(y0ch0.domain[0], 0.255, 2)
+        self.assertAlmostEqual(y0ch0.domain[1], 0.49, 2)
+        self.assertAlmostEqual(y0ch0.position, 0.39)
+        self.assertEqual(y0ch0.side, "left")
+
+        self.assertEqual(y0ch1.anchor, "x0")
+        self.assertAlmostEqual(y0ch1.domain[0], 0.51, 2)
+        self.assertAlmostEqual(y0ch1.domain[1], 0.745, 2)
+        self.assertEqual(y0ch1.side, "left")
+
+        self.assertEqual(y0ch2.anchor, "x0")
+        self.assertAlmostEqual(y0ch2.domain[0], 0.765, 3)
+        self.assertAlmostEqual(y0ch2.domain[1], 1.0, 2)
+        self.assertEqual(y0ch2.side, "left")
 
     def test_create_2d_axis_map(self):
         traces = [
@@ -335,7 +429,37 @@ class TestChartLayout(unittest.TestCase):
             self.m_trace0,
             self.m_trace1,
         ]
-        mp1 = create_2d_axis_map(traces)
+        mp0 = create_2d_axis_map(traces, group_datetime=True, shared_x=True)
+        self.assertEqual(len(mp0), 1)
+        self.assertEqual(len(mp0[0][0].visible_children), 2)
+        self.assertEqual(len(mp0[0][0].hidden_children), 1)
+        self.assertEqual(len(mp0[0][1].visible_children), 4)
+        self.assertEqual(len(mp0[0][1].hidden_children), 0)
+
+        mp1 = create_2d_axis_map(traces, group_datetime=False, shared_x=True)
+        self.assertEqual(len(mp1), 1)
+        self.assertEqual(len(mp1[0][0].visible_children), 3)
+        self.assertEqual(len(mp1[0][0].hidden_children), 0)
+        self.assertEqual(len(mp1[0][1].visible_children), 4)
+        self.assertEqual(len(mp1[0][1].hidden_children), 0)
+
+        mp2 = create_2d_axis_map(traces, group_datetime=True, shared_x=False)
+        self.assertEqual(len(mp2), 3)
+        self.assertEqual(len(mp2[0][0].visible_children), 0)
+        self.assertEqual(len(mp2[0][0].hidden_children), 1)
+        self.assertEqual(len(mp2[0][1].visible_children), 1)
+        self.assertEqual(len(mp2[0][1].hidden_children), 0)
+        self.assertEqual(len(mp2[1][0].visible_children), 0)
+        self.assertEqual(len(mp2[1][0].hidden_children), 0)
+        self.assertEqual(len(mp2[1][1].visible_children), 0)
+        self.assertEqual(len(mp2[1][1].hidden_children), 0)
+        self.assertEqual(len(mp2[2][0].visible_children), 0)
+        self.assertEqual(len(mp2[2][0].hidden_children), 0)
+        self.assertEqual(len(mp2[2][1].visible_children), 1)
+        self.assertEqual(len(mp2[2][1].hidden_children), 0)
+
+        mp3 = create_2d_axis_map(traces, group_datetime=False, shared_x=False)
+        self.assertEqual(len(mp3), 4)
 
 
 if __name__ == "__main__":
