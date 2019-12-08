@@ -108,15 +108,13 @@ class Chart:
         x_axes, y_axes = {}, {}
 
         for xaxis, yaxis in axes_map:
-            y_axes = get_yaxis_settings(yaxis, y_dom, line_color,
-                                        grid_color, increment=0.08,
-                                        ranges_y=self.ranges["y"])
+            y_axes = get_axis_settings(yaxis, line_color, grid_color,
+                                       ranges=self.ranges["y"])
 
-            x_axes = get_xaxis_settings(len(y_axes.keys()), line_color, grid_color,
-                                        increment=0.08, x_domains=x_domains,
-                                        date_axis=date_axis, ranges_x=self.ranges["x"])
+            x_axes = get_axis_settings(xaxis, line_color, grid_color,
+                                       ranges=self.ranges["x"])
 
-        return {**y_axes, **x_axes}
+        return {**x_axes, **y_axes}
 
     def as_plotly(self, traces, modebar_active_color, modebar_color,
                   line_color, grid_color, background_color):
