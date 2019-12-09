@@ -86,8 +86,8 @@ class WVController(QObject):
 
         line_color = palette.get_color("PRIMARY_TEXT_COLOR")
         grid_color = palette.get_color("PRIMARY_TEXT_COLOR", opacity=0.3)
-        modebar_color = palette.get_color("PRIMARY_TEXT_COLOR", opacity=0.5)
-        modebar_active_color = palette.get_color("PRIMARY_TEXT_COLOR")
+        modebar_color = palette.get_color("PRIMARY_TEXT_COLOR")
+        modebar_active_color = palette.get_color("PRIMARY_TEXT_COLOR", opacity=0.5)
         background_color = palette.get_color("BACKGROUND_COLOR")
 
         if isinstance(component, Chart):
