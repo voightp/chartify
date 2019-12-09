@@ -1,4 +1,6 @@
 from eso_reader.constants import *
+from chartify.charts.chart_settings import *
+
 
 class Axis:
     def __init__(self, name, title, anchor=None, visible=True, overlaying=None):
@@ -166,7 +168,6 @@ class Trace2D(Trace):
         self.yaxis = None
         self._x_ref = None
         self._y_ref = None
-        self._z_ref = None
         self._num_values = None
         self._interval = None
         self._timestamps = None
@@ -206,6 +207,13 @@ class Trace2D(Trace):
 
         return valid
 
+    def _get_ref_values(self, ref):
+        """ Get data for a given reference."""
+        if ref == "datetime":
+            return self._timestamps
+        else:
+            return ref.values()
+
     @x_ref.setter
     def x_ref(self, x_ref):
         if self._validate_ref(x_ref):
@@ -240,6 +248,21 @@ class Trace2D(Trace):
     @property
     def interval(self):
         return self._interval
+
+    def as_plotly(self):
+        return {
+            "itemId": self.item_id,
+            "traceId": self.trace_id,
+            "name": self.name,
+            "color": self.color,
+            "selected": self.selected,
+            "x": self._get_ref_values(self.x_ref),
+            "y": self._get_ref_values(self.y_ref),
+            "xaxis": self.xaxis,
+            "yaxis": self.yaxis,
+            **get_appearance(self.type_, self.interval,
+                             self.color, self.priority)
+        }
 
 
 class Trace3D(Trace2D):

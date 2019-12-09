@@ -41,39 +41,6 @@ def get_all_units(traces: List[Trace]) -> List[str]:
     return setlist
 
 
-def get_axis_inputs(type_, values, timestamps, xaxis, yaxis):
-    props = {
-        "scatter": {
-            "x": timestamps,
-            "y": values,
-            "xaxis": xaxis,
-            "yaxis": yaxis,
-        },
-        "bubble": {
-            "x": timestamps,
-            "y": values,
-            "xaxis": xaxis,
-            "yaxis": yaxis,
-        },
-        "histogram": {
-            "x": values,
-            "yaxis": yaxis,
-            "xaxis": xaxis,
-        },
-        "box": {
-            "type": "box",
-            "y": values,
-            "xaxis": xaxis,
-            "yaxis": yaxis,
-        },
-    }
-
-    if type_ in ["scatter", "bar", "line"]:
-        type_ = "scatter"
-
-    return props[type_]
-
-
 def get_pie_appearance(priorities, colors, background_color):
     weights = {
         "low": 0.3,
@@ -96,7 +63,7 @@ def get_pie_appearance(priorities, colors, background_color):
     }
 
 
-def get_appearance(type_, color, priority="normal"):
+def get_appearance(type_, color, interval, priority="normal"):
     weights = {
         "low": {
             "markerSize": 5,
@@ -115,8 +82,21 @@ def get_appearance(type_, color, priority="normal"):
             "opacity": 1
         }}
 
+    line_shape = {
+        None: "linear",
+        TS: "linear",
+        H: "linear",
+        D: "hvh",
+        M: "hvh",
+        A: "hvh",
+        RP: "hvh",
+    }
+
     shared = {
-        "opacity": weights[priority]["opacity"]
+        "opacity": weights[priority]["opacity"],
+        "hoverlabel": {
+            "namelength": -1,
+        },
     }
 
     props = {
@@ -142,7 +122,7 @@ def get_appearance(type_, color, priority="normal"):
             "line": {
                 "width": weights[priority]["lineWidth"],
                 "color": color,
-                "shape": "hvh"  # "linear" | "spline" | "hv" | "vh" | "hvh" | "vhv"
+                "shape": line_shape[interval]  # "linear" | "spline" | "hv" | "vh" | "hvh" | "vhv"
             }
 
         },
