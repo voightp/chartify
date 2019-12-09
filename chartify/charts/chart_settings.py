@@ -3,31 +3,30 @@ from functools import partial
 from typing import Tuple, List, Dict, Union, Generator
 from chartify.view.icons import combine_colors
 from chartify.view.css_theme import parse_color
-from chartify.charts.trace import Axis, Trace, TraceData
+from chartify.charts.trace import Axis, Trace, TraceData, Trace1D
 from eso_reader.constants import *
 import copy
 import math
 
 
-def combine_traces(traces: List[Trace]) -> Tuple[List, List, List, List, List, List]:
+def combine_traces(traces: List[Trace1D]) -> Dict[str, Union[str, List]]:
     """ Group multiple traces into a single one. """
-    values, labels, colors, trace_ids, priorities, selected = [], [], [], [], [], []
+    combined = defaultdict(list)
     for trace in traces:
-        values.append(abs(trace.total_value))  # TODO fix this
-        labels.append(trace.name)
-        colors.append(trace.color)
-        trace_ids.append(trace.trace_id)
-        priorities.append(trace.priority)
-        selected.append(trace.selected)
+        combined["values"].append(abs(trace.total_value))
+        combined["labels"].append(trace.name)
+        combined["colors"].append(trace.color)
+        combined["traceIds"].append(trace.trace_id)
+        combined["priorities"].append(trace.priority)
+        combined["selected"].append(trace.selected)
+    return combined
 
-    return values, labels, colors, trace_ids, priorities, selected
 
-
-def group_by_units(traces: List[Trace]) -> Dict[str, List[Trace]]:
+def group_by_units(traces: List[Trace1D]) -> Dict[str, List[Trace1D]]:
     """ Group units as dict with units as keys. """
     groups = defaultdict(list)
     for trace in traces:
-        groups[trace.units].append(trace)
+        groups[trace.ref.units].append(trace)
     return groups
 
 
@@ -525,7 +524,8 @@ def shared_interval_axis(traces: List[Trace], axes_gen: Generator,
     return parent
 
 
-def assign_trace_axes(traces, xaxes, yaxes):
+def assign_trace_axes(traces: List[Trace], xaxes: Dict[str, str],
+                      yaxes: Dict[str, str]) -> None:
     """ Assign trace 'x' and 'y' axes. """
     for trace in traces:
         if trace.x_ref == "datetime":
