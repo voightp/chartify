@@ -5,7 +5,7 @@ from collections import defaultdict
 from functools import partial
 from typing import Tuple, List, Dict, Union, Generator, Any
 
-from chartify.charts.trace import Axis, Trace, TraceData, Trace1D
+from chartify.charts.trace import Axis, Trace2D, TraceData, Trace1D
 from chartify.charts.chart_settings import get_pie_appearance
 from eso_reader.constants import *
 
@@ -250,7 +250,7 @@ def axis_gen(axis: str = "x", start: int = 1) -> Generator[str, None, None]:
         i += 1
 
 
-def get_intervals(traces: List[Trace]) -> List[str]:
+def get_intervals(traces: List[Trace2D]) -> List[str]:
     """ Get a list of all trace intervals. """
     full = [trace.interval for trace in traces]
     setlist = []
@@ -267,7 +267,7 @@ def standard_axis(type_: str, axes_gen: Generator, axes: Dict[str, str]) -> Axis
     return Axis(axis_name, type_)
 
 
-def shared_interval_axis(traces: List[Trace], axes_gen: Generator,
+def shared_interval_axis(traces: List[Trace2D], axes_gen: Generator,
                          axes: Dict[str, str]) -> Axis:
     """ Assign trace interval reference and create parent axis. """
     intervals = get_intervals(traces)
@@ -293,7 +293,7 @@ def shared_interval_axis(traces: List[Trace], axes_gen: Generator,
     return parent
 
 
-def assign_trace_axes(traces: List[Trace], xaxes: Dict[str, str],
+def assign_trace_axes(traces: List[Trace2D], xaxes: Dict[str, str],
                       yaxes: Dict[str, str]) -> None:
     """ Assign trace 'x' and 'y' axes. """
     for trace in traces:
