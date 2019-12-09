@@ -163,6 +163,13 @@ class Trace1D(Trace):
     def total_value(self):
         return self.ref.total_value if self.ref else None
 
+    def as_trace_2d(self):
+        trace = Trace2D(self.name, self.item_id, self.trace_id, self.color,
+                        self.type_, self.selected, self.priority)
+        trace.x_ref = "datetime"
+        trace.y_ref = self.ref
+        return trace
+
 
 class Trace2D(Trace):
     def __init__(self, name, *args, **kwargs):

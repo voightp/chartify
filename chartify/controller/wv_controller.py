@@ -60,9 +60,9 @@ class WVController(QObject):
     def handle_full_layout_update(self, colors: List[tuple]):
         """ Re-render components whet color scheme updates. """
         components = {}
-        for item_id, component in self.m.fetch_all_components():
+        for component in self.m.fetch_all_components():
             plot = self.plot_component(component)
-            components[item_id] = plot
+            components[component.item_id] = plot
 
         items = self.m.fetch_all_items()
 
@@ -222,6 +222,10 @@ class WVController(QObject):
         traces = self.m.fetch_traces(item_id)
         for trace in traces:
             trace.type_ = chart_type
+            if chart_type == "pie" and isinstance(trace, Trace2D):
+                self.m.update_trace(trace.as_trace_1d())
+            elif isinstance(trace, Trace1D):
+                self.m.update_trace(trace.as_trace_2d())
 
         self.update_component(item_id)
 

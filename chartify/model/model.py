@@ -75,6 +75,16 @@ class AppModel(QObject):
             if component.item_id == item_id:
                 return component
 
+    def remove_trace(self, trace_id: str) -> None:
+        """ Remove trace from database. """
+        trace = self.fetch_trace(trace_id)
+        self.wv_database["traces"].remove(trace)
+
+    def update_trace(self, trace: Trace) -> None:
+        """ Replace trace with some other type trace. """
+        self.remove_trace(trace.trace_id)
+        self.wv_database["traces"].append(trace)
+
     def fetch_trace(self, trace_id: str) -> Trace:
         """ Get trace of a given id. """
         for trace in self.wv_database["traces"]:
