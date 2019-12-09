@@ -147,9 +147,10 @@ class Trace:
 
 
 class Trace1D(Trace):
-    def __init__(self, ref, *args, **kwargs):
+    def __init__(self, name, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.ref = ref
+        self.name = name
+        self.ref = None
 
     @property
     def values(self):
@@ -248,6 +249,12 @@ class Trace2D(Trace):
     @property
     def interval(self):
         return self._interval
+
+    def as_trace_1d(self):
+        trace = Trace1D(self.name, self.item_id, self.trace_id, self.color,
+                        self.type_, self.selected, self.priority)
+        trace.ref = self.y_ref if self.x_ref == "datetime" else self.x_ref
+        return trace
 
     def as_plotly(self):
         return {

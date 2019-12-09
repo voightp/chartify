@@ -7,7 +7,7 @@ from chartify.charts.chart import Chart
 from chartify.charts.chart_settings import generate_grid_item, color_generator
 from chartify.utils.utils import int_generator, calculate_totals
 from chartify.settings import Settings
-from chartify.charts.trace import Trace, TraceData
+from chartify.charts.trace import Trace1D, Trace2D, TraceData
 from chartify.model.model import AppModel
 from chartify.controller.threads import Worker
 import json
@@ -123,10 +123,14 @@ class WVController(QObject):
             if not chart.custom:
                 # automatically create a new trace to be added into chart layout
                 trace_id = uuid.uuid1()
-                trace = Trace(item_id, trace_id, name, units, color, type_=type_)
 
-                trace.x_ref = "datetime"
-                trace.y_ref = trace_dt
+                if type_ == "pie":
+                    trace = Trace1D(name, item_id, trace_id, color, type_)
+                    trace.ref = trace_dt
+                else:
+                    trace = Trace2D(name, item_id, trace_id, color, type_)
+                    trace.x_ref = "datetime"
+                    trace.y_ref = trace_dt
 
                 self.m.wv_database["traces"].append(trace)
 
