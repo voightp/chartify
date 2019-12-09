@@ -189,7 +189,8 @@ def set_axes_position(axes_map: List[Tuple[Axis, Axis]], shared_x: bool, shared_
             child.domain = x_dom
 
 
-def get_axis_settings(axis, line_color, grid_color, ranges=None):
+def get_axis_settings(axis: Axis, line_color: str, grid_color: str,
+                      ranges: List[List[float]] = None) -> Dict[str, Any]:
     shared_attributes = {
         "color": line_color,
         "linecolor": line_color,
@@ -216,7 +217,8 @@ def get_axis_settings(axis, line_color, grid_color, ranges=None):
     return yaxes
 
 
-def group_traces(traces, x_types, y_types):
+def group_traces(traces: List[Trace2D], x_types: List[str],
+                 y_types: List[str]) -> Dict[str, Dict[str, List[Trace2D]]]:
     """ Group traces based on axis types. """
     grouped = defaultdict(partial(defaultdict, list))
     for trace, x, y in zip(traces, x_types, y_types):
@@ -224,7 +226,7 @@ def group_traces(traces, x_types, y_types):
     return grouped
 
 
-def get_xy_types(traces, group_datetime=True):
+def get_xy_types(traces: List[Trace2D], group_datetime: bool = True):
     """ Get unique list of types for each trace. """
     x_types, y_types, = [], []
     for trace in traces:
@@ -308,7 +310,8 @@ def assign_trace_axes(traces: List[Trace2D], xaxes: Dict[str, str],
             trace.yaxis = yaxes[trace.y_type]
 
 
-def create_2d_axis_map(traces, group_datetime=True, shared_x=True):
+def create_2d_axis_map(traces: List[Trace2D], group_datetime: bool = True,
+                       shared_x: bool = True) -> List[Tuple[Axis, Axis]]:
     """ Create axis reference dictionaries. """
     # group axis based on x data type, different intervals will be plotted
     # as independent charts when shared x is not requested
