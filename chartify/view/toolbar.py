@@ -108,6 +108,7 @@ class Toolbar(QFrame):
 
         self.all_files_btn = CheckableButton(self.outputs_group)
         self.all_files_btn.setText("all files")
+        self.all_files_btn.setChecked(Settings.ALL_FILES)
         self.all_files_btn.setEnabled(False)
 
         self.set_up_outputs_btns()
