@@ -34,7 +34,7 @@ class AppModel(QObject):
         self.wv_database = {
             "trace_data": [],
             "traces": [],
-            "components": {},
+            "components": [],
             "items": {}
         }
 
@@ -107,7 +107,7 @@ class AppModel(QObject):
 
     def fetch_all_item_ids(self) -> List[str]:
         """ Get all used item ids. """
-        return [item.item_id for item in self.wv_database["items"]]
+        return list(self.wv_database["items"].keys())
 
     def fetch_palette(self, name: str) -> Palette:
         """ Get 'Palette' object with a specified name. """

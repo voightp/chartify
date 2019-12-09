@@ -62,7 +62,7 @@ class Axis:
 
     @property
     def type(self):
-        return "date" if self.name in [TS, H, D, M, A, RP, "datetime"] else "linear"
+        return "date" if self.title in [TS, H, D, M, A, RP, "datetime"] else "linear"
 
     @anchor.setter
     def anchor(self, anchor):
@@ -114,8 +114,11 @@ class Axis:
             "type": self.type,
             "rangemode": "tozero",
         }
-        children = {ch.long_name: ch.as_plotly() for ch in self.children}
-        return {self.long_name: attributes, **children}
+        p = {self.long_name: attributes}
+        for child in self.children:
+            ch = child.as_plotly()
+            p = {**p, **ch}
+        return p
 
 
 class TraceData:
@@ -211,9 +214,9 @@ class Trace2D(Trace):
     def _get_ref_values(self, ref):
         """ Get data for a given reference."""
         if ref == "datetime":
-            return self._timestamps
+            return self.js_timestamps
         else:
-            return ref.values()
+            return ref.values
 
     @x_ref.setter
     def x_ref(self, x_ref):
@@ -267,8 +270,8 @@ class Trace2D(Trace):
             "y": self._get_ref_values(self.y_ref),
             "xaxis": self.xaxis,
             "yaxis": self.yaxis,
-            **get_appearance(self.type_, self.interval,
-                             self.color, self.priority)
+            **get_appearance(self.type_, self.color,
+                             self.interval, self.priority)
         }
 
 
