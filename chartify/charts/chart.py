@@ -32,26 +32,6 @@ def plot_pie_chart(traces, background_color):
     return data
 
 
-def plot_2d_chart(traces, type_="scatter"):
-    """ Plot a 'standard' 2d chart of a given type. """
-    data = []
-    for trace in traces:
-        type_ = trace.type_ if type_ == "custom" else type_
-        data.append({
-            "itemId": trace.item_id,
-            "traceId": trace.trace_id,
-            "name": trace.name,
-            "color": trace.color,
-            "selected": trace.selected,
-            "hoverlabel": {
-                "namelength": -1,
-            },
-            **get_appearance(type_, trace.color, trace.priority),
-            **get_axis_inputs(type_, trace.values, trace.js_timestamps,
-                              trace.xaxis, trace.yaxis)})
-    return data
-
-
 class Chart:
     """
     A class to handle chart operation and to
@@ -137,7 +117,7 @@ class Chart:
                               shared_y_gap=0.08)
 
             axes = self.generate_layout_axes(axes_map, line_color, grid_color)
-            data = plot_2d_chart(traces, type_=self.type_)
+            data = [trace.as_plotly() for trace in traces]
 
         return {
             "componentType": "chart",
