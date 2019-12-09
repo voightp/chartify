@@ -10,6 +10,7 @@ from chartify.settings import Settings
 from chartify.charts.trace import Trace1D, Trace2D, TraceData
 from chartify.model.model import AppModel
 from chartify.controller.threads import Worker
+from chartify.utils.tiny_profiler import profile
 import json
 import uuid
 
@@ -55,6 +56,7 @@ class WVController(QObject):
         self.thread_pool = QThreadPool()
         self.m.fullUpdateRequested.connect(self.handle_full_layout_update)
 
+    @profile
     def handle_full_layout_update(self, colors: List[tuple]):
         """ Re-render components whet color scheme updates. """
         components = {}
@@ -66,6 +68,7 @@ class WVController(QObject):
 
         self.fullLayoutUpdated.emit(items, components, colors)
 
+    @profile
     def gen_component_ids(self, name: str) -> Tuple[str, str, str]:
         """ Generate unique chart ids. """
         while True:
@@ -76,6 +79,7 @@ class WVController(QObject):
 
         return item_id, f"frame-{i}", f"{name}-{i}",
 
+    @profile
     def plot_component(self, component: Union[Chart]) -> dict:
         """ Request UI update for given component. """
         palette = self.m.fetch_palette(Settings.PALETTE_NAME)
@@ -90,9 +94,10 @@ class WVController(QObject):
             traces = self.m.fetch_traces(component.item_id)
             component = component.as_plotly(traces, line_color, modebar_active_color,
                                             modebar_color, grid_color, background_color)
-        print(json.dumps(component, indent=4))
+        # print(json.dumps(component, indent=4))
         return component
 
+    @profile
     def update_component(self, item_id: str) -> None:
         """ Request UI update for given component. """
         component = self.m.fetch_component(item_id)
@@ -100,6 +105,7 @@ class WVController(QObject):
         if plot:
             self.componentUpdated.emit(item_id, plot)
 
+    @profile
     def add_new_traces(self, item_id: str, type_: str) -> None:
         """ Process raw pd.DataFrame and store the data. """
         df = self.m.get_results(include_interval=True, include_id=False)

@@ -200,7 +200,8 @@ def get_base_layout(top_margin, modebar_active_color, modebar_color):
     mod = {
         "modebar": {
             "activecolor": modebar_active_color,
-            "color": modebar_color
+            "color": modebar_color,
+            "bgcolor": "transparent"
         },
         "margin": {
             "t": top_margin

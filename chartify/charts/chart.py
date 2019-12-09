@@ -4,6 +4,7 @@ from chartify.charts.chart_functions import (get_axis_settings, pie_chart,
 from chartify.charts.chart_settings import (get_base_layout, base_layout,
                                             style, config)
 from typing import Dict, Any
+from chartify.utils.tiny_profiler import profile
 
 
 class Chart:
@@ -57,6 +58,7 @@ class Chart:
 
         return m + self.LEGEND_GAP
 
+    @profile
     def generate_layout_axes(self, axes_map, line_color, grid_color):
         """ Generate chart layout properties. """
         x_axes, y_axes = {}, {}
@@ -70,6 +72,7 @@ class Chart:
 
         return {**x_axes, **y_axes}
 
+    @profile
     def as_plotly(self, traces, modebar_active_color, modebar_color,
                   line_color, grid_color, background_color):
         """ Create 'plotly' like chart. """
