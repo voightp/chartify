@@ -39,12 +39,13 @@ def pie_chart(traces: List[Trace1D], background_color: str, max_columns: int = 3
             "type": "pie",
             "opacity": 1,
             "itemId": traces[0].item_id,
-            "pull": [0.1 if tr.selected else 0 for tr in traces],
+            "pull": [0.1 if trace.selected else 0 for trace in traces],
             "hole": 0.3,
             "domain": {
                 "x": x_dom,
                 "y": y_dom
             },
+            **combined,
             **get_pie_appearance(priorities, colors, background_color)
         })
 
