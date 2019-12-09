@@ -1,34 +1,9 @@
-from chartify.charts.chart_settings import *
+from chartify.charts.chart_functions import (get_axis_settings, pie_chart,
+                                             create_2d_axis_map, set_axes_position)
+
+from chartify.charts.chart_settings import (get_base_layout, base_layout,
+                                            style, config)
 from typing import Dict, Any
-from eso_reader.constants import *
-
-
-def pie_chart(traces: List[Trace1D], background_color: str, max_columns: int = 3,
-              gap: float = 0.05, square: bool = True) -> List[Dict[str, Any]]:
-    """ Plot a 'special' pie chart data. """
-    groups = group_by_units(traces)
-    x_domains, y_domains = gen_domain_vectors(len(groups.keys()), square=square,
-                                              max_columns=max_columns, gap=gap)
-    data = []
-    for x_dom, y_dom, traces in zip(x_domains, y_domains, groups.values()):
-        combined = combine_traces(traces)
-        colors = combined.pop("colors")
-        priorities = combined.pop("priorities")
-
-        data.append({
-            "type": "pie",
-            "opacity": 1,
-            "itemId": traces[0].item_id,
-            "pull": [0.1 if tr.selected else 0 for tr in traces],
-            "hole": 0.3,
-            "domain": {
-                "x": x_dom,
-                "y": y_dom
-            },
-            **get_pie_appearance(priorities, colors, background_color)
-        })
-
-    return data
 
 
 class Chart:
@@ -107,8 +82,8 @@ class Chart:
 
         if self.type_ == "pie":
             axes = {}
-            data = pie_chart(traces, background_color, max_columns=3,
-                             square=True)
+            data = pie_chart(traces, background_color,
+                             max_columns=3, square=True, gap=0.05)
         else:
             axes_map = create_2d_axis_map(traces, self.shared_x, self.shared_y)
             set_axes_position(axes_map, self.shared_x, self.shared_y,

@@ -4,7 +4,7 @@ import datetime
 import random
 import copy
 from chartify.charts.trace import Trace, TraceData, Trace2D
-from chartify.charts.chart_settings import *
+from chartify.charts.chart_functions import *
 from eso_reader.constants import *
 
 
