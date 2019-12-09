@@ -108,7 +108,7 @@ class WVController(QObject):
         chart = self.m.fetch_component(item_id)
 
         for col_ix, values in df.iteritems():
-            trace_data_id = uuid.uuid1()
+            trace_data_id = str(uuid.uuid1())
             color = next(self.color_generator)
             name = " | ".join(col_ix)  # file_name | interval | key | variable | units
             units = col_ix[-1]
@@ -122,7 +122,7 @@ class WVController(QObject):
 
             if not chart.custom:
                 # automatically create a new trace to be added into chart layout
-                trace_id = uuid.uuid1()
+                trace_id = str(uuid.uuid1())
 
                 if type_ == "pie":
                     trace = Trace1D(name, item_id, trace_id, color, type_)
@@ -147,7 +147,7 @@ class WVController(QObject):
         component = Chart(item_id, chart_id, chart_type)
         item = generate_grid_item(frame_id, "chart")
 
-        self.m.wv_database["components"][item_id] = component
+        self.m.wv_database["components"].append(component)
         self.m.wv_database["items"][item_id] = item
 
         plot = self.plot_component(component)
@@ -165,7 +165,8 @@ class WVController(QObject):
     def onItemRemoved(self, item_id: str) -> None:
         """ Remove component from app model. """
         print(f"PY removeItem", item_id)
-        del self.m.wv_database["components"][item_id]
+        component = self.m.fetch_component(item_id)
+        self.m.wv_database["components"].remove(component)
         try:
             del self.m.wv_database["items"][item_id]
         except KeyError:
@@ -236,6 +237,6 @@ class WVController(QObject):
         """ Remove selected traces from app model. """
         for trace in self.m.fetch_traces(item_id):
             if trace.selected:
-                self.m.traces.remove(trace)
+                self.m.wv_database["traces"].remove(trace)
 
         self.update_component(item_id)

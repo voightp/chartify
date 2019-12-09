@@ -190,7 +190,7 @@ def set_axes_position(axes_map: List[Tuple[Axis, Axis]], shared_x: bool, shared_
 
 
 def get_axis_settings(axis: Axis, line_color: str, grid_color: str,
-                      ranges: List[List[float]] = None) -> Dict[str, Any]:
+                      ranges: Dict[str, List[float]] = None) -> Dict[str, Any]:
     shared_attributes = {
         "color": line_color,
         "linecolor": line_color,
