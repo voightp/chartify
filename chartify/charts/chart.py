@@ -69,11 +69,11 @@ class Chart:
             axes_map = [(Axis("x", ""), Axis("y", ""))]
 
         for xaxis, yaxis in axes_map:
-            y_axes = get_axis_settings(yaxis, line_color, grid_color,
-                                       ranges=self.ranges["y"])
+            y_axes.update(get_axis_settings(yaxis, line_color, grid_color,
+                                            ranges=self.ranges["y"]))
 
-            x_axes = get_axis_settings(xaxis, line_color, grid_color,
-                                       ranges=self.ranges["x"])
+            x_axes.update(get_axis_settings(xaxis, line_color, grid_color,
+                                            ranges=self.ranges["x"]))
 
         return {**x_axes, **y_axes}
 
