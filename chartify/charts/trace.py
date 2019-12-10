@@ -163,7 +163,7 @@ class Trace1D(Trace):
     def total_value(self):
         return self.ref.total_value if self.ref else None
 
-    def as_trace_2d(self):
+    def as_2d_trace(self):
         trace = Trace2D(self.name, self.item_id, self.trace_id, self.color,
                         self.type_, self.selected, self.priority)
         trace.x_ref = "datetime"
@@ -184,6 +184,10 @@ class Trace2D(Trace):
         self._timestamps = None
 
     @property
+    def ref(self):
+        return self.x_ref if isinstance(self.x_ref, TraceData) else self.y_ref
+
+    @property
     def x_ref(self):
         return self._x_ref
 
@@ -193,7 +197,7 @@ class Trace2D(Trace):
 
     def _validate_ref(self, ref):
         """ Check if the reference can be assigned. """
-        if isinstance(ref, str):
+        if isinstance(ref, str) or ref is None:
             valid = True
         elif isinstance(ref, TraceData):
             num_check = not self._num_values or len(ref.values) == self._num_values
@@ -222,7 +226,7 @@ class Trace2D(Trace):
         """ Get data for a given reference."""
         if ref == "datetime":
             return self.js_timestamps
-        else:
+        elif isinstance(ref, TraceData):
             return ref.values
 
     @x_ref.setter
@@ -260,7 +264,7 @@ class Trace2D(Trace):
     def interval(self):
         return self._interval
 
-    def as_trace_1d(self):
+    def as_1d_trace(self):
         trace = Trace1D(self.name, self.item_id, self.trace_id, self.color,
                         self.type_, self.selected, self.priority)
         trace.ref = self.y_ref if self.x_ref == "datetime" else self.x_ref

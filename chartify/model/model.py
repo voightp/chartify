@@ -1,6 +1,6 @@
 from chartify.settings import Settings
 from chartify.view.css_theme import parse_palette, Palette
-from chartify.charts.trace import Trace, TraceData
+from chartify.charts.trace import Trace1D, Trace2D, TraceData
 from chartify.charts.chart import Chart
 from chartify.utils.typehints import ResultsFile
 
@@ -80,12 +80,12 @@ class AppModel(QObject):
         trace = self.fetch_trace(trace_id)
         self.wv_database["traces"].remove(trace)
 
-    def update_trace(self, trace: Trace) -> None:
+    def update_trace(self, trace: Union[Trace1D, Trace2D]) -> None:
         """ Replace trace with some other type trace. """
         self.remove_trace(trace.trace_id)
         self.wv_database["traces"].append(trace)
 
-    def fetch_trace(self, trace_id: str) -> Trace:
+    def fetch_trace(self, trace_id: str) -> Union[Trace1D, Trace2D]:
         """ Get trace of a given id. """
         for trace in self.wv_database["traces"]:
             if trace.trace_id == trace_id:
@@ -97,7 +97,7 @@ class AppModel(QObject):
             if trace_data.trace_data_id == trace_data_id:
                 return trace_data
 
-    def fetch_traces(self, item_id: str) -> List[Trace]:
+    def fetch_traces(self, item_id: str) -> List[Union[Trace1D, Trace2D]]:
         """ Get traces assigned for a given item. """
         traces = []
         for trace in self.wv_database["traces"]:

@@ -5,6 +5,7 @@ from PySide2 import QtWebChannel
 
 from chartify.charts.chart import Chart
 from chartify.charts.chart_settings import generate_grid_item, color_generator
+from chartify.charts.chart_functions import transform_trace
 from chartify.utils.utils import int_generator, calculate_totals
 from chartify.settings import Settings
 from chartify.charts.trace import Trace1D, Trace2D, TraceData
@@ -95,7 +96,7 @@ class WVController(QObject):
             traces = self.m.fetch_traces(component.item_id)
             component = component.as_plotly(traces, line_color, modebar_active_color,
                                             modebar_color, grid_color, background_color)
-        # print(json.dumps(component, indent=4))
+        print(json.dumps(component, indent=4))
         return component
 
     @profile
@@ -130,14 +131,11 @@ class WVController(QObject):
             if not chart.custom:
                 # automatically create a new trace to be added into chart layout
                 trace_id = str(uuid.uuid1())
+                trace = Trace1D(name, item_id, trace_id, color, type_)
+                trace.ref = trace_dt
 
-                if type_ == "pie":
-                    trace = Trace1D(name, item_id, trace_id, color, type_)
-                    trace.ref = trace_dt
-                else:
-                    trace = Trace2D(name, item_id, trace_id, color, type_)
-                    trace.x_ref = "datetime"
-                    trace.y_ref = trace_dt
+                if type_ != "pie":
+                    trace = transform_trace(trace, type_)
 
                 self.m.wv_database["traces"].append(trace)
 
@@ -222,11 +220,9 @@ class WVController(QObject):
 
         traces = self.m.fetch_traces(item_id)
         for trace in traces:
-            trace.type_ = chart_type
-            if chart_type == "pie" and isinstance(trace, Trace2D):
-                self.m.update_trace(trace.as_trace_1d())
-            elif isinstance(trace, Trace1D):
-                self.m.update_trace(trace.as_trace_2d())
+            trace = transform_trace(trace, chart_type)
+            if trace:
+                self.m.update_trace(trace)
 
         self.update_component(item_id)
 

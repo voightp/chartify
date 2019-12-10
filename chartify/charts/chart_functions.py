@@ -366,3 +366,30 @@ def create_2d_axis_map(traces: List[Trace2D], group_datetime: bool = True,
             axes_map.append((main_x, main_y))
 
     return axes_map
+
+
+def transform_trace(trace: Union[Trace1D, Trace2D], type_: str):
+    """ Reassign reference for a specific chart. """
+    ref = trace.ref
+    trace.type_ = type_
+
+    if not isinstance(trace, Trace1D) and type_ == "pie":
+        trace = trace.as_1d_trace()
+
+    else:
+        if isinstance(trace, Trace1D):
+            trace = trace.as_2d_trace()
+
+        if type_ == "histogram":
+            trace.x_ref = ref
+            trace.y_ref = "%"
+        elif type_ == "box":
+            trace.x_ref = None
+            trace.y_ref = ref
+        else:
+            trace.x_ref = "datetime"
+            trace.y_ref = ref
+
+    return trace
+
+
