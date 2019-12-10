@@ -22,7 +22,8 @@ class MyPage(QWebEnginePage):
         super().__init__()
 
     def javaScriptConsoleMessage(self, level, msg, line, source):
-        print(f"JS >> {source} {line} {msg}")
+        if "PERFORMANCE WARNING" not in msg:
+            print(f"JS >> {source} {line} {msg}")
 
 
 class WVController(QObject):

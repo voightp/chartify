@@ -5,6 +5,7 @@ from chartify.charts.chart_settings import (get_base_layout, base_layout,
                                             style, config)
 from typing import Dict, Any
 from chartify.utils.tiny_profiler import profile
+from chartify.charts.trace import Axis
 
 
 class Chart:
@@ -62,6 +63,10 @@ class Chart:
     def generate_layout_axes(self, axes_map, line_color, grid_color):
         """ Generate chart layout properties. """
         x_axes, y_axes = {}, {}
+
+        if not axes_map:
+            # assign dummy axes to plot nice default chart layout
+            axes_map = [(Axis("x", ""), Axis("y", ""))]
 
         for xaxis, yaxis in axes_map:
             y_axes = get_axis_settings(yaxis, line_color, grid_color,

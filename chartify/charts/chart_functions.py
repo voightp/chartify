@@ -175,6 +175,7 @@ def set_axes_position(axes_map: List[Tuple[Axis, Axis]], shared_x: bool, shared_
             yaxis.domain = y_dom
             for child in yaxis.visible_children:
                 child.domain = y_dom
+                child.overlaying = None
         else:
             n = len(yaxis.children)
             gen = domain_gen(n + 1, stacked_y_gap, y_dom[0], y_dom[1])
@@ -183,6 +184,7 @@ def set_axes_position(axes_map: List[Tuple[Axis, Axis]], shared_x: bool, shared_
                 child.domain = next(gen)
                 child.anchor = xaxis.name
                 child.side = "left"
+                child.overlaying = None
 
         xaxis.domain = x_dom
         for child in xaxis.visible_children:
@@ -203,9 +205,6 @@ def get_axis_settings(axis: Axis, line_color: str, grid_color: str,
         "zeroline": True,
         "zerolinewidth": 2
     }
-
-    if not axis:
-        return {"yaxis": shared_attributes}
 
     yaxes = axis.as_plotly()
 
