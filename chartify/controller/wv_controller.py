@@ -1,6 +1,7 @@
 from PySide2.QtCore import (QObject, Slot, Signal, QJsonValue, QJsonArray,
                             QUrl, QThreadPool)
 from PySide2.QtWebEngineWidgets import QWebEnginePage, QWebEngineView
+from PySide2.QtGui import QColor
 from PySide2 import QtWebChannel
 
 from chartify.charts.chart import Chart
@@ -21,6 +22,7 @@ from typing import Tuple, List, Union
 class MyPage(QWebEnginePage):
     def __init__(self):
         super().__init__()
+        self.setBackgroundColor(QColor("transparent"))
 
     def javaScriptConsoleMessage(self, level, msg, line, source):
         if "PERFORMANCE WARNING" not in msg:
