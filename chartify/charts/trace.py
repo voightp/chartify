@@ -18,7 +18,7 @@ class Axis:
         return f"Axis: {self.name}\n" \
             f"\tTitle: {self.title}\n" \
             f"\tVisible: {self.visible}\n" \
-            f"\tAnchor: {self.anchor}\n" \
+            f"\tAnchor: {self.anchor.name if isinstance(self.anchor, Axis) else self.anchor}\n" \
             f"\tOverlaying: {self._overlaying}\n" \
             f"\tDomain: {', '.join([str(d) for d in self.domain]) if self.domain else []}\n" \
             f"\tPosition: {self.position}\n" \
@@ -102,11 +102,46 @@ class Axis:
 
         self.children.append(axis)
 
+    def get_title_annotations(self):
+        annotations = []
+        is_x = "x" in self.name
+
+        if self.domain:
+            a = round((self.domain[1] + self.domain[0]) / 2, 2)
+
+            if self.anchor == "free":
+                b = self.position
+            else:
+                b = self.anchor.domain[1] if self.side == "right" else self.anchor.domain[0]
+
+            x, y = (a, b) if is_x else (b, a)
+
+            attributes = {
+                "text": f"{self.title}",
+                "x": x,
+                "y": y,
+                "showarrow": False,
+                "xanchor": "center",
+                "yanchor": "middle",
+                "xref": "paper",
+                "yref": "paper",
+                "xshift": 0 if is_x else -20,
+                "yshift": -20 if is_x else 0,
+                "textangle": 0 if is_x else -90
+            }
+
+            annotations.append(attributes)
+
+            for child in self.visible_children:
+                a = child.get_title_annotations()
+                annotations.append(*a)
+
+        return annotations
+
     def as_plotly(self):
         attributes = {
-            "title": self.title,
             "visible": self.visible,
-            "anchor": self.anchor,
+            "anchor": self.anchor.name if isinstance(self.anchor, Axis) else self.anchor,
             "overlaying": self.overlaying,
             "domain": self.domain,
             "position": self.position,

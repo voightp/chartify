@@ -161,14 +161,14 @@ def set_axes_position(axes_map: List[Tuple[Axis, Axis]], shared_x: bool, shared_
                                               gap=gap, square=square)
 
     for (xaxis, yaxis), x_dom, y_dom in zip(axes_map, x_domains, y_domains):
-        xaxis.anchor = yaxis.name
-        yaxis.anchor = xaxis.name
+        xaxis.anchor = yaxis
+        yaxis.anchor = xaxis
 
         if shared_x:
             y_dom = set_shared_x_positions(xaxis, y_dom, shared_x_gap)
         else:
             for child in xaxis.children:
-                child.anchor = yaxis.name
+                child.anchor = yaxis
 
         if shared_y:
             x_dom = set_shared_y_positions(yaxis, x_dom, shared_y_gap)
@@ -182,7 +182,7 @@ def set_axes_position(axes_map: List[Tuple[Axis, Axis]], shared_x: bool, shared_
             yaxis.domain = next(gen)
             for child in yaxis.visible_children:
                 child.domain = next(gen)
-                child.anchor = xaxis.name
+                child.anchor = xaxis
                 child.side = "left"
                 child.overlaying = None
 
