@@ -6,7 +6,7 @@ from functools import partial
 from typing import Tuple, List, Dict, Union, Generator, Any
 
 from chartify.charts.trace import Axis, Trace2D, TraceData, Trace1D
-from chartify.charts.chart_settings import get_pie_appearance
+from chartify.charts.chart_settings import get_pie_trace_appearance, get_axis_appearance
 from eso_reader.constants import *
 
 
@@ -46,7 +46,7 @@ def pie_chart(traces: List[Trace1D], background_color: str, max_columns: int = 3
                 "y": y_dom
             },
             **combined,
-            **get_pie_appearance(priorities, colors, background_color)
+            **get_pie_trace_appearance(priorities, colors, background_color)
         })
 
     return data
@@ -191,29 +191,19 @@ def set_axes_position(axes_map: List[Tuple[Axis, Axis]], shared_x: bool, shared_
             child.domain = x_dom
 
 
-def get_axis_settings(axis: Axis, line_color: str, grid_color: str,
+def get_axis_settings(chart_type: str, axis: Axis, line_color: str, grid_color: str,
                       ranges: Dict[str, List[float]] = None) -> Dict[str, Any]:
-    shared_attributes = {
-        "color": line_color,
-        "linecolor": line_color,
-        "zerolinecolor": line_color,
-        "gridcolor": grid_color,
-        "showline": True,
-        "linewidth": 1,
-        "showgrid": True,
-        "gridwidth": 1,
-        "zeroline": True,
-        "zerolinewidth": 2
-    }
+    """ Create axes plotly dictionary. """
+    appearance = get_axis_appearance(chart_type, line_color, grid_color)
 
-    yaxes = axis.as_plotly()
+    axes = axis.as_plotly()
 
-    for k, attributes in yaxes.items():
-        yaxes[k] = {**attributes, **shared_attributes}
+    for k, attributes in axes.items():
+        axes[k] = {**attributes, **appearance}
         if k in ranges.keys():
-            yaxes[k]["range"] = ranges[k]
+            axes[k]["range"] = ranges[k]
 
-    return yaxes
+    return axes
 
 
 def group_traces(traces: List[Trace2D], x_types: List[str],
@@ -393,5 +383,3 @@ def transform_trace(trace: Union[Trace1D, Trace2D], type_: str):
             trace.y_ref = ref
 
     return trace
-
-

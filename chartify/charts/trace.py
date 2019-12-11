@@ -112,7 +112,7 @@ class Axis:
             "position": self.position,
             "side": self.side,
             "type": self.type,
-            "rangemode": "tozero",
+            "rangemode": "tozero" if "y" in self.name else "normal",
         }
         p = {self.long_name: attributes}
         for child in self.children:
@@ -281,8 +281,8 @@ class Trace2D(Trace):
             "y": self._get_ref_values(self.y_ref),
             "xaxis": self.xaxis,
             "yaxis": self.yaxis,
-            **get_appearance(self.type_, self.color,
-                             self.interval, self.priority)
+            **get_2d_trace_appearance(self.type_, self.color,
+                                      self.interval, self.priority)
         }
 
 

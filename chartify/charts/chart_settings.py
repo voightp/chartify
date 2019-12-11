@@ -6,7 +6,7 @@ from chartify.view.css_theme import parse_color
 from eso_reader.constants import *
 
 
-def get_pie_appearance(priorities, colors, background_color):
+def get_pie_trace_appearance(priorities, colors, background_color):
     weights = {
         "low": 0.3,
         "normal": 0.7,
@@ -28,7 +28,7 @@ def get_pie_appearance(priorities, colors, background_color):
     }
 
 
-def get_appearance(type_, color, interval, priority="normal"):
+def get_2d_trace_appearance(type_, color, interval, priority="normal"):
     weights = {
         "low": {
             "markerSize": 5,
@@ -138,49 +138,9 @@ config = {
     "editable": False
 }
 
-x_axis_dct = {
-    "xaxis": {
-        "domain": [0, 1],
-        "autorange": True,
-        "type": "linear",
-        "rangeselector": {
-            "y": 1.05,
-            "yanchor": "top",
-            "visible": True,
-            "buttons": [
-                {
-                    "count": 1,
-                    "label": "1m",
-                    "step": "month",
-                    "stepmode": "backward",
-                    "visible": True
-                }, {
-                    "count": 7,
-                    "label": "1w",
-                    "step": "day",
-                    "stepmode": "backward",
-                    "visible": True
-                }, {
-                    "count": 1,
-                    "label": "1d",
-                    "step": "day",
-                    "stepmode": "backward",
-                    "visible": True
-                },
-                {"step": "all"}
-            ]
-        },
-        "rangeslider": {
-            "visible": False,
-            "thickness": 0.05
-        }
-    },
-}
-
 base_layout = {
     "autosize": True,
     "hovermode": "closest",
-    "bargap": 0.05,
     "modebar": {
         "activecolor": "rgba(180,180,180,1)",
         "bgcolor": "transparent",
@@ -196,8 +156,58 @@ base_layout = {
 }
 
 
-def get_base_layout(top_margin, modebar_active_color, modebar_color):
-    mod = {
+def get_axis_appearance(chart_type, line_color, grid_color):
+    default = {
+        "showline": True,
+        "showgrid": True,
+        "zeroline": True,
+    }
+
+    attributes = {
+        "histogram": {
+            "showline": True,
+            "showgrid": False,
+            "zeroline": False,
+        },
+        "box": {
+            "showline": True,
+            "showgrid": False,
+            "zeroline": False,
+        },
+        "pie": {
+            "showline": False,
+            "showgrid": False,
+            "zeroline": False,
+        }
+    }
+
+    shared = {
+        "color": line_color,
+        "linecolor": line_color,
+        "zerolinecolor": line_color,
+        "gridcolor": grid_color,
+        "linewidth": 1,
+        "gridwidth": 1,
+        "zerolinewidth": 2
+    }
+
+    return {**shared, **attributes.get(chart_type, default)}
+
+
+def get_layout(chart_type, top_margin, modebar_active_color, modebar_color):
+    attributes = {
+        "histogram": {
+            "bargap": 0.05,
+            "bargroupgap": 0.2,
+            "barmode": "overlay"
+        },
+        "bar": {
+            "bargap": 0.05,
+            "bargroupgap": 0.2,
+        },
+    }
+
+    shared = {
         "modebar": {
             "activecolor": modebar_active_color,
             "color": modebar_color,
@@ -208,7 +218,7 @@ def get_base_layout(top_margin, modebar_active_color, modebar_color):
             "t": top_margin
         }
     }
-    return {**base_layout, **mod}
+    return {**base_layout, **shared, **attributes.get(chart_type, {})}
 
 
 def color_generator(i=0):

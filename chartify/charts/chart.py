@@ -1,7 +1,7 @@
 from chartify.charts.chart_functions import (get_axis_settings, pie_chart,
                                              create_2d_axis_map, set_axes_position)
 
-from chartify.charts.chart_settings import (get_base_layout, base_layout,
+from chartify.charts.chart_settings import (get_layout, base_layout,
                                             style, config)
 from typing import Dict, Any
 from chartify.utils.tiny_profiler import profile
@@ -61,7 +61,7 @@ class Chart:
         return m + self.LEGEND_GAP
 
     @profile
-    def generate_layout_axes(self, axes_map, line_color, grid_color):
+    def generate_layout_axes(self, chart_type, axes_map, line_color, grid_color):
         """ Generate chart layout properties. """
         x_axes, y_axes = {}, {}
 
@@ -70,11 +70,11 @@ class Chart:
             axes_map = [(Axis("x", ""), Axis("y", ""))]
 
         for xaxis, yaxis in axes_map:
-            y_axes.update(get_axis_settings(yaxis, line_color, grid_color,
-                                            ranges=self.ranges["y"]))
+            y_axes.update(get_axis_settings(chart_type, yaxis, line_color,
+                                            grid_color, ranges=self.ranges["y"]))
 
-            x_axes.update(get_axis_settings(xaxis, line_color, grid_color,
-                                            ranges=self.ranges["x"]))
+            x_axes.update(get_axis_settings(chart_type, xaxis, line_color,
+                                            grid_color, ranges=self.ranges["x"]))
 
         return {**x_axes, **y_axes}
 
@@ -87,7 +87,8 @@ class Chart:
 
         # copy layout to avoid overriding base parameters
         top_margin = self.get_top_margin(len(traces))
-        layout = get_base_layout(top_margin, modebar_active_color, modebar_color)
+        layout = get_layout(self.type_, top_margin, modebar_active_color,
+                            modebar_color)
 
         if self.type_ == "pie":
             axes = {}
@@ -100,7 +101,8 @@ class Chart:
                               stacked_y_gap=0.02, shared_x_gap=0.08,
                               shared_y_gap=0.08)
 
-            axes = self.generate_layout_axes(axes_map, line_color, grid_color)
+            axes = self.generate_layout_axes(self.type_, axes_map,
+                                             line_color, grid_color)
             data = [trace.as_plotly() for trace in traces]
 
         return {
