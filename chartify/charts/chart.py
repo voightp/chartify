@@ -16,7 +16,7 @@ class Chart:
     """
     LEGEND_MAX_HEIGHT = 100
     LEGEND_TRACE_HEIGHT = 19
-    LEGEND_GAP = 10
+    LEGEND_GAP = 20
 
     def __init__(self, item_id, chart_id, type_="scatter"):
         self.chart_id = chart_id
@@ -24,6 +24,7 @@ class Chart:
         self.type_ = type_
         self.custom = False
         self.shared_axes = "x"  # 'x' | 'x+y' | ''
+        self.group_datetime = True
         self.show_custom_legend = True
         self.ranges = {"x": {}, "y": {}, "z": {}}
 
@@ -51,7 +52,7 @@ class Chart:
 
     def get_top_margin(self, n_traces):
         """ Set chart top margin. """
-        if self.show_custom_legend:
+        if self.show_custom_legend and n_traces > 0:
             m = n_traces * self.LEGEND_TRACE_HEIGHT
             m = m if m <= self.LEGEND_MAX_HEIGHT else self.LEGEND_MAX_HEIGHT
         else:
@@ -93,7 +94,7 @@ class Chart:
             data = pie_chart(traces, background_color,
                              max_columns=3, square=True, gap=0.05)
         else:
-            axes_map = create_2d_axis_map(traces, self.shared_x, self.shared_y)
+            axes_map = create_2d_axis_map(traces, self.group_datetime, self.shared_x)
             set_axes_position(axes_map, self.shared_x, self.shared_y,
                               max_columns=3, gap=0.05, square=True,
                               stacked_y_gap=0.02, shared_x_gap=0.08,
