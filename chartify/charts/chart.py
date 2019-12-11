@@ -64,6 +64,7 @@ class Chart:
     def generate_layout_axes(self, chart_type, axes_map, line_color, grid_color):
         """ Generate chart layout properties. """
         x_axes, y_axes = {}, {}
+        annotations = []
 
         if not axes_map:
             # assign dummy axes to plot nice default chart layout
@@ -76,7 +77,10 @@ class Chart:
             x_axes.update(get_axis_settings(chart_type, xaxis, line_color,
                                             grid_color, ranges=self.ranges["x"]))
 
-        return {**x_axes, **y_axes}
+            annotations.extend(xaxis.get_title_annotations())
+            annotations.extend(yaxis.get_title_annotations())
+
+        return {**x_axes, **y_axes}, annotations
 
     @profile
     def as_plotly(self, traces, modebar_active_color, modebar_color,
@@ -91,7 +95,7 @@ class Chart:
                             modebar_color)
 
         if self.type_ == "pie":
-            axes = {}
+            axes, annotations = {}, []
             data = pie_chart(traces, background_color,
                              max_columns=3, square=True, gap=0.05)
         else:
@@ -101,8 +105,8 @@ class Chart:
                               stacked_y_gap=0.02, shared_x_gap=0.08,
                               shared_y_gap=0.08)
 
-            axes = self.generate_layout_axes(self.type_, axes_map,
-                                             line_color, grid_color)
+            axes, annotations = self.generate_layout_axes(self.type_, axes_map,
+                                                          line_color, grid_color)
             data = [trace.as_plotly() for trace in traces]
 
         return {
@@ -111,7 +115,10 @@ class Chart:
             "sharedAxes": self.shared_axes,
             "chartType": self.type_,
             "divId": self.chart_id,
-            "layout": {**layout, **axes},
+            "layout": {
+                **layout, **axes,
+                "annotations": annotations
+            },
             "data": data,
             "style": style,
             "config": config,
