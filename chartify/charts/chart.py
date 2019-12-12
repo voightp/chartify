@@ -1,8 +1,7 @@
 from chartify.charts.chart_functions import (get_axis_settings, pie_chart,
                                              create_2d_axis_map, set_axes_position)
 
-from chartify.charts.chart_settings import (get_layout, base_layout,
-                                            style, config)
+from chartify.charts.chart_settings import get_layout, style, config
 from typing import Dict, Any
 from chartify.utils.tiny_profiler import profile
 from chartify.charts.trace import Axis
@@ -18,6 +17,10 @@ class Chart:
     LEGEND_TRACE_HEIGHT = 19
     LEGEND_GAP = 20
 
+    TOP_MARGIN = 50
+    BOTTOM_MARGIN = 50
+    LEFT_MARGIN = 50
+
     def __init__(self, item_id, chart_id, type_="scatter"):
         self.chart_id = chart_id
         self.item_id = item_id
@@ -27,6 +30,7 @@ class Chart:
         self.group_datetime = True
         self.show_custom_legend = True
         self.ranges = {"x": {}, "y": {}, "z": {}}
+        self.geometry = {"w": None, "h": None}
 
     @property
     def shared_x(self):
@@ -37,6 +41,10 @@ class Chart:
     def shared_y(self):
         """ Check if 'y' axis should be shared or stacked. """
         return self.shared_axes == "x+y"
+
+    def get_ratio_per_pixel(self):
+        """ Calculate coefficient to transform pixels to domain position. """
+        pass
 
     @staticmethod
     def set_trace_priority(traces):
@@ -56,7 +64,7 @@ class Chart:
             m = n_traces * self.LEGEND_TRACE_HEIGHT
             m = m if m <= self.LEGEND_MAX_HEIGHT else self.LEGEND_MAX_HEIGHT
         else:
-            m = base_layout["margin"]["t"]
+            m = self.TOP_MARGIN
 
         return m + self.LEGEND_GAP
 
@@ -89,10 +97,9 @@ class Chart:
         # assign priority to set an appearance for each trace
         self.set_trace_priority(traces)
 
-        # copy layout to avoid overriding base parameters
         top_margin = self.get_top_margin(len(traces))
-        layout = get_layout(self.type_, top_margin, modebar_active_color,
-                            modebar_color)
+        layout = get_layout(self.type_, modebar_active_color, modebar_color,
+                            top_margin, self.BOTTOM_MARGIN, self.LEFT_MARGIN)
 
         if self.type_ == "pie":
             axes, annotations = {}, []
@@ -115,6 +122,7 @@ class Chart:
             "sharedAxes": self.shared_axes,
             "chartType": self.type_,
             "divId": self.chart_id,
+            "geometry": self.geometry,
             "layout": {
                 **layout, **axes,
                 "annotations": annotations

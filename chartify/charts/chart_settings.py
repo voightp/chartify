@@ -138,23 +138,6 @@ config = {
     "editable": False
 }
 
-base_layout = {
-    "autosize": True,
-    "hovermode": "closest",
-    "modebar": {
-        "activecolor": "rgba(180,180,180,1)",
-        "bgcolor": "transparent",
-        "color": "rgba(180,180,180,0.5)",
-        "orientation": "v"},
-    "paper_bgcolor": "transparent",
-    "plot_bgcolor": "transparent",
-    "showlegend": False,
-    "margin": {
-        "l": 50,
-        "t": 50,
-        "b": 50}
-}
-
 
 def get_axis_appearance(chart_type, line_color, grid_color):
     default = {
@@ -194,7 +177,8 @@ def get_axis_appearance(chart_type, line_color, grid_color):
     return {**shared, **attributes.get(chart_type, default)}
 
 
-def get_layout(chart_type, top_margin, modebar_active_color, modebar_color):
+def get_layout(chart_type, modebar_active_color, modebar_color, top_margin,
+               bottom_margin, left_margin):
     attributes = {
         "histogram": {
             "bargap": 0.05,
@@ -208,6 +192,11 @@ def get_layout(chart_type, top_margin, modebar_active_color, modebar_color):
     }
 
     shared = {
+        "autosize": True,
+        "hovermode": "closest",
+        "paper_bgcolor": "transparent",
+        "plot_bgcolor": "transparent",
+        "showlegend": False,
         "modebar": {
             "activecolor": modebar_active_color,
             "color": modebar_color,
@@ -215,10 +204,12 @@ def get_layout(chart_type, top_margin, modebar_active_color, modebar_color):
             "orientation": "v"
         },
         "margin": {
-            "t": top_margin
+            "t": top_margin,
+            "b": bottom_margin,
+            "l": left_margin
         }
     }
-    return {**base_layout, **shared, **attributes.get(chart_type, {})}
+    return {**shared, **attributes.get(chart_type, {})}
 
 
 def color_generator(i=0):
