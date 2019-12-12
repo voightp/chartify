@@ -181,9 +181,11 @@ class WVController(QObject):
             pass
 
     @Slot(str, QJsonValue)
-    def onChartLayoutChanged(self, item_id: str, layout: QJsonValue) -> None:
+    def onChartLayoutChanged(self, item_id: str, layout: QJsonValue,
+                             geometry: QJsonValue) -> None:
         """ Handle chart resize interaction. """
         chart = self.m.fetch_component(item_id)
+        chart.geometry = geometry.toObject()
         chart.ranges = {"x": {}, "y": {}, "z": {}}
         layout = layout.toObject()
 
