@@ -180,7 +180,7 @@ class WVController(QObject):
             # grid information should be updated by 'storeGridLayout'
             pass
 
-    @Slot(str, QJsonValue)
+    @Slot(str, QJsonValue, QJsonValue)
     def onChartLayoutChanged(self, item_id: str, layout: QJsonValue,
                              geometry: QJsonValue) -> None:
         """ Handle chart resize interaction. """
