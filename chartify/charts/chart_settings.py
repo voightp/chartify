@@ -135,7 +135,12 @@ config = {
     "scrollZoom": False,
     "responsive": True,
     "displaylogo": False,
-    "editable": False
+    "editable": False,
+    "modeBarButtonsToRemove":
+        [
+            "lasso2d",
+            "select2d"
+        ]
 }
 
 
