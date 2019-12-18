@@ -302,7 +302,7 @@ class Trace2D(Trace):
     def as_1d_trace(self):
         trace = Trace1D(self.name, self.item_id, self.trace_id, self.color,
                         self.type_, self.selected, self.priority)
-        trace.ref = self.y_ref if self.x_ref == "datetime" else self.x_ref
+        trace.ref = self.ref
         return trace
 
     def as_plotly(self):
