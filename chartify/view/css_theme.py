@@ -136,7 +136,7 @@ class CssTheme:
     def parse_line(line, palette, as_tuple=False):
         """ Parse a line with color. """
         key = next(k for k in palette.colors if k in line)
-        pattern = f"(.*){key}#?(\d\d)?;?"
+        pattern = f"(.*){key}\s?#?(\d\d)?;?"
         prop, opacity = re.findall(pattern, line)[0]
 
         if opacity:
@@ -151,7 +151,7 @@ class CssTheme:
 
     def parse_url(self, line, palette):
         """ Parse a line with an url. """
-        pattern = "(.*)URL\((.*?)\)#(.*);"
+        pattern = "(.*)URL\((.*?)\)\s?#(.*);"
         try:
             tup = re.findall(pattern, line)
             prop, url, col = tup[0]
