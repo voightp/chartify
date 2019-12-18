@@ -26,7 +26,6 @@ QFrame#viewTools {
 }
 
 QFrame#toolbar {
-    margin-right: 2px;
     background-color: SURFACE_COLOR;
 }
 

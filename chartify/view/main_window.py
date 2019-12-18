@@ -302,7 +302,7 @@ class MainWindow(QMainWindow):
         left_side_policy.setHorizontalPolicy(QSizePolicy.Minimum)
         left_side_policy.setHorizontalStretch(0)
         self.left_main_wgt.setSizePolicy(left_side_policy)
-        self.left_main_layout.setSpacing(0)
+        self.left_main_layout.setSpacing(2)
         self.left_main_layout.setContentsMargins(0, 0, 0, 0)
 
         self.tab_wgt.setMinimumWidth(400)
@@ -323,6 +323,7 @@ class MainWindow(QMainWindow):
 
     def mirror_layout(self):
         """ Mirror the layout. """
+        self.left_main_layout.addItem(self.left_main_layout.takeAt(0))
         self.central_splitter.insertWidget(0, self.central_splitter.widget(1))
 
     def on_scheme_changed(self, name):
