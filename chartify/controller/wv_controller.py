@@ -98,7 +98,7 @@ class WVController(QObject):
             traces = self.m.fetch_traces(component.item_id)
             component = component.as_plotly(traces, line_color, modebar_active_color,
                                             modebar_color, grid_color, background_color)
-        print(json.dumps(component, indent=4))
+        # print(json.dumps(component, indent=4))
         return component
 
     @profile
@@ -249,5 +249,15 @@ class WVController(QObject):
         for trace in self.m.fetch_traces(item_id):
             if trace.selected:
                 self.m.wv_database["traces"].remove(trace)
+
+        self.update_component(item_id)
+
+    @Slot(str, str, bool)
+    def onChartAxesUpdated(self, item_id: str, shared_axes: str,
+                           group_datetime: bool) -> None:
+        """ Update current layout of given chart. """
+        chart = self.m.fetch_component(item_id)
+        chart.shared_axes = shared_axes
+        chart.group_datetime = group_datetime
 
         self.update_component(item_id)

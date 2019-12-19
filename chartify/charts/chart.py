@@ -120,6 +120,7 @@ class Chart:
             "componentType": "chart",
             "showCustomLegend": self.show_custom_legend,
             "sharedAxes": self.shared_axes,
+            "groupDatetime": self.group_datetime,
             "chartType": self.type_,
             "divId": self.chart_id,
             "geometry": self.geometry,
