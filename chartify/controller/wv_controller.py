@@ -252,12 +252,18 @@ class WVController(QObject):
 
         self.update_component(item_id)
 
-    @Slot(str, str, bool)
-    def onChartAxesUpdated(self, item_id: str, shared_axes: str,
-                           group_datetime: bool) -> None:
+    @Slot(str, str)
+    def onChartAxesUpdated(self, item_id: str, val: str) -> None:
         """ Update current layout of given chart. """
         chart = self.m.fetch_component(item_id)
-        chart.shared_axes = shared_axes
-        chart.group_datetime = group_datetime
+        chart.shared_axes = val
+
+        self.update_component(item_id)
+
+    @Slot(str, bool)
+    def onChartDatetimeUpdated(self, item_id: str, val: bool) -> None:
+        """ Update current layout of given chart. """
+        chart = self.m.fetch_component(item_id)
+        chart.group_datetime = val
 
         self.update_component(item_id)

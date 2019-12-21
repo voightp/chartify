@@ -136,11 +136,6 @@ config = {
     "responsive": True,
     "displaylogo": False,
     "editable": False,
-    "modeBarButtonsToRemove":
-        [
-            "lasso2d",
-            "select2d"
-        ]
 }
 
 
