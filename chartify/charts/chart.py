@@ -20,6 +20,7 @@ class Chart:
     TOP_MARGIN = 50
     BOTTOM_MARGIN = 50
     LEFT_MARGIN = 50
+    RIGHT_MARGIN = 50
 
     def __init__(self, item_id, chart_id, type_="scatter"):
         self.chart_id = chart_id
@@ -98,8 +99,10 @@ class Chart:
         self.set_trace_priority(traces)
 
         top_margin = self.get_top_margin(len(traces))
+        pix_ratio = self.get_ratio_per_pixel()
         layout = get_layout(self.type_, modebar_active_color, modebar_color,
-                            top_margin, self.BOTTOM_MARGIN, self.LEFT_MARGIN)
+                            top_margin, self.BOTTOM_MARGIN, self.LEFT_MARGIN,
+                            self.RIGHT_MARGIN)
 
         if self.type_ == "pie":
             axes, annotations = {}, []
@@ -111,11 +114,9 @@ class Chart:
                               max_columns=3, gap=0.05, square=True,
                               stacked_y_gap=0.02, shared_x_gap=0.08,
                               shared_y_gap=0.08)
-
+            data = [trace.as_plotly() for trace in traces]
             axes, annotations = self.generate_layout_axes(self.type_, axes_map,
                                                           line_color, grid_color)
-            data = [trace.as_plotly() for trace in traces]
-
         return {
             "componentType": "chart",
             "showCustomLegend": self.show_custom_legend,

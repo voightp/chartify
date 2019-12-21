@@ -79,7 +79,7 @@ def gen_ref_matrix(n: int, max_columns: int, square: bool) -> List[List[int]]:
 
 def domain_gen(n: int, gap: float, start: float = 0, end: float = 1) -> List[float]:
     """ Generate axis domain list. """
-    w = ((end - ((n - end) * gap)) / n)
+    w = ((end - ((n - end) * gap)) / n) - start
     start = start
     for _ in range(n):
         end = start + w

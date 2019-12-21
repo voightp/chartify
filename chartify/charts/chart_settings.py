@@ -178,7 +178,7 @@ def get_axis_appearance(chart_type, line_color, grid_color):
 
 
 def get_layout(chart_type, modebar_active_color, modebar_color, top_margin,
-               bottom_margin, left_margin):
+               bottom_margin, left_margin, right_margin):
     attributes = {
         "histogram": {
             "bargap": 0.05,
@@ -206,7 +206,8 @@ def get_layout(chart_type, modebar_active_color, modebar_color, top_margin,
         "margin": {
             "t": top_margin,
             "b": bottom_margin,
-            "l": left_margin
+            "l": left_margin,
+            "r": right_margin,
         }
     }
     return {**shared, **attributes.get(chart_type, {})}
