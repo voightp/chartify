@@ -16,16 +16,16 @@ class Axis:
 
     def __repr__(self):
         return f"Axis: {self.name}\n" \
-            f"\tTitle: {self.title}\n" \
-            f"\tVisible: {self.visible}\n" \
-            f"\tAnchor: {self.anchor.name if isinstance(self.anchor, Axis) else self.anchor}\n" \
-            f"\tOverlaying: {self._overlaying}\n" \
-            f"\tDomain: {', '.join([str(d) for d in self.domain]) if self.domain else []}\n" \
-            f"\tPosition: {self.position}\n" \
-            f"\tSide: {self.side}\n" \
-            f"\tChildren: {', '.join([ch.name for ch in self.children])}\n" \
-            f"\t\tVisible: {', '.join([ch.name for ch in self.children if ch.visible])}\n" \
-            f"\t\tHidden: {', '.join([ch.name for ch in self.children if not ch.visible])}\n"
+               f"\tTitle: {self.title}\n" \
+               f"\tVisible: {self.visible}\n" \
+               f"\tAnchor: {self.anchor.name if isinstance(self.anchor, Axis) else self.anchor}\n" \
+               f"\tOverlaying: {self._overlaying}\n" \
+               f"\tDomain: {', '.join([str(d) for d in self.domain]) if self.domain else []}\n" \
+               f"\tPosition: {self.position}\n" \
+               f"\tSide: {self.side}\n" \
+               f"\tChildren: {', '.join([ch.name for ch in self.children])}\n" \
+               f"\t\tVisible: {', '.join([ch.name for ch in self.children if ch.visible])}\n" \
+               f"\t\tHidden: {', '.join([ch.name for ch in self.children if not ch.visible])}\n"
 
     @property
     def visible_children(self):
@@ -102,7 +102,14 @@ class Axis:
 
         self.children.append(axis)
 
-    def get_title_annotations(self):
+    def contains_title(self, title):
+        """ Check if axis or its children already contain given title. """
+        titles = [self.title]
+        for child in self.children:
+            titles.append(child.title)
+        return title in titles
+
+    def get_title_annotations(self, color):
         annotations = []
         is_x = "x" in self.name
 
@@ -127,13 +134,14 @@ class Axis:
                 "yref": "paper",
                 "xshift": 0 if is_x else -20,
                 "yshift": -20 if is_x else 0,
-                "textangle": 0 if is_x else -90
+                "textangle": 0 if is_x else -90,
+                "font": {"color": color},
             }
 
             annotations.append(attributes)
 
             for child in self.visible_children:
-                a = child.get_title_annotations()
+                a = child.get_title_annotations(color)
                 annotations.append(*a)
 
         return annotations

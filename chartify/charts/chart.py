@@ -85,8 +85,8 @@ class Chart:
             x_axes.update(get_axis_settings(chart_type, xaxis, line_color,
                                             grid_color, ranges=self.ranges["x"]))
 
-            annotations.extend(xaxis.get_title_annotations())
-            annotations.extend(yaxis.get_title_annotations())
+            annotations.extend(xaxis.get_title_annotations(line_color))
+            annotations.extend(yaxis.get_title_annotations(line_color))
 
         return {**x_axes, **y_axes}, annotations
 

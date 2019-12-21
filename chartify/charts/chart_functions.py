@@ -175,7 +175,6 @@ def set_axes_position(axes_map: List[Tuple[Axis, Axis]], shared_x: bool, shared_
             yaxis.domain = y_dom
             for child in yaxis.visible_children:
                 child.domain = y_dom
-                child.overlaying = None
         else:
             n = len(yaxis.visible_children)
             gen = domain_gen(n + 1, stacked_y_gap, y_dom[0], y_dom[1])
@@ -314,11 +313,8 @@ def create_2d_axis_map(traces: List[Trace2D], group_datetime: bool = True,
 
     # each chart in layout grid has only one main x and y axis
     main_x, main_y = None, None
+    xaxes, yaxes = {}, {}
     for x_type, y_traces in grouped.items():
-        # initialize temporary axis reference dictionaries,
-        # these are used to assign axis for each trace group
-        xaxes, yaxes = {}, {}
-
         if x_type == "datetime":
             traces = [tr for trs in y_traces.values() for tr in trs]
             xaxis = shared_interval_axis(traces, x_axes_gen, xaxes)
@@ -335,20 +331,23 @@ def create_2d_axis_map(traces: List[Trace2D], group_datetime: bool = True,
                 main_x.add_child(xaxis)
             else:
                 main_x = xaxis
+                yaxes.clear()
 
         main_y = main_y if shared_x else None
         for y_type, traces in y_traces.items():
-            if y_type == "datetime":
+            if main_y and main_y.contains_title(y_type):
+                # y axis already exists
+                yaxis = None
+            elif y_type == "datetime":
                 yaxis = shared_interval_axis(traces, y_axes_gen, yaxes)
             else:
                 yaxis = standard_axis(y_type, y_axes_gen, yaxes)
 
-            if not main_y:
-                main_y = yaxis
-            else:
-                if yaxis.title == main_y.title:
-                    yaxis.visible = False
-                main_y.add_child(yaxis)
+            if yaxis:
+                if not main_y:
+                    main_y = yaxis
+                else:
+                    main_y.add_child(yaxis)
 
             # set axis reference for the current trace group
             assign_trace_axes(traces, xaxes, yaxes)

@@ -89,7 +89,7 @@ class WVController(QObject):
         palette = self.m.fetch_palette(Settings.PALETTE_NAME)
 
         line_color = palette.get_color("PRIMARY_TEXT_COLOR")
-        grid_color = palette.get_color("PRIMARY_TEXT_COLOR", opacity=0.3)
+        grid_color = palette.get_color("PRIMARY_TEXT_COLOR", opacity=0.5)
         modebar_color = palette.get_color("PRIMARY_TEXT_COLOR")
         modebar_active_color = palette.get_color("PRIMARY_TEXT_COLOR", opacity=0.5)
         background_color = palette.get_color("BACKGROUND_COLOR")
@@ -98,7 +98,7 @@ class WVController(QObject):
             traces = self.m.fetch_traces(component.item_id)
             component = component.as_plotly(traces, line_color, modebar_active_color,
                                             modebar_color, grid_color, background_color)
-        # print(json.dumps(component, indent=4))
+        print(json.dumps(component, indent=4))
         return component
 
     @profile
