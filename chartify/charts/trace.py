@@ -5,6 +5,7 @@ from chartify.charts.chart_settings import *
 class Axis:
     X_SHIFT = 30
     Y_SHIFT = 30
+
     def __init__(self, name, title, anchor=None, visible=True, overlaying=None):
         self.name = name
         self.title = title

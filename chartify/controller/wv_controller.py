@@ -193,19 +193,9 @@ class WVController(QObject):
             # only store data for non empty layouts as this would
             # introduce unwanted zoom effect when adding initial traces
             for k, v in layout.items():
-                if "xaxis" in k:
+                if "axis" in k:
                     try:
-                        chart.ranges["x"][k] = layout[k]["range"]
-                    except KeyError:
-                        pass
-                elif "yaxis" in k:
-                    try:
-                        chart.ranges["y"][k] = layout[k]["range"]
-                    except KeyError:
-                        pass
-                elif "zaxis" in k:
-                    try:
-                        chart.ranges["z"][k] = layout[k]["range"]
+                        chart.ranges[k[0]][k] = layout[k]["range"]
                     except KeyError:
                         pass
 
