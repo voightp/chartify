@@ -24,11 +24,12 @@ def combine_traces(traces: List[Trace1D]) -> Dict[str, Union[str, List]]:
 
 
 def pie_chart(traces: List[Trace1D], background_color: str, max_columns: int = 3,
-              gap: float = 0.05, square: bool = True) -> List[Dict[str, Any]]:
+              h_gap: float = 0.05, v_gap: float = 0.05, square: bool = True) -> List[Dict[str, Any]]:
     """ Plot a 'special' pie chart data. """
     groups = group_by_units(traces)
-    x_domains, y_domains = gen_domain_vectors(len(groups.keys()), square=square,
-                                              max_columns=max_columns, gap=gap)
+    n = len(groups.keys())
+    x_domains, y_domains = gen_domains(n, square=square, max_columns=max_columns,
+                                       h_gap=h_gap, v_gap=v_gap)
     data = []
     for x_dom, y_dom, traces in zip(x_domains, y_domains, groups.values()):
         combined = combine_traces(traces)
@@ -79,7 +80,7 @@ def gen_ref_matrix(n: int, max_columns: int, square: bool) -> List[List[int]]:
 
 def domain_gen(n: int, gap: float, start: float = 0, end: float = 1) -> List[float]:
     """ Generate axis domain list. """
-    w = ((end - ((n - end) * gap)) / n)
+    w = ((end - ((n - end) * gap)) / n) - start
     start = start
     for _ in range(n):
         end = start + w
@@ -87,18 +88,18 @@ def domain_gen(n: int, gap: float, start: float = 0, end: float = 1) -> List[flo
         start = end + gap
 
 
-def gen_domain_vectors(n: int, gap: float = 0.05, max_columns: int = 3,
-                       square: bool = True) -> Tuple[List[List[float]], List[List[float]]]:
+def gen_domains(n: int, v_gap: float = 0.05, h_gap: float = 0.05, max_columns: int = 3,
+                square: bool = True) -> Tuple[List[List[float]], List[List[float]]]:
     """ Create x and y list with domain data. """
     ref_matrix = gen_ref_matrix(n, max_columns, square)
 
     x_dom_mx = copy.deepcopy(ref_matrix)
     y_dom_mx = copy.deepcopy(ref_matrix)
 
-    y_dom_gen = domain_gen(len(ref_matrix), gap)
+    y_dom_gen = domain_gen(len(ref_matrix), v_gap)
 
     for i, row in enumerate(ref_matrix):
-        x_dom_gen = domain_gen(len(row), gap)
+        x_dom_gen = domain_gen(len(row), h_gap)
         y_dom = next(y_dom_gen)
         for j, item in enumerate(row):
             x_dom_mx[i][j] = next(x_dom_gen)
@@ -153,36 +154,36 @@ def set_shared_y_positions(yaxis: Axis, x_domain: List[float],
 
 
 def set_axes_position(axes_map: List[Tuple[Axis, Axis]], shared_x: bool, shared_y: bool,
-                      max_columns: int = 3, gap: float = 0.05, square: bool = True,
-                      stacked_y_gap: float = 0.02, shared_x_gap: float = 0.08,
-                      shared_y_gap: float = 0.08) -> None:
+                      max_columns: int = 3, h_gap: float = 0.05, v_gap: float = 0.05,
+                      square: bool = True, stacked_y_gap: float = 0.02,
+                      shared_x_gap: float = 0.08, shared_y_gap: float = 0.08) -> None:
     """ Assign position and domain for all axes at given axes map. """
-    x_domains, y_domains = gen_domain_vectors(len(axes_map), max_columns=max_columns,
-                                              gap=gap, square=square)
+    n = len(axes_map)
+    x_domains, y_domains = gen_domains(n, max_columns=max_columns,
+                                       h_gap=h_gap, v_gap=v_gap, square=square)
 
     for (xaxis, yaxis), x_dom, y_dom in zip(axes_map, x_domains, y_domains):
-        xaxis.anchor = yaxis.name
-        yaxis.anchor = xaxis.name
+        xaxis.anchor = yaxis
+        yaxis.anchor = xaxis
 
         if shared_x:
             y_dom = set_shared_x_positions(xaxis, y_dom, shared_x_gap)
         else:
             for child in xaxis.children:
-                child.anchor = yaxis.name
+                child.anchor = yaxis
 
         if shared_y:
             x_dom = set_shared_y_positions(yaxis, x_dom, shared_y_gap)
             yaxis.domain = y_dom
             for child in yaxis.visible_children:
                 child.domain = y_dom
-                child.overlaying = None
         else:
             n = len(yaxis.visible_children)
             gen = domain_gen(n + 1, stacked_y_gap, y_dom[0], y_dom[1])
             yaxis.domain = next(gen)
             for child in yaxis.visible_children:
                 child.domain = next(gen)
-                child.anchor = xaxis.name
+                child.anchor = xaxis
                 child.side = "left"
                 child.overlaying = None
 
@@ -314,11 +315,8 @@ def create_2d_axis_map(traces: List[Trace2D], group_datetime: bool = True,
 
     # each chart in layout grid has only one main x and y axis
     main_x, main_y = None, None
+    xaxes, yaxes = {}, {}
     for x_type, y_traces in grouped.items():
-        # initialize temporary axis reference dictionaries,
-        # these are used to assign axis for each trace group
-        xaxes, yaxes = {}, {}
-
         if x_type == "datetime":
             traces = [tr for trs in y_traces.values() for tr in trs]
             xaxis = shared_interval_axis(traces, x_axes_gen, xaxes)
@@ -335,20 +333,23 @@ def create_2d_axis_map(traces: List[Trace2D], group_datetime: bool = True,
                 main_x.add_child(xaxis)
             else:
                 main_x = xaxis
+                yaxes.clear()
 
         main_y = main_y if shared_x else None
         for y_type, traces in y_traces.items():
-            if y_type == "datetime":
+            if main_y and main_y.contains_title(y_type):
+                # y axis already exists
+                yaxis = None
+            elif y_type == "datetime":
                 yaxis = shared_interval_axis(traces, y_axes_gen, yaxes)
             else:
                 yaxis = standard_axis(y_type, y_axes_gen, yaxes)
 
-            if not main_y:
-                main_y = yaxis
-            else:
-                if yaxis.title == main_y.title:
-                    yaxis.visible = False
-                main_y.add_child(yaxis)
+            if yaxis:
+                if not main_y:
+                    main_y = yaxis
+                else:
+                    main_y.add_child(yaxis)
 
             # set axis reference for the current trace group
             assign_trace_axes(traces, xaxes, yaxes)

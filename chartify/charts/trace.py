@@ -3,6 +3,8 @@ from chartify.charts.chart_settings import *
 
 
 class Axis:
+    X_SHIFT = 30
+    Y_SHIFT = 30
     def __init__(self, name, title, anchor=None, visible=True, overlaying=None):
         self.name = name
         self.title = title
@@ -16,16 +18,16 @@ class Axis:
 
     def __repr__(self):
         return f"Axis: {self.name}\n" \
-            f"\tTitle: {self.title}\n" \
-            f"\tVisible: {self.visible}\n" \
-            f"\tAnchor: {self.anchor}\n" \
-            f"\tOverlaying: {self._overlaying}\n" \
-            f"\tDomain: {', '.join([str(d) for d in self.domain]) if self.domain else []}\n" \
-            f"\tPosition: {self.position}\n" \
-            f"\tSide: {self.side}\n" \
-            f"\tChildren: {', '.join([ch.name for ch in self.children])}\n" \
-            f"\t\tVisible: {', '.join([ch.name for ch in self.children if ch.visible])}\n" \
-            f"\t\tHidden: {', '.join([ch.name for ch in self.children if not ch.visible])}\n"
+               f"\tTitle: {self.title}\n" \
+               f"\tVisible: {self.visible}\n" \
+               f"\tAnchor: {self.anchor.name if isinstance(self.anchor, Axis) else self.anchor}\n" \
+               f"\tOverlaying: {self._overlaying}\n" \
+               f"\tDomain: {', '.join([str(d) for d in self.domain]) if self.domain else []}\n" \
+               f"\tPosition: {self.position}\n" \
+               f"\tSide: {self.side}\n" \
+               f"\tChildren: {', '.join([ch.name for ch in self.children])}\n" \
+               f"\t\tVisible: {', '.join([ch.name for ch in self.children if ch.visible])}\n" \
+               f"\t\tHidden: {', '.join([ch.name for ch in self.children if not ch.visible])}\n"
 
     @property
     def visible_children(self):
@@ -102,11 +104,54 @@ class Axis:
 
         self.children.append(axis)
 
+    def contains_title(self, title):
+        """ Check if axis or its children already contain given title. """
+        titles = [self.title]
+        for child in self.children:
+            titles.append(child.title)
+        return title in titles
+
+    def get_title_annotations(self, color):
+        annotations = []
+        is_x = "x" in self.name
+
+        if self.domain:
+            a = round((self.domain[1] + self.domain[0]) / 2, 2)
+
+            if self.anchor == "free":
+                b = self.position
+            else:
+                b = self.anchor.domain[1] if self.side == "right" else self.anchor.domain[0]
+
+            x, y = (a, b) if is_x else (b, a)
+
+            attributes = {
+                "text": f"{self.title}",
+                "x": x,
+                "y": y,
+                "showarrow": False,
+                "xanchor": "center",
+                "yanchor": "middle",
+                "xref": "paper",
+                "yref": "paper",
+                "xshift": 0 if is_x else -self.X_SHIFT,
+                "yshift": -self.Y_SHIFT if is_x else 0,
+                "textangle": 0 if is_x else -90,
+                "font": {"color": color},
+            }
+
+            annotations.append(attributes)
+
+            for child in self.visible_children:
+                a = child.get_title_annotations(color)
+                annotations.append(*a)
+
+        return annotations
+
     def as_plotly(self):
         attributes = {
-            "title": self.title,
             "visible": self.visible,
-            "anchor": self.anchor,
+            "anchor": self.anchor.name if isinstance(self.anchor, Axis) else self.anchor,
             "overlaying": self.overlaying,
             "domain": self.domain,
             "position": self.position,
@@ -267,7 +312,7 @@ class Trace2D(Trace):
     def as_1d_trace(self):
         trace = Trace1D(self.name, self.item_id, self.trace_id, self.color,
                         self.type_, self.selected, self.priority)
-        trace.ref = self.y_ref if self.x_ref == "datetime" else self.x_ref
+        trace.ref = self.ref
         return trace
 
     def as_plotly(self):

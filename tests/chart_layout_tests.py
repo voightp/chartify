@@ -170,8 +170,8 @@ class TestChartLayout(unittest.TestCase):
             next(gen)
 
     def test_gen_domain_vectors(self):
-        x_domains, y_domains = gen_domain_vectors(5, gap=0.1,
-                                                  max_columns=2, square=False)
+        x_domains, y_domains = gen_domains(5, gap=0.1,
+                                           max_columns=2, square=False)
         res_xs = [[0, 0.45], [0.55, 1.0], [0, 0.45], [0.55, 1.0], [0, 1.0]]
         res_ys = [[0, 0.267], [0, 0.267], [0.367, 0.633],
                   [0.367, 0.633], [0.733, 1.0]]
@@ -184,8 +184,8 @@ class TestChartLayout(unittest.TestCase):
             for iy, ires_y in zip(y, res_y):
                 self.assertAlmostEqual(iy, ires_y, 3)
 
-        x_domains, y_domains = gen_domain_vectors(4, gap=0.1,
-                                                  max_columns=2, square=True)
+        x_domains, y_domains = gen_domains(4, gap=0.1,
+                                           max_columns=2, square=True)
 
         res_xs = [[0, 0.45], [0.55, 1.0], [0, 0.45], [0.55, 1.0]]
         res_ys = [[0, 0.45], [0, 0.45], [0.55, 1.0], [0.55, 1.0]]
@@ -198,8 +198,8 @@ class TestChartLayout(unittest.TestCase):
             for iy, ires_y in zip(y, res_y):
                 self.assertAlmostEqual(iy, ires_y, 3)
 
-        x_domains, y_domains = gen_domain_vectors(4, gap=0.1,
-                                                  max_columns=3, square=False)
+        x_domains, y_domains = gen_domains(4, gap=0.1,
+                                           max_columns=3, square=False)
 
         res_xs = [[0, 0.267], [0.367, 0.633], [0.733, 1.0], [0, 1.0]]
         res_ys = [[0, 0.45], [0, 0.45], [0, 0.45], [0.55, 1.0]]

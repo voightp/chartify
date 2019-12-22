@@ -135,24 +135,7 @@ config = {
     "scrollZoom": False,
     "responsive": True,
     "displaylogo": False,
-    "editable": False
-}
-
-base_layout = {
-    "autosize": True,
-    "hovermode": "closest",
-    "modebar": {
-        "activecolor": "rgba(180,180,180,1)",
-        "bgcolor": "transparent",
-        "color": "rgba(180,180,180,0.5)",
-        "orientation": "v"},
-    "paper_bgcolor": "transparent",
-    "plot_bgcolor": "transparent",
-    "showlegend": False,
-    "margin": {
-        "l": 50,
-        "t": 50,
-        "b": 50}
+    "editable": False,
 }
 
 
@@ -194,7 +177,8 @@ def get_axis_appearance(chart_type, line_color, grid_color):
     return {**shared, **attributes.get(chart_type, default)}
 
 
-def get_layout(chart_type, top_margin, modebar_active_color, modebar_color):
+def get_layout(chart_type, modebar_active_color, modebar_color, top_margin,
+               bottom_margin, left_margin, right_margin):
     attributes = {
         "histogram": {
             "bargap": 0.05,
@@ -208,6 +192,11 @@ def get_layout(chart_type, top_margin, modebar_active_color, modebar_color):
     }
 
     shared = {
+        "autosize": True,
+        "hovermode": "closest",
+        "paper_bgcolor": "transparent",
+        "plot_bgcolor": "transparent",
+        "showlegend": False,
         "modebar": {
             "activecolor": modebar_active_color,
             "color": modebar_color,
@@ -215,10 +204,13 @@ def get_layout(chart_type, top_margin, modebar_active_color, modebar_color):
             "orientation": "v"
         },
         "margin": {
-            "t": top_margin
+            "t": top_margin,
+            "b": bottom_margin,
+            "l": left_margin,
+            "r": right_margin,
         }
     }
-    return {**base_layout, **shared, **attributes.get(chart_type, {})}
+    return {**shared, **attributes.get(chart_type, {})}
 
 
 def color_generator(i=0):
@@ -255,7 +247,7 @@ def generate_grid_item(frame_id, type_):
         "chart": {
             "w": 6,
             "h": 2,
-            "minW": 4,
+            "minW": 2,
             "minH": 2
         },
         "textArea": {

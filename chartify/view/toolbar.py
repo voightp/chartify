@@ -75,13 +75,14 @@ class Toolbar(QFrame):
 
     """
     settingsUpdated = Signal()
-    temp_settings = {"energy_units": "",
-                     "power_units": "",
-                     "units_system": "",
-                     "rate_to_energy": False}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.temp_settings = {"energy_units": Settings.ENERGY_UNITS,
+                              "power_units": Settings.POWER_UNITS,
+                              "units_system": Settings.UNITS_SYSTEM,
+                              "rate_to_energy": Settings.RATE_TO_ENERGY}
+
         self.setObjectName("toolbar")
         self.layout = QVBoxLayout(self)
 
@@ -261,6 +262,9 @@ class Toolbar(QFrame):
         self.rate_energy_btn.setText("rate to\n energy")
         self.rate_energy_btn.setChecked(Settings.RATE_TO_ENERGY)
 
+        if Settings.CUSTOM_UNITS == 0:
+            self.set_default_units()
+
         self.populate_units_group()
 
     def set_up_tools(self):
@@ -376,7 +380,7 @@ class Toolbar(QFrame):
     def set_units_btns_enabled(self, enabled):
         """ Enable or disable units settings buttons. """
 
-    def set_eplus_units(self):
+    def set_default_units(self):
         """ Reset units to E+ default. """
         self.energy_btn.update_state_internally("J")
         self.power_btn.update_state_internally("W")
@@ -387,6 +391,10 @@ class Toolbar(QFrame):
         Settings.UNITS_SYSTEM = "SI"
         Settings.RATE_TO_ENERGY = False
 
+        self.energy_btn.setEnabled(False)
+        self.power_btn.setEnabled(False)
+        self.units_sys_btn.setEnabled(False)
+
         self.rate_energy_btn.setEnabled(False)
         self.rate_energy_btn.setChecked(False)
 
@@ -396,15 +404,13 @@ class Toolbar(QFrame):
 
         if not enabled:
             self.store_temp_units()
-            self.set_eplus_units()
+            self.set_default_units()
         else:
             self.restore_temp_units()
+            for btn in self.units_btns[:3]:
+                btn.setEnabled(enabled)
 
         Settings.CUSTOM_UNITS = enabled
-
-        # handle state of energy, power and units system buttons
-        for btn in self.units_btns[:3]:
-            btn.setEnabled(enabled)
 
         self.update_rate_to_energy_state(Settings.INTERVAL)
         self.settingsUpdated.emit()

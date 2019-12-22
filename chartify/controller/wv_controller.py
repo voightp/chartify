@@ -1,6 +1,7 @@
 from PySide2.QtCore import (QObject, Slot, Signal, QJsonValue, QJsonArray,
                             QUrl, QThreadPool)
 from PySide2.QtWebEngineWidgets import QWebEnginePage, QWebEngineView
+from PySide2.QtGui import QColor
 from PySide2 import QtWebChannel
 
 from chartify.charts.chart import Chart
@@ -21,6 +22,7 @@ from typing import Tuple, List, Union
 class MyPage(QWebEnginePage):
     def __init__(self):
         super().__init__()
+        self.setBackgroundColor(QColor("transparent"))
 
     def javaScriptConsoleMessage(self, level, msg, line, source):
         if "PERFORMANCE WARNING" not in msg:
@@ -87,7 +89,7 @@ class WVController(QObject):
         palette = self.m.fetch_palette(Settings.PALETTE_NAME)
 
         line_color = palette.get_color("PRIMARY_TEXT_COLOR")
-        grid_color = palette.get_color("PRIMARY_TEXT_COLOR", opacity=0.3)
+        grid_color = palette.get_color("PRIMARY_TEXT_COLOR", opacity=0.5)
         modebar_color = palette.get_color("PRIMARY_TEXT_COLOR")
         modebar_active_color = palette.get_color("PRIMARY_TEXT_COLOR", opacity=0.5)
         background_color = palette.get_color("BACKGROUND_COLOR")
@@ -178,10 +180,12 @@ class WVController(QObject):
             # grid information should be updated by 'storeGridLayout'
             pass
 
-    @Slot(str, QJsonValue)
-    def onChartLayoutChanged(self, item_id: str, layout: QJsonValue) -> None:
+    @Slot(str, QJsonValue, QJsonValue)
+    def onChartLayoutChanged(self, item_id: str, layout: QJsonValue,
+                             geometry: QJsonValue) -> None:
         """ Handle chart resize interaction. """
         chart = self.m.fetch_component(item_id)
+        chart.geometry = geometry.toObject()
         chart.ranges = {"x": {}, "y": {}, "z": {}}
         layout = layout.toObject()
 
@@ -245,5 +249,29 @@ class WVController(QObject):
         for trace in self.m.fetch_traces(item_id):
             if trace.selected:
                 self.m.wv_database["traces"].remove(trace)
+
+        self.update_component(item_id)
+
+    @Slot(str, str)
+    def onChartAxesToggled(self, item_id: str, val: str) -> None:
+        """ Update current layout of given chart. """
+        chart = self.m.fetch_component(item_id)
+        chart.shared_axes = val
+
+        self.update_component(item_id)
+
+    @Slot(str, bool)
+    def onChartDatetimeToggled(self, item_id: str, val: bool) -> None:
+        """ Update current layout of given chart. """
+        chart = self.m.fetch_component(item_id)
+        chart.group_datetime = val
+
+        self.update_component(item_id)
+
+    @Slot(str, bool)
+    def onChartCustomLegendToggled(self, item_id: str, val: bool) -> None:
+        """ Update current layout of given chart. """
+        chart = self.m.fetch_component(item_id)
+        chart.show_custom_legend = val
 
         self.update_component(item_id)
