@@ -122,9 +122,12 @@ class Axis:
             if self.anchor == "free":
                 b = self.position
             else:
-                b = self.anchor.domain[1] if self.side == "right" else self.anchor.domain[0]
+                b = self.anchor.domain[1] \
+                    if self.side == "right" else self.anchor.domain[0]
 
             x, y = (a, b) if is_x else (b, a)
+
+            x_shift = - self.X_SHIFT if self.side == "right" else self.X_SHIFT
 
             attributes = {
                 "text": f"{self.title}",
@@ -135,7 +138,7 @@ class Axis:
                 "yanchor": "middle",
                 "xref": "paper",
                 "yref": "paper",
-                "xshift": 0 if is_x else -self.X_SHIFT,
+                "xshift": 0 if is_x else -x_shift,
                 "yshift": -self.Y_SHIFT if is_x else 0,
                 "textangle": 0 if is_x else -90,
                 "font": {"color": color},
