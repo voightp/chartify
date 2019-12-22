@@ -258,10 +258,16 @@ class WVController(QObject):
 
         self.update_component(item_id)
 
-    @Slot(str, bool)
-    def onChartCustomLegendToggled(self, item_id: str, val: bool) -> None:
+    @Slot(str, str, bool)
+    def onChartModebarButtonClicked(self, item_id: str, attr: str,
+                                    val: bool) -> None:
         """ Update current layout of given chart. """
+        print("onChartModebarButtonClicked")
         chart = self.m.fetch_component(item_id)
-        chart.show_custom_legend = val
 
-        self.update_component(item_id)
+        if attr not in chart.__dict__.keys():
+            raise AttributeError(f"Unexpected attribute: '{attr}'.")
+        else:
+            chart.__setattr__(attr, val)
+
+            self.update_component(item_id)

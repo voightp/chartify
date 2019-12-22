@@ -34,21 +34,12 @@ class Chart:
         self.item_id = item_id
         self.type_ = type_
         self.custom = False
-        self.shared_axes = "x"  # 'x' | 'x+y' | ''
+        self.shared_x = False
+        self.shared_y = True
         self.group_datetime = True
         self.show_custom_legend = True
         self.ranges = {"x": {}, "y": {}, "z": {}}
         self.geometry = {"w": -1, "h": -1}
-
-    @property
-    def shared_x(self):
-        """ Check if datetime axis is shared for all intervals. """
-        return self.shared_axes == "x" or self.shared_axes == "x+y"
-
-    @property
-    def shared_y(self):
-        """ Check if 'y' axis should be shared or stacked. """
-        return self.shared_axes == "x+y"
 
     @staticmethod
     def to_ratio(px, ratio):
@@ -153,7 +144,8 @@ class Chart:
         return {
             "componentType": "chart",
             "showCustomLegend": self.show_custom_legend,
-            "sharedAxes": self.shared_axes,
+            "sharedX": self.shared_x,
+            "sharedY": self.shared_y,
             "groupDatetime": self.group_datetime,
             "chartType": self.type_,
             "divId": self.chart_id,
