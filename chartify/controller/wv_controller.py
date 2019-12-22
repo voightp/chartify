@@ -253,7 +253,7 @@ class WVController(QObject):
         self.update_component(item_id)
 
     @Slot(str, str)
-    def onChartAxesUpdated(self, item_id: str, val: str) -> None:
+    def onChartAxesToggled(self, item_id: str, val: str) -> None:
         """ Update current layout of given chart. """
         chart = self.m.fetch_component(item_id)
         chart.shared_axes = val
@@ -261,9 +261,17 @@ class WVController(QObject):
         self.update_component(item_id)
 
     @Slot(str, bool)
-    def onChartDatetimeUpdated(self, item_id: str, val: bool) -> None:
+    def onChartDatetimeToggled(self, item_id: str, val: bool) -> None:
         """ Update current layout of given chart. """
         chart = self.m.fetch_component(item_id)
         chart.group_datetime = val
+
+        self.update_component(item_id)
+
+    @Slot(str, bool)
+    def onChartCustomLegendToggled(self, item_id: str, val: bool) -> None:
+        """ Update current layout of given chart. """
+        chart = self.m.fetch_component(item_id)
+        chart.show_custom_legend = val
 
         self.update_component(item_id)

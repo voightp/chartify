@@ -3,6 +3,8 @@ from chartify.charts.chart_settings import *
 
 
 class Axis:
+    X_SHIFT = 30
+    Y_SHIFT = 30
     def __init__(self, name, title, anchor=None, visible=True, overlaying=None):
         self.name = name
         self.title = title
@@ -132,8 +134,8 @@ class Axis:
                 "yanchor": "middle",
                 "xref": "paper",
                 "yref": "paper",
-                "xshift": 0 if is_x else -20,
-                "yshift": -20 if is_x else 0,
+                "xshift": 0 if is_x else -self.X_SHIFT,
+                "yshift": -self.Y_SHIFT if is_x else 0,
                 "textangle": 0 if is_x else -90,
                 "font": {"color": color},
             }

@@ -247,7 +247,7 @@ def generate_grid_item(frame_id, type_):
         "chart": {
             "w": 6,
             "h": 2,
-            "minW": 4,
+            "minW": 2,
             "minH": 2
         },
         "textArea": {
