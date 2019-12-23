@@ -129,7 +129,8 @@ class Chart:
         shared_y_gap = self.SHARED_Y_GAP * h_ratio
 
         if self.type_ == "pie":
-            axes, annotations = {}, []
+            axes, annotations = self.generate_layout_axes(self.type_, [],
+                                                          line_color, grid_color)
             data = pie_chart(traces, background_color, max_columns=self.N_COLUMNS,
                              square=True, v_gap=v_gap, h_gap=h_gap)
         else:

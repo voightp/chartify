@@ -158,8 +158,8 @@ def get_axis_appearance(chart_type, line_color, grid_color):
             "zeroline": False,
         },
         "pie": {
-            "showline": False,
-            "showgrid": False,
+            "showline": True,
+            "showgrid": True,
             "zeroline": False,
         }
     }
