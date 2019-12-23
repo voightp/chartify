@@ -226,35 +226,10 @@ class WVController(QObject):
         self.thread_pool.start(Worker(self.add_new_traces, item_id, chart_type))
 
     @Slot(str, str)
-    def onTraceClick(self, item_id: str, trace_id: str) -> None:
+    def onTraceClicked(self, item_id: str, trace_id: str) -> None:
         """ Handle trace webview trace click. """
         trace = self.m.fetch_trace(trace_id)
         trace.selected = not trace.selected
-
-        self.update_component(item_id)
-
-    @Slot(str)
-    def onTracesDeleted(self, item_id: str) -> None:
-        """ Remove selected traces from app model. """
-        for trace in self.m.fetch_traces(item_id):
-            if trace.selected:
-                self.m.wv_database["traces"].remove(trace)
-
-        self.update_component(item_id)
-
-    @Slot(str, str)
-    def onChartAxesToggled(self, item_id: str, val: str) -> None:
-        """ Update current layout of given chart. """
-        chart = self.m.fetch_component(item_id)
-        chart.shared_axes = val
-
-        self.update_component(item_id)
-
-    @Slot(str, bool)
-    def onChartDatetimeToggled(self, item_id: str, val: bool) -> None:
-        """ Update current layout of given chart. """
-        chart = self.m.fetch_component(item_id)
-        chart.group_datetime = val
 
         self.update_component(item_id)
 
