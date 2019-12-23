@@ -233,6 +233,15 @@ class WVController(QObject):
 
         self.update_component(item_id)
 
+    @Slot(str)
+    def onTracesDeleted(self, item_id: str) -> None:
+        """ Remove selected traces from app model. """
+        for trace in self.m.fetch_traces(item_id):
+            if trace.selected:
+                self.m.wv_database["traces"].remove(trace)
+
+        self.update_component(item_id)
+
     @Slot(str, str, bool)
     def onChartModebarButtonClicked(self, item_id: str, attr: str,
                                     val: bool) -> None:
