@@ -31,18 +31,18 @@ def get_pie_trace_appearance(priorities, colors, background_color):
 def get_2d_trace_appearance(type_, color, interval, priority="normal"):
     weights = {
         "low": {
-            "markerSize": 5,
+            "markerSize": 2,
             "lineWidth": 1,
             "opacity": 0.3
         },
 
         "normal": {
-            "markerSize": 5,
+            "markerSize": 3,
             "lineWidth": 2,
             "opacity": 0.7
         },
         "high": {
-            "markerSize": 6,
+            "markerSize": 4,
             "lineWidth": 2,
             "opacity": 1
         }}
