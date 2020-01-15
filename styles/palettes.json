@@ -26,7 +26,7 @@
         "SECONDARY_TEXT_COLOR": "rgb(180,180,180)",
         "BACKGROUND_COLOR": "rgb(45,45,45)",
         "SURFACE_COLOR": "rgb(65,65,65)",
-        "ERROR_COLOR": "rgb(183,28,28)",
-        "OK_COLOR": "rgb(97,97,97)"
+        "ERROR_COLOR": "rgb(207,102,121)",
+        "OK_COLOR": "rgb(3,218,198)"
     }
 }

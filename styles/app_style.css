@@ -30,15 +30,18 @@ QFrame#toolbar {
 
 DropFrame#leftMainWgt {
     background-color: BACKGROUND_COLOR;
-    padding: 2px;
+    padding: 0px;
+}
+DropFrame {
+    border: 2px solid BACKGROUND_COLOR;
 }
 
 DropFrame#leftMainWgt[drag-accept=true] {
-    background-color: OK_COLOR;
+    border-color: OK_COLOR;
 }
 
 DropFrame#leftMainWgt[drag-accept=false] {
-    background-color: ERROR_COLOR;
+    border-color: ERROR_COLOR;
 }
 
 /* ~~~~~ SPLITTER ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
