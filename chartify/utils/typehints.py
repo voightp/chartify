@@ -1,4 +1,4 @@
 from typing import Type
-from eso_reader.eso_file import  BaseResultsFile
+from esofile_reader.base_file import BaseFile
 
-ResultsFile = Type[BaseResultsFile]
+ResultsFile = Type[BaseFile]

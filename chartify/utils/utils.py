@@ -1,5 +1,5 @@
 from random import randint
-from eso_reader.building_eso_file import averaged_units
+from esofile_reader.constants import AVERAGED_UNITS
 
 import os
 import pandas as pd
@@ -35,7 +35,7 @@ def generate_ids(used_ids, n=1, max_id=99999):
 def calculate_totals(df):
     """ Calculate df sum or average (based on units). """
     units = df.columns.get_level_values("units")
-    cnd = units.isin(averaged_units)
+    cnd = units.isin(AVERAGED_UNITS)
 
     avg_df = df.loc[:, cnd].mean()
     sum_df = df.loc[:, [not b for b in cnd]].sum()

@@ -5,7 +5,7 @@ import random
 import copy
 from chartify.charts.trace import Trace, TraceData, Trace2D
 from chartify.charts.chart_functions import *
-from eso_reader.constants import *
+from esofile_reader.constants import *
 
 
 class TestChartLayout(unittest.TestCase):

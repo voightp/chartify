@@ -7,7 +7,7 @@ from chartify.settings import Settings
 from chartify.view.icons import Pixmap
 from chartify.view.buttons import (TitledButton, ToggleButton, CheckableButton, DualActionButton, ClickButton)
 
-from eso_reader.constants import TS, D, H, M, A, RP
+from esofile_reader.constants import TS, D, H, M, A, RP
 
 
 def remove_children(layout):

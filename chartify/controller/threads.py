@@ -1,8 +1,8 @@
 from PySide2.QtCore import QThread, Signal, QRunnable
 
-from eso_reader.monitor import DefaultMonitor
-from eso_reader.eso_file import EsoFile
-from eso_reader.building_eso_file import BuildingEsoFile
+from esofile_reader.processing.monitor import DefaultMonitor
+from esofile_reader.eso_file import EsoFile
+from esofile_reader import TotalsFile
 
 
 # noinspection PyUnresolvedReferences
@@ -64,7 +64,7 @@ class Monitor(QThread):
 
 # noinspection PyUnresolvedReferences
 class EsoFileWatcher(QThread):
-    loaded = Signal(int, EsoFile, BuildingEsoFile)
+    loaded = Signal(int, EsoFile, TotalsFile)
 
     def __init__(self, file_queue):
         super().__init__()

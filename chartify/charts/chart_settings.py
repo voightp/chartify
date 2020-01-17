@@ -3,7 +3,7 @@ from functools import partial
 from typing import Tuple, List, Dict, Union, Generator
 from chartify.view.icons import combine_colors
 from chartify.view.css_theme import parse_color
-from eso_reader.constants import *
+from esofile_reader.constants import *
 
 
 def get_pie_trace_appearance(priorities, colors, background_color):

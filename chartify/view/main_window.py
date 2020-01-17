@@ -20,7 +20,7 @@ from chartify.view.css_theme import CssTheme, parse_palette
 from chartify.view.view_functions import create_proxy
 from chartify.settings import Settings
 
-from eso_reader.convertor import verify_units
+from esofile_reader.outputs.convertor import rate_and_energy_units
 
 from functools import partial
 from chartify.view.view_widget import View
@@ -374,8 +374,8 @@ class MainWindow(QMainWindow):
         self.toolbar.remove_btn.setEnabled(True)
 
         # check if variables can be aggregated
-        units = verify_units([var.units for var in variables])
-        if len(variables) > 1 and units is not None:
+        units = [var.units for var in variables]
+        if set(units) == 1 or rate_and_energy_units(units):
             self.toolbar.set_tools_btns_enabled("sum", "mean", enabled=True)
 
         self.selectionChanged.emit(variables)

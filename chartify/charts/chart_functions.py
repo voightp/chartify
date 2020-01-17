@@ -7,7 +7,7 @@ from typing import Tuple, List, Dict, Union, Generator, Any
 
 from chartify.charts.trace import Axis, Trace2D, TraceData, Trace1D
 from chartify.charts.chart_settings import get_pie_trace_appearance, get_axis_appearance
-from eso_reader.constants import *
+from esofile_reader.constants import *
 
 
 def combine_traces(traces: List[Trace1D]) -> Dict[str, Union[str, List]]:

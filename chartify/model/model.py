@@ -4,7 +4,7 @@ from chartify.charts.trace import Trace1D, Trace2D, TraceData
 from chartify.charts.chart import Chart
 from chartify.utils.typehints import ResultsFile
 
-from eso_reader.eso_file import get_results
+from esofile_reader import get_results
 from PySide2.QtCore import Signal, QObject
 
 from typing import List, Union

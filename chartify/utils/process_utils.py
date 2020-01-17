@@ -1,8 +1,8 @@
 import loky
 import psutil
 
-from eso_reader.eso_file import EsoFile, IncompleteFile
-from eso_reader.building_eso_file import BuildingEsoFile
+from esofile_reader import EsoFile, TotalsFile
+from esofile_reader.base_file import IncompleteFile
 from multiprocessing import cpu_count
 
 
