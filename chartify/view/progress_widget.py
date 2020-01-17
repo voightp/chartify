@@ -136,13 +136,13 @@ class ProgressContainer(QWidget):
         except KeyError:
             pass
 
-    def set_failed(self, id_):
+    def set_failed(self, id_, message):
         """ Set failed status on the given file. """
         self.files[id_].set_failed()
         i = self.visible_index(self.files[id_])
         if i is not None:
             self.widgets[i].update_all_refs()
-            self.widgets[i].set_failed_status()
+            self.widgets[i].set_failed_status(message)
 
     def set_pending(self, id_):
         """ Set pending status on the given file. """
@@ -332,7 +332,7 @@ class ProgressWidget(QWidget):
         self.del_btn.hide()
         self.setToolTip("")
 
-    def set_failed_status(self):
+    def set_failed_status(self, message):
         """ Apply 'failed' style. """
         self.setProperty("failed", "true")
         self.style().unpolish(self.label)
@@ -341,7 +341,7 @@ class ProgressWidget(QWidget):
         self.style().polish(self.progress_bar)
 
         self.del_btn.show()
-        self.setToolTip("FAILED - INCOMPLETE FILE")
+        self.setToolTip(message)
 
     def send_remove_me(self):
         """ Give signal to status bar to remove this widget. """

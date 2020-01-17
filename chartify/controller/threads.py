@@ -42,7 +42,7 @@ class Monitor(QThread):
                 pass
 
             def send_failed():
-                self.failed.emit(mon_id, "FAILED")
+                self.failed.emit(mon_id, message)
 
             switch = {
                 -1: send_failed,

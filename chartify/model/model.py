@@ -156,7 +156,7 @@ class AppModel(QObject):
         """ Fetch a file header variables for a given interval. """
         file = self.fetch_file(set_id)
         if file:
-            return list(file.header_dct[interval].values())
+            return list(file.header[interval].values())
 
     def get_all_file_ids(self) -> List[str]:
         """ Return all file ids for a current state. """

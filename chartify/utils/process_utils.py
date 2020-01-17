@@ -1,5 +1,6 @@
 import loky
 import psutil
+import traceback
 
 from esofile_reader import EsoFile, TotalsFile
 from esofile_reader.base_file import IncompleteFile
@@ -36,13 +37,14 @@ def load_file(path, monitor=None, suppress_errors=False):
     """ Process eso file. """
     try:
         std_file = EsoFile(path, monitor=monitor, suppress_errors=suppress_errors)
-        tot_file = BuildingEsoFile(std_file)
+        tot_file = TotalsFile(std_file)
         monitor.building_totals_finished()
         return std_file, tot_file
     except IncompleteFile:
-        monitor.processing_failed("Processing failed - incomplete file!")
+        monitor.processing_failed(f"Processing failed - incomplete file!"
+                                  f"\n{traceback.format_exc()}")
     except Exception:
-        monitor.processing_failed("Processing failed!")
+        monitor.processing_failed(traceback.format_exc())
 
 
 def wait_for_results(id_, queue, future):
