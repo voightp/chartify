@@ -93,11 +93,11 @@ class TitledButton(QFrame):
     button_name = "buttonFrame"
     title_name = "buttonTitle"
 
-    def __init__(self, parent, fill_space=True, title="",
-                 menu=None, items=None, def_act_dt="", data=None):
+    def __init__(self, text, parent, fill_space=True):
         super().__init__(parent)
         self.button = ClickButton(self)
         self.button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self.button.setPopupMode(QToolButton.InstantPopup)
         self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
         self.setObjectName(TitledButton.button_name)
 
@@ -105,7 +105,7 @@ class TitledButton(QFrame):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
-        self.title = QLabel(title, self)
+        self.title = QLabel(text, self)
         self.title.setObjectName(TitledButton.title_name)
 
         if fill_space:
@@ -117,38 +117,14 @@ class TitledButton(QFrame):
 
         layout.addWidget(self.button)
 
-        if menu and items:
-            menu.setWindowFlags(menu.windowFlags() | Qt.NoDropShadowWindowHint)
-
-            actions = []
-            for text in items:
-                act = QAction(text, menu)
-                act.setCheckable(True)
-                actions.append(act)
-
-            if not data:
-                data = items
-
-            _ = [act.setData(d) for act, d in zip(actions, data)]
-
-            if def_act_dt:
-                def_act = next(act for act in actions
-                               if act.data() == def_act_dt)
-            else:
-                def_act = actions[0]
-
-            def_act.setChecked(True)
-
-            menu.addActions(actions)
-            self.button.setMenu(menu)
-            self.button.setPopupMode(QToolButton.InstantPopup)
-            self.button.setDefaultAction(def_act)
-
     def menu(self):
         return self.button.menu()
 
     def data(self):
         return self.defaultAction().data()
+
+    def setMenu(self, menu):
+        self.button.setMenu(menu)
 
     def setEnabled(self, enabled):
         self.title.setEnabled(enabled)
@@ -290,7 +266,7 @@ class ToggleButton(QFrame):
         update_appearance(sl)
 
 
-class MenuButton(ClickButton):
+class MenuButton(QToolButton):
     """
     A button to mimic 'Action' behaviour.
 
@@ -299,43 +275,12 @@ class MenuButton(ClickButton):
 
     """
 
-    def __init__(self, text, parent, size=QSize(25, 25),
-                 icon=None, actions=None):
+    def __init__(self, text, parent, size=QSize(25, 25)):
         super().__init__(parent)
         self.setToolButtonStyle(Qt.ToolButtonIconOnly)
         self.setText(text)
         self.setIconSize(size)
         self.setPopupMode(QToolButton.InstantPopup)
-
-        if icon:
-            self.setIcon(icon)
-
-        if actions:
-            mn = QMenu(self)
-            mn.setWindowFlags(mn.windowFlags() | Qt.NoDropShadowWindowHint)
-            mn.addActions(actions)
-            self.setMenu(mn)
-
-
-class IconMenuButton(QToolButton):
-    """
-    A button to wrap 'icon only' menu.
-
-    """
-
-    def __init__(self, parent, actions):
-        super().__init__(parent)
-        self.setPopupMode(QToolButton.InstantPopup)
-
-        menu = QMenu(self)
-        menu.setWindowFlags(menu.windowFlags() | Qt.NoDropShadowWindowHint)
-        menu.addActions(actions)
-        menu.triggered.connect(self.update_icon)
-        self.setMenu(menu)
-
-    def update_icon(self, act):
-        """ Set default icon for of the current action. """
-        self.setIcon(act.icon())
 
 
 class CheckableButton(QToolButton):

@@ -3,7 +3,7 @@ import os
 
 from PySide2.QtWidgets import (QWidget, QSplitter, QHBoxLayout, QVBoxLayout,
                                QToolButton, QAction, QFileDialog, QSizePolicy,
-                               QFrame, QMainWindow, QStatusBar)
+                               QFrame, QMainWindow, QStatusBar, QMenu)
 from PySide2.QtCore import (QSize, Qt, QCoreApplication, Signal, QObject, QUrl)
 
 from PySide2.QtGui import QIcon, QKeySequence, QColor
@@ -13,7 +13,7 @@ from chartify.view.icons import Pixmap, filled_circle_pixmap
 from chartify.view.progress_widget import ProgressContainer
 from chartify.view.misc_widgets import (DropFrame, TabWidget, MulInputDialog,
                                         ConfirmationDialog)
-from chartify.view.buttons import MenuButton, IconMenuButton
+from chartify.view.buttons import MenuButton
 from chartify.view.toolbar import Toolbar
 from chartify.view.view_tools import ViewTools
 from chartify.view.css_theme import CssTheme, parse_palette
@@ -122,8 +122,15 @@ class MainWindow(QMainWindow):
 
         def_act = actions[Settings.PALETTE_NAME]
 
-        self.scheme_btn = IconMenuButton(self, list(actions.values()))
+        menu = QMenu(self)
+        menu.setWindowFlags(menu.windowFlags() | Qt.NoDropShadowWindowHint)
+        menu.addActions(list(actions.values()))
+        self.scheme_btn = QToolButton(self)
+        self.scheme_btn.setPopupMode(QToolButton.InstantPopup)
         self.scheme_btn.setDefaultAction(def_act)
+        self.scheme_btn.setMenu(menu)
+        self.scheme_btn.setObjectName("schemeButton")
+        menu.triggered.connect(lambda act: self.scheme_btn.setIcon(act.icon()))
 
         self.swap_btn = QToolButton(self)
         self.swap_btn.clicked.connect(self.mirror_layout)
@@ -175,13 +182,17 @@ class MainWindow(QMainWindow):
         self.close_all_act.setEnabled(False)
         self.remove_variables_act.setEnabled(False)
 
-        acts = [self.load_file_act, self.close_all_act]
-        self.load_file_btn = MenuButton("Load file | files", self,
-                                        actions=acts)
+        self.load_file_btn = MenuButton("Load file | files", self)
+        menu = QMenu(self)
+        menu.setWindowFlags(menu.windowFlags() | Qt.NoDropShadowWindowHint)
+        menu.addActions([self.load_file_act, self.close_all_act])
+        self.load_file_btn.setMenu(menu)
 
-        acts = [self.save_act, self.save_as_act]
-        self.save_btn = MenuButton("Tools", self,
-                                   actions=acts)
+        self.save_btn = MenuButton("Tools", self)
+        menu = QMenu(self)
+        menu.setWindowFlags(menu.windowFlags() | Qt.NoDropShadowWindowHint)
+        menu.addActions([self.save_act, self.save_as_act])
+        self.save_btn.setMenu(menu)
 
         self.about_btn = MenuButton("About", self)
 

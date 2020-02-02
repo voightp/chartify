@@ -290,9 +290,9 @@ QLabel#buttonTitle:disabled {
     color: PRIMARY_COLOR #50;
 }
 
-/* ~~~~~ ICON MENU BUTTON ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
+/* ~~~~~ SCHEME BUTTON ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
-IconMenuButton {
+QToolButton#schemeButton {
     margin: 0px;
     padding: 0px;
     border: 0px solid transparent;
@@ -301,16 +301,16 @@ IconMenuButton {
     height: 20px;
 }
 
-IconMenuButton:hover {
+QToolButton#schemeButton:hover {
     background: transparent;
 }
 
-IconMenuButton QMenu {
+QToolButton#schemeButton QMenu {
     border: 1px solid PRIMARY_COLOR;
     margin: 0px;
 }
 
-IconMenuButton::menu-indicator {
+QToolButton#schemeButton::menu-indicator {
     image: url(./icons/transparent.png);
     margin: 0px;
     width: 0px;

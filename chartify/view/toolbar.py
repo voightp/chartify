@@ -1,6 +1,6 @@
 from PySide2.QtWidgets import (QVBoxLayout, QGridLayout, QToolButton,
                                QGroupBox, QSizePolicy, QMenu,
-                               QFrame)
+                               QFrame, QAction)
 from PySide2.QtCore import Qt, Signal
 
 from chartify.settings import Settings
@@ -137,7 +137,7 @@ class Toolbar(QFrame):
 
         self.energy_btn = None
         self.power_btn = None
-        self.units_sys_btn = None
+        self.units_system_button = None
         self.rate_energy_btn = None
         self.set_up_units()
 
@@ -150,7 +150,7 @@ class Toolbar(QFrame):
         """ A shorthand to get all units buttons."""
         return [self.energy_btn,
                 self.power_btn,
-                self.units_sys_btn,
+                self.units_system_button,
                 self.rate_energy_btn]
 
     @property
@@ -221,7 +221,20 @@ class Toolbar(QFrame):
         self.populate_intervals_group(hide_disabled=False)
 
     def set_up_units(self):
-        """ Set up units options. . """
+        """ Set up units options. """
+
+        def create_actions(items, default):
+            acts = []
+            for item in items:
+                act = QAction(item, self)
+                act.setCheckable(True)
+                act.setData(item)
+                acts.append(act)
+
+            def_act = next(act for act in acts if act.data() == default)
+            def_act.setChecked(True)
+            return acts, def_act
+
         # ~~~~ Layout to hold options  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         units_layout = QGridLayout(self.units_group)
         units_layout.setSpacing(0)
@@ -229,29 +242,39 @@ class Toolbar(QFrame):
         units_layout.setAlignment(Qt.AlignLeft)
 
         # ~~~~ Energy units set up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        acts, def_act = create_actions(Settings.SI_ENERGY_UNITS + Settings.IP_ENERGY_UNITS,
+                                       Settings.ENERGY_UNITS)
         energy_menu = QMenu(self)
-        items = Settings.SI_ENERGY_UNITS + Settings.IP_ENERGY_UNITS
-        self.energy_btn = TitledButton(self.units_group, fill_space=True,
-                                       title="energy", menu=energy_menu,
-                                       items=items, data=items,
-                                       def_act_dt=Settings.ENERGY_UNITS)
+        energy_menu.setWindowFlags(QMenu().windowFlags() | Qt.NoDropShadowWindowHint)
+        energy_menu.addActions(acts)
+
+        self.energy_btn = TitledButton("energy", self.units_group)
+        self.energy_btn.setMenu(energy_menu)
+        self.energy_btn.setDefaultAction(def_act)
 
         # ~~~~ Power units set up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        items = list(dict.fromkeys(Settings.SI_POWER_UNITS + Settings.IP_POWER_UNITS))
+        acts, def_act = create_actions(items, Settings.POWER_UNITS)
+
         power_menu = QMenu(self)
-        items = list(dict.fromkeys(Settings.SI_POWER_UNITS
-                                   + Settings.IP_POWER_UNITS))
-        self.power_btn = TitledButton(self.units_group, fill_space=True,
-                                      title="power", menu=power_menu,
-                                      items=items, data=items,
-                                      def_act_dt=Settings.POWER_UNITS)
+        power_menu.setWindowFlags(QMenu().windowFlags() | Qt.NoDropShadowWindowHint)
+        power_menu.addActions(acts)
+
+        self.power_btn = TitledButton("power", self.units_group)
+        self.power_btn.setMenu(power_menu)
+        self.power_btn.setDefaultAction(def_act)
 
         # ~~~~ Units system set up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        un_syst_menu = QMenu(self)
-        items = ["SI", "IP"]
-        self.units_sys_btn = TitledButton(self.units_group, fill_space=True,
-                                          title="system", menu=un_syst_menu,
-                                          items=items, data=items,
-                                          def_act_dt=Settings.UNITS_SYSTEM)
+        acts, def_act = create_actions(["SI", "IP"], Settings.UNITS_SYSTEM)
+
+        units_system_menu = QMenu(self)
+        units_system_menu.setWindowFlags(QMenu().windowFlags() | Qt.NoDropShadowWindowHint)
+        units_system_menu.addActions(acts)
+
+        self.units_system_button = TitledButton("system", self.units_group)
+        self.units_system_button.setMenu(units_system_menu)
+        self.units_system_button.setDefaultAction(def_act)
+
         # show only relevant units
         self.filter_energy_power_units(Settings.UNITS_SYSTEM)
 
@@ -357,7 +380,7 @@ class Toolbar(QFrame):
         """ Store intermediate units settings. """
         self.temp_settings["energy_units"] = self.energy_btn.data()
         self.temp_settings["power_units"] = self.power_btn.data()
-        self.temp_settings["units_system"] = self.units_sys_btn.data()
+        self.temp_settings["units_system"] = self.units_system_button.data()
         self.temp_settings["rate_to_energy"] = self.rate_energy_btn.isChecked()
 
     def restore_temp_units(self):
@@ -376,9 +399,6 @@ class Toolbar(QFrame):
         self.power_btn.update_state_internally(pw)
         self.units_sys_btn.update_state_internally(us)
         self.rate_energy_btn.setChecked(checked)
-
-    def set_units_btns_enabled(self, enabled):
-        """ Enable or disable units settings buttons. """
 
     def set_default_units(self):
         """ Reset units to E+ default. """
@@ -434,7 +454,7 @@ class Toolbar(QFrame):
 
     def units_system_changed(self, act):
         """ Request view update when energy units are changed. """
-        changed = self.units_sys_btn.update_state(act)
+        changed = self.units_system_button.update_state(act)
 
         if changed:
             Settings.UNITS_SYSTEM = act.data()
@@ -497,4 +517,4 @@ class Toolbar(QFrame):
         self.custom_units_toggle.stateChanged.connect(self.custom_units_toggled)
         self.energy_btn.menu().triggered.connect(self.energy_units_changed)
         self.power_btn.menu().triggered.connect(self.power_units_changed)
-        self.units_sys_btn.menu().triggered.connect(self.units_system_changed)
+        self.units_system_button.menu().triggered.connect(self.units_system_changed)

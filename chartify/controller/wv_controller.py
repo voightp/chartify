@@ -11,7 +11,7 @@ from chartify.utils.utils import int_generator, calculate_totals
 from chartify.settings import Settings
 from chartify.charts.trace import Trace1D, Trace2D, TraceData
 from chartify.model.model import AppModel
-from chartify.controller.threads import Worker
+from chartify.utils.threads import Worker
 from chartify.utils.tiny_profiler import profile
 import json
 import uuid
