@@ -72,7 +72,10 @@ class MainWindow(QMainWindow):
         self.view_wgt = QFrame(self.left_main_wgt)
         self.view_wgt.setObjectName("viewWidget")
         self.view_layout = QVBoxLayout(self.view_wgt)
-        self.left_main_layout.addWidget(self.view_wgt)
+        if Settings.MIRRORED:
+            self.left_main_layout.insertWidget(0, self.view_wgt)
+        else:
+            self.left_main_layout.addWidget(self.view_wgt)
 
         # ~~~~ Left hand Tab widget  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.tab_wgt = TabWidget(self.view_wgt)
@@ -85,7 +88,10 @@ class MainWindow(QMainWindow):
         # ~~~~ Right hand area ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.right_main_wgt = QWidget(self.central_splitter)
         self.right_main_layout = QHBoxLayout(self.right_main_wgt)
-        self.central_splitter.addWidget(self.right_main_wgt)
+        if Settings.MIRRORED:
+            self.central_splitter.insertWidget(0, self.right_main_wgt)
+        else:
+            self.central_splitter.addWidget(self.right_main_wgt)
 
         # ~~~~ Right hand Chart Area ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.main_chart_widget = QFrame(self.right_main_wgt)
@@ -326,16 +332,17 @@ class MainWindow(QMainWindow):
         self.right_main_layout.setContentsMargins(0, 0, 0, 0)
 
         self.main_chart_layout.setContentsMargins(0, 0, 0, 0)
-        self.main_chart_widget.setMinimumWidth(400)
+        self.main_chart_widget.setMinimumWidth(600)
 
-        if Settings.MIRRORED:
-            self.mirror_layout()
+        # split values are stored as strings in registry
+        self.central_splitter.setSizes([int(s) for s in Settings.SPLIT])
 
     def mirror_layout(self):
         """ Mirror the layout. """
         self.left_main_layout.addItem(self.left_main_layout.takeAt(0))
         self.central_splitter.insertWidget(0, self.central_splitter.widget(1))
         Settings.MIRRORED = not Settings.MIRRORED
+        Settings.SPLIT = self.central_splitter.sizes()
 
     def on_scheme_changed(self, name):
         """ Update the application palette. """
@@ -457,6 +464,10 @@ class MainWindow(QMainWindow):
         if self.current_view:
             self.viewUpdateRequested.emit(self.current_view.id_)
 
+    def on_splitter_moved(self, pos, _):
+        """ Store current splitter position. """
+        Settings.SPLIT = self.central_splitter.sizes()
+
     def load_files_from_os(self):
         """ Select eso files from explorer and start processing. """
         file_pths, _ = QFileDialog.getOpenFileNames(self, "Load Eso File",
@@ -573,6 +584,7 @@ class MainWindow(QMainWindow):
         """ Create actions which depend on user actions """
         # ~~~~ Widget Signals ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.left_main_wgt.fileDropped.connect(self.fileProcessingRequested.emit)
+        self.central_splitter.splitterMoved.connect(self.on_splitter_moved)
 
         # ~~~~ Actions Signals ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.load_file_act.triggered.connect(self.load_files_from_os)
