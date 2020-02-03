@@ -27,7 +27,7 @@ class ProgressContainer(QWidget):
         layout.setAlignment(Qt.AlignLeft)
 
         self.files = {}
-        self.widgets = self.create_widgets()
+        self.widgets = self._create_widgets()
 
     @property
     def sorted_files(self):
@@ -46,7 +46,7 @@ class ProgressContainer(QWidget):
         """ Get currently visible widgets. """
         return list(filter(lambda x: x.file_ref, self.widgets))
 
-    def create_widgets(self):
+    def _create_widgets(self):
         """ Initialize progress widgets. """
         wgts = []
         for i in range(self.MAX_VISIBLE_JOBS):
@@ -57,17 +57,17 @@ class ProgressContainer(QWidget):
             self.layout().addWidget(wgt)
         return wgts
 
-    def visible_index(self, file):
+    def _get_visible_index(self, file):
         """ Get visible index, returns 'None' if invalid. """
         try:
             return self.visible_files.index(file)
         except ValueError:
             return None
 
-    def position_changed(self, file):
+    def _position_changed(self, file):
         """ Check if the current widget triggers repositioning. """
         pos = self.sorted_files.index(file)
-        i = self.visible_index(file)
+        i = self._get_visible_index(file)
 
         if i is None:
             # widget is in pending section, although it
@@ -79,23 +79,8 @@ class ProgressContainer(QWidget):
 
         return pos != i
 
-    def update_file_progress(self, id_, val):
-        """ Update file progress. """
-        try:
-            f = self.files[id_]
-            f.set_value(val)
-
-            i = self.visible_index(f)
-            if i is not None:
-                self.widgets[i].update_value()
-
-            if self.position_changed(f):
-                self.update_bar()
-        except KeyError:
-            pass
-
-    def update_bar(self):
-        """ Update progress widget display on the status bar. """
+    def _update_bar(self):
+        """ Update progress widget order on the status bar. """
         files = self.sorted_files
         widgets = self.widgets
         max_ = self.MAX_VISIBLE_JOBS
@@ -122,7 +107,7 @@ class ProgressContainer(QWidget):
         """ Add progress file to the container. """
         f = ProgressFile(id_, name)
         self.files[id_] = f
-        self.update_bar()
+        self._update_bar()
 
     def set_max_value(self, id_, max_value):
         """ Set up maximum progress value. """
@@ -130,16 +115,31 @@ class ProgressContainer(QWidget):
             f = self.files[id_]
             f.set_maximum(max_value)
 
-            i = self.visible_index(f)
+            i = self._get_visible_index(f)
             if i is not None:
                 self.widgets[i].update_max()
+        except KeyError:
+            pass
+
+    def update_progress(self, id_, val):
+        """ Update file progress. """
+        try:
+            f = self.files[id_]
+            f.set_value(val)
+
+            i = self._get_visible_index(f)
+            if i is not None:
+                self.widgets[i].update_value()
+
+            if self._position_changed(f):
+                self._update_bar()
         except KeyError:
             pass
 
     def set_failed(self, id_, message):
         """ Set failed status on the given file. """
         self.files[id_].set_failed()
-        i = self.visible_index(self.files[id_])
+        i = self._get_visible_index(self.files[id_])
         if i is not None:
             self.widgets[i].update_all_refs()
             self.widgets[i].set_failed_status(message)
@@ -148,7 +148,7 @@ class ProgressContainer(QWidget):
         """ Set pending status on the given file. """
         try:
             self.files[id_].set_pending()
-            i = self.visible_index(self.files[id_])
+            i = self._get_visible_index(self.files[id_])
             if i is not None:
                 self.widgets[i].update_all_refs()
         except KeyError:
@@ -158,11 +158,11 @@ class ProgressContainer(QWidget):
         """ Remove file from the container. """
         del_file = self.files.pop(id_)
 
-        i = self.visible_index(del_file)
+        i = self._get_visible_index(del_file)
         if i is not None:
             self.widgets[i].file_ref = None
 
-        self.update_bar()
+        self._update_bar()
 
     def update_progress_text(self, monitor_id, text):
         """ Update text info for a given monitor. """
@@ -298,7 +298,7 @@ class ProgressWidget(QWidget):
         self.update_all_refs()
 
         if file.failed:
-            self.set_failed_status()
+            self.set_failed_status("Processing failed!")
         elif self.property("failed"):
             # widget has been in 'failed' state, reapply standard appearance
             self.set_normal_status()
