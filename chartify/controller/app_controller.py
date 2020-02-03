@@ -1,18 +1,17 @@
 import os
-
+from functools import partial
 from multiprocessing import Manager
 from queue import Queue
 from typing import List, Callable, Union, Any
-from functools import partial
 
 from PySide2.QtCore import QThreadPool
 
-from chartify.utils.typehints import ResultsFile
 from chartify.settings import Settings
 from chartify.utils.process_utils import (create_pool, kill_child_processes,
                                           load_file, wait_for_results)
 from chartify.utils.threads import (EsoFileWatcher, GuiMonitor,
                                     IterWorker, Monitor)
+from chartify.utils.typehints import ResultsFile
 from chartify.utils.utils import generate_ids, get_str_identifier
 from chartify.view.css_theme import CssTheme
 

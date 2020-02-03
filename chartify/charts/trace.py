@@ -1,4 +1,3 @@
-from esofile_reader.constants import *
 from chartify.charts.chart_settings import *
 
 

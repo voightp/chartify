@@ -1,28 +1,24 @@
 import ctypes
 import os
+from functools import partial
 
+from PySide2.QtCore import (QSize, Qt, QCoreApplication, Signal)
+from PySide2.QtGui import QIcon, QKeySequence, QColor
+from PySide2.QtWebEngineWidgets import QWebEngineView
 from PySide2.QtWidgets import (QWidget, QSplitter, QHBoxLayout, QVBoxLayout,
                                QToolButton, QAction, QFileDialog, QSizePolicy,
                                QFrame, QMainWindow, QStatusBar, QMenu)
-from PySide2.QtCore import (QSize, Qt, QCoreApplication, Signal, QObject, QUrl)
-
-from PySide2.QtGui import QIcon, QKeySequence, QColor
-from PySide2.QtWebEngineWidgets import QWebEngineView
-
-from chartify.view.icons import Pixmap, filled_circle_pixmap
-from chartify.view.progress_widget import ProgressContainer
-from chartify.view.misc_widgets import (DropFrame, TabWidget, MulInputDialog,
-                                        ConfirmationDialog)
-from chartify.view.buttons import MenuButton
-from chartify.view.toolbar import Toolbar
-from chartify.view.view_tools import ViewTools
-from chartify.view.css_theme import CssTheme, parse_palette
-from chartify.view.view_functions import create_proxy
-from chartify.settings import Settings
-
 from esofile_reader.outputs.convertor import rate_and_energy_units
 
-from functools import partial
+from chartify.settings import Settings
+from chartify.view.buttons import MenuButton
+from chartify.view.icons import Pixmap, filled_circle_pixmap
+from chartify.view.misc_widgets import (DropFrame, TabWidget, MulInputDialog,
+                                        ConfirmationDialog)
+from chartify.view.progress_widget import ProgressContainer
+from chartify.view.toolbar import Toolbar
+from chartify.view.view_functions import create_proxy
+from chartify.view.view_tools import ViewTools
 from chartify.view.view_widget import View
 
 

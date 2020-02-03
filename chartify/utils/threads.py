@@ -1,8 +1,7 @@
 from PySide2.QtCore import QThread, Signal, QRunnable
-
-from esofile_reader.processing.monitor import DefaultMonitor
-from esofile_reader.eso_file import EsoFile
 from esofile_reader import TotalsFile
+from esofile_reader.eso_file import EsoFile
+from esofile_reader.processing.monitor import DefaultMonitor
 
 
 # noinspection PyUnresolvedReferences

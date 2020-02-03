@@ -1,8 +1,8 @@
-from random import randint
-from esofile_reader.constants import AVERAGED_UNITS
-
 import os
+from random import randint
+
 import pandas as pd
+from esofile_reader.constants import AVERAGED_UNITS
 
 
 def install_fonts(pth, database):

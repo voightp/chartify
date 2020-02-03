@@ -1,9 +1,7 @@
-from collections import defaultdict
-from functools import partial
-from typing import Tuple, List, Dict, Union, Generator
-from chartify.view.icons import combine_colors
-from chartify.view.css_theme import parse_color
 from esofile_reader.constants import *
+
+from chartify.view.css_theme import parse_color
+from chartify.view.icons import combine_colors
 
 
 def get_pie_trace_appearance(priorities, colors, background_color):

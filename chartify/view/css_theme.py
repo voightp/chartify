@@ -1,7 +1,7 @@
-import re
 import json
-
+import re
 from collections import namedtuple
+
 from chartify.view.icons import Pixmap
 
 Color = namedtuple("Color", "r, g, b")

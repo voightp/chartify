@@ -1,7 +1,7 @@
+from PySide2.QtCore import Signal, Qt
 from PySide2.QtWidgets import (QWidget, QLabel, QProgressBar,
                                QVBoxLayout, QSizePolicy,
                                QPushButton, QHBoxLayout)
-from PySide2.QtCore import Signal, Qt
 
 
 class ProgressContainer(QWidget):

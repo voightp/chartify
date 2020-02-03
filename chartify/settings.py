@@ -38,12 +38,12 @@ class Settings:
     @classmethod
     def as_str(cls):
         return "Current Settings:" \
-            f"\n\tInterval: '{cls.INTERVAL}'" \
-            f"\n\tEnergy units: '{cls.ENERGY_UNITS}'" \
-            f"\n\tPower units: '{cls.POWER_UNITS}'" \
-            f"\n\tUnits system: '{cls.UNITS_SYSTEM}'" \
-            f"\n\tRate to Energy: '{cls.RATE_TO_ENERGY}'" \
-            f"\n\tCustom units: '{cls.CUSTOM_UNITS}'"
+               f"\n\tInterval: '{cls.INTERVAL}'" \
+               f"\n\tEnergy units: '{cls.ENERGY_UNITS}'" \
+               f"\n\tPower units: '{cls.POWER_UNITS}'" \
+               f"\n\tUnits system: '{cls.UNITS_SYSTEM}'" \
+               f"\n\tRate to Energy: '{cls.RATE_TO_ENERGY}'" \
+               f"\n\tCustom units: '{cls.CUSTOM_UNITS}'"
 
     @classmethod
     def load_reg_settings(cls):

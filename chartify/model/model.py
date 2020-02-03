@@ -1,14 +1,14 @@
-from chartify.settings import Settings
-from chartify.view.css_theme import parse_palette, Palette
-from chartify.charts.trace import Trace1D, Trace2D, TraceData
-from chartify.charts.chart import Chart
-from chartify.utils.typehints import ResultsFile
-
-from esofile_reader import get_results
-from PySide2.QtCore import Signal, QObject
-
 from typing import List, Union
+
 import pandas as pd
+from PySide2.QtCore import Signal, QObject
+from esofile_reader import get_results
+
+from chartify.charts.chart import Chart
+from chartify.charts.trace import Trace1D, Trace2D, TraceData
+from chartify.settings import Settings
+from chartify.utils.typehints import ResultsFile
+from chartify.view.css_theme import parse_palette, Palette
 
 
 class AppModel(QObject):

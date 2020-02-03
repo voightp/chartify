@@ -1,7 +1,8 @@
-from PySide2.QtWidgets import (QToolButton, QVBoxLayout, QHBoxLayout, QLabel,
-                               QSizePolicy, QFrame, QAction, QSlider, QMenu)
 from PySide2.QtCore import Qt, Signal, QSize
 from PySide2.QtGui import QIcon
+from PySide2.QtWidgets import (QToolButton, QVBoxLayout, QHBoxLayout, QLabel,
+                               QSizePolicy, QFrame, QSlider)
+
 from chartify.view.misc_widgets import update_appearance
 
 

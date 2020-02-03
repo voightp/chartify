@@ -1,10 +1,10 @@
+import traceback
+from multiprocessing import cpu_count
+
 import loky
 import psutil
-import traceback
-
 from esofile_reader import EsoFile, TotalsFile
 from esofile_reader.base_file import IncompleteFile
-from multiprocessing import cpu_count
 
 
 def create_pool():

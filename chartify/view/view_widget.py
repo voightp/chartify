@@ -1,10 +1,10 @@
-from PySide2.QtWidgets import QTreeView, QAbstractItemView, QHeaderView, QMenu
 from PySide2.QtCore import (Qt, QSortFilterProxyModel, QItemSelectionModel,
                             QItemSelection, QItemSelectionRange, QMimeData,
                             Signal)
-
 from PySide2.QtGui import QStandardItemModel, QStandardItem, QDrag, QPixmap
-from chartify.view.view_functions import as_tree_dct, create_proxy
+from PySide2.QtWidgets import QTreeView, QAbstractItemView, QHeaderView, QMenu
+
+from chartify.view.view_functions import as_tree_dct
 
 
 class View(QTreeView):

@@ -1,8 +1,9 @@
+from PySide2.QtCore import Qt, QFileInfo, Signal
 from PySide2.QtWidgets import (QSizePolicy, QLineEdit, QHBoxLayout, QTabWidget,
                                QToolButton, QDialog, QFormLayout, QVBoxLayout,
                                QDialogButtonBox, QWidget, QTextEdit, QLabel,
                                QFrame)
-from PySide2.QtCore import Qt, QFileInfo, Signal
+
 from chartify.view.view_widget import View
 
 

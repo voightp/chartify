@@ -1,13 +1,13 @@
 import copy
 import math
-
 from collections import defaultdict
 from functools import partial
 from typing import Tuple, List, Dict, Union, Generator, Any
 
-from chartify.charts.trace import Axis, Trace2D, TraceData, Trace1D
-from chartify.charts.chart_settings import get_pie_trace_appearance, get_axis_appearance
 from esofile_reader.constants import *
+
+from chartify.charts.chart_settings import get_pie_trace_appearance, get_axis_appearance
+from chartify.charts.trace import Axis, Trace2D, TraceData, Trace1D
 
 
 def combine_traces(traces: List[Trace1D]) -> Dict[str, Union[str, List]]:

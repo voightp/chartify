@@ -1,22 +1,21 @@
-from PySide2.QtCore import (QObject, Slot, Signal, QJsonValue, QJsonArray,
-                            QUrl, QThreadPool)
-from PySide2.QtWebEngineWidgets import QWebEnginePage, QWebEngineView
-from PySide2.QtGui import QColor
-from PySide2 import QtWebChannel
-
-from chartify.charts.chart import Chart
-from chartify.charts.chart_settings import generate_grid_item, color_generator
-from chartify.charts.chart_functions import transform_trace
-from chartify.utils.utils import int_generator, calculate_totals
-from chartify.settings import Settings
-from chartify.charts.trace import Trace1D, Trace2D, TraceData
-from chartify.model.model import AppModel
-from chartify.utils.threads import Worker
-from chartify.utils.tiny_profiler import profile
 import json
 import uuid
-
 from typing import Tuple, List, Union
+
+from PySide2 import QtWebChannel
+from PySide2.QtCore import (QObject, Slot, Signal, QJsonValue, QUrl, QThreadPool)
+from PySide2.QtGui import QColor
+from PySide2.QtWebEngineWidgets import QWebEnginePage, QWebEngineView
+
+from chartify.charts.chart import Chart
+from chartify.charts.chart_functions import transform_trace
+from chartify.charts.chart_settings import generate_grid_item, color_generator
+from chartify.charts.trace import Trace1D, TraceData
+from chartify.model.model import AppModel
+from chartify.settings import Settings
+from chartify.utils.threads import Worker
+from chartify.utils.tiny_profiler import profile
+from chartify.utils.utils import int_generator, calculate_totals
 
 
 class MyPage(QWebEnginePage):

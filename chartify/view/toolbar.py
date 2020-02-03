@@ -1,13 +1,11 @@
+from PySide2.QtCore import Qt, Signal
 from PySide2.QtWidgets import (QVBoxLayout, QGridLayout, QToolButton,
                                QGroupBox, QSizePolicy, QMenu,
                                QFrame, QAction)
-from PySide2.QtCore import Qt, Signal
+from esofile_reader.constants import TS, D, H, M, A, RP
 
 from chartify.settings import Settings
-from chartify.view.icons import Pixmap
-from chartify.view.buttons import (TitledButton, ToggleButton, CheckableButton, DualActionButton, ClickButton)
-
-from esofile_reader.constants import TS, D, H, M, A, RP
+from chartify.view.buttons import (TitledButton, ToggleButton, CheckableButton, ClickButton)
 
 
 def remove_children(layout):

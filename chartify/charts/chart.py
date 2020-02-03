@@ -1,10 +1,8 @@
 from chartify.charts.chart_functions import (get_axis_settings, pie_chart,
                                              create_2d_axis_map, set_axes_position)
-
 from chartify.charts.chart_settings import get_layout, style, config
-from typing import Dict, Any
-from chartify.utils.tiny_profiler import profile
 from chartify.charts.trace import Axis
+from chartify.utils.tiny_profiler import profile
 
 
 class Chart:
