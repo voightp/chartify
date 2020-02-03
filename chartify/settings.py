@@ -36,6 +36,7 @@ class Settings:
 
     SIZE = None
     POSITION = None
+    MIRRORED = None
 
     @classmethod
     def as_str(cls):
@@ -66,6 +67,7 @@ class Settings:
 
         cls.SIZE = QSettings().value("MainWindow/size", QSize(800, 600))
         cls.POSITION = QSettings().value("MainWindow/pos", QPoint(50, 50))
+        cls.MIRRORED = bool(QSettings().value("MainWindow/mirrored", False))
 
     @classmethod
     def write_reg_settings(cls):
@@ -82,3 +84,4 @@ class Settings:
         s.setValue("MainWindow/loadPath", cls.FS_PATH)
         s.setValue("MainWindow/size", cls.SIZE)
         s.setValue("MainWindow/pos", cls.POSITION)
+        s.setValue("MainWindow/mirrored", int(cls.MIRRORED))

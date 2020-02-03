@@ -328,10 +328,14 @@ class MainWindow(QMainWindow):
         self.main_chart_layout.setContentsMargins(0, 0, 0, 0)
         self.main_chart_widget.setMinimumWidth(400)
 
+        if Settings.MIRRORED:
+            self.mirror_layout()
+
     def mirror_layout(self):
         """ Mirror the layout. """
         self.left_main_layout.addItem(self.left_main_layout.takeAt(0))
         self.central_splitter.insertWidget(0, self.central_splitter.widget(1))
+        Settings.MIRRORED = not Settings.MIRRORED
 
     def on_scheme_changed(self, name):
         """ Update the application palette. """
