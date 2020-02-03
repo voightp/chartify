@@ -8,63 +8,30 @@ from chartify.settings import Settings
 from chartify.view.buttons import (TitledButton, ToggleButton, CheckableButton, ClickButton)
 
 
-def remove_children(layout):
-    """ Remove all children of the interface. """
+def populate_group(group, widgets, hide_disabled=False, n_cols=2):
+    """ Populate given group with given widgets. """
+    layout = group.layout()
+
+    # remove all children of the interface
     for _ in range(layout.count()):
         wgt = layout.itemAt(0).widget()
         layout.removeWidget(wgt)
 
+    if hide_disabled:
+        enabled = []
+        for wgt in widgets:
+            if not wgt.isEnabled():
+                wgt.hide()
+            else:
+                wgt.show()
+                enabled.append(wgt)
+        widgets = enabled
 
-def populate_grid_layout(layout, wgts, n_cols):
-    """ Place given widgets on a specified layout with 'n' columns. """
-    # render only enabled buttons
-    n_rows = (len(wgts) if len(wgts) % 2 == 0 else len(wgts) + 1) // n_cols
+    n_rows = (len(widgets) if len(widgets) % 2 == 0 else len(widgets) + 1) // n_cols
     ixs = [(x, y) for x in range(n_rows) for y in range(n_cols)]
 
-    for btn, ix in zip(wgts, ixs):
+    for btn, ix in zip(widgets, ixs):
         layout.addWidget(btn, *ix)
-
-
-def hide_disabled_wgts(wgts):
-    """ Hide disabled widgets from the interface. """
-    enabled, disabled = filter_disabled(wgts)
-
-    for wgt in disabled:
-        wgt.hide()
-
-    return enabled
-
-
-def filter_disabled(wgts):
-    """ Take a list and split it to 'enabled', 'disabled' sub-lists. """
-    enabled = []
-    disabled = []
-
-    for wgt in wgts:
-        if wgt.isEnabled():
-            enabled.append(wgt)
-        else:
-            disabled.append(wgt)
-
-    return enabled, disabled
-
-
-def show_wgts(wgts):
-    """ Display given widgets. """
-    for wgt in wgts:
-        wgt.show()
-
-
-def populate_group(group, widgets, hide_disabled=False, n_cols=2):
-    """ Populate given group with given widgets. """
-    layout = group.layout()
-    remove_children(layout)
-
-    if hide_disabled:
-        widgets = hide_disabled_wgts(widgets)
-        show_wgts(widgets)
-
-    populate_grid_layout(layout, widgets, n_cols)
 
 
 class Toolbar(QFrame):
