@@ -8,32 +8,6 @@ from chartify.settings import Settings
 from chartify.view.buttons import (TitledButton, ToggleButton, CheckableButton, ClickButton)
 
 
-def populate_group(group, widgets, hide_disabled=False, n_cols=2):
-    """ Populate given group with given widgets. """
-    layout = group.layout()
-
-    # remove all children of the interface
-    for _ in range(layout.count()):
-        wgt = layout.itemAt(0).widget()
-        layout.removeWidget(wgt)
-
-    if hide_disabled:
-        enabled = []
-        for wgt in widgets:
-            if not wgt.isEnabled():
-                wgt.hide()
-            else:
-                wgt.show()
-                enabled.append(wgt)
-        widgets = enabled
-
-    n_rows = (len(widgets) if len(widgets) % 2 == 0 else len(widgets) + 1) // n_cols
-    ixs = [(x, y) for x in range(n_rows) for y in range(n_cols)]
-
-    for btn, ix in zip(widgets, ixs):
-        layout.addWidget(btn, *ix)
-
-
 class Toolbar(QFrame):
     """
     A class to represent application toolbar.
@@ -128,8 +102,33 @@ class Toolbar(QFrame):
     @property
     def outputs_btns(self):
         """ A shorthand to get all outputs buttons. """
-        return [self.totals_btn,
-                self.all_files_btn]
+        return [self.totals_btn, self.all_files_btn]
+
+    @staticmethod
+    def populate_group(group, widgets, hide_disabled=False, n_cols=2):
+        """ Populate given group with given widgets. """
+        layout = group.layout()
+
+        # remove all children of the interface
+        for _ in range(layout.count()):
+            wgt = layout.itemAt(0).widget()
+            layout.removeWidget(wgt)
+
+        if hide_disabled:
+            enabled = []
+            for wgt in widgets:
+                if not wgt.isEnabled():
+                    wgt.hide()
+                else:
+                    wgt.show()
+                    enabled.append(wgt)
+            widgets = enabled
+
+        n_rows = (len(widgets) if len(widgets) % 2 == 0 else len(widgets) + 1) // n_cols
+        ixs = [(x, y) for x in range(n_rows) for y in range(n_cols)]
+
+        for btn, ix in zip(widgets, ixs):
+            layout.addWidget(btn, *ix)
 
     def all_files_requested(self):
         """ Check if results from all eso files are requested. """
@@ -141,20 +140,20 @@ class Toolbar(QFrame):
 
     def populate_outputs_group(self):
         """ Populate outputs buttons. """
-        populate_group(self.outputs_group, self.outputs_btns)
+        self.populate_group(self.outputs_group, self.outputs_btns)
 
     def populate_intervals_group(self, hide_disabled=True):
         """ Populate interval buttons based on a current state. """
         btns = self.interval_btns.values()
-        populate_group(self.intervals_group, btns, hide_disabled=hide_disabled)
+        self.populate_group(self.intervals_group, btns, hide_disabled=hide_disabled)
 
     def populate_tools_group(self):
         """ Populate tools group layout. """
-        populate_group(self.tools_group, self.tools_btns)
+        self.populate_group(self.tools_group, self.tools_btns)
 
     def populate_units_group(self):
         """ Populate units group layout. """
-        populate_group(self.units_group, self.units_btns)
+        self.populate_group(self.units_group, self.units_btns)
 
     def set_up_outputs_btns(self):
         """ Create interval buttons and a parent container. """
