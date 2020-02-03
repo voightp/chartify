@@ -173,9 +173,7 @@ class Toolbar(QFrame):
         interval_btns_layout.setAlignment(Qt.AlignTop)
 
         # ~~~~ Interval buttons set up~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        invervals = [TS, H, D, M, A, RP]
-
-        for ivl in invervals:
+        for ivl in [TS, H, D, M, A, RP]:
             btn = QToolButton(self.intervals_group)
             btn.setText(ivl)
             btn.setCheckable(True)
