@@ -395,14 +395,14 @@ class Toolbar(QFrame):
 
         self.energy_btn.update_state_internally(ene)
         self.power_btn.update_state_internally(pw)
-        self.units_sys_btn.update_state_internally(us)
+        self.units_system_button.update_state_internally(us)
         self.rate_energy_btn.setChecked(checked)
 
     def set_default_units(self):
         """ Reset units to E+ default. """
         self.energy_btn.update_state_internally("J")
         self.power_btn.update_state_internally("W")
-        self.units_sys_btn.update_state_internally("SI")
+        self.units_system_button.update_state_internally("SI")
 
         Settings.ENERGY_UNITS = "J"
         Settings.POWER_UNITS = "W"
@@ -411,7 +411,7 @@ class Toolbar(QFrame):
 
         self.energy_btn.setEnabled(False)
         self.power_btn.setEnabled(False)
-        self.units_sys_btn.setEnabled(False)
+        self.units_system_button.setEnabled(False)
 
         self.rate_energy_btn.setEnabled(False)
         self.rate_energy_btn.setChecked(False)

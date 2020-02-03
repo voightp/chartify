@@ -2,6 +2,7 @@ import json
 import re
 from collections import namedtuple
 
+from chartify.settings import Settings
 from chartify.view.icons import Pixmap
 
 Color = namedtuple("Color", "r, g, b")
@@ -157,7 +158,7 @@ class CssTheme:
             prop, url, col = tup[0]
             rgb = self.parse_line(col, palette, as_tuple=True)
             if rgb:
-                p = Pixmap(url, *rgb)
+                p = Pixmap(str(Settings.ROOT) + url, *rgb)
                 tf = p.as_temp()
                 self._temp.append(tf)
                 line = f"{prop}url({tf.fileName()});\n"

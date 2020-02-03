@@ -1,5 +1,5 @@
 import sys
-
+from pathlib import Path
 from PySide2.QtWidgets import QApplication
 from PySide2.QtGui import QFontDatabase
 
@@ -11,11 +11,12 @@ from chartify.utils.utils import install_fonts
 from chartify.settings import Settings
 
 if __name__ == "__main__":
+    root = Path(__file__).parent
     app = QApplication()
 
     db = QFontDatabase()
-    install_fonts("./resources", db)
-    db.addApplicationFont("./resources/Roboto-Regular.ttf")
+    install_fonts(str(Path(root, "resources")), db)
+    db.addApplicationFont(str(Path(root, "resources/Roboto-Regular.ttf")))
 
     Settings.load_reg_settings()
 

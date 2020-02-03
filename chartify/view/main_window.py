@@ -269,35 +269,35 @@ class MainWindow(QMainWindow):
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("foo")
 
         r = Settings.ICONS_PATH
-        self.setWindowIcon(Pixmap(r + "smile.png", 255, 255, 255))
+        self.setWindowIcon(Pixmap(r + "/smile.png", 255, 255, 255))
 
-        self.load_file_btn.setIcon(QIcon(Pixmap(r + "file.png", *c1)))
-        self.save_btn.setIcon(QIcon(Pixmap(r + "save.png", *c1)))
-        self.about_btn.setIcon(QIcon(Pixmap(r + "help.png", *c1)))
-        self.close_all_act.setIcon(QIcon(Pixmap(r + "remove.png", *c1)))
-        self.load_file_act.setIcon(QIcon(Pixmap(r + "add_file.png", *c1)))
+        self.load_file_btn.setIcon(QIcon(Pixmap(r + "/file.png", *c1)))
+        self.save_btn.setIcon(QIcon(Pixmap(r + "/save.png", *c1)))
+        self.about_btn.setIcon(QIcon(Pixmap(r + "/help.png", *c1)))
+        self.close_all_act.setIcon(QIcon(Pixmap(r + "/remove.png", *c1)))
+        self.load_file_act.setIcon(QIcon(Pixmap(r + "/add_file.png", *c1)))
 
-        self.tab_wgt.drop_btn.setIcon(Pixmap(r + "drop_file.png", *c1))
+        self.tab_wgt.drop_btn.setIcon(Pixmap(r + "/drop_file.png", *c1))
         self.tab_wgt.drop_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
         self.tab_wgt.drop_btn.setIconSize(QSize(50, 50))
 
-        self.toolbar.totals_btn.set_icons(Pixmap(r + "building.png", *c1),
-                                          Pixmap(r + "building.png", *c1, a=0.5),
-                                          Pixmap(r + "building.png", *c2),
-                                          Pixmap(r + "building.png", *c2, a=0.5))
+        self.toolbar.totals_btn.set_icons(Pixmap(r + "/building.png", *c1),
+                                          Pixmap(r + "/building.png", *c1, a=0.5),
+                                          Pixmap(r + "/building.png", *c2),
+                                          Pixmap(r + "/building.png", *c2, a=0.5))
 
-        self.toolbar.all_files_btn.set_icons(Pixmap(r + "all_files.png", *c1),
-                                             Pixmap(r + "all_files.png", *c1, a=0.5),
-                                             Pixmap(r + "all_files.png", *c2),
-                                             Pixmap(r + "all_files.png", *c2, a=0.5))
+        self.toolbar.all_files_btn.set_icons(Pixmap(r + "/all_files.png", *c1),
+                                             Pixmap(r + "/all_files.png", *c1, a=0.5),
+                                             Pixmap(r + "/all_files.png", *c2),
+                                             Pixmap(r + "/all_files.png", *c2, a=0.5))
 
-        self.toolbar.sum_btn.set_icons(Pixmap(r + "sigma.png", *c1),
-                                       Pixmap(r + "sigma.png", *c1, a=0.5))
-        self.toolbar.mean_btn.set_icons(Pixmap(r + "mean.png", *c1),
-                                        Pixmap(r + "mean.png", *c1, a=0.5))
+        self.toolbar.sum_btn.set_icons(Pixmap(r + "/sigma.png", *c1),
+                                       Pixmap(r + "/sigma.png", *c1, a=0.5))
+        self.toolbar.mean_btn.set_icons(Pixmap(r + "/mean.png", *c1),
+                                        Pixmap(r + "/mean.png", *c1, a=0.5))
 
-        self.toolbar.remove_btn.set_icons(Pixmap(r + "remove.png", *c1),
-                                          Pixmap(r + "remove.png", *c1, a=0.5))
+        self.toolbar.remove_btn.set_icons(Pixmap(r + "/remove.png", *c1),
+                                          Pixmap(r + "/remove.png", *c1, a=0.5))
 
     def set_up_base_ui(self):
         """ Set up appearance of main widgets. """
