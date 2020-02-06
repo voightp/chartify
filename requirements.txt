@@ -4,7 +4,7 @@ cloudpickle==1.2.1
 colorama==0.4.1
 coverage==5.0.3
 Cython==0.29.14
-esofile-reader==0.1.0
+# esofile-reader==0.1.0
 et-xmlfile==1.0.1
 importlib-metadata==1.2.0
 jdcal==1.4.1
@@ -17,7 +17,6 @@ pandas==0.25.3
 pluggy==0.13.1
 psutil==5.6.3
 py==1.8.0
-Pympler==0.7
 pyparsing==2.4.5
 PySide2==5.13.0
 pytest==5.3.1
