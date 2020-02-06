@@ -6,12 +6,12 @@ from esofile_reader.processing.monitor import DefaultMonitor
 
 # noinspection PyUnresolvedReferences
 class Monitor(QThread):
-    bar_updated = Signal(int, int)
-    finished = Signal(int)
-    preprocess_finished = Signal(int, int)
-    started = Signal(int, str)
-    initialized = Signal(int, str)
-    failed = Signal(int, str)
+    bar_updated = Signal(str, int)
+    finished = Signal(str)
+    preprocess_finished = Signal(str, int)
+    started = Signal(str, str)
+    initialized = Signal(str, str)
+    failed = Signal(str, str)
 
     def __init__(self, progress_queue):
         super().__init__()
@@ -63,7 +63,7 @@ class Monitor(QThread):
 
 # noinspection PyUnresolvedReferences
 class EsoFileWatcher(QThread):
-    loaded = Signal(int, EsoFile, TotalsFile)
+    loaded = Signal(str, EsoFile, TotalsFile)
 
     def __init__(self, file_queue):
         super().__init__()
@@ -71,8 +71,8 @@ class EsoFileWatcher(QThread):
 
     def run(self):
         while True:
-            id_, std_file, tot_file = self.file_queue.get()
-            self.loaded.emit(id_, std_file, tot_file)
+            id_, f, tf = self.file_queue.get()
+            self.loaded.emit(id_, f, tf)
 
 
 class GuiMonitor(DefaultMonitor):

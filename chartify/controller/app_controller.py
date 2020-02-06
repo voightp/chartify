@@ -3,6 +3,7 @@ from functools import partial
 from multiprocessing import Manager
 from queue import Queue
 from typing import List, Callable, Union, Any
+import uuid
 
 from PySide2.QtCore import QThreadPool
 
@@ -11,9 +12,9 @@ from chartify.utils.process_utils import (create_pool, kill_child_processes,
                                           load_file, wait_for_results)
 from chartify.utils.threads import (EsoFileWatcher, GuiMonitor,
                                     IterWorker, Monitor)
-from chartify.utils.typehints import ResultsFile
 from chartify.utils.utils import generate_ids, get_str_identifier
 from chartify.view.css_theme import CssTheme
+from esofile_reader.utils.mini_classes import ResultsFile
 
 
 class AppController:
@@ -125,56 +126,53 @@ class AppController:
         self.monitor.finished.connect(self.v.progress_cont.set_pending)
         self.monitor.failed.connect(self.v.progress_cont.set_failed)
 
-    def handle_view_update(self, set_id: str) -> None:
+    def handle_view_update(self, id_: int) -> None:
         """ Update content of a newly selected tab. """
-        file = self.m.fetch_file(set_id)
+        file = self.m.get_file(id_)
 
         # update interface to enable only available interval buttons
         # and rate to energy button when applicable
         self.v.toolbar.update_intervals_state(file.available_intervals)
         self.v.toolbar.update_rate_to_energy_state(Settings.INTERVAL)
 
-        variables = self.m.fetch_header_variables(set_id, Settings.INTERVAL)
-        selected = self.m.selected_variables
-
-        self.v.build_view(variables, selected=selected)
+        self.v.build_view(file.get_header_dictionary(Settings.INTERVAL).values(),
+                          selected=self.m.selected_variables)
 
     def handle_file_processing(self, paths: List[str]) -> None:
         """ Load new files. """
-        used_ids = self.m.get_all_set_ids()
-        ids = generate_ids(used_ids, n=len(paths))
-
         for path in paths:
-            id_ = ids.pop(0)
-            monitor = GuiMonitor(path, id_, self.progress_queue)
-            future = self.pool.submit(load_file, path, monitor=monitor,
-                                      suppress_errors=False)
+            monitor_id = str(uuid.uuid1())
+            monitor = GuiMonitor(path, monitor_id, self.progress_queue)
+            future = self.pool.submit(load_file, path, monitor=monitor)
+            future.add_done_callback(partial(wait_for_results, monitor_id,
+                                             self.file_queue))
 
-            func = partial(wait_for_results, id_, self.file_queue)
-            future.add_done_callback(func)
-
-    def on_file_loaded(self, id_: str, file: ResultsFile, tot_file: ResultsFile) -> None:
+    def on_file_loaded(self, monitor_id: str, files: List[ResultsFile],
+                       totals_files: List[ResultsFile]) -> None:
         """ Add eso file into 'tab' widget. """
-        names = self.m.get_all_file_names()
-        name = get_str_identifier(file.file_name, names)
+        for f, tf in zip(files, totals_files):
+            names = self.m.get_all_file_names()
+            name = get_str_identifier(f.file_name, names)
 
-        file.rename(name)
-        tot_file.rename(f"{name} - totals")
+            f.rename(name)
+            tf.rename(f"{name} - totals")
 
-        self.m.add_file(f"s{id_}", file)
-        self.m.add_file(f"t{id_}", tot_file)
+            id_ = self.m.store_file(f)
+            self.v.add_new_tab(id_, name)
 
-        self.v.add_new_tab(id_, name)
-        self.v.progress_cont.remove_file(id_)
+            # totals flag is based on the file class
+            id_ = self.m.store_file(tf)
+            self.v.add_new_tab(id_, name)
 
-    def apply_async(self, set_id: str, func: Callable, *args, **kwargs) -> Any:
+        self.v.progress_cont.remove_file(monitor_id)
+
+    def _apply_async(self, id_: int, func: Callable, *args, **kwargs) -> Any:
         """ A wrapper to apply functions to current views. """
-        file = self.m.fetch_file(set_id)
+        file = self.m.fetch_file(id_)
         other_files = None
 
         if Settings.ALL_FILES:
-            other_files = self.m.fetch_all_files()
-            other_files.remove(file)
+            other_files = self.m.get_other_files()
 
         # apply function on the current file
         val = func(file, *args, **kwargs)
@@ -195,13 +193,14 @@ class AppController:
             var_id, var = res
             return var
 
-    def handle_rename_variable(self, set_id: str, variable: tuple,
+    def handle_rename_variable(self, id_: int, variable: tuple,
                                var_nm: str, key_nm: str) -> None:
         """ Overwrite variable name. """
-        var = self.apply_async(set_id, self.rename_var, var_nm, key_nm, variable)
-
-        variables = self.m.fetch_header_variables(set_id, Settings.INTERVAL)
-        self.v.build_view(variables, scroll_to=var, selected=[var])
+        variable = self._apply_async(id_, self.rename_var, var_nm, key_nm, variable)
+        self.v.build_view(
+            self.m.get_file(id_).get_header_dictionary(Settings.INTERVAL).values(),
+            selected=[variable], scroll_to=variable
+        )
 
     def handle_file_rename(self, set_id: str, name: str, totals_name: str) -> None:
         """ Update file name. """
@@ -212,12 +211,12 @@ class AppController:
         """ Hide or remove selected variables. """
         file.remove_outputs(variables)
 
-    def handle_remove_variables(self, set_id: str, variables: List[tuple]) -> None:
+    def handle_remove_variables(self, id_: int, variables: List[tuple]) -> None:
         """ Remove variables from a file or all files. """
-        self.apply_async(set_id, self.dump_vars, variables)
-        variables = self.m.fetch_header_variables(set_id, Settings.INTERVAL)
-
-        self.v.build_view(variables)
+        self._apply_async(id_, self.dump_vars, variables)
+        self.v.build_view(
+            self.m.get_file(id_).get_header_dictionary(Settings.INTERVAL).values()
+        )
 
     @staticmethod
     def aggr_vars(file: ResultsFile, variables: List[tuple], var_nm: str,
@@ -231,14 +230,15 @@ class AppController:
             var_id, var = res
             return var
 
-    def handle_aggregate_variables(self, set_id: str, variables: List[tuple], var_nm: str,
+    def handle_aggregate_variables(self, id_: int, variables: List[tuple], var_nm: str,
                                    key_nm: str, func: Union[str, Callable]) -> None:
         """ Create a new variable using given aggregation function. """
-        var = self.apply_async(set_id, self.aggr_vars, variables, var_nm, key_nm, func)
-        variables = self.m.fetch_header_variables(set_id, Settings.INTERVAL)
+        variable = self._apply_async(id_, self.aggr_vars, variables, var_nm, key_nm, func)
+        self.v.build_view(
+            self.m.get_file(id_).get_header_dictionary(Settings.INTERVAL).values(),
+            selected=[variable], scroll_to=variable
+        )
 
-        self.v.build_view(variables, scroll_to=var, selected=[var])
-
-    def handle_close_tab(self, id_: str) -> None:
-        """ Delete set from the database. """
-        self.m.delete_sets(id_)
+    def handle_close_tab(self, id_: int) -> None:
+        """ Delete file from the database. """
+        self.m.delete_file(id_)

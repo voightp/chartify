@@ -44,7 +44,6 @@ class View(QTreeView):
         self.temp_settings = {"interval": None,
                               "tree_key": None,
                               "units": None,
-                              "totals": None,
                               "force_update": True}
 
         self._scrollbar_position = 0
@@ -85,12 +84,11 @@ class View(QTreeView):
         """ Notify the view that it needs to be updated. """
         self.temp_settings["force_update"] = True
 
-    def store_settings(self, interval, tree_key, units, totals):
+    def store_settings(self, interval, tree_key, units):
         """ Store intermediate settings. """
         self.temp_settings = {"interval": interval,
                               "tree_key": tree_key,
                               "units": units,
-                              "totals": totals,
                               "force_update": False}
 
     def set_first_col_spanned(self):
@@ -206,7 +204,7 @@ class View(QTreeView):
             self.selectionCleared.emit()
 
     def update_model(self, variables, proxy_variables, is_tree, interval,
-                     units, totals, filter_str="", selected=None, scroll_to=None):
+                     units, filter_str="", selected=None, scroll_to=None):
         """ Set the model and define behaviour of the tree view. """
         view_order = self.settings["header"]
         tree_key = view_order[0] if is_tree else None
@@ -215,7 +213,6 @@ class View(QTreeView):
         conditions = [tree_key != self.temp_settings["tree_key"],
                       interval != self.temp_settings["interval"],
                       units != self.temp_settings["units"],
-                      totals != self.temp_settings["totals"],
                       self.temp_settings["force_update"]]
 
         if any(conditions):
@@ -223,7 +220,7 @@ class View(QTreeView):
             self.build_model(variables, proxy_variables, tree_key, view_order)
 
             # Store current sorting key and interval
-            self.store_settings(interval, tree_key, units, totals)
+            self.store_settings(interval, tree_key, units)
             self.reconnect_actions()
 
         # clear selections to avoid having visually

@@ -8,7 +8,7 @@ from PySide2.QtWebEngineWidgets import QWebEngineView
 from PySide2.QtWidgets import (QWidget, QSplitter, QHBoxLayout, QVBoxLayout,
                                QToolButton, QAction, QFileDialog, QSizePolicy,
                                QFrame, QMainWindow, QStatusBar, QMenu)
-from esofile_reader.outputs.convertor import rate_and_energy_units
+from esofile_reader.convertor import rate_and_energy_units
 
 from chartify.settings import Settings
 from chartify.view.buttons import MenuButton
@@ -29,15 +29,15 @@ class MainWindow(QMainWindow):
     QCoreApplication.setOrganizationDomain("chartify.foo")
     QCoreApplication.setApplicationName("chartify")
 
-    viewUpdateRequested = Signal(str)
+    viewUpdateRequested = Signal(int)
     paletteUpdateRequested = Signal(str)
     fileProcessingRequested = Signal(list)
-    fileRenamed = Signal(str, str, str)
+    fileRenamed = Signal(int, str, str)
     selectionChanged = Signal(list)
-    variableRenamed = Signal(str, tuple, str, str)
-    variablesRemoved = Signal(str, list)
-    variablesAggregated = Signal(str, list, str, str, str)
-    tabClosed = Signal(str)
+    variableRenamed = Signal(int, tuple, str, str)
+    variablesRemoved = Signal(int, list)
+    variablesAggregated = Signal(int, list, str, str, str)
+    tabClosed = Signal(int)
     appClosedRequested = Signal()
 
     _CLOSE_FLAG = False
@@ -378,12 +378,11 @@ class MainWindow(QMainWindow):
         interval = Settings.INTERVAL
         units = (Settings.RATE_TO_ENERGY, Settings.UNITS_SYSTEM,
                  Settings.ENERGY_UNITS, Settings.POWER_UNITS)
-        totals = Settings.TOTALS
 
         proxy_variables = create_proxy(variables, view_order, *units)
 
         self.current_view.update_model(variables, proxy_variables, is_tree,
-                                       interval, units, totals, filter_str=filter_str,
+                                       interval, units, filter_str=filter_str,
                                        selected=selected, scroll_to=scroll_to)
 
     def on_selection_populated(self, variables):
@@ -411,7 +410,7 @@ class MainWindow(QMainWindow):
         """ Create a 'View' widget and connect its actions. """
         # create an empty 'View' widget - the data will be
         # automatically populated on 'onTabChanged' signal
-        wgt = View(str(id_), name)
+        wgt = View(id_, name)
         wgt.selectionCleared.connect(self.on_selection_cleared)
         wgt.selectionPopulated.connect(self.on_selection_populated)
         wgt.treeNodeChanged.connect(self.on_settings_changed)
@@ -454,10 +453,10 @@ class MainWindow(QMainWindow):
             # there aren't any widgets available
             self.remove_variables_act.setEnabled(False)
             self.toolbar.set_initial_layout()
-            Settings.CURRENT_SET_ID = None
+            Settings.CURRENT_FILE_ID = None
         else:
             self.viewUpdateRequested.emit(self.current_view.id_)
-            Settings.CURRENT_SET_ID = self.current_view.id_
+            Settings.CURRENT_FILE_ID = self.current_view.id_
 
     def on_settings_changed(self):
         """ Update view when settings change. """

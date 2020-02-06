@@ -3,12 +3,17 @@ from typing import List, Union
 import pandas as pd
 from PySide2.QtCore import Signal, QObject
 from esofile_reader import get_results
+from esofile_reader.utils.mini_classes import ResultsFile
+from esofile_reader import TotalsFile
 
 from chartify.charts.chart import Chart
 from chartify.charts.trace import Trace1D, Trace2D, TraceData
 from chartify.settings import Settings
-from chartify.utils.typehints import ResultsFile
 from chartify.view.css_theme import parse_palette, Palette
+
+from esofile_reader.storage.df_storage import DFStorage
+from esofile_reader.storage.sql_storage import SQLStorage
+from esofile_reader import DatabaseFile
 
 
 class AppModel(QObject):
@@ -22,11 +27,12 @@ class AppModel(QObject):
     """
     fullUpdateRequested = Signal(dict)
 
+    # ~~~~ File Database ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    storage = SQLStorage
+    storage.set_up_db()
+
     def __init__(self):
         super().__init__()
-        # ~~~~ File Database ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.database = {}
-
         # ~~~~ Temporary ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.selected_variables = []
 
@@ -41,12 +47,51 @@ class AppModel(QObject):
         # ~~~~ Palettes ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.palettes = parse_palette(Settings.PALETTE_PATH)
 
+    def get_file(self, id_: int) -> DatabaseFile:
+        """ Get 'DatabaseFile for the given id. """
+        return self.storage.FILES[id_]
+
+    def get_other_files(self) -> List[DatabaseFile]:
+        """ Get all the other files than currently selected. """
+        other_files = []
+        for id_, file in self.storage.FILES.items():
+            if id_ != Settings.CURRENT_FILE_ID and file.totals == Settings.TOTALS:
+                other_files.append(file)
+        return other_files
+
+    def store_file(self, file: ResultsFile) -> int:
+        """ Store file in database. """
+        try:
+            return self.storage.store_file(file, totals=isinstance(file, TotalsFile))
+        except BrokenPipeError:
+            print("Application has been closed - catching broken pipe!")
+
+    def get_all_file_names(self) -> List[str]:
+        """ Get all used file names. """
+        return self.storage.get_all_file_names()
+
+    def delete_file(self, id_: int) -> None:
+        """ Delete file from the database. """
+        try:
+            self.storage.delete_file(id_)
+        except KeyError:
+            print(f"Cannot delete file: id '{id_}',"
+                  f"\nFile was not found in the database.")
+
+    def rename_file(self, id_: int, name: str):
+        """ Rename given file. """
+        try:
+            self.storage.FILES[id_].rename(name)
+        except KeyError:
+            print(f"Cannot rename file: '{id_}',"
+                  f"\nFile was not found in database.")
+
     def get_results(self, **kwargs) -> pd.DataFrame:
         """ Get output values for given variables. """
         if Settings.ALL_FILES:
-            files = self.fetch_all_files()
+            files = self.storage.FILES.values()
         else:
-            files = self.fetch_file(Settings.CURRENT_SET_ID)
+            files = self.storage.FILES[Settings.CURRENT_FILE_ID]
 
         args = (files, self.selected_variables)
         kwargs = {
@@ -125,86 +170,3 @@ class AppModel(QObject):
             return self.palettes[name]
         except KeyError:
             raise KeyError(f"Cannot find palette '{name}'.")
-
-    def fetch_file(self, set_id: str) -> ResultsFile:
-        """ Fetch a single file from the database. """
-        file_id = f"t{set_id}" if Settings.TOTALS else f"s{set_id}"
-        try:
-            return self.database[file_id]
-        except KeyError:
-            raise KeyError(f"Cannot find file {file_id} in database!")
-
-    def fetch_files(self, *args: str) -> List[ResultsFile]:
-        """ Fetch multiple files from the database. """
-        files = []
-        for set_id in args:
-            f = self.fetch_file(set_id)
-            if f:
-                files.append(f)
-        return files
-
-    def fetch_all_files(self) -> List[ResultsFile]:
-        """ Fetch all files from the database. """
-        files = []
-        for set_id in self.get_all_set_ids():
-            f = self.fetch_file(set_id)
-            if f:
-                files.append(f)
-        return files
-
-    def fetch_header_variables(self, set_id: str, interval: str) -> List[tuple]:
-        """ Fetch a file header variables for a given interval. """
-        file = self.fetch_file(set_id)
-        if file:
-            return list(file.header[interval].values())
-
-    def get_all_file_ids(self) -> List[str]:
-        """ Return all file ids for a current state. """
-        ids = []
-        for file_id in self.database.keys():
-            if file_id.startswith("t" if Settings.TOTALS else "s"):
-                ids.append(file_id)
-        return ids
-
-    def get_all_set_ids(self) -> List[str]:
-        """ Get a list of already used ids (without s,t identifier). """
-        return [id_[1:] for id_ in self.get_all_file_ids()]
-
-    def get_all_file_names(self) -> List[str]:
-        """ Get all used file names. """
-        return [f.file_name for f in self.database.values()]
-
-    def delete_file(self, file_id: str) -> None:
-        """ Delete file from the database. """
-        try:
-            del self.database[file_id]
-        except KeyError:
-            print(f"Cannot delete file: id '{file_id}',"
-                  f"\nFile was not found in the database.")
-
-    def delete_sets(self, *args: str) -> None:
-        """ Delete specified sets from the database. """
-        for set_id in args:
-            self.delete_file(f"s{set_id}")
-            self.delete_file(f"t{set_id}")
-
-    def rename_file(self, file_id: str, name: str):
-        """ Rename given file. """
-        try:
-            file = self.database[file_id]
-            file.rename(name)
-        except KeyError:
-            print(f"Cannot rename file: '{file_id}',"
-                  f"\nFile was not found in database.")
-
-    def rename_set(self, set_id: str, name: str, totals_name: str):
-        """ Rename a file set in the database. """
-        self.rename_file(f"s{set_id}", name)
-        self.rename_file(f"t{set_id}", totals_name)
-
-    def add_file(self, file_id: str, file: ResultsFile) -> None:
-        """ Add processed results file to the database. """
-        try:
-            self.database[file_id] = file
-        except BrokenPipeError:
-            print("Application has been closed - catching broken pipe!")
