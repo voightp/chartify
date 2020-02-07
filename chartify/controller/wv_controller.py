@@ -57,7 +57,6 @@ class WVController(QObject):
         self.wv.setAcceptDrops(True)
 
         self.thread_pool = QThreadPool()
-        self.m.fullUpdateRequested.connect(self.refresh_layout)
 
     @profile
     def refresh_layout(self):
