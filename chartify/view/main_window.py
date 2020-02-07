@@ -371,7 +371,7 @@ class MainWindow(QMainWindow):
     def build_view(self, variables, selected=None, scroll_to=None):
         """ Create a new view when any of related settings change """
         is_tree = self.view_tools_wgt.tree_requested()
-        filter_str = self.view_tools_wgt.get_filter_str()
+        filter_tup = self.view_tools_wgt.get_filter_tup()
 
         if not self.current_view:
             return
@@ -384,7 +384,7 @@ class MainWindow(QMainWindow):
         proxy_variables = create_proxy(variables, view_order, *units)
 
         self.current_view.update_model(variables, proxy_variables, is_tree,
-                                       interval, units, filter_str=filter_str,
+                                       interval, units, filter_tup=filter_tup,
                                        selected=selected, scroll_to=scroll_to)
 
     def on_selection_populated(self, variables):
@@ -420,10 +420,10 @@ class MainWindow(QMainWindow):
         wgt.context_menu_actions = [self.remove_variables_act]
         return wgt
 
-    def filter_view(self, filter_string):
+    def filter_view(self, filter_tup):
         """ Filter current view. """
         if not self.tab_wgt.is_empty():
-            self.current_view.filter_view(filter_string)
+            self.current_view.filter_view(filter_tup)
 
     def expand_all(self):
         """ Expand all tree view items. """

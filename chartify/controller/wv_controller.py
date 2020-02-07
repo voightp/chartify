@@ -67,8 +67,6 @@ class WVController(QObject):
             plot = self.plot_component(component)
             components[component.item_id] = plot
 
-        print(Settings.PALETTE.get_all_colors())
-
         items = self.m.fetch_all_items()
 
         self.fullLayoutUpdated.emit(items, components,

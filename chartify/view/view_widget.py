@@ -70,11 +70,11 @@ class View(QTreeView):
 
         menu.exec_(self.mapToGlobal(event.pos()))
 
-    def filter_view(self, filter_str):
-        """ Filter the model using given string. """
-        model = self.model()
-        model.setRecursiveFilteringEnabled(True)
-        model.setFilterFixedString(filter_str)
+    def filter_view(self, filter_tup):
+        """ Filter the model using given filter tuple. """
+        self.model().setRecursiveFilteringEnabled(True)
+        self.model().setFilterTuple(filter_tup)
+        self.model().invalidateFilter()
 
         # Expand all items when filter is applied
         self.expandAll()
@@ -204,7 +204,7 @@ class View(QTreeView):
             self.selectionCleared.emit()
 
     def update_model(self, variables, proxy_variables, is_tree, interval,
-                     units, filter_str="", selected=None, scroll_to=None):
+                     units, filter_tup=None, selected=None, scroll_to=None):
         """ Set the model and define behaviour of the tree view. """
         view_order = self.settings["header"]
         tree_key = view_order[0] if is_tree else None
@@ -230,8 +230,8 @@ class View(QTreeView):
         if selected:
             self.select_variables(selected)
 
-        if filter_str:
-            self.filter_view(filter_str)
+        if any(filter_tup):
+            self.filter_view(filter_tup)
 
         if scroll_to:
             self.scroll_to(scroll_to)
@@ -530,6 +530,7 @@ class ViewModel(QStandardItemModel):
 class FilterModel(QSortFilterProxyModel):
     def __init__(self):
         super().__init__()
+        self._filter_tup = (None, None, None)
 
     def data_from_index(self, index):
         """ Get item data from source model. """
@@ -553,31 +554,38 @@ class FilterModel(QSortFilterProxyModel):
             indexes = [indexes]
         return [self.mapFromSource(ix) for ix in indexes]
 
+    def setFilterTuple(self, filter_tup):
+        self._filter_tup = filter_tup
+
     def filterAcceptsRow(self, source_row, source_parent):
         """ Set up filtering rules for the model. """
-        source_model = self.sourceModel()
 
-        if self.filterRegExp().pattern() in ["", " ", "\t"]:
+        def compare(fval, val):
+            fval = fval.strip()
+            if fval:
+                return fval.lower() in val.lower()
+            else:
+                return True
+
+        if not any(self._filter_tup):
             return True
 
-        ix0 = source_model.index(source_row, 0, source_parent)
-        ix1 = source_model.index(source_row, 1, source_parent)
+        ix0 = self.sourceModel().index(source_row, 0, source_parent)
+        ix1 = self.sourceModel().index(source_row, 1, source_parent)
 
         if self.sourceModel().data(ix1) is None:
             # exclude parent nodes (these are enabled due to recursive filter)
             return False
 
         else:
-            item = source_model.itemFromIndex(ix0)
-            data = item.data(Qt.UserRole)
-            return self.filter_expression(data)
+            item = self.sourceModel().itemFromIndex(ix0)
+            _, key, variable, units = item.data(Qt.UserRole)
 
-    def filter_expression(self, data):
-        """ Check if input string matches a variable. """
-        str_row = " ".join(data)
-        filter = self.filterRegExp()
-        pattern = filter.pattern().strip()
-        return pattern.lower() in str_row.lower()
+            fkey, fvariable, funits = self._filter_tup
+
+            return compare(fkey, key) \
+                   and compare(fvariable, variable) \
+                   and compare(funits, units)
 
     def find_match(self, variables, key):
         """ Check if output variables are available in a new model. """
