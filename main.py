@@ -22,8 +22,8 @@ if __name__ == "__main__":
 
     view = MainWindow()
     model = AppModel()
-    controller = AppController(model, view)
     wv_controller = WVController(model, view.web_view)
+    controller = AppController(model, view, wv_controller)
     view.show()
 
     sys.exit(app.exec_())

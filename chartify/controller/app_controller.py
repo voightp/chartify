@@ -30,16 +30,16 @@ class AppController:
     v : MainWindow
         A main application view.
     m : AppModel
-        An access to application database.
+        An access to the application database.
+    wvc : WebViewController
+        A link to the application web controller.
 
     """
 
-    def __init__(self, model, view):
+    def __init__(self, model, view, wv_controller):
         self.v = view
         self.m = model
-
-        # ~~~~ Application layout ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.update_appearance()
+        self.wvc = wv_controller
 
         # ~~~~ Queues ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.file_queue = Queue()
@@ -79,24 +79,9 @@ class AppController:
         self.v._CLOSE_FLAG = True
         self.v.close()
 
-    def update_appearance(self) -> None:
-        """ Update application appearance. """
-        palette = self.m.palettes[Settings.PALETTE_NAME]
-
-        css = CssTheme(Settings.CSS_PATH)
-        css.populate_content(palette)
-        self.v.set_css(css)
-
-        c1 = palette.get_color("PRIMARY_TEXT_COLOR", as_tuple=True)
-        c2 = palette.get_color("SECONDARY_TEXT_COLOR", as_tuple=True)
-        self.v.load_scheme_btn_icons(self.m.palettes)
-        self.v.load_icons(c1, c2)
-
-        self.m.fullUpdateRequested.emit(palette.get_all_colors())
-
     def connect_view_signals(self) -> None:
         """ Connect view signals. """
-        self.v.paletteUpdateRequested.connect(self.update_appearance)
+        self.v.paletteUpdated.connect(self.wvc.refresh_layout)
         self.v.viewUpdateRequested.connect(self.handle_view_update)
         self.v.fileProcessingRequested.connect(self.handle_file_processing)
         self.v.fileRenamed.connect(self.handle_file_rename)

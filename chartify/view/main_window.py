@@ -1,6 +1,7 @@
 import ctypes
 import os
 from functools import partial
+from pathlib import Path
 
 from PySide2.QtCore import (QSize, Qt, QCoreApplication, Signal)
 from PySide2.QtGui import QIcon, QKeySequence, QColor
@@ -20,6 +21,7 @@ from chartify.view.toolbar import Toolbar
 from chartify.view.view_functions import create_proxy
 from chartify.view.view_tools import ViewTools
 from chartify.view.view_widget import View
+from chartify.view.css_theme import parse_palette, Palette, CssTheme
 
 
 # noinspection PyPep8Naming,PyUnresolvedReferences
@@ -30,7 +32,7 @@ class MainWindow(QMainWindow):
     QCoreApplication.setApplicationName("chartify")
 
     viewUpdateRequested = Signal(int)
-    paletteUpdateRequested = Signal(str)
+    paletteUpdated = Signal()
     fileProcessingRequested = Signal(list)
     fileRenamed = Signal(int, str, str)
     selectionChanged = Signal(list)
@@ -101,7 +103,7 @@ class MainWindow(QMainWindow):
         self.web_view = QWebEngineView(self)
         self.main_chart_layout.addWidget(self.web_view)
 
-        # ~~~~ Status bar ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # ~~~~ Status bar ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.status_bar = QStatusBar(self)
         self.status_bar.setFixedHeight(20)
         self.setStatusBar(self.status_bar)
@@ -109,24 +111,28 @@ class MainWindow(QMainWindow):
         self.progress_cont = ProgressContainer(self.status_bar)
         self.status_bar.addWidget(self.progress_cont)
 
-        self.def_scheme = QAction("default", self)
-        self.def_scheme.triggered.connect(partial(self.on_scheme_changed, "default"))
+        # ~~~~ Palettes ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.palettes = parse_palette(Settings.PALETTE_PATH)
+        Settings.PALETTE = self.palettes[Settings.PALETTE_NAME]
 
-        self.mono_scheme = QAction("monochrome", self)
-        self.mono_scheme.triggered.connect(partial(self.on_scheme_changed, "monochrome"))
-
-        self.dark_scheme = QAction("dark", self)
-        self.dark_scheme.triggered.connect(partial(self.on_scheme_changed, "dark"))
-
-        actions = {"default": self.def_scheme,
-                   "monochrome": self.mono_scheme,
-                   "dark": self.dark_scheme}
-
-        def_act = actions[Settings.PALETTE_NAME]
+        # ~~~~ Scheme button ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        actions = []
+        def_act = None
+        for name, colors in self.palettes.items():
+            act = QAction(name, self)
+            act.triggered.connect(partial(self.on_scheme_changed, name))
+            c1 = QColor(*colors.get_color("SECONDARY_COLOR", as_tuple=True))
+            c2 = QColor(*colors.get_color("BACKGROUND_COLOR", as_tuple=True))
+            act.setIcon(filled_circle_pixmap(QSize(60, 60), c1, c2=c2,
+                                             border_col=QColor(255, 255, 255)))
+            actions.append(act)
+            if name == Settings.PALETTE_NAME:
+                def_act = act
 
         menu = QMenu(self)
         menu.setWindowFlags(menu.windowFlags() | Qt.NoDropShadowWindowHint)
-        menu.addActions(list(actions.values()))
+        menu.addActions(actions)
+
         self.scheme_btn = QToolButton(self)
         self.scheme_btn.setPopupMode(QToolButton.InstantPopup)
         self.scheme_btn.setDefaultAction(def_act)
@@ -134,6 +140,7 @@ class MainWindow(QMainWindow):
         self.scheme_btn.setObjectName("schemeButton")
         menu.triggered.connect(lambda act: self.scheme_btn.setIcon(act.icon()))
 
+        # ~~~~ Swap button ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.swap_btn = QToolButton(self)
         self.swap_btn.clicked.connect(self.mirror_layout)
         self.swap_btn.setObjectName("swapButton")
@@ -141,14 +148,14 @@ class MainWindow(QMainWindow):
         self.status_bar.addPermanentWidget(self.swap_btn)
         self.status_bar.addPermanentWidget(self.scheme_btn)
 
-        # ~~~~ Menus ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # ~~~~ Menus ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.mini_menu = QWidget(self.toolbar)
         self.mini_menu_layout = QHBoxLayout(self.mini_menu)
         self.mini_menu_layout.setContentsMargins(0, 0, 0, 0)
         self.mini_menu_layout.setSpacing(0)
         self.toolbar.layout.insertWidget(0, self.mini_menu)
 
-        # ~~~~ Actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # ~~~~ Actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.load_file_act = QAction("Load file | files", self)
         self.load_file_act.setShortcut(QKeySequence("Ctrl+L"))
 
@@ -207,8 +214,12 @@ class MainWindow(QMainWindow):
         self.mini_menu_layout.addWidget(self.about_btn)
 
         # ~~~~ Set up main widgets and layouts ~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.css = ""
         self.set_up_base_ui()
+
+        # ~~~~ Set up app appearance ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.css = ""
+        self.load_icons()
+        self.load_css()
 
         # ~~~~ Connect main ui user actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.connect_ui_signals()
@@ -245,65 +256,44 @@ class MainWindow(QMainWindow):
             if self.hasFocus():
                 self.remove_variables()
 
-    def set_css(self, css):
-        """ Set application css. """
-        self.css = css
-
-        # css needs to be cleared to repaint the window properly
-        self.setStyleSheet("")
-        self.setStyleSheet(self.css.content)
-
-    def load_scheme_btn_icons(self, palettes):
-        """ Create scheme button icons. """
-        names = ["default", "dark", "monochrome"]
-        acts = [self.def_scheme, self.dark_scheme, self.mono_scheme]
-
-        k1 = "SECONDARY_COLOR"
-        k2 = "BACKGROUND_COLOR"
-        size = QSize(60, 60)
-        border_col = QColor(255, 255, 255)
-
-        for name, act in zip(names, acts):
-            c1 = QColor(*palettes[name].get_color(k1, as_tuple=True))
-            c2 = QColor(*palettes[name].get_color(k2, as_tuple=True))
-            act.setIcon(filled_circle_pixmap(size, c1, c2=c2,
-                                             border_col=border_col))
-
-    def load_icons(self, c1, c2):
+    def load_icons(self):
         """ Load application icons. """
         # this sets toolbar icon on win 7
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("foo")
 
+        c1 = Settings.PALETTE.get_color("PRIMARY_TEXT_COLOR", as_tuple=True)
+        c2 = Settings.PALETTE.get_color("SECONDARY_TEXT_COLOR", as_tuple=True)
+
         r = Settings.ICONS_PATH
-        self.setWindowIcon(Pixmap(r + "/smile.png", 255, 255, 255))
+        self.setWindowIcon(Pixmap(Path(r, "smile.png"), 255, 255, 255))
 
-        self.load_file_btn.setIcon(QIcon(Pixmap(r + "/file.png", *c1)))
-        self.save_btn.setIcon(QIcon(Pixmap(r + "/save.png", *c1)))
-        self.about_btn.setIcon(QIcon(Pixmap(r + "/help.png", *c1)))
-        self.close_all_act.setIcon(QIcon(Pixmap(r + "/remove.png", *c1)))
-        self.load_file_act.setIcon(QIcon(Pixmap(r + "/add_file.png", *c1)))
+        self.load_file_btn.setIcon(QIcon(Pixmap(Path(r, "file.png"), *c1)))
+        self.save_btn.setIcon(QIcon(Pixmap(Path(r, "save.png"), *c1)))
+        self.about_btn.setIcon(QIcon(Pixmap(Path(r, "help.png"), *c1)))
+        self.close_all_act.setIcon(QIcon(Pixmap(Path(r, "remove.png"), *c1)))
+        self.load_file_act.setIcon(QIcon(Pixmap(Path(r, "add_file.png"), *c1)))
 
-        self.tab_wgt.drop_btn.setIcon(Pixmap(r + "/drop_file.png", *c1))
+        self.tab_wgt.drop_btn.setIcon(Pixmap(Path(r, "drop_file.png"), *c1))
         self.tab_wgt.drop_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
         self.tab_wgt.drop_btn.setIconSize(QSize(50, 50))
 
-        self.toolbar.totals_btn.set_icons(Pixmap(r + "/building.png", *c1),
-                                          Pixmap(r + "/building.png", *c1, a=0.5),
-                                          Pixmap(r + "/building.png", *c2),
-                                          Pixmap(r + "/building.png", *c2, a=0.5))
+        self.toolbar.totals_btn.set_icons(Pixmap(Path(r, "building.png"), *c1),
+                                          Pixmap(Path(r, "building.png"), *c1, a=0.5),
+                                          Pixmap(Path(r, "building.png"), *c2),
+                                          Pixmap(Path(r, "building.png"), *c2, a=0.5))
 
-        self.toolbar.all_files_btn.set_icons(Pixmap(r + "/all_files.png", *c1),
-                                             Pixmap(r + "/all_files.png", *c1, a=0.5),
-                                             Pixmap(r + "/all_files.png", *c2),
-                                             Pixmap(r + "/all_files.png", *c2, a=0.5))
+        self.toolbar.all_files_btn.set_icons(Pixmap(Path(r, "all_files.png"), *c1),
+                                             Pixmap(Path(r, "all_files.png"), *c1, a=0.5),
+                                             Pixmap(Path(r, "all_files.png"), *c2),
+                                             Pixmap(Path(r, "all_files.png"), *c2, a=0.5))
 
-        self.toolbar.sum_btn.set_icons(Pixmap(r + "/sigma.png", *c1),
-                                       Pixmap(r + "/sigma.png", *c1, a=0.5))
-        self.toolbar.mean_btn.set_icons(Pixmap(r + "/mean.png", *c1),
-                                        Pixmap(r + "/mean.png", *c1, a=0.5))
+        self.toolbar.sum_btn.set_icons(Pixmap(Path(r, "sigma.png"), *c1),
+                                       Pixmap(Path(r, "sigma.png"), *c1, a=0.5))
+        self.toolbar.mean_btn.set_icons(Pixmap(Path(r, "mean.png"), *c1),
+                                        Pixmap(Path(r, "mean.png"), *c1, a=0.5))
 
-        self.toolbar.remove_btn.set_icons(Pixmap(r + "/remove.png", *c1),
-                                          Pixmap(r + "/remove.png", *c1, a=0.5))
+        self.toolbar.remove_btn.set_icons(Pixmap(Path(r, "remove.png"), *c1),
+                                          Pixmap(Path(r, "remove.png"), *c1, a=0.5))
 
     def set_up_base_ui(self):
         """ Set up appearance of main widgets. """
@@ -337,6 +327,15 @@ class MainWindow(QMainWindow):
         # split values are stored as strings in registry
         self.central_splitter.setSizes([int(s) for s in Settings.SPLIT])
 
+    def load_css(self) -> None:
+        """ Update application appearance. """
+        self.css = CssTheme(Settings.CSS_PATH)
+        self.css.populate_content(Settings.PALETTE)
+
+        # css needs to be cleared to repaint the window properly
+        self.setStyleSheet("")
+        self.setStyleSheet(self.css.content)
+
     def mirror_layout(self):
         """ Mirror the layout. """
         self.left_main_layout.addItem(self.left_main_layout.takeAt(0))
@@ -347,8 +346,11 @@ class MainWindow(QMainWindow):
     def on_scheme_changed(self, name):
         """ Update the application palette. """
         if name != Settings.PALETTE_NAME:
+            Settings.PALETTE = self.palettes[name]
             Settings.PALETTE_NAME = name
-            self.paletteUpdateRequested.emit(name)
+            self.load_css()
+            self.load_icons()
+            self.paletteUpdated.emit()
 
     def add_new_tab(self, id_, name):
         """ Add file on the UI. """

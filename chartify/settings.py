@@ -13,6 +13,7 @@ class Settings:
     PALETTE_PATH = str(Path(ROOT, "styles/palettes.json"))
     CSS_PATH = str(Path(ROOT, "styles/app_style.css"))
     ICONS_PATH = str(Path(ROOT, "icons/"))
+    PALETTE = None
 
     IP_ENERGY_UNITS = ["Btu", "kBtu", "MBtu"]
     IP_POWER_UNITS = ["Btu/h", "kBtu/h", "MBtu/h", "W"]

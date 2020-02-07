@@ -57,19 +57,22 @@ class WVController(QObject):
         self.wv.setAcceptDrops(True)
 
         self.thread_pool = QThreadPool()
-        self.m.fullUpdateRequested.connect(self.handle_full_layout_update)
+        self.m.fullUpdateRequested.connect(self.refresh_layout)
 
     @profile
-    def handle_full_layout_update(self, colors: List[tuple]):
-        """ Re-render components whet color scheme updates. """
+    def refresh_layout(self):
+        """ Re-render all components. """
         components = {}
         for component in self.m.fetch_all_components():
             plot = self.plot_component(component)
             components[component.item_id] = plot
 
+        print(Settings.PALETTE.get_all_colors())
+
         items = self.m.fetch_all_items()
 
-        self.fullLayoutUpdated.emit(items, components, colors)
+        self.fullLayoutUpdated.emit(items, components,
+                                    Settings.PALETTE.get_all_colors())
 
     @profile
     def gen_component_ids(self, name: str) -> Tuple[str, str, str]:
@@ -85,7 +88,7 @@ class WVController(QObject):
     @profile
     def plot_component(self, component: Union[Chart]) -> dict:
         """ Request UI update for given component. """
-        palette = self.m.fetch_palette(Settings.PALETTE_NAME)
+        palette = Settings.PALETTE
 
         line_color = palette.get_color("PRIMARY_TEXT_COLOR")
         grid_color = palette.get_color("PRIMARY_TEXT_COLOR", opacity=0.5)
@@ -142,6 +145,11 @@ class WVController(QObject):
 
         self.update_component(item_id)
 
+    @Slot()
+    def onConnectionInitialized(self) -> None:
+        """ Callback from the webview after initialized. """
+        self.refresh_layout()
+
     @Slot(str)
     def onNewChartRequested(self, chart_type: str) -> None:
         """ Handle new 'chart' object request. """
@@ -160,12 +168,6 @@ class WVController(QObject):
 
         if plot:
             self.componentAdded.emit(item_id, item, plot)
-
-    @Slot()
-    def onConnectionInitialized(self) -> None:
-        """ Callback from the webview after initialized. """
-        colors = self.m.palettes[Settings.PALETTE_NAME].get_all_colors()
-        self.handle_full_layout_update(colors)
 
     @Slot(str)
     def onItemRemoved(self, item_id: str) -> None:

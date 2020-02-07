@@ -33,19 +33,16 @@ class AppModel(QObject):
 
     def __init__(self):
         super().__init__()
-        # ~~~~ Temporary ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # ~~~~ Temporary ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.selected_variables = []
 
-        # ~~~~ Webview Database ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # ~~~~ Webview Database ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.wv_database = {
             "trace_data": [],
             "traces": [],
             "components": [],
             "items": {}
         }
-
-        # ~~~~ Palettes ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.palettes = parse_palette(Settings.PALETTE_PATH)
 
     def get_file(self, id_: int) -> DatabaseFile:
         """ Get 'DatabaseFile for the given id. """
@@ -163,10 +160,3 @@ class AppModel(QObject):
     def fetch_all_item_ids(self) -> List[str]:
         """ Get all used item ids. """
         return list(self.wv_database["items"].keys())
-
-    def fetch_palette(self, name: str) -> Palette:
-        """ Get 'Palette' object with a specified name. """
-        try:
-            return self.palettes[name]
-        except KeyError:
-            raise KeyError(f"Cannot find palette '{name}'.")
