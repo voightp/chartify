@@ -25,15 +25,14 @@ class AppModel(QObject):
     as a standard python  dictionary at the moment.
 
     """
-    fullUpdateRequested = Signal(dict)
-
-    # ~~~~ File Database ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    storage = SQLStorage
-    storage.set_up_db()
 
     def __init__(self):
         super().__init__()
-        # ~~~~ Temporary ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # ~~~~ File Database ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.storage = SQLStorage
+        self.storage.set_up_db()
+
+        # ~~~~ Currently selected variables ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.selected_variables = []
 
         # ~~~~ Webview Database ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
