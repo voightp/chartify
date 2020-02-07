@@ -140,14 +140,14 @@ class AppController:
             name = get_str_identifier(f.file_name, names)
 
             f.rename(name)
-            tf.rename(f"{name} - totals")
-
             id_ = self.m.store_file(f)
             self.v.add_new_tab(id_, name)
 
             # totals flag is based on the file class
+            tf_name = f"{name} - totals"
+            tf.rename(tf_name)
             id_ = self.m.store_file(tf)
-            self.v.add_new_tab(id_, name)
+            self.v.add_new_tab(id_, tf_name)
 
         self.v.progress_cont.remove_file(monitor_id)
 
