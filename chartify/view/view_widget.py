@@ -13,8 +13,7 @@ class View(QTreeView):
     itemDoubleClicked = Signal(object)
     treeNodeChanged = Signal()
 
-    settings = {"widths": {"interactive": 200,
-                           "fixed": 70},
+    settings = {"widths": {"interactive": 200, "fixed": 70},
                 "order": ("variable", Qt.AscendingOrder),
                 "header": ("variable", "key", "units"),
                 "expanded": set()}
@@ -44,6 +43,7 @@ class View(QTreeView):
         self.temp_settings = {"interval": None,
                               "tree_key": None,
                               "units": None,
+                              "filter": None,
                               "force_update": True}
 
         self._scrollbar_position = 0
@@ -84,11 +84,12 @@ class View(QTreeView):
         """ Notify the view that it needs to be updated. """
         self.temp_settings["force_update"] = True
 
-    def store_settings(self, interval, tree_key, units):
+    def store_settings(self, interval, tree_key, units, filter_tup):
         """ Store intermediate settings. """
         self.temp_settings = {"interval": interval,
                               "tree_key": tree_key,
                               "units": units,
+                              "filter": filter_tup,
                               "force_update": False}
 
     def set_first_col_spanned(self):
@@ -223,6 +224,7 @@ class View(QTreeView):
         conditions = [tree_key != self.temp_settings["tree_key"],
                       interval != self.temp_settings["interval"],
                       units != self.temp_settings["units"],
+                      filter != self.temp_settings["filter"],
                       self.temp_settings["force_update"]]
 
         if any(conditions):
@@ -230,7 +232,7 @@ class View(QTreeView):
             self.build_model(variables, proxy_variables, tree_key, view_order)
 
             # Store current sorting key and interval
-            self.store_settings(interval, tree_key, units)
+            self.store_settings(interval, tree_key, units, filter_tup)
             self.reconnect_actions()
 
         # clear selections to avoid having visually

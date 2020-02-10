@@ -29,8 +29,8 @@ class AppModel(QObject):
     def __init__(self):
         super().__init__()
         # ~~~~ File Database ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.storage = SQLStorage
-        self.storage.set_up_db()
+        self.storage = DFStorage
+        # self.storage.set_up_db("test.db")
 
         # ~~~~ Currently selected variables ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.selected_variables = []

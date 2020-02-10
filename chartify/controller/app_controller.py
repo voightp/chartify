@@ -153,14 +153,15 @@ class AppController:
 
     def _apply_async(self, id_: int, func: Callable, *args, **kwargs) -> Any:
         """ A wrapper to apply functions to current views. """
-        file = self.m.fetch_file(id_)
+        file = self.m.get_file(id_)
 
         # apply function on the current file
         val = func(file, *args, **kwargs)
 
         # apply function to all other widgets asynchronously
         if  Settings.ALL_FILES:
-            w = IterWorker(func, self.m.get_other_files(), *args, **kwargs)
+            other_files =  self.m.get_other_files()
+            w = IterWorker(func,other_files, *args, **kwargs)
             self.thread_pool.start(w)
 
         return val
@@ -185,7 +186,7 @@ class AppController:
 
     def handle_file_rename(self, set_id: str, name: str, totals_name: str) -> None:
         """ Update file name. """
-        self.m.rename_set(set_id, name, totals_name)
+        self.m.rename_file(set_id, name, totals_name)
 
     @staticmethod
     def dump_vars(file: ResultsFile, variables: List[tuple]) -> None:
@@ -204,8 +205,8 @@ class AppController:
                   key_nm: str, func: Union[str, Callable]) -> tuple:
         """ Add a new aggregated variable to the file. """
         res = file.aggregate_variables(variables, func,
-                                       key_nm=key_nm,
-                                       var_nm=var_nm,
+                                       key_name=key_nm,
+                                       var_name=var_nm,
                                        part_match=False)
         if res:
             var_id, var = res
