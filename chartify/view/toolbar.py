@@ -281,15 +281,6 @@ class Toolbar(QFrame):
         except StopIteration:
             pass
 
-    def set_tools_btns_enabled(self, *args, enabled=True):
-        """ Enable tool buttons specified as args. """
-        btns = self.tools_btns
-        if args:
-            # enable all when not explicitly defined
-            btns = [btn for btn in btns if btn.text() in args]
-
-        _ = [btn.setEnabled(enabled) for btn in btns]
-
     def set_initial_layout(self):
         """ Define an app layout when there isn't any file loaded. """
         self.all_files_btn.setEnabled(False)

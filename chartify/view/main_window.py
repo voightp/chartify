@@ -393,9 +393,14 @@ class MainWindow(QMainWindow):
         self.toolbar.remove_btn.setEnabled(True)
 
         # check if variables can be aggregated
-        units = [var.units for var in variables]
-        if set(units) == 1 or rate_and_energy_units(units):
-            self.toolbar.set_tools_btns_enabled("sum", "mean", enabled=True)
+        if len(variables) > 1:
+            units = [var.units for var in variables]
+            if len(set(units)) == 1 or rate_and_energy_units(units):
+                self.toolbar.sum_btn.setEnabled(True)
+                self.toolbar.mean_btn.setEnabled(True)
+        else:
+            self.toolbar.sum_btn.setEnabled(False)
+            self.toolbar.mean_btn.setEnabled(False)
 
         self.selectionChanged.emit(variables)
 
@@ -403,9 +408,10 @@ class MainWindow(QMainWindow):
         """ Handle behaviour when no variables are selected. """
         self.remove_variables_act.setEnabled(False)
 
-        # disable export xlsx as there are no variables to be exported
-        self.toolbar.set_tools_btns_enabled("sum", "mean",
-                                            "remove", enabled=False)
+        self.toolbar.sum_btn.setEnabled(False)
+        self.toolbar.mean_btn.setEnabled(False)
+        self.toolbar.remove_btn.setEnabled(False)
+
         self.selectionChanged.emit([])
 
     def create_view_wgt(self, id_, name):
