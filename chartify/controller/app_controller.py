@@ -154,17 +154,13 @@ class AppController:
     def _apply_async(self, id_: int, func: Callable, *args, **kwargs) -> Any:
         """ A wrapper to apply functions to current views. """
         file = self.m.fetch_file(id_)
-        other_files = None
-
-        if Settings.ALL_FILES:
-            other_files = self.m.get_other_files()
 
         # apply function on the current file
         val = func(file, *args, **kwargs)
 
         # apply function to all other widgets asynchronously
-        if other_files:
-            w = IterWorker(func, other_files, *args, **kwargs)
+        if  Settings.ALL_FILES:
+            w = IterWorker(func, self.m.get_other_files(), *args, **kwargs)
             self.thread_pool.start(w)
 
         return val
