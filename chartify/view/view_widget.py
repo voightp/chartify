@@ -111,6 +111,16 @@ class View(QTreeView):
 
         self.set_first_col_spanned()
 
+    def get_visual_names(self):
+        """ Return sorted column names (by visual index). """
+        num = self.model().columnCount()
+        vis_ixs = [self.header().visualIndex(i) for i in range(num)]
+
+        z = list(zip(self.model().get_logical_names(), vis_ixs))
+        z.sort(key=lambda x: x[1])
+        sorted_names = list(zip(*z))[0]
+        return sorted_names
+
     def reshuffle_columns(self, order):
         """ Reset column positions to match last visual appearance. """
         header = self.header()
@@ -122,7 +132,7 @@ class View(QTreeView):
 
     def update_sort_order(self, name, order):
         """ Set header order. """
-        log_ix = self.get_logical_index(name)
+        log_ix = self.model().get_logical_index(name)
         self.header().setSortIndicator(log_ix, order)
 
     def expand_items(self, expanded_set):
@@ -264,7 +274,7 @@ class View(QTreeView):
 
         # both logical and visual indexes are ordered
         # as 'key', 'variable', 'units'
-        log_ixs = self.get_logical_ixs()
+        log_ixs = self.model().get_logical_ixs()
         vis_ixs = [self.header().visualIndex(i) for i in log_ixs]
 
         # units column size is always fixed
@@ -280,34 +290,6 @@ class View(QTreeView):
 
         header.setSectionResizeMode(stretch, QHeaderView.Stretch)
         header.setSectionResizeMode(interactive, QHeaderView.Interactive)
-
-    def get_logical_names(self):
-        """ Get names sorted by logical index. """
-        model = self.model()
-        num = model.columnCount()
-        nms = [model.headerData(i, Qt.Horizontal).lower() for i in range(num)]
-        return nms
-
-    def get_visual_names(self):
-        """ Return sorted column names (by visual index). """
-        num = self.model().columnCount()
-        vis_ixs = [self.header().visualIndex(i) for i in range(num)]
-
-        z = list(zip(self.get_logical_names(), vis_ixs))
-        z.sort(key=lambda x: x[1])
-        sorted_names = list(zip(*z))[0]
-        return sorted_names
-
-    def get_logical_index(self, name):
-        """ Get a logical index of a given section title. """
-        return self.get_logical_names().index(name)
-
-    def get_logical_ixs(self):
-        """ Return logical positions of header labels. """
-        names = self.get_logical_names()
-        return (names.index("key"),
-                names.index("variable"),
-                names.index("units"))
 
     def on_sort_order_changed(self, log_ix, order):
         """ Store current sorting order in main app. """
@@ -532,6 +514,23 @@ class FilterModel(QSortFilterProxyModel):
         super().__init__()
         self._filter_tup = (None, None, None)
 
+    def get_logical_names(self):
+        """ Get names sorted by logical index. """
+        num = self.columnCount()
+        nms = [self.headerData(i, Qt.Horizontal).lower() for i in range(num)]
+        return nms
+
+    def get_logical_index(self, name):
+        """ Get a logical index of a given section title. """
+        return self.get_logical_names().index(name)
+
+    def get_logical_ixs(self):
+        """ Return logical positions of header labels. """
+        names = self.get_logical_names()
+        return (names.index("key"),
+                names.index("variable"),
+                names.index("units"))
+
     def data_from_index(self, index):
         """ Get item data from source model. """
         item = self.item_from_index(index)
@@ -560,7 +559,7 @@ class FilterModel(QSortFilterProxyModel):
     def filterAcceptsRow(self, source_row, source_parent):
         """ Set up filtering rules for the model. """
 
-        def compare(fval, val):
+        def valid(fval, val):
             fval = fval.strip()
             if fval:
                 return fval.lower() in val.lower()
@@ -570,22 +569,33 @@ class FilterModel(QSortFilterProxyModel):
         if not any(self._filter_tup):
             return True
 
+        # first item can be either parent for 'tree' structure or a normal item
         ix0 = self.sourceModel().index(source_row, 0, source_parent)
-        ix1 = self.sourceModel().index(source_row, 1, source_parent)
+        it0 = self.sourceModel().itemFromIndex(ix0)
 
-        if self.sourceModel().data(ix1) is None:
+        if it0.hasChildren():
             # exclude parent nodes (these are enabled due to recursive filter)
             return False
 
         else:
-            item = self.sourceModel().itemFromIndex(ix0)
-            _, key, variable, units = item.data(Qt.UserRole)
+            t = self._filter_tup
+            ixs = self.get_logical_ixs()
+            for col, fval in zip(ixs, t):
+                ix = self.sourceModel().index(source_row, col, source_parent)
+                it = self.sourceModel().itemFromIndex(ix)
 
-            fkey, fvariable, funits = self._filter_tup
+                if col == 0 and it.parent() is not None:
+                    if it.parent() is not self.sourceModel().invisibleRootItem():
+                        val = it.parent().text()
+                    else:
+                        val = it.text()
+                else:
+                    val = it.text()
 
-            return compare(fkey, key) \
-                   and compare(fvariable, variable) \
-                   and compare(funits, units)
+                if not valid(fval, val):
+                    return False
+
+            return True
 
     def find_match(self, variables, key):
         """ Check if output variables are available in a new model. """
