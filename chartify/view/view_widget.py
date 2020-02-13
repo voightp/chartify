@@ -224,10 +224,11 @@ class View(QTreeView):
         conditions = [tree_key != self.temp_settings["tree_key"],
                       interval != self.temp_settings["interval"],
                       units != self.temp_settings["units"],
-                      filter != self.temp_settings["filter"],
+                      filter_tup != self.temp_settings["filter"],
                       self.temp_settings["force_update"]]
 
         if any(conditions):
+            print("UPDATING MODEL")
             self.disconnect_actions()
             self.build_model(variables, proxy_variables, tree_key, view_order)
 
