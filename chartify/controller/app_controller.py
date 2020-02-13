@@ -184,9 +184,9 @@ class AppController:
             selected=[variable], scroll_to=variable
         )
 
-    def handle_file_rename(self, set_id: str, name: str, totals_name: str) -> None:
+    def handle_file_rename(self, id_: int, name: str) -> None:
         """ Update file name. """
-        self.m.rename_file(set_id, name, totals_name)
+        self.m.rename_file(id_, name)
 
     @staticmethod
     def dump_vars(file: ResultsFile, variables: List[tuple]) -> None:

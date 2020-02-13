@@ -500,11 +500,10 @@ class MainWindow(QMainWindow):
             return
 
         name = d.get_input("name")
-        totals_name = f"{name} - totals"
         view.name = name
 
         self.tab_wgt.setTabText(tab_index, name)
-        self.fileRenamed.emit(view.id_, name, totals_name)
+        self.fileRenamed.emit(view.id_, name)
 
     def remove_variables(self):
         """ Remove selected variables. """

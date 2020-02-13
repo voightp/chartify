@@ -29,7 +29,7 @@ class AppModel(QObject):
     def __init__(self):
         super().__init__()
         # ~~~~ File Database ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.storage = DFStorage
+        self.storage = DFStorage()
         # self.storage.set_up_db("test.db")
 
         # ~~~~ Currently selected variables ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -45,12 +45,12 @@ class AppModel(QObject):
 
     def get_file(self, id_: int) -> DatabaseFile:
         """ Get 'DatabaseFile for the given id. """
-        return self.storage.FILES[id_]
+        return self.storage.files[id_]
 
     def get_other_files(self) -> List[DatabaseFile]:
         """ Get all the other files than currently selected. """
         other_files = []
-        for id_, file in self.storage.FILES.items():
+        for id_, file in self.storage.files.items():
             if id_ != Settings.CURRENT_FILE_ID and file.totals == Settings.TOTALS:
                 other_files.append(file)
         return other_files
@@ -77,7 +77,7 @@ class AppModel(QObject):
     def rename_file(self, id_: int, name: str):
         """ Rename given file. """
         try:
-            self.storage.FILES[id_].rename(name)
+            self.storage.files[id_].rename(name)
         except KeyError:
             print(f"Cannot rename file: '{id_}',"
                   f"\nFile was not found in database.")
@@ -85,9 +85,9 @@ class AppModel(QObject):
     def get_results(self, **kwargs) -> pd.DataFrame:
         """ Get output values for given variables. """
         if Settings.ALL_FILES:
-            files = self.storage.FILES.values()
+            files = self.storage.files.values()
         else:
-            files = self.storage.FILES[Settings.CURRENT_FILE_ID]
+            files = self.storage.files[Settings.CURRENT_FILE_ID]
 
         args = (files, self.selected_variables)
         kwargs = {

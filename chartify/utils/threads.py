@@ -1,7 +1,7 @@
 from PySide2.QtCore import QThread, Signal, QRunnable
 from esofile_reader import TotalsFile
 from esofile_reader.eso_file import EsoFile
-from esofile_reader.processing.monitor import DefaultMonitor
+from esofile_reader.processor.monitor import DefaultMonitor
 
 
 # noinspection PyUnresolvedReferences
@@ -82,31 +82,29 @@ class GuiMonitor(DefaultMonitor):
         self.id = id_
         self.send_message(0, "Waiting")
 
+    def processing_finished(self):
+        self.report_progress(8, "Processing finished!")
+
     def building_totals_finished(self):
         self.send_message(9, "Totals produced!")
 
-    def calculate_steps(self):
+    def preprocess(self, n_lines):
+        self.n_lines = n_lines
         chunk_size = 10000
-        n_lines = self.results_lines
         n_steps = n_lines // chunk_size
 
         if n_steps < 10:
-            self.chunk_size = n_lines // 10
+            self.chunk_size = self.n_lines // 10
             self.n_steps = 10
-
         else:
             self.chunk_size = chunk_size
             self.n_steps = n_steps
 
-    def update_body_progress(self):
-        self.results_lines_counter += 1
-        if self.results_lines_counter == self.chunk_size:
-            self.progress += 1
-            self.report_progress(100, self.progress)
-            self.results_lines_counter = 0
+    def update_progress(self):
+        self.progress += 1
+        self.send_message(100, self.progress)
 
     def report_progress(self, identifier, text):
-        self.record_time(identifier)
         self.send_message(identifier, text)
 
     def send_message(self, identifier, text):

@@ -9,8 +9,10 @@ from chartify.controller.wv_controller import WVController
 from chartify.model.model import AppModel
 from chartify.utils.utils import install_fonts
 from chartify.settings import Settings
+import logging
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
     root = Path(__file__).parent
     app = QApplication()
 
