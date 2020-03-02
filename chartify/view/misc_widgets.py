@@ -4,7 +4,7 @@ from PySide2.QtWidgets import (QSizePolicy, QLineEdit, QHBoxLayout, QTabWidget,
                                QDialogButtonBox, QWidget, QTextEdit, QLabel,
                                QFrame)
 
-from chartify.view.view_widget import View
+from chartify.view.treeview_widget import View
 
 
 def update_appearance(wgt):

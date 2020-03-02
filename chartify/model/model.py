@@ -11,9 +11,8 @@ from chartify.charts.trace import Trace1D, Trace2D, TraceData
 from chartify.settings import Settings
 from chartify.view.css_theme import parse_palette, Palette
 
-from esofile_reader.storage.df_storage import DFStorage
-from esofile_reader.storage.sql_storage import SQLStorage
-from esofile_reader import DatabaseFile
+from esofile_reader.storage.pqt_storage import ParquetStorage
+from esofile_reader.storage.storage_files import ParquetFile
 
 
 class AppModel(QObject):
@@ -29,8 +28,7 @@ class AppModel(QObject):
     def __init__(self):
         super().__init__()
         # ~~~~ File Database ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.storage = DFStorage()
-        # self.storage.set_up_db("test.db")
+        self.storage = ParquetStorage()
 
         # ~~~~ Currently selected variables ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.selected_variables = []
@@ -43,11 +41,11 @@ class AppModel(QObject):
             "items": {}
         }
 
-    def get_file(self, id_: int) -> DatabaseFile:
+    def get_file(self, id_: int) -> ParquetFile:
         """ Get 'DatabaseFile for the given id. """
         return self.storage.files[id_]
 
-    def get_other_files(self) -> List[DatabaseFile]:
+    def get_other_files(self) -> List[ParquetFile]:
         """ Get all the other files than currently selected. """
         other_files = []
         for id_, file in self.storage.files.items():
@@ -58,7 +56,7 @@ class AppModel(QObject):
     def store_file(self, file: ResultsFile) -> int:
         """ Store file in database. """
         try:
-            return self.storage.store_file(file, totals=isinstance(file, TotalsFile))
+            return self.storage.store_file(file)
         except BrokenPipeError:
             print("Application has been closed - catching broken pipe!")
 

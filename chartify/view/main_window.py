@@ -18,9 +18,9 @@ from chartify.view.misc_widgets import (DropFrame, TabWidget, MulInputDialog,
                                         ConfirmationDialog)
 from chartify.view.progress_widget import ProgressContainer
 from chartify.view.toolbar import Toolbar
-from chartify.view.view_functions import create_proxy
-from chartify.view.view_tools import ViewTools
-from chartify.view.view_widget import View
+from chartify.view.treeview_functions import create_proxy
+from chartify.view.treeview_tools import ViewTools
+from chartify.view.treeview_widget import View
 from chartify.view.css_theme import parse_palette, Palette, CssTheme
 
 
