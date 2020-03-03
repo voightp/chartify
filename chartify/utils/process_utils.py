@@ -33,8 +33,8 @@ def kill_child_processes(parent_pid):
             continue
 
 
-def load_file(path, monitor=None):
-    """ Process eso file. """
+def load_file(path, monitor, storage):
+    """ Process and store eso file. """
     try:
         files = EsoFile.process_multi_env_file(path, monitor=monitor)
         t_files = [TotalsFile(f) for f in files]
@@ -43,8 +43,9 @@ def load_file(path, monitor=None):
     except IncompleteFile:
         monitor.processing_failed(f"Processing failed - incomplete file!"
                                   f"\n{traceback.format_exc()}")
-    except Exception:
-        monitor.processing_failed(traceback.format_exc())
+
+    #TODO STORAGE!
+
 
 
 def wait_for_results(id_, queue, future):

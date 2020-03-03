@@ -7,10 +7,10 @@ from esofile_reader.processor.monitor import DefaultMonitor
 # noinspection PyUnresolvedReferences
 class Monitor(QThread):
     bar_updated = Signal(str, int)
-    finished = Signal(str)
-    preprocess_finished = Signal(str, int)
+    pending = Signal(str)
+    range_changed = Signal(str, int, int)
     started = Signal(str, str)
-    initialized = Signal(str, str)
+    file_added = Signal(str, str)
     failed = Signal(str, str)
 
     def __init__(self, progress_queue):
@@ -22,19 +22,16 @@ class Monitor(QThread):
             monitor, identifier, message = self.progress_queue.get()
             mon_id, mon_name = monitor.id, monitor.name
 
-            def send_initialized():
-                self.initialized.emit(mon_id, mon_name)
+            def send_new_file():
+                self.file_added.emit(mon_id, mon_name)
 
-            def send_started():
-                self.started.emit(mon_id, mon_name)
+            def send_set_range():
+                self.range_changed.emit(mon_id, monitor.progress, monitor.max_progress)
 
-            def send_preprocessing_finished():
-                self.preprocess_finished.emit(mon_id, monitor.n_steps)
+            def send_pending():
+                self.pending.emit(mon_id)
 
-            def send_finished():
-                self.finished.emit(mon_id)
-
-            def send_update_progress_bar():
+            def send_update_bar():
                 self.bar_updated.emit(mon_id, message)
 
             def do_not_report():
@@ -45,17 +42,19 @@ class Monitor(QThread):
 
             switch = {
                 -1: send_failed,
-                0: send_initialized,
-                1: send_started,
-                2: send_preprocessing_finished,
+                0: send_new_file,
+                1: do_not_report,  # processing started
+                2: send_set_range,  # preprocessing finished
                 3: do_not_report,  # header finished
                 4: do_not_report,  # body finished
                 5: do_not_report,  # intervals finished
                 6: do_not_report,  # output cls finished
                 7: do_not_report,  # tree finished
                 8: do_not_report,  # file processing finished
-                9: send_finished,  # building totals generated
-                100: send_update_progress_bar,
+                9: send_set_range,  # storing started
+                10: do_not_report,  # storing finished
+                11: do_not_report,  # building totals generated
+                100: send_update_bar,
             }
 
             switch[identifier]()
@@ -76,6 +75,8 @@ class EsoFileWatcher(QThread):
 
 
 class GuiMonitor(DefaultMonitor):
+    CHUNK_SIZE = 10000
+
     def __init__(self, path, id_, queue):
         super().__init__(path)
         self.queue = queue
@@ -88,20 +89,18 @@ class GuiMonitor(DefaultMonitor):
     def building_totals_finished(self):
         self.send_message(9, "Totals produced!")
 
-    def preprocess(self, n_lines):
-        self.n_lines = n_lines
-        chunk_size = 10000
-        n_steps = n_lines // chunk_size
+    def set_chunk_size(self, n_lines):
+        n_processing_steps = n_lines // self.CHUNK_SIZE
 
-        if n_steps < 10:
-            self.chunk_size = self.n_lines // 10
-            self.n_steps = 10
+        if n_processing_steps < 10:
+            self.max_progress = 10
         else:
-            self.chunk_size = chunk_size
-            self.n_steps = n_steps
+            self.max_progress = n_processing_steps // self.PROGRESS_FRACTION
 
-    def update_progress(self):
-        self.progress += 1
+        super().set_chunk_size(n_lines)
+
+    def update_progress(self, i=1):
+        self.progress += i
         self.send_message(100, self.progress)
 
     def report_progress(self, identifier, text):

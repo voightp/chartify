@@ -104,12 +104,12 @@ class AppController:
 
     def connect_model_signals(self) -> None:
         """ Create monitor signals. """
-        self.monitor.initialized.connect(self.v.progress_cont.add_file)
-        self.monitor.started.connect(self.v.progress_cont.update_progress_text)
+        self.monitor.file_added.connect(self.v.progress_cont.add_file)
         self.monitor.bar_updated.connect(self.v.progress_cont.update_progress)
-        self.monitor.preprocess_finished.connect(self.v.progress_cont.set_max_value)
-        self.monitor.finished.connect(self.v.progress_cont.set_pending)
+        self.monitor.range_changed.connect(self.v.progress_cont.set_range)
+        self.monitor.pending.connect(self.v.progress_cont.set_pending)
         self.monitor.failed.connect(self.v.progress_cont.set_failed)
+        # finished signal is not emitted, the file is removed from on_file_loaded
 
     def handle_view_update(self, id_: int) -> None:
         """ Update content of a newly selected tab. """
@@ -128,7 +128,7 @@ class AppController:
         for path in paths:
             monitor_id = str(uuid.uuid1())
             monitor = GuiMonitor(path, monitor_id, self.progress_queue)
-            future = self.pool.submit(load_file, path, monitor=monitor)
+            future = self.pool.submit(load_file, path, monitor, self.m.storage)
             future.add_done_callback(partial(wait_for_results, monitor_id,
                                              self.file_queue))
 

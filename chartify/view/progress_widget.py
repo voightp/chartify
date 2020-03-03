@@ -109,11 +109,12 @@ class ProgressContainer(QWidget):
         self.files[id_] = f
         self._update_bar()
 
-    def set_max_value(self, id_, max_value):
+    def set_range(self, id_, min_value, max_value):
         """ Set up maximum progress value. """
         try:
             f = self.files[id_]
             f.set_maximum(max_value)
+            f.set_value(min_value)
 
             i = self._get_visible_index(f)
             if i is not None:
@@ -163,11 +164,6 @@ class ProgressContainer(QWidget):
             self.widgets[i].file_ref = None
 
         self._update_bar()
-
-    def update_progress_text(self, monitor_id, text):
-        """ Update text info for a given monitor. """
-        pass  # TODO review if needed
-        # self.status_bar.progressBars[monitor_id].setText(text)
 
 
 class ProgressFile:
