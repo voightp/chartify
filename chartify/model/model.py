@@ -9,6 +9,9 @@ from esofile_reader import TotalsFile
 from chartify.charts.chart import Chart
 from chartify.charts.trace import Trace1D, Trace2D, TraceData
 from chartify.settings import Settings
+from multiprocessing import Manager, Array, Lock
+from multiprocessing.managers import BaseManager
+
 from chartify.view.css_theme import parse_palette, Palette
 
 from esofile_reader.storage.pqt_storage import ParquetStorage

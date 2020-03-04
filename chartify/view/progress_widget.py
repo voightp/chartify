@@ -1,7 +1,8 @@
+import contextlib
+
 from PySide2.QtCore import Signal, Qt
-from PySide2.QtWidgets import (QWidget, QLabel, QProgressBar,
-                               QVBoxLayout, QSizePolicy,
-                               QPushButton, QHBoxLayout)
+from PySide2.QtWidgets import QWidget, QLabel, QProgressBar, QVBoxLayout, QSizePolicy, \
+    QPushButton, QHBoxLayout
 
 
 class ProgressContainer(QWidget):
@@ -26,14 +27,30 @@ class ProgressContainer(QWidget):
         layout.setSpacing(self.CHILD_SPACING)
         layout.setAlignment(Qt.AlignLeft)
 
+        widgets = []
+        for i in range(self.MAX_VISIBLE_JOBS):
+            wgt = ProgressWidget(self)
+            wgt.remove.connect(self.remove_file)
+            wgt.setVisible(False)
+            widgets.append(wgt)
+            self.layout().addWidget(wgt)
+
+        self.widgets = widgets
         self.files = {}
-        self.widgets = self._create_widgets()
+        self.locked = []
 
     @property
     def sorted_files(self):
         """ Sort widgets by value (descending order). """
-        files = list(self.files.values())
-        return sorted(files, key=lambda x: x.rel_value, reverse=True)
+        all_files = list(self.files.values())
+
+        # remove already locked files
+        files = list(filter(lambda x: x not in self.locked, all_files))
+
+        # locked files take precedent
+        sorted_files = self.locked + sorted(files, key=lambda x: x.rel_value, reverse=True)
+
+        return sorted_files
 
     @property
     def visible_files(self):
@@ -45,17 +62,6 @@ class ProgressContainer(QWidget):
     def visible_widgets(self):
         """ Get currently visible widgets. """
         return list(filter(lambda x: x.file_ref, self.widgets))
-
-    def _create_widgets(self):
-        """ Initialize progress widgets. """
-        wgts = []
-        for i in range(self.MAX_VISIBLE_JOBS):
-            wgt = ProgressWidget(self)
-            wgt.remove.connect(self.remove_file)
-            wgt.setVisible(False)
-            wgts.append(wgt)
-            self.layout().addWidget(wgt)
-        return wgts
 
     def _get_visible_index(self, file):
         """ Get visible index, returns 'None' if invalid. """
@@ -109,12 +115,12 @@ class ProgressContainer(QWidget):
         self.files[id_] = f
         self._update_bar()
 
-    def set_range(self, id_, min_value, max_value):
+    def set_range(self, id_, value, max_value):
         """ Set up maximum progress value. """
         try:
             f = self.files[id_]
-            f.set_maximum(max_value)
-            f.set_value(min_value)
+            f.maximum = max_value
+            f.value = value
 
             i = self._get_visible_index(f)
             if i is not None:
@@ -122,11 +128,11 @@ class ProgressContainer(QWidget):
         except KeyError:
             pass
 
-    def update_progress(self, id_, val):
+    def update_progress(self, id_, value):
         """ Update file progress. """
         try:
             f = self.files[id_]
-            f.set_value(val)
+            f.value = value
 
             i = self._get_visible_index(f)
             if i is not None:
@@ -142,22 +148,30 @@ class ProgressContainer(QWidget):
         self.files[id_].set_failed()
         i = self._get_visible_index(self.files[id_])
         if i is not None:
-            self.widgets[i].update_all_refs()
+            self.widgets[i].update_all_values()
             self.widgets[i].set_failed_status(message)
 
     def set_pending(self, id_):
         """ Set pending status on the given file. """
-        try:
-            self.files[id_].set_pending()
-            i = self._get_visible_index(self.files[id_])
-            if i is not None:
-                self.widgets[i].update_all_refs()
-        except KeyError:
-            pass
+        file = self.files[id_]
+        file.set_pending()
+
+        if file not in self.locked:
+            # pending files become locked so their position does not change
+            # condition is inplace to avoid multiple references when calling
+            # set_pending multiple times
+            self.locked.append(file)
+
+        i = self._get_visible_index(self.files[id_])
+        if i is not None:
+            self.widgets[i].update_all_values()
 
     def remove_file(self, id_):
         """ Remove file from the container. """
         del_file = self.files.pop(id_)
+
+        with contextlib.suppress(ValueError):
+            self.locked.remove(del_file)
 
         i = self._get_visible_index(del_file)
         if i is not None:
@@ -175,52 +189,29 @@ class ProgressFile:
     def __init__(self, id_, name):
         self.id_ = id_
         self.label = name
-        self._maximum = 0
-        self._value = 0
-        self._failed = False
-
-    @property
-    def value(self):
-        """ Get current progress value. """
-        return self._value
+        self.maximum = 0
+        self.value = 0
+        self.failed = False
 
     @property
     def rel_value(self):
         """ Get current progress value (as percentage). """
         try:
-            val = self._value / self._maximum * 100
+            val = self.value / self.maximum * 100
         except ZeroDivisionError:
             val = -1
         return val
 
-    @property
-    def failed(self):
-        """ Check if the file processing has failed. """
-        return self._failed
-
-    @property
-    def maximum(self):
-        """ Get current maximum. """
-        return self._maximum
-
-    def set_value(self, val):
-        """ Set current progress value. """
-        self._value = val
-
     def set_pending(self):
         """ Set infinite pending value. """
-        self.set_value(0)
-        self.set_maximum(0)
+        self.value = 0
+        self.maximum = 0
 
     def set_failed(self):
         """ Set failed values. """
-        self._failed = True
-        self.set_value(999)
-        self.set_maximum(999)
-
-    def set_maximum(self, maximum):
-        """ Set progress bar maximum value. """
-        self._maximum = maximum
+        self.failed = True
+        self.value = 999
+        self.maximum = 999
 
 
 class SummaryFile:
@@ -291,7 +282,7 @@ class ProgressWidget(QWidget):
     def set_file_ref(self, file):
         """ Update widget properties. """
         self.file_ref = file
-        self.update_all_refs()
+        self.update_all_values()
 
         if file.failed:
             self.set_failed_status("Processing failed!")
@@ -299,7 +290,7 @@ class ProgressWidget(QWidget):
             # widget has been in 'failed' state, reapply standard appearance
             self.set_normal_status()
 
-    def update_all_refs(self):
+    def update_all_values(self):
         """ Refresh all attributes. """
         self.update_label()
         self.update_max()

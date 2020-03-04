@@ -1,20 +1,16 @@
 import os
-from functools import partial
 from multiprocessing import Manager
-from queue import Queue
-from typing import List, Callable, Union, Any
-import uuid
+from typing import List, Callable, Union, Any, Dict
 
 from PySide2.QtCore import QThreadPool
+from esofile_reader.storage.storage_files import ParquetFile
+from esofile_reader.utils.mini_classes import ResultsFile
+from profilehooks import profile
 
 from chartify.settings import Settings
-from chartify.utils.process_utils import (create_pool, kill_child_processes,
-                                          load_file, wait_for_results)
-from chartify.utils.threads import (EsoFileWatcher, GuiMonitor,
-                                    IterWorker, Monitor)
-from chartify.utils.utils import generate_ids, get_str_identifier
-from chartify.view.css_theme import CssTheme
-from esofile_reader.utils.mini_classes import ResultsFile
+from chartify.utils.process_utils import create_pool, kill_child_processes, load_file
+from chartify.utils.threads import EsoFileWatcher, IterWorker, Monitor
+from chartify.utils.utils import get_str_identifier
 
 
 class AppController:
@@ -42,9 +38,11 @@ class AppController:
         self.wvc = wv_controller
 
         # ~~~~ Queues ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.file_queue = Queue()
         self.manager = Manager()
+        self.lock = self.manager.Lock()
+        self.ids = self.manager.list([])
         self.progress_queue = self.manager.Queue()
+        self.file_queue = self.manager.Queue()
 
         # ~~~~ Monitoring threads ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.watcher = EsoFileWatcher(self.file_queue)
@@ -109,8 +107,8 @@ class AppController:
         self.monitor.range_changed.connect(self.v.progress_cont.set_range)
         self.monitor.pending.connect(self.v.progress_cont.set_pending)
         self.monitor.failed.connect(self.v.progress_cont.set_failed)
-        # finished signal is not emitted, the file is removed from on_file_loaded
 
+    @profile(sort="time")
     def handle_view_update(self, id_: int) -> None:
         """ Update content of a newly selected tab. """
         file = self.m.get_file(id_)
@@ -125,30 +123,33 @@ class AppController:
 
     def handle_file_processing(self, paths: List[str]) -> None:
         """ Load new files. """
+        workdir = str(self.m.storage.workdir)
         for path in paths:
-            monitor_id = str(uuid.uuid1())
-            monitor = GuiMonitor(path, monitor_id, self.progress_queue)
-            future = self.pool.submit(load_file, path, monitor, self.m.storage)
-            future.add_done_callback(partial(wait_for_results, monitor_id,
-                                             self.file_queue))
+            self.pool.submit(
+                load_file,
+                path,
+                workdir,
+                self.progress_queue,
+                self.file_queue,
+                self.ids,
+                self.lock
+            )
 
-    def on_file_loaded(self, monitor_id: str, files: List[ResultsFile],
-                       totals_files: List[ResultsFile]) -> None:
+    def on_file_loaded(self, monitor_id: str, files: Dict[int, ParquetFile]) -> None:
         """ Add eso file into 'tab' widget. """
-        for f, tf in zip(files, totals_files):
+        for id_, file in files.items():
+            # make sure that file name is unique
             names = self.m.get_all_file_names()
-            name = get_str_identifier(f.file_name, names)
+            name = get_str_identifier(file.file_name, names)
+            file.rename(name)
 
-            f.rename(name)
-            id_ = self.m.store_file(f)
+            # store file reference in model
+            self.m.storage.files[id_] = file
+
+            # add new tab into tab widget
             self.v.add_new_tab(id_, name)
 
-            # totals flag is based on the file class
-            tf_name = f"{name} - totals"
-            tf.rename(tf_name)
-            id_ = self.m.store_file(tf)
-            self.v.add_new_tab(id_, tf_name)
-
+        # remove progress bar from ui
         self.v.progress_cont.remove_file(monitor_id)
 
     def _apply_async(self, id_: int, func: Callable, *args, **kwargs) -> Any:
@@ -159,9 +160,9 @@ class AppController:
         val = func(file, *args, **kwargs)
 
         # apply function to all other widgets asynchronously
-        if  Settings.ALL_FILES:
-            other_files =  self.m.get_other_files()
-            w = IterWorker(func,other_files, *args, **kwargs)
+        if Settings.ALL_FILES:
+            other_files = self.m.get_other_files()
+            w = IterWorker(func, other_files, *args, **kwargs)
             self.thread_pool.start(w)
 
         return val
@@ -223,4 +224,5 @@ class AppController:
 
     def handle_close_tab(self, id_: int) -> None:
         """ Delete file from the database. """
+        self.ids.remove(id_)
         self.m.delete_file(id_)
