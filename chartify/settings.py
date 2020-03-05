@@ -27,7 +27,8 @@ class Settings:
     UNITS_SYSTEM = None
     RATE_TO_ENERGY = None
     CUSTOM_UNITS = None
-    FS_PATH = None
+    LOAD_PATH = None
+    SAVE_PATH = None
     PALETTE_NAME = None
 
     INTERVAL = None
@@ -59,7 +60,8 @@ class Settings:
         cls.UNITS_SYSTEM = s.value("Units/unitsSystem", "SI")
         cls.RATE_TO_ENERGY = bool(s.value("Units/rateToEnergy", 0))
         cls.CUSTOM_UNITS = bool(s.value("Units/customUnits", 1))
-        cls.FS_PATH = s.value("MainWindow/loadPath", "")
+        cls.LOAD_PATH = s.value("MainWindow/loadPath", "")
+        cls.SAVE_PATH = s.value("MainWindow/savePath", "")
         cls.PALETTE_NAME = s.value("MainWindow/scheme", "default")
 
         cls.INTERVAL = s.value("MainWindow/interval", None)
@@ -84,7 +86,8 @@ class Settings:
         s.setValue("MainWindow/allFiles", int(cls.ALL_FILES))
         s.setValue("MainWindow/treeView", int(cls.TREE_VIEW))
         s.setValue("MainWindow/scheme", cls.PALETTE_NAME)
-        s.setValue("MainWindow/loadPath", cls.FS_PATH)
+        s.setValue("MainWindow/loadPath", cls.LOAD_PATH)
+        s.setValue("MainWindow/savePath", cls.SAVE_PATH)
         s.setValue("MainWindow/size", cls.SIZE)
         s.setValue("MainWindow/pos", cls.POSITION)
         s.setValue("MainWindow/mirrored", int(cls.MIRRORED))

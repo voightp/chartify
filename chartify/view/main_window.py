@@ -1,5 +1,4 @@
 import ctypes
-import os
 from functools import partial
 from pathlib import Path
 
@@ -10,9 +9,11 @@ from PySide2.QtWidgets import (QWidget, QSplitter, QHBoxLayout, QVBoxLayout,
                                QToolButton, QAction, QFileDialog, QSizePolicy,
                                QFrame, QMainWindow, QStatusBar, QMenu)
 from esofile_reader.convertor import rate_and_energy_units
+from esofile_reader.storage.pqt_storage import ParquetStorage
 
 from chartify.settings import Settings
 from chartify.view.buttons import MenuButton
+from chartify.view.css_theme import parse_palette, CssTheme
 from chartify.view.icons import Pixmap, filled_circle_pixmap
 from chartify.view.misc_widgets import (DropFrame, TabWidget, MulInputDialog,
                                         ConfirmationDialog)
@@ -21,7 +22,6 @@ from chartify.view.toolbar import Toolbar
 from chartify.view.treeview_functions import create_proxy
 from chartify.view.treeview_tools import ViewTools
 from chartify.view.treeview_widget import View
-from chartify.view.css_theme import parse_palette, Palette, CssTheme
 
 
 # noinspection PyPep8Naming,PyUnresolvedReferences
@@ -164,7 +164,7 @@ class MainWindow(QMainWindow):
         self.remove_variables_act = QAction("Delete", self)
 
         self.sum_variables_act = QAction("Sum", self)
-        self.sum_variables_act.setShortcut(QKeySequence("Ctrl+S"))
+        self.sum_variables_act.setShortcut(QKeySequence("Ctrl+T"))
 
         self.avg_variables_act = QAction("Mean", self)
         self.avg_variables_act.setShortcut(QKeySequence("Ctrl+M"))
@@ -178,9 +178,11 @@ class MainWindow(QMainWindow):
         self.tree_act = QAction("Tree", self)
         self.tree_act.setShortcut(QKeySequence("Ctrl+T"))
 
-        # TODO SAVE FUNCTIONS REQUIRED
         self.save_act = QAction("Save", self)
+        self.save_act.setShortcut(QKeySequence("Ctrl+S"))
+
         self.save_as_act = QAction("Save as", self)
+        self.save_as_act.setShortcut(QKeySequence("Ctrl+Shift+S"))
 
         # add actions to main window to allow shortcuts
         self.addActions([self.remove_variables_act, self.sum_variables_act,
@@ -475,14 +477,29 @@ class MainWindow(QMainWindow):
         """ Store current splitter position. """
         Settings.SPLIT = self.central_splitter.sizes()
 
-    def load_files_from_os(self):
+    def save_storage_to_fs(self) -> Path:
+        path, _ = QFileDialog.getSaveFileName(
+            parent=self,
+            caption="Save project",
+            filter=f"CFS (*{ParquetStorage.EXT})",
+            dir=Settings.SAVE_PATH,
+        )
+        if path:
+            Settings.SAVE_PATH = str(Path(path).parent)
+            return Path(path)
+
+    def load_files_from_fs(self):
         """ Select eso files from explorer and start processing. """
-        file_pths, _ = QFileDialog.getOpenFileNames(self, "Load Eso File",
-                                                    Settings.FS_PATH, "*.eso")
-        if file_pths:
+        file_paths, _ = QFileDialog.getOpenFileNames(
+            parent=self,
+            caption="Load Project / Eso File",
+            filter="FILES (*.csv *.xlsx *.eso *.cfs)",
+            dir=Settings.LOAD_PATH,
+        )
+        if file_paths:
             # store last path for future
-            Settings.FS_PATH = os.path.dirname(file_pths[0])
-            self.fileProcessingRequested.emit(file_pths)
+            Settings.LOAD_PATH = str(Path(file_paths[0]).parent)
+            self.fileProcessingRequested.emit(file_paths)
 
     def rename_file(self, tab_index):
         """ Rename file on a tab identified by the given index. """
@@ -593,7 +610,7 @@ class MainWindow(QMainWindow):
         self.central_splitter.splitterMoved.connect(self.on_splitter_moved)
 
         # ~~~~ Actions Signals ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.load_file_act.triggered.connect(self.load_files_from_os)
+        self.load_file_act.triggered.connect(self.load_files_from_fs)
         self.tree_act.triggered.connect(self.view_tools_wgt.tree_view_btn.toggle)
         self.collapse_all_act.triggered.connect(self.collapse_all)
         self.expand_all_act.triggered.connect(self.expand_all)
@@ -611,7 +628,7 @@ class MainWindow(QMainWindow):
         self.tab_wgt.tabClosed.connect(self.on_tab_closed)
         self.tab_wgt.currentChanged.connect(self.on_tab_changed)
         self.tab_wgt.tabBarDoubleClicked.connect(self.rename_file)
-        self.tab_wgt.drop_btn.clicked.connect(self.load_files_from_os)
+        self.tab_wgt.drop_btn.clicked.connect(self.load_files_from_fs)
 
         # ~~~~ Toolbar Signals ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.toolbar.settingsUpdated.connect(self.on_settings_changed)

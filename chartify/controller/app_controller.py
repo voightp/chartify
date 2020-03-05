@@ -90,9 +90,8 @@ class AppController:
         self.v.appClosedRequested.connect(self.tear_down)
         self.v.selectionChanged.connect(self.handle_selection_change)
         self.v.close_all_act.triggered.connect(lambda x: x)
-
-        self.v.save_act.triggered.connect(lambda x: print("SAVE ACT!"))
-        self.v.save_as_act.triggered.connect(lambda x: print("SAVE AS ACT!"))
+        self.v.save_act.triggered.connect(self.on_save)
+        self.v.save_as_act.triggered.connect(self.on_save_as)
 
     def handle_selection_change(self, variables: List[tuple]) -> None:
         """ Handle selection update. """
@@ -107,6 +106,17 @@ class AppController:
         self.monitor.range_changed.connect(self.v.progress_cont.set_range)
         self.monitor.pending.connect(self.v.progress_cont.set_pending)
         self.monitor.failed.connect(self.v.progress_cont.set_failed)
+
+    def on_save(self):
+        if not self.m.storage.path:
+            self.on_save_as()
+        else:
+            self.m.storage.save()
+
+    def on_save_as(self):
+        path = self.v.save_storage_to_fs()
+        if path:
+            self.m.storage.save_as(path.parent, path.stem)
 
     @profile(sort="time")
     def handle_view_update(self, id_: int) -> None:
