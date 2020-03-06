@@ -19,7 +19,6 @@ from chartify.view.misc_widgets import (DropFrame, TabWidget, MulInputDialog,
                                         ConfirmationDialog)
 from chartify.view.progress_widget import ProgressContainer
 from chartify.view.toolbar import Toolbar
-from chartify.view.treeview_functions import create_proxy
 from chartify.view.treeview_tools import ViewTools
 from chartify.view.treeview_widget import View
 
@@ -370,24 +369,16 @@ class MainWindow(QMainWindow):
         if not self.tab_wgt.is_empty():
             self.toolbar.totals_btn.setEnabled(True)
 
-    def build_view(self, variables, selected=None, scroll_to=None):
+    def build_view(self, variables_df, selected=None, scroll_to=None):
         """ Create a new view when any of related settings change """
-        is_tree = self.view_tools_wgt.tree_requested()
-        filter_tup = self.view_tools_wgt.get_filter_tup()
-
-        if not self.current_view:
-            return
-
-        view_order = self.current_view.settings["header"]
-        interval = Settings.INTERVAL
-        units = (Settings.RATE_TO_ENERGY, Settings.UNITS_SYSTEM,
-                 Settings.ENERGY_UNITS, Settings.POWER_UNITS)
-
-        proxy_variables = create_proxy(variables, view_order, *units)
-
-        self.current_view.update_model(variables, proxy_variables, is_tree,
-                                       interval, units, filter_tup=filter_tup,
-                                       selected=selected, scroll_to=scroll_to)
+        if self.current_view:
+            filter_tup = self.view_tools_wgt.get_filter_tup()
+            self.current_view.update_model(
+                variables_df,
+                filter_tup=filter_tup,
+                selected=selected,
+                scroll_to=scroll_to
+            )
 
     def on_selection_populated(self, variables):
         """ Store current selection in main app. """

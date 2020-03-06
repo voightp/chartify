@@ -1,10 +1,11 @@
+import pandas as pd
 from PySide2.QtCore import (Qt, QSortFilterProxyModel, QItemSelectionModel,
                             QItemSelection, QItemSelectionRange, QMimeData,
                             Signal)
 from PySide2.QtGui import QStandardItemModel, QStandardItem, QDrag, QPixmap
 from PySide2.QtWidgets import QTreeView, QAbstractItemView, QHeaderView, QMenu
-
-from chartify.view.treeview_functions import as_tree_dct
+from chartify.view.treeview_functions import add_proxy_units_columns
+from chartify.settings import Settings
 
 
 class View(QTreeView):
@@ -13,10 +14,12 @@ class View(QTreeView):
     itemDoubleClicked = Signal(object)
     treeNodeChanged = Signal()
 
-    settings = {"widths": {"interactive": 200, "fixed": 70},
-                "order": ("variable", Qt.AscendingOrder),
-                "header": ("variable", "key", "units"),
-                "expanded": set()}
+    settings = {
+        "widths": {"interactive": 200, "fixed": 70},
+        "order": ("variable", Qt.AscendingOrder),
+        "header": ("variable", "key", "units", "source units"),
+        "expanded": set()
+    }
 
     def __init__(self, id_, name):
         super().__init__()
@@ -40,11 +43,13 @@ class View(QTreeView):
         self.name = name
 
         self._initialized = False
-        self.temp_settings = {"interval": None,
-                              "tree_key": None,
-                              "units": None,
-                              "filter": None,
-                              "force_update": True}
+        self.temp_settings = {
+            "interval": None,
+            "is_tree": None,
+            "units": None,
+            "filter": None,
+            "force_update": True
+        }
 
         self._scrollbar_position = 0
 
@@ -67,7 +72,6 @@ class View(QTreeView):
         menu = QMenu(self)
         menu.setObjectName("contextMenu")
         menu.setWindowFlags(menu.windowFlags() | Qt.NoDropShadowWindowHint)
-
         menu.exec_(self.mapToGlobal(event.pos()))
 
     def filter_view(self, filter_tup):
@@ -84,14 +88,6 @@ class View(QTreeView):
         """ Notify the view that it needs to be updated. """
         self.temp_settings["force_update"] = True
 
-    def store_settings(self, interval, tree_key, units, filter_tup):
-        """ Store intermediate settings. """
-        self.temp_settings = {"interval": interval,
-                              "tree_key": tree_key,
-                              "units": units,
-                              "filter": filter_tup,
-                              "force_update": False}
-
     def set_first_col_spanned(self):
         """ Set parent row to be spanned over all columns. """
         model = self.model()
@@ -100,12 +96,19 @@ class View(QTreeView):
             if model.hasChildren(ix):
                 self.setFirstColumnSpanned(i, self.rootIndex(), True)
 
-    def build_model(self, variables, proxy_variables, tree_key, view_order):
+    def build_model(self, variables_df, is_tree, view_order):
         """  Create a model and set up its appearance. """
         model = ViewModel()
-        model.populate_data(variables, proxy_variables, tree_key)
+
+        if not is_tree:
+            # create plain table when tree structure not requested
+            model.append_plain_rows(variables_df)
+        else:
+            model.append_tree_rows(variables_df)
+
         model.setHorizontalHeaderLabels(view_order)
 
+        # install proxy model
         proxy_model = FilterModel()
         proxy_model.setSourceModel(model)
         self.setModel(proxy_model)
@@ -120,6 +123,7 @@ class View(QTreeView):
         z = list(zip(self.model().get_logical_names(), vis_ixs))
         z.sort(key=lambda x: x[1])
         sorted_names = list(zip(*z))[0]
+
         return sorted_names
 
     def reshuffle_columns(self, order):
@@ -214,26 +218,49 @@ class View(QTreeView):
         else:
             self.selectionCleared.emit()
 
-    def update_model(self, variables, proxy_variables, is_tree, interval,
-                     units, filter_tup=None, selected=None, scroll_to=None):
+    def update_model(self, variables_df, filter_tup=None, selected=None, scroll_to=None):
         """ Set the model and define behaviour of the tree view. """
+        # gather settings
+        interval = Settings.INTERVAL
+        is_tree = Settings.TREE_VIEW
+        units = (
+            Settings.RATE_TO_ENERGY,
+            Settings.UNITS_SYSTEM,
+            Settings.ENERGY_UNITS,
+            Settings.POWER_UNITS
+        )
+
+        # create proxy units columns
+        variables_df.rename(columns={"units": "source units"})
+        variables_df["units"] = add_proxy_units_columns()
+
+        # update columns order based on current view
         view_order = self.settings["header"]
-        tree_key = view_order[0] if is_tree else None
+        variables_df = variables_df[view_order]
 
         # Only update the model if the settings have changed
-        conditions = [tree_key != self.temp_settings["tree_key"],
-                      interval != self.temp_settings["interval"],
-                      units != self.temp_settings["units"],
-                      filter_tup != self.temp_settings["filter"],
-                      self.temp_settings["force_update"]]
+        conditions = [
+            is_tree != self.temp_settings["is_tree"],
+            interval != self.temp_settings["interval"],
+            units != self.temp_settings["units"],
+            filter_tup != self.temp_settings["filter"],
+            self.temp_settings["force_update"]
+        ]
 
         if any(conditions):
             print("UPDATING MODEL")
             self.disconnect_actions()
-            self.build_model(variables, proxy_variables, tree_key, view_order)
+            self.build_model(variables_df, is_tree, view_order)
 
             # Store current sorting key and interval
-            self.store_settings(interval, tree_key, units, filter_tup)
+            self.temp_settings = {
+                "interval": interval,
+                "is_tree": is_tree,
+                "units": units,
+                "filter": filter_tup,
+                "force_update": False
+            }
+
             self.reconnect_actions()
 
         # clear selections to avoid having visually
@@ -311,7 +338,7 @@ class View(QTreeView):
     def on_section_moved(self, _logical_ix, old_visual_ix, new_visual_ix):
         """ Handle updating the model when first column changed. """
         names = self.get_visual_names()
-        is_tree = self.temp_settings["tree_key"]
+        is_tree = self.temp_settings["is_tree"]
         self.settings["header"] = names
 
         if (new_visual_ix == 0 or old_visual_ix == 0) and is_tree:
@@ -470,7 +497,7 @@ class ViewModel(QStandardItemModel):
         """ Parse variable to create a status tip. """
         item.setStatusTip(f"{var.key}  |  {var.variable}  |  {var.units}")
 
-    def _append_rows(self, header_iterator, parent, tree=False):
+    def append_rows(self, variables_df, parent, tree=False):
         """ Add rows to the model. """
         for data, proxy in header_iterator:
             proxy_dt = [None, proxy[1], proxy[2]] if tree else proxy
@@ -483,33 +510,24 @@ class ViewModel(QStandardItemModel):
             _ = [self.set_status_tip(item, proxy) for item in row]
             parent.appendRow(row)
 
-    def _append_tree_rows(self, tree_header, root):
+    def append_plain_rows(self, variables_df: pd.DataFrame):
+        root = self.invisibleRootItem()
+        for _, row in variables_df.iterrows():
+
+    def append_tree_rows(self, variables_df):
         """ Add rows for a tree like view. """
+        root = self.invisibleRootItem()
         for k, variables in tree_header.items():
 
             if len(variables) == 1:
                 # append as a plain row
-                self._append_rows(variables, root)
+                self.append_rows(variables, root)
 
             else:
                 parent = QStandardItem(k)
                 parent.setDragEnabled(False)
                 root.appendRow(parent)
-                self._append_rows(variables, parent, tree=True)
-
-    def populate_data(self, variables, proxy_variables, tree_key):
-        """ Feed the model with output variables. """
-        root = self.invisibleRootItem()
-        header_zip = zip(variables, proxy_variables)
-
-        if not tree_key:
-            # create plain table when tree structure not requested
-            self._append_rows(header_zip, root)
-
-        else:
-            # create a tree like structure
-            tree_header = as_tree_dct(header_zip, tree_key)
-            self._append_tree_rows(tree_header, root)
+                self.append_rows(variables, parent, tree=True)
 
 
 class FilterModel(QSortFilterProxyModel):
