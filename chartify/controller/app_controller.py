@@ -119,7 +119,7 @@ class AppController:
         if path:
             self.m.storage.save_as(path.parent, path.stem)
 
-    @profile(sort="time")
+    @profile
     def handle_view_update(self, id_: int) -> None:
         """ Update content of a newly selected tab. """
         file = self.m.get_file(id_)
