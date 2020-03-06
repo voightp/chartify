@@ -1,20 +1,19 @@
+import math
 import traceback
+import uuid
+from multiprocessing import Lock
 from multiprocessing import cpu_count
-from typing import Tuple, List, Dict
+from typing import Tuple, List
 
 import loky
 import psutil
-import math
-import uuid
-from esofile_reader.data.pqt_data import ParquetFrame
-from esofile_reader.utils.mini_classes import ResultsFile
-from chartify.utils.utils import get_str_identifier
-from chartify.utils.monitor import GuiMonitor
 from esofile_reader import EsoFile, TotalsFile
 from esofile_reader.base_file import IncompleteFile
-from esofile_reader.storage.pqt_storage import ParquetStorage
+from esofile_reader.data.pqt_data import ParquetFrame
 from esofile_reader.storage.storage_files import ParquetFile
-from multiprocessing import Lock
+from esofile_reader.utils.mini_classes import ResultsFile
+
+from chartify.utils.monitor import GuiMonitor
 
 
 def create_pool():
@@ -78,6 +77,7 @@ def store_file(
         pardir=workdir,
         monitor=monitor,
     )
+    file.CLEAN_UP = False
 
     monitor.storing_finished()
 
@@ -98,11 +98,9 @@ def load_file(
 
     try:
         files = EsoFile.process_multi_env_file(path, monitor=monitor)
-        totals_files = [TotalsFile(f) for f in files]
         monitor.building_totals_finished()
 
-        pqt_files = {}
-        for f in files + totals_files:
+        for f in files:
             id_, file = store_file(
                 results_file=f,
                 workdir=workdir,
@@ -110,10 +108,19 @@ def load_file(
                 ids=ids,
                 lock=lock
             )
-            pqt_files[id_] = file
+            file_queue.put(file)
 
-        file_queue.put((monitor_id, pqt_files))
+            id_, file = store_file(
+                results_file=TotalsFile(f),
+                workdir=workdir,
+                monitor=monitor,
+                ids=ids,
+                lock=lock
+            )
 
+            file_queue.put(file)
+
+        file_queue.put(monitor_id)
         monitor.done()
 
     except IncompleteFile:

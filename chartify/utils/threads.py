@@ -1,4 +1,5 @@
 from PySide2.QtCore import QThread, Signal, QRunnable
+from esofile_reader.storage.storage_files import ParquetFile
 
 
 # noinspection PyUnresolvedReferences
@@ -65,7 +66,8 @@ class Monitor(QThread):
 
 # noinspection PyUnresolvedReferences
 class EsoFileWatcher(QThread):
-    loaded = Signal(str, dict)
+    file_loaded = Signal(ParquetFile)
+    all_loaded = Signal(str)
 
     def __init__(self, file_queue):
         super().__init__()
@@ -73,8 +75,13 @@ class EsoFileWatcher(QThread):
 
     def run(self):
         while True:
-            monitor_id, files = self.file_queue.get()
-            self.loaded.emit(monitor_id, files)
+            file = self.file_queue.get()
+
+            if isinstance(file, str):
+                # passed monitor id, send close request
+                self.all_loaded.emit(file)
+            else:
+                self.file_loaded.emit(file)
 
 
 class IterWorker(QRunnable):

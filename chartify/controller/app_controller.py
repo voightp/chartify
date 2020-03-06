@@ -1,6 +1,6 @@
 import os
 from multiprocessing import Manager
-from typing import List, Callable, Union, Any, Dict
+from typing import List, Callable, Union, Any
 
 from PySide2.QtCore import QThreadPool
 from esofile_reader.storage.storage_files import ParquetFile
@@ -46,7 +46,8 @@ class AppController:
 
         # ~~~~ Monitoring threads ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.watcher = EsoFileWatcher(self.file_queue)
-        self.watcher.loaded.connect(self.on_file_loaded)
+        self.watcher.file_loaded.connect(self.on_file_loaded)
+        self.watcher.all_loaded.connect(self.on_all_files_loaded)
         self.watcher.start()
 
         self.monitor = Monitor(self.progress_queue)
@@ -145,22 +146,22 @@ class AppController:
                 self.lock
             )
 
-    def on_file_loaded(self, monitor_id: str, files: Dict[int, ParquetFile]) -> None:
-        """ Add eso file into 'tab' widget. """
-        for id_, file in files.items():
-            # make sure that file name is unique
-            names = self.m.get_all_file_names()
-            name = get_str_identifier(file.file_name, names)
-            file.rename(name)
-
-            # store file reference in model
-            self.m.storage.files[id_] = file
-
-            # add new tab into tab widget
-            self.v.add_new_tab(id_, name)
-
-        # remove progress bar from ui
+    def on_all_files_loaded(self, monitor_id: str) -> None:
+        """ Remove progress widget from ui. """
         self.v.progress_cont.remove_file(monitor_id)
+
+    def on_file_loaded(self, file: ParquetFile) -> None:
+        """ Add eso file into 'tab' widget. """
+        # make sure that file name is unique
+        names = self.m.get_all_file_names()
+        name = get_str_identifier(file.file_name, names)
+        file.rename(name)
+
+        # store file reference in model
+        self.m.storage.files[file.id_] = file
+
+        # add new tab into tab widget
+        self.v.add_new_tab(file.id_, name)
 
     def _apply_async(self, id_: int, func: Callable, *args, **kwargs) -> Any:
         """ A wrapper to apply functions to current views. """
