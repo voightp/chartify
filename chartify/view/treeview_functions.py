@@ -4,7 +4,7 @@ import pandas as pd
 from esofile_reader.conversion_tables import rate_table, energy_table, si_to_ip
 
 
-def add_proxy_units_columns(
+def add_proxy_units_column(
         variables_df: pd.DataFrame,
         rate_to_energy: bool,
         units_system: str,

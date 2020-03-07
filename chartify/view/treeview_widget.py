@@ -4,7 +4,7 @@ from PySide2.QtCore import (Qt, QSortFilterProxyModel, QItemSelectionModel,
                             Signal)
 from PySide2.QtGui import QStandardItemModel, QStandardItem, QDrag, QPixmap
 from PySide2.QtWidgets import QTreeView, QAbstractItemView, QHeaderView, QMenu
-from chartify.view.treeview_functions import add_proxy_units_columns
+from chartify.view.treeview_functions import add_proxy_units_column
 from chartify.settings import Settings
 
 
@@ -17,7 +17,7 @@ class View(QTreeView):
     settings = {
         "widths": {"interactive": 200, "fixed": 70},
         "order": ("variable", Qt.AscendingOrder),
-        "header": ("variable", "key", "units", "source units"),
+        "header": ("variable", "key", "units", "source units", "id"),
         "expanded": set()
     }
 
@@ -42,6 +42,16 @@ class View(QTreeView):
         self.id_ = id_
         self.name = name
 
+        # create view model
+        model = ViewModel()
+        model.setColumnCount(len(self.settings["header"]))
+        model.setHorizontalHeaderLabels(self.settings["header"])
+
+        # install proxy model
+        proxy_model = FilterModel()
+        proxy_model.setSourceModel(model)
+        self.setModel(proxy_model)
+
         self._initialized = False
         self.temp_settings = {
             "interval": None,
@@ -58,6 +68,11 @@ class View(QTreeView):
         self.collapsed.connect(self.on_collapsed)
         self.pressed.connect(self.on_pressed)
         self.doubleClicked.connect(self.on_double_clicked)
+
+        self.header().setFirstSectionMovable(True)
+        self.header().sectionResized.connect(self.on_view_resized)
+        self.header().sortIndicatorChanged.connect(self.on_sort_order_changed)
+        self.header().sectionMoved.connect(self.on_section_moved)
 
     def mousePressEvent(self, event):
         """ Handle mouse events. """
@@ -90,29 +105,27 @@ class View(QTreeView):
 
     def set_first_col_spanned(self):
         """ Set parent row to be spanned over all columns. """
-        model = self.model()
-        for i in range(model.rowCount()):
-            ix = model.index(i, 0)
-            if model.hasChildren(ix):
+        for i in range(self.model().rowCount()):
+            ix = self.model().index(i, 0)
+            if self.model().hasChildren(ix):
                 self.setFirstColumnSpanned(i, self.rootIndex(), True)
 
-    def build_model(self, variables_df, is_tree, view_order):
+    def build_model(self, variables_df, is_tree):
         """  Create a model and set up its appearance. """
-        model = ViewModel()
+        source_model = self.model().sourceModel()
+
+        # clear removes all rows and columns
+        source_model.clear()
+        source_model.setColumnCount(len(self.settings["header"]))
+        source_model.setHorizontalHeaderLabels(self.settings["header"])
 
         if not is_tree:
             # create plain table when tree structure not requested
-            model.append_plain_rows(variables_df)
+            source_model.append_plain_rows(variables_df)
         else:
-            model.append_tree_rows(variables_df)
+            source_model.append_tree_rows(variables_df)
 
-        model.setHorizontalHeaderLabels(view_order)
-
-        # install proxy model
-        proxy_model = FilterModel()
-        proxy_model.setSourceModel(model)
-        self.setModel(proxy_model)
-
+        # make sure that parent column spans full width
         self.set_first_col_spanned()
 
     def get_visual_names(self):
@@ -128,12 +141,11 @@ class View(QTreeView):
 
     def reshuffle_columns(self, order):
         """ Reset column positions to match last visual appearance. """
-        header = self.header()
         for i, nm in enumerate(order):
             vis_names = self.get_visual_names()
             j = vis_names.index(nm)
             if i != j:
-                header.moveSection(j, i)
+                self.header().moveSection(j, i)
 
     def update_sort_order(self, name, order):
         """ Set header order. """
@@ -165,8 +177,7 @@ class View(QTreeView):
         proxy_selection = proxy_model.find_match([var], key)
 
         if proxy_selection:
-            ix = proxy_selection.indexes()[0]
-            self.scrollTo(ix)
+            self.scrollTo(proxy_selection.indexes()[0])
 
     def update_view_appearance(self):
         """ Update the model appearance to be consistent with last view. """
@@ -230,9 +241,9 @@ class View(QTreeView):
             Settings.POWER_UNITS
         )
 
-        # create proxy units columns
+        # create proxy units column
         variables_df.rename(columns={"units": "source units"})
-        variables_df["units"] = add_proxy_units_columns()
+        add_proxy_units_column(variables_df)
 
         # update columns order based on current view
         view_order = self.settings["header"]
@@ -250,7 +261,7 @@ class View(QTreeView):
         if any(conditions):
             print("UPDATING MODEL")
             self.disconnect_actions()
-            self.build_model(variables_df, is_tree, view_order)
+            self.build_model(variables_df, is_tree)
 
             # Store current sorting key and interval
             self.temp_settings = {
@@ -280,11 +291,6 @@ class View(QTreeView):
         # with previously displayed View
         self.update_view_appearance()
 
-        if not self._initialized:
-            # create header actions only when view is created
-            self.initialize_header()
-            self._initialized = True
-
     def resize_header(self, widths):
         """ Update header sizes. """
         header = self.header()
@@ -300,16 +306,14 @@ class View(QTreeView):
 
     def update_resize_behaviour(self):
         """ Define resizing behaviour. """
-        header = self.header()
-
         # both logical and visual indexes are ordered
         # as 'key', 'variable', 'units'
         log_ixs = self.model().get_logical_ixs()
         vis_ixs = [self.header().visualIndex(i) for i in log_ixs]
 
         # units column size is always fixed
-        header.setSectionResizeMode(log_ixs[2], QHeaderView.Fixed)
-        header.setStretchLastSection(False)
+        self.header().setSectionResizeMode(log_ixs[2], QHeaderView.Fixed)
+        self.header().setStretchLastSection(False)
 
         if vis_ixs[0] > vis_ixs[1]:
             stretch = log_ixs[0]
@@ -318,8 +322,8 @@ class View(QTreeView):
             stretch = log_ixs[1]
             interactive = log_ixs[0]
 
-        header.setSectionResizeMode(stretch, QHeaderView.Stretch)
-        header.setSectionResizeMode(interactive, QHeaderView.Interactive)
+        self.header().setSectionResizeMode(stretch, QHeaderView.Stretch)
+        self.header().setSectionResizeMode(interactive, QHeaderView.Interactive)
 
     def on_sort_order_changed(self, log_ix, order):
         """ Store current sorting order in main app. """
@@ -328,11 +332,9 @@ class View(QTreeView):
 
     def on_view_resized(self):
         """ Store interactive section width in the main app. """
-        header = self.header()
-
-        for i in range(header.count()):
-            if header.sectionResizeMode(i) == header.Interactive:
-                width = header.sectionSize(i)
+        for i in range(self.header().count()):
+            if self.header().sectionResizeMode(i) == self.header().Interactive:
+                width = self.header().sectionSize(i)
                 self.settings["widths"]["interactive"] = width
 
     def on_section_moved(self, _logical_ix, old_visual_ix, new_visual_ix):
@@ -349,17 +351,6 @@ class View(QTreeView):
 
         self.update_resize_behaviour()
         self.resize_header(self.settings["widths"])
-
-    def initialize_header(self):
-        """ Create header actions. """
-        # When the file is loaded for the first time, the header does not
-        # contain required data to use 'view_resized' method.
-        # Due to this, the action needs to be created only after the model
-        # and its header have been created.
-        self.header().setFirstSectionMovable(True)
-        self.header().sectionResized.connect(self.on_view_resized)
-        self.header().sortIndicatorChanged.connect(self.on_sort_order_changed)
-        self.header().sectionMoved.connect(self.on_section_moved)
 
     def on_slider_moved(self, val):
         """ Handle moving view slider. """
@@ -406,8 +397,7 @@ class View(QTreeView):
     def get_selected_variables(self):
         """ Extract output information from the current selection. """
         proxy_model = self.model()
-        selection_model = self.selectionModel()
-        proxy_rows = selection_model.selectedRows()
+        proxy_rows = self.selectionModel().selectedRows()
         rows = proxy_model.map_to_source_lst(proxy_rows)
 
         if proxy_rows:
@@ -431,7 +421,7 @@ class View(QTreeView):
                     self._deselect_item(index)
 
             # needs to be called again to get updated selection
-            proxy_rows = selection_model.selectedRows()
+            proxy_rows = self.selectionModel().selectedRows()
 
             return [proxy_model.data_from_index(index) for index in proxy_rows]
 
@@ -493,9 +483,10 @@ class ViewModel(QStandardItemModel):
         return "application/json"
 
     @staticmethod
-    def set_status_tip(item, var):
+    def set_status_tip(item_row, key, variable, units):
         """ Parse variable to create a status tip. """
-        item.setStatusTip(f"{var.key}  |  {var.variable}  |  {var.units}")
+        for item in item_row:
+            item.setStatusTip(f"{key}  |  {variable}  |  {units}")
 
     def append_rows(self, variables_df, parent, tree=False):
         """ Add rows to the model. """
@@ -510,22 +501,32 @@ class ViewModel(QStandardItemModel):
             _ = [self.set_status_tip(item, proxy) for item in row]
             parent.appendRow(row)
 
-    def append_plain_rows(self, variables_df: pd.DataFrame):
-        root = self.invisibleRootItem()
+    def append_plain_rows(self, variables_df: pd.DataFrame, parent: QStandardItem = None):
+        parent = parent if parent else self.invisibleRootItem()
+        header = variables_df.columns.tolist()
+        hash = {
+            "key": header.index("key"),
+            "varible": header.index("varible"),
+            "units": header.index("units"),
+            "source units": header.index("source")
+        }
         for _, row in variables_df.iterrows():
+            item_row = [QStandardItem(item) for item in row]
+            self.set_status_tip(
+                item_row, row[hash["key"]], row[hash["variable"]], row[hash["units"]]
+            )
+            parent.appendRow(item_row)
 
-    def append_tree_rows(self, variables_df):
+    def append_tree_rows(self, variables_df: pd.DataFrame):
         """ Add rows for a tree like view. """
         root = self.invisibleRootItem()
-        for k, variables in tree_header.items():
-
-            if len(variables) == 1:
-                # append as a plain row
-                self.append_rows(variables, root)
-
+        grouped = variables_df.groupby(by=[variables_df.columns[0]])
+        for parent, df in grouped:
+            if len(df.index) == 1:
+                self.append_plain_rows(df)
             else:
-                parent = QStandardItem(k)
-                parent.setDragEnabled(False)
+                parent_item = QStandardItem(parent)
+                parent_item.setDragEnabled(False)
                 root.appendRow(parent)
                 self.append_rows(variables, parent, tree=True)
 
