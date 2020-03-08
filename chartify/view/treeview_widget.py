@@ -474,6 +474,8 @@ class View(QTreeView):
 
 
 class ViewModel(QStandardItemModel):
+    ORDER = {"key": 0, "variable": 1, "units": 2}
+
     def __init__(self):
         super().__init__()
         self.setSortRole(Qt.AscendingOrder)
@@ -483,44 +485,25 @@ class ViewModel(QStandardItemModel):
         return "application/json"
 
     @staticmethod
-    def set_status_tip(item_row, key, variable, units):
+    def set_status_tip(item_row, row):
         """ Parse variable to create a status tip. """
         for item in item_row:
-            item.setStatusTip(f"{key}  |  {variable}  |  {units}")
-
-    def append_rows(self, variables_df, parent, tree=False):
-        """ Add rows to the model. """
-        for data, proxy in header_iterator:
-            proxy_dt = [None, proxy[1], proxy[2]] if tree else proxy
-
-            row = [QStandardItem(item) for item in proxy_dt]
-
-            # first item in row holds all the information
-            row[0].setData(data, Qt.UserRole)
-
-            _ = [self.set_status_tip(item, proxy) for item in row]
-            parent.appendRow(row)
+            item.setStatusTip(" | ".join(row))
 
     def append_plain_rows(self, variables_df: pd.DataFrame, parent: QStandardItem = None):
         parent = parent if parent else self.invisibleRootItem()
-        header = variables_df.columns.tolist()
-        hash = {
-            "key": header.index("key"),
-            "varible": header.index("varible"),
-            "units": header.index("units"),
-            "source units": header.index("source")
-        }
+        st_tip = sorted(variables_df.columns.tolist(), key=lambda x: self.ORDER[x])
+
         for _, row in variables_df.iterrows():
             item_row = [QStandardItem(item) for item in row]
-            self.set_status_tip(
-                item_row, row[hash["key"]], row[hash["variable"]], row[hash["units"]]
-            )
+            self.set_status_tip(item_row, [row[k] for k in st_tip])
             parent.appendRow(item_row)
 
     def append_tree_rows(self, variables_df: pd.DataFrame):
         """ Add rows for a tree like view. """
         root = self.invisibleRootItem()
         grouped = variables_df.groupby(by=[variables_df.columns[0]])
+        st_tip = sorted(variables_df.columns.tolist(), key=lambda x: self.ORDER[x])
         for parent, df in grouped:
             if len(df.index) == 1:
                 self.append_plain_rows(df)
@@ -528,7 +511,12 @@ class ViewModel(QStandardItemModel):
                 parent_item = QStandardItem(parent)
                 parent_item.setDragEnabled(False)
                 root.appendRow(parent)
-                self.append_rows(variables, parent, tree=True)
+
+                for _, row in df.iterrows():
+                    item_row = [QStandardItem(item) for item in row[1:]]
+                    item_row.insert(0, QStandardItem(None))
+                    self.set_status_tip(item_row, [row[k] for k in st_tip])
+                    parent_item.appendRow(item_row)
 
 
 class FilterModel(QSortFilterProxyModel):
