@@ -4,8 +4,10 @@ from PySide2.QtCore import (Qt, QSortFilterProxyModel, QItemSelectionModel,
                             Signal)
 from PySide2.QtGui import QStandardItemModel, QStandardItem, QDrag, QPixmap
 from PySide2.QtWidgets import QTreeView, QAbstractItemView, QHeaderView, QMenu
-from chartify.view.treeview_functions import add_proxy_units_column
+from profilehooks import profile
+
 from chartify.settings import Settings
+from chartify.utils.utils import create_proxy_units_column
 
 
 class View(QTreeView):
@@ -17,7 +19,7 @@ class View(QTreeView):
     settings = {
         "widths": {"interactive": 200, "fixed": 70},
         "order": ("variable", Qt.AscendingOrder),
-        "header": ("variable", "key", "units", "source units", "id"),
+        "header": ("variable", "key", "units", "source units"),
         "expanded": set()
     }
 
@@ -110,14 +112,15 @@ class View(QTreeView):
             if self.model().hasChildren(ix):
                 self.setFirstColumnSpanned(i, self.rootIndex(), True)
 
+    @profile(sort="time")
     def build_model(self, variables_df, is_tree):
         """  Create a model and set up its appearance. """
         source_model = self.model().sourceModel()
 
         # clear removes all rows and columns
         source_model.clear()
-        source_model.setColumnCount(len(self.settings["header"]))
-        source_model.setHorizontalHeaderLabels(self.settings["header"])
+        source_model.setColumnCount(len(variables_df.columns))
+        source_model.setHorizontalHeaderLabels(variables_df.columns.tolist())
 
         if not is_tree:
             # create plain table when tree structure not requested
@@ -243,7 +246,9 @@ class View(QTreeView):
 
         # create proxy units column
         variables_df.rename(columns={"units": "source units"})
-        add_proxy_units_column(variables_df)
+        variables_df["units"] = create_proxy_units_column(
+            variables_df["source units"], *units
+        )
 
         # update columns order based on current view
         view_order = self.settings["header"]
@@ -474,7 +479,6 @@ class View(QTreeView):
 
 
 class ViewModel(QStandardItemModel):
-    ORDER = {"key": 0, "variable": 1, "units": 2}
 
     def __init__(self):
         super().__init__()
@@ -485,37 +489,43 @@ class ViewModel(QStandardItemModel):
         return "application/json"
 
     @staticmethod
-    def set_status_tip(item_row, row):
+    def set_status_tip(item_row, status_tip):
         """ Parse variable to create a status tip. """
         for item in item_row:
-            item.setStatusTip(" | ".join(row))
+            item.setStatusTip(status_tip)
 
-    def append_plain_rows(self, variables_df: pd.DataFrame, parent: QStandardItem = None):
-        parent = parent if parent else self.invisibleRootItem()
-        st_tip = sorted(variables_df.columns.tolist(), key=lambda x: self.ORDER[x])
+    @staticmethod
+    def create_status_tip(row, key=True):
+        return f"{row['key']} | {row['variable']} | {row['units']}" if key \
+            else f"{row['variable']} | {row['units']}"
 
+    def append_plain_rows(self, variables_df: pd.DataFrame):
+        key = "key" in variables_df.columns
         for _, row in variables_df.iterrows():
-            item_row = [QStandardItem(item) for item in row]
-            self.set_status_tip(item_row, [row[k] for k in st_tip])
-            parent.appendRow(item_row)
+            item_row = [QStandardItem(i) for i in row]
+            status_tip = self.create_status_tip(row, key)
+            self.set_status_tip(item_row, status_tip)
+            self.appendRow(item_row)
 
     def append_tree_rows(self, variables_df: pd.DataFrame):
         """ Add rows for a tree like view. """
         root = self.invisibleRootItem()
         grouped = variables_df.groupby(by=[variables_df.columns[0]])
-        st_tip = sorted(variables_df.columns.tolist(), key=lambda x: self.ORDER[x])
+        key = "key" in variables_df.columns
+
         for parent, df in grouped:
             if len(df.index) == 1:
                 self.append_plain_rows(df)
             else:
                 parent_item = QStandardItem(parent)
                 parent_item.setDragEnabled(False)
-                root.appendRow(parent)
-
+                root.appendRow(parent_item)
                 for _, row in df.iterrows():
-                    item_row = [QStandardItem(item) for item in row[1:]]
-                    item_row.insert(0, QStandardItem(None))
-                    self.set_status_tip(item_row, [row[k] for k in st_tip])
+                    status_tip = self.create_status_tip(row, key)
+                    item_row = [QStandardItem("")]
+                    for item in row[1:]:
+                        item_row.append(QStandardItem(item))
+                    self.set_status_tip(item_row, status_tip)
                     parent_item.appendRow(item_row)
 
 
