@@ -3,6 +3,7 @@ from PySide2.QtWidgets import (QWidget, QHBoxLayout, QToolButton, QLabel,
                                QSpacerItem, QSizePolicy, QFrame, )
 
 from chartify.view.misc_widgets import LineEdit
+from chartify.settings import Settings
 
 
 class ViewTools(QFrame):
@@ -31,7 +32,7 @@ class ViewTools(QFrame):
         self.tree_view_btn = QToolButton(self)
         self.tree_view_btn.setObjectName("treeButton")
         self.tree_view_btn.setCheckable(True)
-        self.tree_view_btn.setChecked(True)
+        self.tree_view_btn.setChecked(Settings.TREE_VIEW)
 
         self.collapse_all_btn = QToolButton(self)
         self.collapse_all_btn.setObjectName("collapseButton")
@@ -106,6 +107,9 @@ class ViewTools(QFrame):
         # collapse and expand all buttons are not relevant for plain view
         self.collapse_all_btn.setEnabled(checked)
         self.expand_all_btn.setEnabled(checked)
+
+        # store current state in settings
+        Settings.TREE_VIEW = checked
         self.structureChanged.emit()
 
     def text_edited(self):

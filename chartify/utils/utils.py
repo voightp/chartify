@@ -200,7 +200,6 @@ def create_proxy_units_column(
     for o, n in pairs:
         proxy_units.loc[source_units == o] = n
 
-    print(proxy_units.isna())
     # replace all missing fields with original units
     proxy_units.loc[proxy_units.isna()] = source_units
 

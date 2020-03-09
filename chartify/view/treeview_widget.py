@@ -19,7 +19,7 @@ class View(QTreeView):
     settings = {
         "widths": {"interactive": 200, "fixed": 70},
         "order": ("variable", Qt.AscendingOrder),
-        "header": ["variable", "key", "units", "source units"],
+        "header": ["variable", "key", "units"],
         "expanded": set()
     }
 
@@ -111,25 +111,6 @@ class View(QTreeView):
             ix = self.model().index(i, 0)
             if self.model().hasChildren(ix):
                 self.setFirstColumnSpanned(i, self.rootIndex(), True)
-
-    @profile(sort="time")
-    def build_model(self, variables_df, is_tree):
-        """  Create a model and set up its appearance. """
-        source_model = self.model().sourceModel()
-
-        # clear removes all rows and columns
-        source_model.clear()
-        source_model.setColumnCount(len(variables_df.columns))
-        source_model.setHorizontalHeaderLabels(variables_df.columns.tolist())
-
-        if not is_tree:
-            # create plain table when tree structure not requested
-            source_model.append_plain_rows(variables_df)
-        else:
-            source_model.append_tree_rows(variables_df)
-
-        # make sure that parent column spans full width
-        self.set_first_col_spanned()
 
     def get_visual_names(self):
         """ Return sorted column names (by visual index). """
@@ -246,12 +227,6 @@ class View(QTreeView):
         variables_df.drop("id", inplace=True, errors="ignore", axis=1)
         variables_df.drop("interval", inplace=True, errors="ignore", axis=1)
 
-        # create proxy units column
-        variables_df.rename(columns={"units": "source units"}, inplace=True)
-        variables_df["units"] = create_proxy_units_column(
-            variables_df["source units"], *units
-        )
-
         # update columns order based on current view
         view_order = self.settings["header"]
         variables_df = variables_df[view_order]
@@ -268,7 +243,26 @@ class View(QTreeView):
         if any(conditions):
             print("UPDATING MODEL")
             self.disconnect_actions()
-            self.build_model(variables_df, is_tree)
+
+            # populate new model
+            source_model = self.model().sourceModel()
+
+            # clear removes all rows and columns
+            source_model.clear()
+            source_model.setColumnCount(len(variables_df.columns))
+            source_model.setHorizontalHeaderLabels(variables_df.columns.tolist())
+
+            # create proxy units column and place it on the original units position
+            units_index = variables_df.columns.tolist().index("units")
+            variables_df.rename(columns={"units": "units data"}, inplace=True)
+            proxy_units = create_proxy_units_column(variables_df["units data"], *units)
+            variables_df.insert(units_index, "units", proxy_units)
+
+            # source units column must be last
+            variables_df["units data"] = variables_df.pop("units data")
+
+            # feed the data
+            source_model.populate_model(variables_df, is_tree)
 
             # Store current sorting key and interval
             self.temp_settings = {
@@ -278,6 +272,8 @@ class View(QTreeView):
                 "filter": filter_tup,
                 "force_update": False
             }
+            # make sure that parent column spans full width
+            self.set_first_col_spanned()
 
             self.reconnect_actions()
 
@@ -312,14 +308,12 @@ class View(QTreeView):
 
     def update_resize_behaviour(self):
         """ Define resizing behaviour. """
-        # both logical and visual indexes are ordered
-        # as 'key', 'variable', 'units', 'source units'
+        # both logical and visual indexes are ordered as 'key', 'variable', 'units'
         log_ixs = self.model().get_logical_ixs()
         vis_ixs = [self.header().visualIndex(i) for i in log_ixs]
 
         # units columns widths are always fixed
         self.header().setSectionResizeMode(log_ixs[2], QHeaderView.Fixed)
-        self.header().setSectionResizeMode(log_ixs[3], QHeaderView.Fixed)
         self.header().setStretchLastSection(False)
 
         if vis_ixs[0] > vis_ixs[1]:
@@ -501,34 +495,63 @@ class ViewModel(QStandardItemModel):
         return f"{row['key']} | {row['variable']} | {row['units']}" if key \
             else f"{row['variable']} | {row['units']}"
 
-    def append_plain_rows(self, variables_df: pd.DataFrame):
-        key = "key" in variables_df.columns
-        for _, row in variables_df.iterrows():
-            item_row = [QStandardItem(i) for i in row]
-            status_tip = self.create_status_tip(row, key)
-            self.set_status_tip(item_row, status_tip)
-            self.appendRow(item_row)
+    def _assign_row_data(self, parent, item_row, row, units_index, units_data, key):
+        item_row[units_index].setData(units_data)
+        status_tip = self.create_status_tip(row, key)
+        self.set_status_tip(item_row, status_tip)
+        parent.appendRow(item_row)
 
-    def append_tree_rows(self, variables_df: pd.DataFrame):
+    def append_plain_rows(self, variables_df: pd.DataFrame, units_index: int, key: bool):
+        for _, row in variables_df.iterrows():
+            units_data = row.pop("units data")
+            item_row = [QStandardItem(i) for i in row]
+            self._assign_row_data(
+                parent=self.invisibleRootItem(),
+                item_row=item_row,
+                row=row,
+                units_index=units_index,
+                units_data=units_data,
+                key=key
+            )
+
+    def append_tree_rows(self, variables_df: pd.DataFrame, units_index: int, key: bool):
         """ Add rows for a tree like view. """
         root = self.invisibleRootItem()
         grouped = variables_df.groupby(by=[variables_df.columns[0]])
-        key = "key" in variables_df.columns
-
         for parent, df in grouped:
             if len(df.index) == 1:
-                self.append_plain_rows(df)
+                self.append_plain_rows(df, units_index, key)
             else:
                 parent_item = QStandardItem(parent)
                 parent_item.setDragEnabled(False)
                 root.appendRow(parent_item)
                 for _, row in df.iterrows():
-                    status_tip = self.create_status_tip(row, key)
+                    units_data = row.pop("units data")
+
+                    # first child column is empty to avoid having duplicity with paren
                     item_row = [QStandardItem("")]
                     for item in row[1:]:
                         item_row.append(QStandardItem(item))
-                    self.set_status_tip(item_row, status_tip)
-                    parent_item.appendRow(item_row)
+
+                    self._assign_row_data(
+                        parent=parent_item,
+                        item_row=item_row,
+                        row=row,
+                        units_index=units_index,
+                        units_data=units_data,
+                        key=key
+                    )
+
+    def populate_model(self, variables_df, is_tree):
+        """  Create a model and set up its appearance. """
+        key = "key" in variables_df.columns
+        units_index = variables_df.columns.tolist().index("units")
+
+        if not is_tree:
+            # create plain table when tree structure not requested
+            self.append_plain_rows(variables_df, units_index, key)
+        else:
+            self.append_tree_rows(variables_df, units_index, key)
 
 
 class FilterModel(QSortFilterProxyModel):
@@ -551,8 +574,7 @@ class FilterModel(QSortFilterProxyModel):
         names = self.get_logical_names()
         return (names.index("key"),
                 names.index("variable"),
-                names.index("units"),
-                names.index("source units"))
+                names.index("units"))
 
     def data_from_index(self, index):
         """ Get item data from source model. """
