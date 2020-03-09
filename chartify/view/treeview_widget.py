@@ -313,12 +313,13 @@ class View(QTreeView):
     def update_resize_behaviour(self):
         """ Define resizing behaviour. """
         # both logical and visual indexes are ordered
-        # as 'key', 'variable', 'units', 'source units
+        # as 'key', 'variable', 'units', 'source units'
         log_ixs = self.model().get_logical_ixs()
         vis_ixs = [self.header().visualIndex(i) for i in log_ixs]
 
-        # units column size is always fixed
+        # units columns widths are always fixed
         self.header().setSectionResizeMode(log_ixs[2], QHeaderView.Fixed)
+        self.header().setSectionResizeMode(log_ixs[3], QHeaderView.Fixed)
         self.header().setStretchLastSection(False)
 
         if vis_ixs[0] > vis_ixs[1]:
