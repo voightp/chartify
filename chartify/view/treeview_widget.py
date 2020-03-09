@@ -19,7 +19,7 @@ class View(QTreeView):
     settings = {
         "widths": {"interactive": 200, "fixed": 70},
         "order": ("variable", Qt.AscendingOrder),
-        "header": ("variable", "key", "units", "source units"),
+        "header": ["variable", "key", "units", "source units"],
         "expanded": set()
     }
 
@@ -187,10 +187,9 @@ class View(QTreeView):
         name, order = self.settings["order"]
         expanded_items = self.settings["expanded"]
         view_order = self.settings["header"]
-        widths = self.settings["widths"]
 
         self.update_resize_behaviour()
-        self.resize_header(widths)
+        self.resize_header()
         self.update_sort_order(name, order)
 
         if expanded_items:
@@ -243,9 +242,12 @@ class View(QTreeView):
             Settings.ENERGY_UNITS,
             Settings.POWER_UNITS
         )
+        # remove not required columns
+        variables_df.drop("id", inplace=True, errors="ignore", axis=1)
+        variables_df.drop("interval", inplace=True, errors="ignore", axis=1)
 
         # create proxy units column
-        variables_df.rename(columns={"units": "source units"})
+        variables_df.rename(columns={"units": "source units"}, inplace=True)
         variables_df["units"] = create_proxy_units_column(
             variables_df["source units"], *units
         )
@@ -296,23 +298,22 @@ class View(QTreeView):
         # with previously displayed View
         self.update_view_appearance()
 
-    def resize_header(self, widths):
+    def resize_header(self):
         """ Update header sizes. """
-        header = self.header()
-        interactive = widths["interactive"]
-        fixed = widths["fixed"]
+        interactive = self.settings["widths"]["interactive"]
+        fixed = self.settings["widths"]["fixed"]
 
-        for i in range(header.count()):
-            mode = header.sectionResizeMode(i)
-            if mode == header.Interactive:
-                header.resizeSection(i, interactive)
-            elif mode == header.Fixed:
-                header.resizeSection(i, fixed)
+        for i in range(self.header().count()):
+            mode = self.header().sectionResizeMode(i)
+            if mode == self.header().Interactive:
+                self.header().resizeSection(i, interactive)
+            elif mode == self.header().Fixed:
+                self.header().resizeSection(i, fixed)
 
     def update_resize_behaviour(self):
         """ Define resizing behaviour. """
         # both logical and visual indexes are ordered
-        # as 'key', 'variable', 'units'
+        # as 'key', 'variable', 'units', 'source units
         log_ixs = self.model().get_logical_ixs()
         vis_ixs = [self.header().visualIndex(i) for i in log_ixs]
 
@@ -355,7 +356,7 @@ class View(QTreeView):
             self.update_sort_order(names[0], Qt.AscendingOrder)
 
         self.update_resize_behaviour()
-        self.resize_header(self.settings["widths"])
+        self.resize_header()
 
     def on_slider_moved(self, val):
         """ Handle moving view slider. """
@@ -549,7 +550,8 @@ class FilterModel(QSortFilterProxyModel):
         names = self.get_logical_names()
         return (names.index("key"),
                 names.index("variable"),
-                names.index("units"))
+                names.index("units"),
+                names.index("source units"))
 
     def data_from_index(self, index):
         """ Get item data from source model. """
