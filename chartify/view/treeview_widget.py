@@ -1,10 +1,11 @@
+from typing import Dict
+
 import pandas as pd
 from PySide2.QtCore import (Qt, QSortFilterProxyModel, QItemSelectionModel,
                             QItemSelection, QItemSelectionRange, QMimeData,
                             Signal)
 from PySide2.QtGui import QStandardItemModel, QStandardItem, QDrag, QPixmap
 from PySide2.QtWidgets import QTreeView, QAbstractItemView, QHeaderView, QMenu
-from profilehooks import profile
 
 from chartify.settings import Settings
 from chartify.utils.utils import create_proxy_units_column
@@ -223,11 +224,10 @@ class View(QTreeView):
             Settings.POWER_UNITS
         )
         # remove not required columns
-        variables_df.drop("id", inplace=True, errors="ignore", axis=1)
         variables_df.drop("interval", inplace=True, errors="ignore", axis=1)
 
         # update columns order based on current view
-        view_order = self.settings["header"]
+        view_order = self.settings["header"] + ["id"]
         variables_df = variables_df[view_order]
 
         # Only update the model if the settings have changed
@@ -248,17 +248,11 @@ class View(QTreeView):
 
             # clear removes all rows and columns
             source_model.clear()
-            source_model.setColumnCount(len(variables_df.columns))
-            source_model.setHorizontalHeaderLabels(variables_df.columns.tolist())
+            source_model.setColumnCount(len(self.settings["header"]))
+            source_model.setHorizontalHeaderLabels(self.settings["header"])
 
-            # create proxy units column and place it on the original units position
-            units_index = variables_df.columns.tolist().index("units")
-            variables_df.rename(columns={"units": "units data"}, inplace=True)
-            proxy_units = create_proxy_units_column(variables_df["units data"], *units)
-            variables_df.insert(units_index, "units", proxy_units)
-
-            # source units column must be last
-            variables_df["units data"] = variables_df.pop("units data")
+            # replace original units with proxy units
+            variables_df["units"] = create_proxy_units_column(variables_df["units"], *units)
 
             # feed the data
             source_model.populate_model(variables_df, is_tree)
@@ -484,73 +478,63 @@ class ViewModel(QStandardItemModel):
         return "application/json"
 
     @staticmethod
-    def set_status_tip(item_row, status_tip):
-        """ Parse variable to create a status tip. """
+    def _append_row(parent, row, item_row, indexes):
+        # assign status tip for all items in row
+        key = row[indexes["key"]]
+        variable = row[indexes["variable"]]
+        units = row[indexes["units"]]
+        status_tip = f"{key} | {variable} | {units}" if key else f"{variable} | {units}"
         for item in item_row:
             item.setStatusTip(status_tip)
 
-    @staticmethod
-    def create_status_tip(row, key=True):
-        return f"{row['key']} | {row['variable']} | {row['units']}" if key \
-            else f"{row['variable']} | {row['units']}"
+        # first item holds the id
+        item_row[0].setData(row[indexes["id"]])
 
-    def _assign_row_data(self, parent, item_row, row, units_index, units_data, key):
-        item_row[units_index].setData(units_data)
-        status_tip = self.create_status_tip(row, key)
-        self.set_status_tip(item_row, status_tip)
         parent.appendRow(item_row)
 
-    def append_plain_rows(self, variables_df: pd.DataFrame, units_index: int, key: bool):
-        for _, row in variables_df.iterrows():
-            units_data = row.pop("units data")
-            item_row = [QStandardItem(i) for i in row]
-            self._assign_row_data(
-                parent=self.invisibleRootItem(),
-                item_row=item_row,
-                row=row,
-                units_index=units_index,
-                units_data=units_data,
-                key=key
-            )
+    def append_plain_rows(self, variables_df: pd.DataFrame, indexes: Dict[str, str]):
+        for row in variables_df.values:
+            item_row = [QStandardItem(item) for item in row[:-1]]
+            self._append_row(self, row, item_row, indexes)
 
-    def append_tree_rows(self, variables_df: pd.DataFrame, units_index: int, key: bool):
+    def append_tree_rows(self, variables_df: pd.DataFrame, indexes: Dict[str, str]):
         """ Add rows for a tree like view. """
         root = self.invisibleRootItem()
         grouped = variables_df.groupby(by=[variables_df.columns[0]])
         for parent, df in grouped:
             if len(df.index) == 1:
-                self.append_plain_rows(df, units_index, key)
+                self.append_plain_rows(df, indexes)
             else:
                 parent_item = QStandardItem(parent)
                 parent_item.setDragEnabled(False)
                 root.appendRow(parent_item)
-                for _, row in df.iterrows():
-                    units_data = row.pop("units data")
-
-                    # first child column is empty to avoid having duplicity with paren
+                for row in df.values:
+                    # first standard item is empty to avoid
+                    # having parent string in the child row
                     item_row = [QStandardItem("")]
-                    for item in row[1:]:
+
+                    # source units will not be displayed (last item)
+                    for item in row[1:-1]:
                         item_row.append(QStandardItem(item))
 
-                    self._assign_row_data(
-                        parent=parent_item,
-                        item_row=item_row,
-                        row=row,
-                        units_index=units_index,
-                        units_data=units_data,
-                        key=key
-                    )
+                    self._append_row(parent_item, row, item_row, indexes)
 
     def populate_model(self, variables_df, is_tree):
         """  Create a model and set up its appearance. """
-        key = "key" in variables_df.columns
-        units_index = variables_df.columns.tolist().index("units")
+        columns = variables_df.columns.tolist()
+        key_index = columns.index("key") if "key" in columns else None
+        indexes = {
+            "key": key_index,
+            "variable": columns.index("variable"),
+            "units": columns.index("units"),
+            "id": columns.index("id"),
+        }
 
         if not is_tree:
             # create plain table when tree structure not requested
-            self.append_plain_rows(variables_df, units_index, key)
+            self.append_plain_rows(variables_df, indexes)
         else:
-            self.append_tree_rows(variables_df, units_index, key)
+            self.append_tree_rows(variables_df, indexes)
 
 
 class FilterModel(QSortFilterProxyModel):
