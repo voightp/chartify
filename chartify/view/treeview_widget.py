@@ -138,11 +138,10 @@ class View(QTreeView):
 
     def expand_items(self, expanded_set):
         """ Expand items which were previously expanded (on other models). """
-        model = self.model()
-        for i in range(model.rowCount()):
-            ix = model.index(i, 0)
-            if model.hasChildren(ix):
-                data = model.data(ix)
+        for i in range(self.model().rowCount()):
+            ix = self.model().index(i, 0)
+            if self.model().hasChildren(ix):
+                data = self.model().data(ix)
                 if data in expanded_set:
                     self.expand(ix)
                 else:
