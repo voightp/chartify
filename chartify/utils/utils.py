@@ -1,10 +1,14 @@
 import os
+from collections import namedtuple
 from random import randint
 
 import numpy as np
 import pandas as pd
 from esofile_reader.constants import AVERAGED_UNITS
 from esofile_reader.conversion_tables import rate_table, energy_table, si_to_ip
+
+VariableData = namedtuple("VariableData", "key variable units proxyunits")
+FilterTuple = namedtuple("FilterTuple", "key variable units")
 
 
 def install_fonts(pth, database):

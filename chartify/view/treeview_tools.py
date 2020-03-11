@@ -2,8 +2,9 @@ from PySide2.QtCore import Signal, QTimer
 from PySide2.QtWidgets import (QWidget, QHBoxLayout, QToolButton, QLabel,
                                QSpacerItem, QSizePolicy, QFrame, )
 
-from chartify.view.misc_widgets import LineEdit
 from chartify.settings import Settings
+from chartify.utils.utils import FilterTuple
+from chartify.view.misc_widgets import LineEdit
 
 
 class ViewTools(QFrame):
@@ -94,10 +95,10 @@ class ViewTools(QFrame):
 
     def get_filter_tup(self):
         """ Get current filter string. """
-        return (
-            self.key_line_edit.text(),
-            self.variable_line_edit.text(),
-            self.units_line_edit.text()
+        return FilterTuple(
+            key=self.key_line_edit.text(),
+            variable=self.variable_line_edit.text(),
+            units=self.units_line_edit.text()
         )
 
     def tree_btn_toggled(self, checked):
