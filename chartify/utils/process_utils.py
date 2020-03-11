@@ -43,11 +43,7 @@ def kill_child_processes(parent_pid):
 
 
 def store_file(
-        results_file: ResultsFile,
-        workdir: str,
-        monitor: GuiMonitor,
-        ids: List[int],
-        lock: Lock
+    results_file: ResultsFile, workdir: str, monitor: GuiMonitor, ids: List[int], lock: Lock
 ) -> Tuple[int, ParquetFile]:
     """ Store results file as 'ParquetFile'. """
     n_steps = 0
@@ -85,12 +81,7 @@ def store_file(
 
 
 def load_file(
-        path: str,
-        workdir: str,
-        progress_queue,
-        file_queue,
-        ids: List[int],
-        lock: Lock
+    path: str, workdir: str, progress_queue, file_queue, ids: List[int], lock: Lock
 ) -> None:
     """ Process and store eso file. """
     monitor_id = str(uuid.uuid1())
@@ -102,20 +93,12 @@ def load_file(
 
         for f in files:
             id_, file = store_file(
-                results_file=f,
-                workdir=workdir,
-                monitor=monitor,
-                ids=ids,
-                lock=lock
+                results_file=f, workdir=workdir, monitor=monitor, ids=ids, lock=lock
             )
             file_queue.put(file)
 
             id_, file = store_file(
-                results_file=TotalsFile(f),
-                workdir=workdir,
-                monitor=monitor,
-                ids=ids,
-                lock=lock
+                results_file=TotalsFile(f), workdir=workdir, monitor=monitor, ids=ids, lock=lock
             )
 
             file_queue.put(file)
@@ -124,5 +107,6 @@ def load_file(
         monitor.done()
 
     except IncompleteFile:
-        monitor.processing_failed(f"Processing failed - incomplete file!"
-                                  f"\n{traceback.format_exc()}")
+        monitor.processing_failed(
+            f"Processing failed - incomplete file!" f"\n{traceback.format_exc()}"
+        )

@@ -5,11 +5,7 @@ from chartify.view.icons import combine_colors
 
 
 def get_pie_trace_appearance(priorities, colors, background_color):
-    weights = {
-        "low": 0.3,
-        "normal": 0.7,
-        "high": 1
-    }
+    weights = {"low": 0.3, "normal": 0.7, "high": 1}
     if isinstance(background_color, str):
         background_color = parse_color(background_color)
 
@@ -20,30 +16,16 @@ def get_pie_trace_appearance(priorities, colors, background_color):
         new_colors.append(combine_colors(c, background_color, weights[p]))
 
     return {
-        "marker": {
-            "colors": new_colors,
-        },
+        "marker": {"colors": new_colors,},
     }
 
 
 def get_2d_trace_appearance(type_, color, interval, priority="normal"):
     weights = {
-        "low": {
-            "markerSize": 2,
-            "lineWidth": 1,
-            "opacity": 0.3
-        },
-
-        "normal": {
-            "markerSize": 3,
-            "lineWidth": 2,
-            "opacity": 0.7
-        },
-        "high": {
-            "markerSize": 4,
-            "lineWidth": 2,
-            "opacity": 1
-        }}
+        "low": {"markerSize": 2, "lineWidth": 1, "opacity": 0.3},
+        "normal": {"markerSize": 3, "lineWidth": 2, "opacity": 0.7},
+        "high": {"markerSize": 4, "lineWidth": 2, "opacity": 1},
+    }
 
     line_shape = {
         None: "linear",
@@ -57,9 +39,7 @@ def get_2d_trace_appearance(type_, color, interval, priority="normal"):
 
     shared = {
         "opacity": weights[priority]["opacity"],
-        "hoverlabel": {
-            "namelength": -1,
-        },
+        "hoverlabel": {"namelength": -1,},
     }
 
     props = {
@@ -71,7 +51,7 @@ def get_2d_trace_appearance(type_, color, interval, priority="normal"):
                 "size": weights[priority]["markerSize"],
                 "color": color,
                 "symbol": "circle",
-            }
+            },
         },
         "line": {
             "type": "scattergl",
@@ -80,33 +60,24 @@ def get_2d_trace_appearance(type_, color, interval, priority="normal"):
             "marker": {
                 "size": weights[priority]["markerSize"],
                 "color": color,
-                "symbol": "circle"
+                "symbol": "circle",
             },
             "line": {
                 "width": weights[priority]["lineWidth"],
                 "color": color,
-                "shape": line_shape[interval]  # "linear" | "spline" | "hv" | "vh" | "hvh" | "vhv"
-            }
-
+                "shape": line_shape[
+                    interval
+                ],  # "linear" | "spline" | "hv" | "vh" | "hvh" | "vhv"
+            },
         },
-        "bar": {
-            "type": "bar",
-            "hoverinfo": "all",
-            "marker": {
-                "color": color
-            }
-        },
-        "bubble": {
-
-        },
+        "bar": {"type": "bar", "hoverinfo": "all", "marker": {"color": color}},
+        "bubble": {},
         "histogram": {
             "type": "histogram",
             "hoverinfo": "x+y",
             "histfunc": "count",  # "count" | "sum" | "avg" | "min" | "max"
             "histnorm": "percent",  # "" | "percent" | "probability" | "density" | "probability density""
-            "marker": {
-                "color": color
-            }
+            "marker": {"color": color},
         },
         "box": {
             "type": "box",
@@ -115,19 +86,14 @@ def get_2d_trace_appearance(type_, color, interval, priority="normal"):
             "boxpoints": "false",  # all | outliers |suspectedoutliers | false
             "whiskerwidth": 0.2,
             "marker_size": 2,
-            "marker": {
-                "color": color
-            }
+            "marker": {"color": color},
         },
     }
 
     return {**shared, **props[type_]}
 
 
-style = {
-    "width": "100%",
-    "height": "100%"
-}
+style = {"width": "100%", "height": "100%"}
 
 config = {
     "scrollZoom": False,
@@ -145,21 +111,9 @@ def get_axis_appearance(chart_type, line_color, grid_color):
     }
 
     attributes = {
-        "histogram": {
-            "showline": True,
-            "showgrid": False,
-            "zeroline": False,
-        },
-        "box": {
-            "showline": True,
-            "showgrid": False,
-            "zeroline": False,
-        },
-        "pie": {
-            "showline": True,
-            "showgrid": True,
-            "zeroline": False,
-        }
+        "histogram": {"showline": True, "showgrid": False, "zeroline": False,},
+        "box": {"showline": True, "showgrid": False, "zeroline": False,},
+        "pie": {"showline": True, "showgrid": True, "zeroline": False,},
     }
 
     shared = {
@@ -169,24 +123,24 @@ def get_axis_appearance(chart_type, line_color, grid_color):
         "gridcolor": grid_color,
         "linewidth": 1,
         "gridwidth": 1,
-        "zerolinewidth": 2
+        "zerolinewidth": 2,
     }
 
     return {**shared, **attributes.get(chart_type, default)}
 
 
-def get_layout(chart_type, modebar_active_color, modebar_color, top_margin,
-               bottom_margin, left_margin, right_margin):
+def get_layout(
+    chart_type,
+    modebar_active_color,
+    modebar_color,
+    top_margin,
+    bottom_margin,
+    left_margin,
+    right_margin,
+):
     attributes = {
-        "histogram": {
-            "bargap": 0.05,
-            "bargroupgap": 0.2,
-            "barmode": "overlay"
-        },
-        "bar": {
-            "bargap": 0.05,
-            "bargroupgap": 0.2,
-        },
+        "histogram": {"bargap": 0.05, "bargroupgap": 0.2, "barmode": "overlay"},
+        "bar": {"bargap": 0.05, "bargroupgap": 0.2,},
     }
 
     shared = {
@@ -199,14 +153,9 @@ def get_layout(chart_type, modebar_active_color, modebar_color, top_margin,
             "activecolor": modebar_active_color,
             "color": modebar_color,
             "bgcolor": "transparent",
-            "orientation": "v"
+            "orientation": "v",
         },
-        "margin": {
-            "t": top_margin,
-            "b": bottom_margin,
-            "l": left_margin,
-            "r": right_margin,
-        }
+        "margin": {"t": top_margin, "b": bottom_margin, "l": left_margin, "r": right_margin,},
     }
     return {**shared, **attributes.get(chart_type, {})}
 
@@ -222,7 +171,7 @@ def color_generator(i=0):
         "rgb(227, 119, 194)",
         "rgb(127, 127, 127)",
         "rgb(188, 189, 34)",
-        "rgb(23, 190, 207)"
+        "rgb(23, 190, 207)",
     ]
     while True:
         try:
@@ -235,25 +184,11 @@ def color_generator(i=0):
 
 
 def generate_grid_item(frame_id, type_):
-    shared = {
-        "i": frame_id,
-        "x": 0,
-        "y": 9999
-    }
+    shared = {"i": frame_id, "x": 0, "y": 9999}
 
     cases = {
-        "chart": {
-            "w": 6,
-            "h": 2,
-            "minW": 2,
-            "minH": 2
-        },
-        "textArea": {
-            "w": 1,
-            "h": 1,
-            "minW": 1,
-            "minH": 1
-        },
+        "chart": {"w": 6, "h": 2, "minW": 2, "minH": 2},
+        "textArea": {"w": 1, "h": 1, "minW": 1, "minH": 1},
     }
 
     return {**shared, **cases[type_]}

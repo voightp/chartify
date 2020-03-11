@@ -1,8 +1,15 @@
 import contextlib
 
 from PySide2.QtCore import Signal, Qt
-from PySide2.QtWidgets import QWidget, QLabel, QProgressBar, QVBoxLayout, QSizePolicy, \
-    QPushButton, QHBoxLayout
+from PySide2.QtWidgets import (
+    QWidget,
+    QLabel,
+    QProgressBar,
+    QVBoxLayout,
+    QSizePolicy,
+    QPushButton,
+    QHBoxLayout,
+)
 
 
 class ProgressContainer(QWidget):
@@ -79,8 +86,7 @@ class ProgressContainer(QWidget):
             # widget is in pending section, although it
             # can still be being processed on machines with
             # number of cpu greater than MAX_VISIBLE_JOBS
-            vals = [v.rel_value for v in self.visible_files
-                    if not isinstance(v, SummaryFile)]
+            vals = [v.rel_value for v in self.visible_files if not isinstance(v, SummaryFile)]
             return any(map(lambda x: x < (file.rel_value + 3), vals))
 
         return pos != i
@@ -241,6 +247,7 @@ class ProgressWidget(QWidget):
     processing progress.
 
     """
+
     remove = Signal(ProgressFile)
 
     WIDTH = 140

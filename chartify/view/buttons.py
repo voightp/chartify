@@ -1,7 +1,14 @@
 from PySide2.QtCore import Qt, Signal, QSize
 from PySide2.QtGui import QIcon
-from PySide2.QtWidgets import (QToolButton, QVBoxLayout, QHBoxLayout, QLabel,
-                               QSizePolicy, QFrame, QSlider)
+from PySide2.QtWidgets import (
+    QToolButton,
+    QVBoxLayout,
+    QHBoxLayout,
+    QLabel,
+    QSizePolicy,
+    QFrame,
+    QSlider,
+)
 
 from chartify.view.misc_widgets import update_appearance
 
@@ -24,8 +31,7 @@ class ClickButton(QToolButton):
         self.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
         self.setCheckable(False)
         self.setIconSize(QSize(20, 20))
-        self.icons = {"enabled": QIcon(),
-                      "disabled": QIcon()}
+        self.icons = {"enabled": QIcon(), "disabled": QIcon()}
 
         self.click_act = None
         self.clicked.connect(self.trigger_act)
@@ -91,6 +97,7 @@ class TitledButton(QFrame):
         data : list of str, default None
             If specified, 'data' attribute is added for menu actions.
     """
+
     button_name = "buttonFrame"
     title_name = "buttonTitle"
 
@@ -297,10 +304,10 @@ class CheckableButton(QToolButton):
         self.setIconSize(QSize(20, 20))
         self.setCheckable(True)
         self.toggled.connect(self._toggled)
-        self.icons = {"primary": {"enabled": QIcon(),
-                                  "disabled": QIcon()},
-                      "secondary": {"enabled": QIcon(),
-                                    "disabled": QIcon()}}
+        self.icons = {
+            "primary": {"enabled": QIcon(), "disabled": QIcon()},
+            "secondary": {"enabled": QIcon(), "disabled": QIcon()},
+        }
 
     def _toggled(self, checked):
         """ Update icons state. """
@@ -348,10 +355,10 @@ class DualActionButton(QToolButton):
         super().__init__(parent)
         self.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
         self.setIconSize(QSize(20, 20))
-        self.icons = {"primary": {"enabled": QIcon(),
-                                  "disabled": QIcon()},
-                      "secondary": {"enabled": QIcon(),
-                                    "disabled": QIcon()}}
+        self.icons = {
+            "primary": {"enabled": QIcon(), "disabled": QIcon()},
+            "secondary": {"enabled": QIcon(), "disabled": QIcon()},
+        }
         self.actions = []
         self.texts = None
         self._state = 0

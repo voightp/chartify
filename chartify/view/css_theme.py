@@ -30,6 +30,7 @@ class Palette:
 
 
     """
+
     colors = [
         "PRIMARY_COLOR",
         "PRIMARY_TEXT_COLOR",
@@ -58,8 +59,7 @@ class Palette:
                     rgb = default_color
 
             except KeyError:
-                print(f"'{c}' has not been provided, "
-                      f"assigning default")
+                print(f"'{c}' has not been provided, " f"assigning default")
                 rgb = default_color
 
             dct[c] = rgb
@@ -85,8 +85,10 @@ class Palette:
 
         except KeyError:
             colors_str = ", ".join(self.colors)
-            print(f"Cannot get color for color key '{color_key}' is it's not "
-                  f"available, use one of: '{colors_str}'.")
+            print(
+                f"Cannot get color for color key '{color_key}' is it's not "
+                f"available, use one of: '{colors_str}'."
+            )
 
     def get_all_colors(self, as_tuple=False):
         """ Get all colors key, color dict (color as string). """
@@ -102,8 +104,10 @@ class Palette:
                 self.colors_dct[k] = v
             except KeyError:
                 colors_str = ", ".join(self.colors)
-                print(f"Cannot set color '{v}', color key '{k}' is not "
-                      f"available, use one of: '{colors_str}'.")
+                print(
+                    f"Cannot set color '{v}', color key '{k}' is not "
+                    f"available, use one of: '{colors_str}'."
+                )
 
 
 class CssTheme:
@@ -210,10 +214,10 @@ def parse_color(color: [tuple, str]) -> tuple:
     elif isinstance(color, tuple) and len(color) == 3:
         rgb = color
     elif color.startswith("rgb"):
-        srgb = re.sub('[rgb() ]', '', color)
+        srgb = re.sub("[rgb() ]", "", color)
         rgb = tuple([int(i) for i in srgb.split(",")])
     elif color.startswith("#") and len(color) == 7:
-        rgb = tuple([int(color[i: i + 2], 16) for i in range(1, 7, 2)])
+        rgb = tuple([int(color[i : i + 2], 16) for i in range(1, 7, 2)])
     else:
         s = color
         if not isinstance(s, (int, str, float)):

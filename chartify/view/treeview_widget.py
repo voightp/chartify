@@ -1,9 +1,15 @@
 from typing import Dict
 
 import pandas as pd
-from PySide2.QtCore import (Qt, QSortFilterProxyModel, QItemSelectionModel,
-                            QItemSelection, QItemSelectionRange, QMimeData,
-                            Signal)
+from PySide2.QtCore import (
+    Qt,
+    QSortFilterProxyModel,
+    QItemSelectionModel,
+    QItemSelection,
+    QItemSelectionRange,
+    QMimeData,
+    Signal,
+)
 from PySide2.QtGui import QStandardItemModel, QStandardItem, QDrag, QPixmap
 from PySide2.QtWidgets import QTreeView, QAbstractItemView, QHeaderView, QMenu
 
@@ -22,7 +28,7 @@ class View(QTreeView):
         "widths": {"interactive": 200, "fixed": 70},
         "order": ("variable", Qt.AscendingOrder),
         "header": ["variable", "key", "units"],
-        "expanded": set()
+        "expanded": set(),
     }
 
     def __init__(self, id_, name):
@@ -62,7 +68,7 @@ class View(QTreeView):
             "is_tree": None,
             "units": None,
             "filter": None,
-            "force_update": True
+            "force_update": True,
         }
 
         self._scrollbar_position = 0
@@ -184,8 +190,9 @@ class View(QTreeView):
         """ Connect specific signals. """
         self.verticalScrollBar().valueChanged.connect(self.on_slider_moved)
         self.header().sectionResized.connect(self.on_view_resized, type=Qt.UniqueConnection)
-        self.header().sortIndicatorChanged.connect(self.on_sort_order_changed,
-                                                   type=Qt.UniqueConnection)
+        self.header().sortIndicatorChanged.connect(
+            self.on_sort_order_changed, type=Qt.UniqueConnection
+        )
         self.header().sectionMoved.connect(self.on_section_moved, type=Qt.UniqueConnection)
 
     def deselect_variables(self):
@@ -225,7 +232,7 @@ class View(QTreeView):
             Settings.RATE_TO_ENERGY,
             Settings.UNITS_SYSTEM,
             Settings.ENERGY_UNITS,
-            Settings.POWER_UNITS
+            Settings.POWER_UNITS,
         )
 
         # Only update the model if the settings have changed
@@ -234,7 +241,7 @@ class View(QTreeView):
             interval != self.temp_settings["interval"],
             units != self.temp_settings["units"],
             filter_tup != self.temp_settings["filter"],
-            self.temp_settings["force_update"]
+            self.temp_settings["force_update"],
         ]
 
         if any(conditions):
@@ -269,7 +276,7 @@ class View(QTreeView):
                 "is_tree": is_tree,
                 "units": units,
                 "filter": filter_tup,
-                "force_update": False
+                "force_update": False,
             }
             # make sure that parent column spans full width
             self.set_first_col_spanned()
@@ -427,21 +434,21 @@ class View(QTreeView):
 
     def _deselect_item(self, proxy_index):
         """ Select an item programmatically. """
-        self.selectionModel().select(proxy_index,
-                                     QItemSelectionModel.Deselect |
-                                     QItemSelectionModel.Rows)
+        self.selectionModel().select(
+            proxy_index, QItemSelectionModel.Deselect | QItemSelectionModel.Rows
+        )
 
     def _select_item(self, proxy_index):
         """ Select an item programmatically. """
-        self.selectionModel().select(proxy_index,
-                                     QItemSelectionModel.Select |
-                                     QItemSelectionModel.Rows)
+        self.selectionModel().select(
+            proxy_index, QItemSelectionModel.Select | QItemSelectionModel.Rows
+        )
 
     def _select_items(self, proxy_selection):
         """ Select items given by given selection (model indexes). """
-        self.selectionModel().select(proxy_selection,
-                                     QItemSelectionModel.Select |
-                                     QItemSelectionModel.Rows)
+        self.selectionModel().select(
+            proxy_selection, QItemSelectionModel.Select | QItemSelectionModel.Rows
+        )
 
     def on_collapsed(self, index):
         """ Deselect the row when node collapses."""
@@ -464,7 +471,6 @@ class View(QTreeView):
 
 
 class ViewModel(QStandardItemModel):
-
     def __init__(self):
         super().__init__()
         self.setSortRole(Qt.AscendingOrder)
@@ -480,8 +486,9 @@ class ViewModel(QStandardItemModel):
         variable = row[indexes["variable"]]
         proxy_units = row[indexes["units"]]
         source_units = row[indexes["source units"]]
-        status_tip = f"{key} | {variable} | {proxy_units}" if key \
-            else f"{variable} | {proxy_units}"
+        status_tip = (
+            f"{key} | {variable} | {proxy_units}" if key else f"{variable} | {proxy_units}"
+        )
 
         # show all the info for each item in row
         for item in item_row:
@@ -490,12 +497,9 @@ class ViewModel(QStandardItemModel):
         # first item holds the variable data used for search
         item_row[0].setData(
             VariableData(
-                key=key,
-                variable=variable,
-                units=source_units,
-                proxyunits=proxy_units
+                key=key, variable=variable, units=source_units, proxyunits=proxy_units
             ),
-            role=Qt.UserRole
+            role=Qt.UserRole,
         )
 
         parent.appendRow(item_row)
@@ -565,7 +569,7 @@ class FilterModel(QSortFilterProxyModel):
         return {
             "key": names.index("key"),
             "variable": names.index("variable"),
-            "units": names.index("units")
+            "units": names.index("units"),
         }
 
     def data_from_index(self, index):

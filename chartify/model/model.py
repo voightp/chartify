@@ -37,12 +37,7 @@ class AppModel(QObject):
         self.selected_variables = []
 
         # ~~~~ Webview Database ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.wv_database = {
-            "trace_data": [],
-            "traces": [],
-            "components": [],
-            "items": {}
-        }
+        self.wv_database = {"trace_data": [], "traces": [], "components": [], "items": {}}
 
     def get_file(self, id_: int) -> ParquetFile:
         """ Get 'DatabaseFile for the given id. """
@@ -72,16 +67,14 @@ class AppModel(QObject):
         try:
             self.storage.delete_file(id_)
         except KeyError:
-            print(f"Cannot delete file: id '{id_}',"
-                  f"\nFile was not found in the database.")
+            print(f"Cannot delete file: id '{id_}'," f"\nFile was not found in the database.")
 
     def rename_file(self, id_: int, name: str):
         """ Rename given file. """
         try:
             self.storage.files[id_].rename(name)
         except KeyError:
-            print(f"Cannot rename file: '{id_}',"
-                  f"\nFile was not found in database.")
+            print(f"Cannot rename file: '{id_}'," f"\nFile was not found in database.")
 
     def get_results(self, **kwargs) -> pd.DataFrame:
         """ Get output values for given variables. """
@@ -95,10 +88,8 @@ class AppModel(QObject):
             "rate_units": Settings.POWER_UNITS,
             "energy_units": Settings.ENERGY_UNITS,
             "add_file_name": "column",
-            "rate_to_energy_dct": {
-                Settings.INTERVAL: Settings.RATE_TO_ENERGY
-            },
-            **kwargs
+            "rate_to_energy_dct": {Settings.INTERVAL: Settings.RATE_TO_ENERGY},
+            **kwargs,
         }
 
         return get_results(*args, **kwargs)

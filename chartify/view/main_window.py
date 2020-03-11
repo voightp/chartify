@@ -2,12 +2,23 @@ import ctypes
 from functools import partial
 from pathlib import Path
 
-from PySide2.QtCore import (QSize, Qt, QCoreApplication, Signal)
+from PySide2.QtCore import QSize, Qt, QCoreApplication, Signal
 from PySide2.QtGui import QIcon, QKeySequence, QColor
 from PySide2.QtWebEngineWidgets import QWebEngineView
-from PySide2.QtWidgets import (QWidget, QSplitter, QHBoxLayout, QVBoxLayout,
-                               QToolButton, QAction, QFileDialog, QSizePolicy,
-                               QFrame, QMainWindow, QStatusBar, QMenu)
+from PySide2.QtWidgets import (
+    QWidget,
+    QSplitter,
+    QHBoxLayout,
+    QVBoxLayout,
+    QToolButton,
+    QAction,
+    QFileDialog,
+    QSizePolicy,
+    QFrame,
+    QMainWindow,
+    QStatusBar,
+    QMenu,
+)
 from esofile_reader.convertor import rate_and_energy_units
 from esofile_reader.storage.pqt_storage import ParquetStorage
 
@@ -15,8 +26,7 @@ from chartify.settings import Settings
 from chartify.view.buttons import MenuButton
 from chartify.view.css_theme import parse_palette, CssTheme
 from chartify.view.icons import Pixmap, filled_circle_pixmap
-from chartify.view.misc_widgets import (DropFrame, TabWidget, MulInputDialog,
-                                        ConfirmationDialog)
+from chartify.view.misc_widgets import DropFrame, TabWidget, MulInputDialog, ConfirmationDialog
 from chartify.view.progress_widget import ProgressContainer
 from chartify.view.toolbar import Toolbar
 from chartify.view.treeview_tools import ViewTools
@@ -26,6 +36,7 @@ from chartify.view.treeview_widget import View
 # noinspection PyPep8Naming,PyUnresolvedReferences
 class MainWindow(QMainWindow):
     """ Main application instance. """
+
     QCoreApplication.setOrganizationName("chartify")
     QCoreApplication.setOrganizationDomain("chartify.foo")
     QCoreApplication.setApplicationName("chartify")
@@ -122,8 +133,9 @@ class MainWindow(QMainWindow):
             act.triggered.connect(partial(self.on_scheme_changed, name))
             c1 = QColor(*colors.get_color("SECONDARY_COLOR", as_tuple=True))
             c2 = QColor(*colors.get_color("BACKGROUND_COLOR", as_tuple=True))
-            act.setIcon(filled_circle_pixmap(QSize(60, 60), c1, c2=c2,
-                                             border_col=QColor(255, 255, 255)))
+            act.setIcon(
+                filled_circle_pixmap(QSize(60, 60), c1, c2=c2, border_col=QColor(255, 255, 255))
+            )
             actions.append(act)
             if name == Settings.PALETTE_NAME:
                 def_act = act
@@ -184,9 +196,16 @@ class MainWindow(QMainWindow):
         self.save_as_act.setShortcut(QKeySequence("Ctrl+Shift+S"))
 
         # add actions to main window to allow shortcuts
-        self.addActions([self.remove_variables_act, self.sum_variables_act,
-                         self.avg_variables_act, self.collapse_all_act,
-                         self.expand_all_act, self.tree_act])
+        self.addActions(
+            [
+                self.remove_variables_act,
+                self.sum_variables_act,
+                self.avg_variables_act,
+                self.collapse_all_act,
+                self.expand_all_act,
+                self.tree_act,
+            ]
+        )
 
         # disable actions as these will be activated on selection
         self.close_all_act.setEnabled(False)
@@ -278,23 +297,30 @@ class MainWindow(QMainWindow):
         self.tab_wgt.drop_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
         self.tab_wgt.drop_btn.setIconSize(QSize(50, 50))
 
-        self.toolbar.totals_btn.set_icons(Pixmap(Path(r, "building.png"), *c1),
-                                          Pixmap(Path(r, "building.png"), *c1, a=0.5),
-                                          Pixmap(Path(r, "building.png"), *c2),
-                                          Pixmap(Path(r, "building.png"), *c2, a=0.5))
+        self.toolbar.totals_btn.set_icons(
+            Pixmap(Path(r, "building.png"), *c1),
+            Pixmap(Path(r, "building.png"), *c1, a=0.5),
+            Pixmap(Path(r, "building.png"), *c2),
+            Pixmap(Path(r, "building.png"), *c2, a=0.5),
+        )
 
-        self.toolbar.all_files_btn.set_icons(Pixmap(Path(r, "all_files.png"), *c1),
-                                             Pixmap(Path(r, "all_files.png"), *c1, a=0.5),
-                                             Pixmap(Path(r, "all_files.png"), *c2),
-                                             Pixmap(Path(r, "all_files.png"), *c2, a=0.5))
+        self.toolbar.all_files_btn.set_icons(
+            Pixmap(Path(r, "all_files.png"), *c1),
+            Pixmap(Path(r, "all_files.png"), *c1, a=0.5),
+            Pixmap(Path(r, "all_files.png"), *c2),
+            Pixmap(Path(r, "all_files.png"), *c2, a=0.5),
+        )
 
-        self.toolbar.sum_btn.set_icons(Pixmap(Path(r, "sigma.png"), *c1),
-                                       Pixmap(Path(r, "sigma.png"), *c1, a=0.5))
-        self.toolbar.mean_btn.set_icons(Pixmap(Path(r, "mean.png"), *c1),
-                                        Pixmap(Path(r, "mean.png"), *c1, a=0.5))
+        self.toolbar.sum_btn.set_icons(
+            Pixmap(Path(r, "sigma.png"), *c1), Pixmap(Path(r, "sigma.png"), *c1, a=0.5)
+        )
+        self.toolbar.mean_btn.set_icons(
+            Pixmap(Path(r, "mean.png"), *c1), Pixmap(Path(r, "mean.png"), *c1, a=0.5)
+        )
 
-        self.toolbar.remove_btn.set_icons(Pixmap(Path(r, "remove.png"), *c1),
-                                          Pixmap(Path(r, "remove.png"), *c1, a=0.5))
+        self.toolbar.remove_btn.set_icons(
+            Pixmap(Path(r, "remove.png"), *c1), Pixmap(Path(r, "remove.png"), *c1, a=0.5)
+        )
 
     def set_up_base_ui(self):
         """ Set up appearance of main widgets. """
@@ -374,10 +400,7 @@ class MainWindow(QMainWindow):
         if self.current_view:
             filter_tup = self.view_tools_wgt.get_filter_tup()
             self.current_view.update_model(
-                variables_df,
-                filter_tup=filter_tup,
-                selected=selected,
-                scroll_to=scroll_to
+                variables_df, filter_tup=filter_tup, selected=selected, scroll_to=scroll_to
             )
 
     def on_selection_populated(self, variables):
@@ -500,8 +523,9 @@ class MainWindow(QMainWindow):
         check_list = self.tab_wgt.get_all_child_names()[:]
         check_list.remove(orig_name)
 
-        d = MulInputDialog(self, "Enter a new file name.",
-                           check_list=check_list, name=orig_name)
+        d = MulInputDialog(
+            self, "Enter a new file name.", check_list=check_list, name=orig_name
+        )
         res = d.exec_()
 
         if res == 0:
@@ -542,8 +566,7 @@ class MainWindow(QMainWindow):
         """ Rename given variable. """
         # retrieve variable name from ui
         msg = "Rename variable: "
-        kwargs = {"variable name": var.variable,
-                  "key name": var.key}
+        kwargs = {"variable name": var.variable, "key name": var.key}
 
         dialog = MulInputDialog(self, msg, **kwargs)
 
@@ -576,8 +599,7 @@ class MainWindow(QMainWindow):
 
         # retrieve custom inputs from a user
         msg = "Enter details of the new variable: "
-        kwargs = {"variable name": var_nm,
-                  "key name": key_nm}
+        kwargs = {"variable name": var_nm, "key name": key_nm}
 
         dialog = MulInputDialog(self, msg, **kwargs)
         res = dialog.exec()
@@ -591,8 +613,7 @@ class MainWindow(QMainWindow):
         for v in self.all_views if Settings.ALL_FILES else [self.current_view]:
             v.set_next_update_forced()
 
-        self.variablesAggregated.emit(self.current_view.id_, variables,
-                                      var_nm, key_nm, func)
+        self.variablesAggregated.emit(self.current_view.id_, variables, var_nm, key_nm, func)
 
     def connect_ui_signals(self):
         """ Create actions which depend on user actions """

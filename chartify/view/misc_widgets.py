@@ -1,8 +1,19 @@
 from PySide2.QtCore import Qt, QFileInfo, Signal
-from PySide2.QtWidgets import (QSizePolicy, QLineEdit, QHBoxLayout, QTabWidget,
-                               QToolButton, QDialog, QFormLayout, QVBoxLayout,
-                               QDialogButtonBox, QWidget, QTextEdit, QLabel,
-                               QFrame)
+from PySide2.QtWidgets import (
+    QSizePolicy,
+    QLineEdit,
+    QHBoxLayout,
+    QTabWidget,
+    QToolButton,
+    QDialog,
+    QFormLayout,
+    QVBoxLayout,
+    QDialogButtonBox,
+    QWidget,
+    QTextEdit,
+    QLabel,
+    QFrame,
+)
 
 from chartify.view.treeview_widget import View
 
@@ -76,6 +87,7 @@ class DropFrame(QFrame):
     changing colours based on file extension.
 
     """
+
     fileDropped = Signal(list)
 
     def __init__(self, *args, **kwargs):
@@ -123,6 +135,7 @@ class LineEdit(QFrame):
     Which is not working!
 
     """
+
     textEdited = Signal()
 
     def __init__(self, *args, **kwargs):

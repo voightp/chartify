@@ -1,11 +1,18 @@
 from PySide2.QtCore import Qt, Signal
-from PySide2.QtWidgets import (QVBoxLayout, QGridLayout, QToolButton,
-                               QGroupBox, QSizePolicy, QMenu,
-                               QFrame, QAction)
+from PySide2.QtWidgets import (
+    QVBoxLayout,
+    QGridLayout,
+    QToolButton,
+    QGroupBox,
+    QSizePolicy,
+    QMenu,
+    QFrame,
+    QAction,
+)
 from esofile_reader.constants import TS, D, H, M, A, RP
 
 from chartify.settings import Settings
-from chartify.view.buttons import (TitledButton, ToggleButton, CheckableButton, ClickButton)
+from chartify.view.buttons import TitledButton, ToggleButton, CheckableButton, ClickButton
 
 
 class Toolbar(QFrame):
@@ -13,14 +20,17 @@ class Toolbar(QFrame):
     A class to represent application toolbar.
 
     """
+
     settingsUpdated = Signal()
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.temp_settings = {"energy_units": Settings.ENERGY_UNITS,
-                              "power_units": Settings.POWER_UNITS,
-                              "units_system": Settings.UNITS_SYSTEM,
-                              "rate_to_energy": Settings.RATE_TO_ENERGY}
+        self.temp_settings = {
+            "energy_units": Settings.ENERGY_UNITS,
+            "power_units": Settings.POWER_UNITS,
+            "units_system": Settings.UNITS_SYSTEM,
+            "rate_to_energy": Settings.RATE_TO_ENERGY,
+        }
 
         self.setObjectName("toolbar")
         self.layout = QVBoxLayout(self)
@@ -87,17 +97,12 @@ class Toolbar(QFrame):
     @property
     def units_btns(self):
         """ A shorthand to get all units buttons."""
-        return [self.energy_btn,
-                self.power_btn,
-                self.units_system_button,
-                self.rate_energy_btn]
+        return [self.energy_btn, self.power_btn, self.units_system_button, self.rate_energy_btn]
 
     @property
     def tools_btns(self):
         """ A shorthand to get all tools buttons."""
-        return [self.sum_btn,
-                self.mean_btn,
-                self.remove_btn]
+        return [self.sum_btn, self.mean_btn, self.remove_btn]
 
     @property
     def outputs_btns(self):
@@ -204,8 +209,9 @@ class Toolbar(QFrame):
         units_layout.setAlignment(Qt.AlignLeft)
 
         # ~~~~ Energy units set up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        acts, def_act = create_actions(Settings.SI_ENERGY_UNITS + Settings.IP_ENERGY_UNITS,
-                                       Settings.ENERGY_UNITS)
+        acts, def_act = create_actions(
+            Settings.SI_ENERGY_UNITS + Settings.IP_ENERGY_UNITS, Settings.ENERGY_UNITS
+        )
         energy_menu = QMenu(self)
         energy_menu.setWindowFlags(QMenu().windowFlags() | Qt.NoDropShadowWindowHint)
         energy_menu.addActions(acts)
@@ -318,8 +324,7 @@ class Toolbar(QFrame):
         interval = self.get_selected_interval()
         if not interval or interval not in available_intervals:
             # select a first enabled interval
-            k, btn = next((k, btn) for k, btn in self.interval_btns.items()
-                          if btn.isEnabled())
+            k, btn = next((k, btn) for k, btn in self.interval_btns.items() if btn.isEnabled())
 
             # store the newly selected interval
             # settingsUpdated signal is deliberately NOT triggered

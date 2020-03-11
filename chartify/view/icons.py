@@ -1,5 +1,5 @@
 from PySide2.QtCore import Qt, QBuffer, QTemporaryFile, QRectF
-from PySide2.QtGui import (QImage, QPixmap, QColor, QPainter, QFontMetrics, QPen)
+from PySide2.QtGui import QImage, QPixmap, QColor, QPainter, QFontMetrics, QPen
 
 
 class Pixmap(QPixmap):

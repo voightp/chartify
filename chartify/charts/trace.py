@@ -17,17 +17,19 @@ class Axis:
         self._side = None
 
     def __repr__(self):
-        return f"Axis: {self.name}\n" \
-               f"\tTitle: {self.title}\n" \
-               f"\tVisible: {self.visible}\n" \
-               f"\tAnchor: {self.anchor.name if isinstance(self.anchor, Axis) else self.anchor}\n" \
-               f"\tOverlaying: {self._overlaying}\n" \
-               f"\tDomain: {', '.join([str(d) for d in self.domain]) if self.domain else []}\n" \
-               f"\tPosition: {self.position}\n" \
-               f"\tSide: {self.side}\n" \
-               f"\tChildren: {', '.join([ch.name for ch in self.children])}\n" \
-               f"\t\tVisible: {', '.join([ch.name for ch in self.children if ch.visible])}\n" \
-               f"\t\tHidden: {', '.join([ch.name for ch in self.children if not ch.visible])}\n"
+        return (
+            f"Axis: {self.name}\n"
+            f"\tTitle: {self.title}\n"
+            f"\tVisible: {self.visible}\n"
+            f"\tAnchor: {self.anchor.name if isinstance(self.anchor, Axis) else self.anchor}\n"
+            f"\tOverlaying: {self._overlaying}\n"
+            f"\tDomain: {', '.join([str(d) for d in self.domain]) if self.domain else []}\n"
+            f"\tPosition: {self.position}\n"
+            f"\tSide: {self.side}\n"
+            f"\tChildren: {', '.join([ch.name for ch in self.children])}\n"
+            f"\t\tVisible: {', '.join([ch.name for ch in self.children if ch.visible])}\n"
+            f"\t\tHidden: {', '.join([ch.name for ch in self.children if not ch.visible])}\n"
+        )
 
     @property
     def visible_children(self):
@@ -121,12 +123,11 @@ class Axis:
             if self.anchor == "free":
                 b = self.position
             else:
-                b = self.anchor.domain[1] \
-                    if self.side == "right" else self.anchor.domain[0]
+                b = self.anchor.domain[1] if self.side == "right" else self.anchor.domain[0]
 
             x, y = (a, b) if is_x else (b, a)
 
-            x_shift = - self.X_SHIFT if self.side == "right" else self.X_SHIFT
+            x_shift = -self.X_SHIFT if self.side == "right" else self.X_SHIFT
 
             attributes = {
                 "text": f"{self.title}",
@@ -170,8 +171,17 @@ class Axis:
 
 
 class TraceData:
-    def __init__(self, item_id, trace_data_id, name, values,
-                 total_value, units, timestamps=None, interval=None):
+    def __init__(
+        self,
+        item_id,
+        trace_data_id,
+        name,
+        values,
+        total_value,
+        units,
+        timestamps=None,
+        interval=None,
+    ):
         self.item_id = item_id
         self.trace_data_id = trace_data_id
         self.name = name
@@ -187,8 +197,15 @@ class TraceData:
 
 
 class Trace:
-    def __init__(self, item_id: str, trace_id: str, color: str,
-                 type_: str, selected: bool = False, priority: str = "normal"):
+    def __init__(
+        self,
+        item_id: str,
+        trace_id: str,
+        color: str,
+        type_: str,
+        selected: bool = False,
+        priority: str = "normal",
+    ):
         self.item_id = item_id
         self.trace_id = trace_id
         self.color = color
@@ -212,8 +229,15 @@ class Trace1D(Trace):
         return self.ref.total_value if self.ref else None
 
     def as_2d_trace(self):
-        trace = Trace2D(self.name, self.item_id, self.trace_id, self.color,
-                        self.type_, self.selected, self.priority)
+        trace = Trace2D(
+            self.name,
+            self.item_id,
+            self.trace_id,
+            self.color,
+            self.type_,
+            self.selected,
+            self.priority,
+        )
         trace.x_ref = "datetime"
         trace.y_ref = self.ref
         return trace
@@ -249,15 +273,15 @@ class Trace2D(Trace):
             valid = True
         elif isinstance(ref, TraceData):
             num_check = not self._num_values or len(ref.values) == self._num_values
-            int_check = not self._interval or not ref.interval or \
-                        ref.interval == self._interval
+            int_check = not self._interval or not ref.interval or ref.interval == self._interval
             valid = num_check and int_check
         else:
             valid = False
 
         if not valid:
-            print(f"Cannot set ref: '{ref.name}',"
-                  f"number of values or interval does not match!")
+            print(
+                f"Cannot set ref: '{ref.name}'," f"number of values or interval does not match!"
+            )
         elif isinstance(ref, TraceData):
             # assign number of values, interval or timestamps for
             # cases where any of those hasn't been assigned already
@@ -313,8 +337,15 @@ class Trace2D(Trace):
         return self._interval
 
     def as_1d_trace(self):
-        trace = Trace1D(self.name, self.item_id, self.trace_id, self.color,
-                        self.type_, self.selected, self.priority)
+        trace = Trace1D(
+            self.name,
+            self.item_id,
+            self.trace_id,
+            self.color,
+            self.type_,
+            self.selected,
+            self.priority,
+        )
         trace.ref = self.ref
         return trace
 
@@ -329,8 +360,7 @@ class Trace2D(Trace):
             "y": self._get_ref_values(self.y_ref),
             "xaxis": self.xaxis,
             "yaxis": self.yaxis,
-            **get_2d_trace_appearance(self.type_, self.color,
-                                      self.interval, self.priority)
+            **get_2d_trace_appearance(self.type_, self.color, self.interval, self.priority),
         }
 
 

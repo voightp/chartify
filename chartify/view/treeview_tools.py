@@ -1,6 +1,13 @@
 from PySide2.QtCore import Signal, QTimer
-from PySide2.QtWidgets import (QWidget, QHBoxLayout, QToolButton, QLabel,
-                               QSpacerItem, QSizePolicy, QFrame, )
+from PySide2.QtWidgets import (
+    QWidget,
+    QHBoxLayout,
+    QToolButton,
+    QLabel,
+    QSpacerItem,
+    QSizePolicy,
+    QFrame,
+)
 
 from chartify.settings import Settings
 from chartify.utils.utils import FilterTuple
@@ -12,6 +19,7 @@ class ViewTools(QFrame):
     A class to represent an application toolbar.
 
     """
+
     structureChanged = Signal()
     textFiltered = Signal(tuple)
     expandRequested = Signal()
@@ -98,7 +106,7 @@ class ViewTools(QFrame):
         return FilterTuple(
             key=self.key_line_edit.text(),
             variable=self.variable_line_edit.text(),
-            units=self.units_line_edit.text()
+            units=self.units_line_edit.text(),
         )
 
     def tree_btn_toggled(self, checked):

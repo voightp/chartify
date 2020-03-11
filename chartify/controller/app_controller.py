@@ -129,8 +129,9 @@ class AppController:
         self.v.toolbar.update_intervals_state(file.available_intervals)
         self.v.toolbar.update_rate_to_energy_state(Settings.INTERVAL)
 
-        self.v.build_view(file.get_header_df(Settings.INTERVAL),
-                          selected=self.m.selected_variables)
+        self.v.build_view(
+            file.get_header_df(Settings.INTERVAL), selected=self.m.selected_variables
+        )
 
     def handle_file_processing(self, paths: List[str]) -> None:
         """ Load new files. """
@@ -143,7 +144,7 @@ class AppController:
                 self.progress_queue,
                 self.file_queue,
                 self.ids,
-                self.lock
+                self.lock,
             )
 
     def on_all_files_loaded(self, monitor_id: str) -> None:
@@ -179,21 +180,22 @@ class AppController:
         return val
 
     @staticmethod
-    def rename_var(file: ResultsFile, var_nm: str,
-                   key_nm: str, variable: tuple) -> tuple:
+    def rename_var(file: ResultsFile, var_nm: str, key_nm: str, variable: tuple) -> tuple:
         """ Rename given 'Variable'. """
         res = file.rename_variable(variable, var_nm, key_nm)
         if res:
             var_id, var = res
             return var
 
-    def handle_rename_variable(self, id_: int, variable: tuple,
-                               var_nm: str, key_nm: str) -> None:
+    def handle_rename_variable(
+        self, id_: int, variable: tuple, var_nm: str, key_nm: str
+    ) -> None:
         """ Overwrite variable name. """
         variable = self._apply_async(id_, self.rename_var, var_nm, key_nm, variable)
         self.v.build_view(
             self.m.get_file(id_).get_header_df(Settings.INTERVAL),
-            selected=[variable], scroll_to=variable
+            selected=[variable],
+            scroll_to=variable,
         )
 
     def handle_file_rename(self, id_: int, name: str) -> None:
@@ -211,24 +213,35 @@ class AppController:
         self.v.build_view(self.m.get_file(id_).get_header_df(Settings.INTERVAL))
 
     @staticmethod
-    def aggr_vars(file: ResultsFile, variables: List[tuple], var_name: str,
-                  key_name: str, func: Union[str, Callable]) -> tuple:
+    def aggr_vars(
+        file: ResultsFile,
+        variables: List[tuple],
+        var_name: str,
+        key_name: str,
+        func: Union[str, Callable],
+    ) -> tuple:
         """ Add a new aggregated variable to the file. """
-        res = file.aggregate_variables(variables, func,
-                                       key_name=key_name,
-                                       var_name=var_name,
-                                       part_match=False)
+        res = file.aggregate_variables(
+            variables, func, key_name=key_name, var_name=var_name, part_match=False
+        )
         if res:
             var_id, var = res
             return var
 
-    def handle_aggregate_variables(self, id_: int, variables: List[tuple], var_nm: str,
-                                   key_nm: str, func: Union[str, Callable]) -> None:
+    def handle_aggregate_variables(
+        self,
+        id_: int,
+        variables: List[tuple],
+        var_nm: str,
+        key_nm: str,
+        func: Union[str, Callable],
+    ) -> None:
         """ Create a new variable using given aggregation function. """
         variable = self._apply_async(id_, self.aggr_vars, variables, var_nm, key_nm, func)
         self.v.build_view(
             self.m.get_file(id_).get_header_df(Settings.INTERVAL),
-            selected=[variable], scroll_to=variable
+            selected=[variable],
+            scroll_to=variable,
         )
 
     def handle_close_tab(self, id_: int) -> None:
