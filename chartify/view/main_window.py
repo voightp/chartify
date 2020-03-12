@@ -395,12 +395,25 @@ class MainWindow(QMainWindow):
         if not self.tab_wgt.is_empty():
             self.toolbar.totals_btn.setEnabled(True)
 
-    def build_view(self, variables_df, selected=None, scroll_to=None):
+    def build_treeview(self, variables_df, selected=None, scroll_to=None):
         """ Create a new view when any of related settings change """
+        units = (
+            Settings.RATE_TO_ENERGY,
+            Settings.UNITS_SYSTEM,
+            Settings.ENERGY_UNITS,
+            Settings.POWER_UNITS,
+        )
+
         if self.current_view:
             filter_tup = self.view_tools_wgt.get_filter_tup()
-            self.current_view.update_model(
-                variables_df, filter_tup=filter_tup, selected=selected, scroll_to=scroll_to
+            self.current_view.build_view(
+                variables_df=variables_df,
+                interval=Settings.INTERVAL,
+                is_tree=Settings.TREE_VIEW,
+                units=units,
+                filter_tup=filter_tup,
+                selected=selected,
+                scroll_to=scroll_to
             )
 
     def on_selection_populated(self, variables):

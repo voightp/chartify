@@ -1,4 +1,4 @@
-from typing import Dict, List, Set, Sequence
+from typing import Dict, List, Set, Sequence, Tuple
 
 import pandas as pd
 from PySide2.QtCore import (
@@ -15,7 +15,6 @@ from PySide2.QtCore import (
 from PySide2.QtGui import QStandardItemModel, QStandardItem, QDrag, QPixmap
 from PySide2.QtWidgets import QTreeView, QAbstractItemView, QHeaderView, QMenu
 
-from chartify.settings import Settings
 from chartify.utils.utils import FilterTuple, VariableData
 from chartify.utils.utils import create_proxy_units_column
 
@@ -218,25 +217,18 @@ class View(QTreeView):
         else:
             self.selectionCleared.emit()
 
-    def update_model(
+    def build_view(
             self,
             variables_df: pd.DataFrame,
+            interval: str,
+            is_tree: bool,
+            units: Tuple[bool, str, str, str],
             filter_tup: FilterTuple = None,
             selected: List[VariableData] = None,
-            scroll_to: VariableData = None
+            scroll_to: VariableData = None,
     ) -> None:
         """ Set the model and define behaviour of the tree view. """
         self.disconnect_signals()
-
-        # gather settings
-        interval = Settings.INTERVAL
-        is_tree = Settings.TREE_VIEW
-        units = (
-            Settings.RATE_TO_ENERGY,
-            Settings.UNITS_SYSTEM,
-            Settings.ENERGY_UNITS,
-            Settings.POWER_UNITS,
-        )
 
         # Only update the model if the settings have changed
         conditions = [

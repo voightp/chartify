@@ -129,7 +129,7 @@ class AppController:
         self.v.toolbar.update_intervals_state(file.available_intervals)
         self.v.toolbar.update_rate_to_energy_state(Settings.INTERVAL)
 
-        self.v.build_view(
+        self.v.build_treeview(
             file.get_header_df(Settings.INTERVAL), selected=self.m.selected_variables
         )
 
@@ -192,7 +192,7 @@ class AppController:
     ) -> None:
         """ Overwrite variable name. """
         variable = self._apply_async(id_, self.rename_var, var_nm, key_nm, variable)
-        self.v.build_view(
+        self.v.build_treeview(
             self.m.get_file(id_).get_header_df(Settings.INTERVAL),
             selected=[variable],
             scroll_to=variable,
@@ -210,7 +210,7 @@ class AppController:
     def handle_remove_variables(self, id_: int, variables: List[tuple]) -> None:
         """ Remove variables from a file or all files. """
         self._apply_async(id_, self.dump_vars, variables)
-        self.v.build_view(self.m.get_file(id_).get_header_df(Settings.INTERVAL))
+        self.v.build_treeview(self.m.get_file(id_).get_header_df(Settings.INTERVAL))
 
     @staticmethod
     def aggr_vars(
@@ -238,7 +238,7 @@ class AppController:
     ) -> None:
         """ Create a new variable using given aggregation function. """
         variable = self._apply_async(id_, self.aggr_vars, variables, var_nm, key_nm, func)
-        self.v.build_view(
+        self.v.build_treeview(
             self.m.get_file(id_).get_header_df(Settings.INTERVAL),
             selected=[variable],
             scroll_to=variable,
