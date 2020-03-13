@@ -172,8 +172,9 @@ class View(QTreeView):
         name, order = self.settings["order"]
         expanded_items = self.settings["expanded"]
         view_order = self.settings["header"]
+        widths = self.settings["widths"]
 
-        self.resize_header()
+        self.resize_header(widths)
         self.update_sort_order(name, order)
 
         if expanded_items:
@@ -309,7 +310,7 @@ class View(QTreeView):
         self.update_view_appearance()
         self.connect_signals()
 
-    def resize_header(self) -> None:
+    def resize_header(self, widths) -> None:
         """ Define resizing behaviour. """
         log_ixs = self.model().get_logical_ixs()
         vis_ixs = self.get_visual_ixs()
@@ -332,11 +333,12 @@ class View(QTreeView):
         self.header().setSectionResizeMode(interactive, QHeaderView.Interactive)
 
         # resize sections programmatically
-        interactive_width = self.settings["widths"]["interactive"]
-        fixed_width = self.settings["widths"]["fixed"]
+        interactive_width = widths["interactive"]
+        fixed_width = widths["fixed"]
 
-        self.header().resizeSection(interactive, interactive_width)
         self.header().resizeSection(fixed, fixed_width)
+        self.header().resizeSection(interactive, interactive_width)
+
 
     def on_sort_order_changed(self, log_ix: int, order: Qt.SortOrder) -> None:
         """ Store current sorting order in main app. """
