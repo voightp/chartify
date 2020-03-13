@@ -241,13 +241,13 @@ class View(QTreeView):
 
         if any(conditions):
             print("UPDATING MODEL")
-            # populate new model
-            source_model = self.model().sourceModel()
+            # clear the previous model
+            self.model().sourceModel().clear()
 
-            # clear removes all rows and columns
-            source_model.clear()
-            source_model.setColumnCount(len(self.settings["header"]))
-            source_model.setHorizontalHeaderLabels(self.settings["header"])
+            # populate new model
+            model = ViewModel()
+            model.setColumnCount(len(self.settings["header"]))
+            model.setHorizontalHeaderLabels(self.settings["header"])
 
             # id and interval data are not required
             variables_df.drop(["id", "interval"], axis=1, inplace=True)
@@ -263,7 +263,8 @@ class View(QTreeView):
             variables_df = variables_df[view_order]
 
             # feed the data
-            source_model.populate_model(variables_df, is_tree)
+            model.populate_model(variables_df, is_tree)
+            self.model().setSourceModel(model)
 
             # Store current sorting key and interval
             self.temp_settings = {
