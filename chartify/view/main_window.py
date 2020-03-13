@@ -397,20 +397,16 @@ class MainWindow(QMainWindow):
 
     def build_treeview(self, variables_df, selected=None, scroll_to=None):
         """ Create a new view when any of related settings change """
-        units = (
-            Settings.RATE_TO_ENERGY,
-            Settings.UNITS_SYSTEM,
-            Settings.ENERGY_UNITS,
-            Settings.POWER_UNITS,
-        )
-
         if self.current_view:
             filter_tup = self.view_tools_wgt.get_filter_tup()
             self.current_view.build_view(
                 variables_df=variables_df,
                 interval=Settings.INTERVAL,
                 is_tree=Settings.TREE_VIEW,
-                units=units,
+                rate_to_energy=Settings.RATE_TO_ENERGY,
+                units_system=Settings.UNITS_SYSTEM,
+                energy_units=Settings.ENERGY_UNITS,
+                power_units=Settings.POWER_UNITS,
                 filter_tup=filter_tup,
                 selected=selected,
                 scroll_to=scroll_to
@@ -455,10 +451,10 @@ class MainWindow(QMainWindow):
         wgt.context_menu_actions = [self.remove_variables_act]
         return wgt
 
-    def filter_view(self, filter_tup):
+    def filter_treeview(self, filter_tup):
         """ Filter current view. """
         if not self.tab_wgt.is_empty():
-            self.current_view.filter_view(filter_tup)
+            self.current_view.filter_view(filter_tup, Settings.TREE_VIEW)
 
     def expand_all(self):
         """ Expand all tree view items. """
@@ -644,7 +640,7 @@ class MainWindow(QMainWindow):
         self.avg_variables_act.triggered.connect(partial(self.aggregate_variables, "mean"))
 
         # ~~~~ View Signals ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.view_tools_wgt.textFiltered.connect(self.filter_view)
+        self.view_tools_wgt.textFiltered.connect(self.filter_treeview)
         self.view_tools_wgt.expandRequested.connect(self.expand_all)
         self.view_tools_wgt.collapseRequested.connect(self.collapse_all)
         self.view_tools_wgt.structureChanged.connect(self.on_settings_changed)

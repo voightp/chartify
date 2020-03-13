@@ -1,4 +1,4 @@
-from typing import Dict, List, Set, Sequence, Tuple
+from typing import Dict, List, Set, Sequence
 
 import pandas as pd
 from PySide2.QtCore import (
@@ -103,13 +103,16 @@ class View(QTreeView):
             if self.model().hasChildren(ix):
                 super().setFirstColumnSpanned(i, self.rootIndex(), True)
 
-    def filter_view(self, filter_tup: FilterTuple) -> None:
+    def filter_view(self, filter_tup: FilterTuple, is_tree: bool) -> None:
         """ Filter the model using given filter tuple. """
         self.model().setFilterTuple(filter_tup)
 
         # Expand all items when filter is applied
         self.expandAll()
-        self.setFirstTreeColumnSpanned()
+
+        if is_tree:
+            # it's required to reapply column span after each filter
+            self.setFirstTreeColumnSpanned()
 
     def set_next_update_forced(self) -> None:
         """ Notify the view that it needs to be updated. """
@@ -188,10 +191,10 @@ class View(QTreeView):
         """ Connect specific signals. """
         self.verticalScrollBar().valueChanged.connect(self.on_slider_moved)
         self.header().sectionResized.connect(self.on_view_resized, type=Qt.UniqueConnection)
+        self.header().sectionMoved.connect(self.on_section_moved, type=Qt.UniqueConnection)
         self.header().sortIndicatorChanged.connect(
             self.on_sort_order_changed, type=Qt.UniqueConnection
         )
-        self.header().sectionMoved.connect(self.on_section_moved, type=Qt.UniqueConnection)
 
     def deselect_variables(self) -> None:
         """ Deselect all currently selected variables. """
@@ -222,13 +225,19 @@ class View(QTreeView):
             variables_df: pd.DataFrame,
             interval: str,
             is_tree: bool,
-            units: Tuple[bool, str, str, str],
-            filter_tup: FilterTuple = None,
+            rate_to_energy: bool = False,
+            units_system: str = "SI",
+            energy_units: str = "J",
+            power_units: str = "W",
+            filter_tup: FilterTuple = FilterTuple("", "", ""),
             selected: List[VariableData] = None,
             scroll_to: VariableData = None,
     ) -> None:
         """ Set the model and define behaviour of the tree view. """
         self.disconnect_signals()
+
+        # gather units to check
+        units = (rate_to_energy, units_system, energy_units, power_units)
 
         # Only update the model if the settings have changed
         conditions = [
@@ -255,7 +264,11 @@ class View(QTreeView):
             # add proxy units - these will be visible on ui
             variables_df["source units"] = variables_df["units"]
             variables_df["units"] = create_proxy_units_column(
-                variables_df["source units"], *units
+                source_units=variables_df["source units"],
+                rate_to_energy=rate_to_energy,
+                units_system=units_system,
+                energy_units=energy_units,
+                power_units=power_units,
             )
 
             # update columns order based on current view
@@ -286,7 +299,7 @@ class View(QTreeView):
             self.select_variables(selected)
 
         if any(filter_tup):
-            self.filter_view(filter_tup)
+            self.filter_view(filter_tup, is_tree)
 
         if scroll_to:
             self.scroll_to(scroll_to)
@@ -550,7 +563,7 @@ class FilterModel(QSortFilterProxyModel):
     def __init__(self):
         super().__init__()
         self.setRecursiveFilteringEnabled(True)
-        self._filter_tup = FilterTuple(key=None, variable=None, units=None)
+        self._filter_tup = FilterTuple(key="", variable="", units="")
 
     def setFilterTuple(self, filter_tup: FilterTuple) -> None:
         self._filter_tup = filter_tup
