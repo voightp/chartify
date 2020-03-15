@@ -1,13 +1,16 @@
 from pathlib import Path
 
+import pandas as pd
 import pytest
 from PySide2.QtCore import Qt
-from PySide2.QtWidgets import QHeaderView
+from PySide2.QtWidgets import QHeaderView, QSizePolicy
 from esofile_reader import EsoFile
 
 from chartify.utils.utils import FilterTuple
 from chartify.view.treeview_widget import View
 from tests import ROOT
+
+WIDTH = 402
 
 
 @pytest.fixture(scope="module")
@@ -16,9 +19,18 @@ def eso_file():
 
 
 @pytest.fixture
+def hourly_df(eso_file):
+    return eso_file.get_header_df("hourly")
+
+
+@pytest.fixture
 def tree_view(qtbot):
     tree_view = View(0, "test")
+    tree_view.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
+    tree_view.setFixedWidth(WIDTH)
+    tree_view.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
     tree_view.show()
+
     qtbot.addWidget(tree_view)
     return tree_view
 
@@ -52,9 +64,8 @@ def test_01_init_tree_view(tree_view: View):
     assert tree_view.name == "test"
 
 
-def test_02_build_tree_view(qtbot, tree_view: View, eso_file: EsoFile):
-    df = eso_file.get_header_df("hourly")
-    tree_view.build_view(variables_df=df, interval="hourly", is_tree=True)
+def test_02_build_tree_view(qtbot, tree_view: View, hourly_df: pd.DataFrame):
+    tree_view.build_view(variables_df=hourly_df, interval="hourly", is_tree=True)
 
     assert tree_view.model().rowCount() == 49
     assert tree_view.model().sourceModel().rowCount() == 49
@@ -66,9 +77,8 @@ def test_02_build_tree_view(qtbot, tree_view: View, eso_file: EsoFile):
     assert not tree_view.temp_settings["force_update"]
 
 
-def test_02a_first_column_spanned(tree_view: View, eso_file: EsoFile):
-    df = eso_file.get_header_df("hourly")
-    tree_view.build_view(variables_df=df, interval="hourly", is_tree=True)
+def test_02a_first_column_spanned(tree_view: View, hourly_df: pd.DataFrame):
+    tree_view.build_view(variables_df=hourly_df, interval="hourly", is_tree=True)
 
     proxy_model = tree_view.model()
     for i in range(proxy_model.rowCount()):
@@ -82,12 +92,11 @@ def test_02a_first_column_spanned(tree_view: View, eso_file: EsoFile):
             assert not tree_view.isFirstColumnSpanned(i, tree_view.rootIndex())
 
 
-def test_02b_initial_view_appearance(tree_view: View, eso_file: EsoFile):
-    df = eso_file.get_header_df("hourly")
-    tree_view.build_view(variables_df=df, interval="hourly", is_tree=True)
+def test_02b_initial_view_appearance(tree_view: View, hourly_df: pd.DataFrame):
+    tree_view.build_view(variables_df=hourly_df, interval="hourly", is_tree=True)
 
     assert tree_view.header().sectionSize(0) == 200
-    assert tree_view.header().sectionSize(1) == 100
+    assert tree_view.header().sectionSize(1) == 130
     assert tree_view.header().sectionSize(2) == 70
 
     assert not tree_view.header().stretchLastSection()
@@ -98,11 +107,8 @@ def test_02b_initial_view_appearance(tree_view: View, eso_file: EsoFile):
     assert tree_view.header().sortIndicatorOrder() == Qt.AscendingOrder
 
 
-def test_03_build_plain_view(qtbot, tree_view: View, eso_file: EsoFile):
-    df = eso_file.get_header_df("hourly")
-    tree_view.build_view(variables_df=df, interval="hourly", is_tree=False)
-    print(tree_view.model().rowCount())
-    print(tree_view.model().sourceModel().rowCount())
+def test_03_build_plain_view(qtbot, tree_view: View, hourly_df: pd.DataFrame):
+    tree_view.build_view(variables_df=hourly_df, interval="hourly", is_tree=False)
 
     assert tree_view.model().rowCount() == 77
     assert tree_view.model().sourceModel().rowCount() == 77
@@ -114,9 +120,8 @@ def test_03_build_plain_view(qtbot, tree_view: View, eso_file: EsoFile):
     assert not tree_view.temp_settings["force_update"]
 
 
-def test_03a_first_column_not_spanned(tree_view: View, eso_file: EsoFile):
-    df = eso_file.get_header_df("hourly")
-    tree_view.build_view(variables_df=df, interval="hourly", is_tree=False)
+def test_03a_first_column_not_spanned(tree_view: View, hourly_df: pd.DataFrame):
+    tree_view.build_view(variables_df=hourly_df, interval="hourly", is_tree=False)
     proxy_model = tree_view.model()
     for i in range(proxy_model.rowCount()):
         index = proxy_model.index(i, 0)
@@ -127,45 +132,58 @@ def test_03a_first_column_not_spanned(tree_view: View, eso_file: EsoFile):
             assert not tree_view.isFirstColumnSpanned(i, tree_view.rootIndex())
 
 
-def test_04_resize_header(tree_view: View, eso_file: EsoFile):
-    df = eso_file.get_header_df("hourly")
-    tree_view.build_view(variables_df=df, interval="hourly", is_tree=False)
-    # tree_view.resize_header({"interactive": 200, "fixed": 80})
+def test_04_resize_header(tree_view: View, hourly_df: pd.DataFrame):
+    tree_view.build_view(variables_df=hourly_df, interval="hourly", is_tree=False)
+    tree_view.resize_header({"interactive": 250, "fixed": 100})
 
-    print(tree_view.header().sectionSize(0))
-    print(tree_view.header().sectionSize(1))
-    print(tree_view.header().sectionSize(2))
-
-    # assert tree_view.header().sectionSize(0) == 200
-    # assert tree_view.header().sectionSize(1) == 100
-    # assert tree_view.header().sectionSize(2) == 80
+    assert tree_view.header().sectionSize(0) == 250
+    assert tree_view.header().sectionSize(1) == 50
+    assert tree_view.header().sectionSize(2) == 100
 
 
-def test_0x_on_sort_order_changed(tree_view: View, eso_file: EsoFile):
+def test_05a_on_sort_order_changed_build_tree(qtbot, tree_view: View, hourly_df: pd.DataFrame):
+    tree_view.build_view(variables_df=hourly_df, interval="hourly", is_tree=True)
+
+    assert tree_view.get_visual_names() == ["variable", "key", "units"]
+
+    with qtbot.wait_signal(tree_view.treeNodeChanged, timeout=1000):
+        tree_view.header().moveSection(2, 0)
+        assert tree_view.get_visual_names() == ["units", "variable", "key"]
+        assert tree_view.header().sortIndicatorOrder() == Qt.AscendingOrder
+
+
+def test_06a_on_sort_order_changed_no_build_tree(
+    qtbot, tree_view: View, hourly_df: pd.DataFrame
+):
+    tree_view.build_view(variables_df=hourly_df, interval="hourly", is_tree=True)
+
+    assert tree_view.get_visual_names() == ["units", "variable", "key"]
+
+    with qtbot.assertNotEmitted(tree_view.treeNodeChanged):
+        tree_view.header().moveSection(2, 1)
+
+
+def test_0x_on_view_resized(tree_view: View, hourly_df: pd.DataFrame):
     pass
 
 
-def test_0x_on_view_resized(tree_view: View, eso_file: EsoFile):
+def test_0x_on_section_moved(tree_view: View, hourly_df: pd.DataFrame):
     pass
 
 
-def test_0x_on_section_moved(tree_view: View, eso_file: EsoFile):
+def test_0x_on_slider_moved(tree_view: View, hourly_df: pd.DataFrame):
     pass
 
 
-def test_0x_on_slider_moved(tree_view: View, eso_file: EsoFile):
+def test_0x_on_double_clicked(tree_view: View, hourly_df: pd.DataFrame):
     pass
 
 
-def test_0x_on_double_clicked(tree_view: View, eso_file: EsoFile):
+def test_0x_on_pressed(tree_view: View, hourly_df: pd.DataFrame):
     pass
 
 
-def test_0x_on_pressed(tree_view: View, eso_file: EsoFile):
-    pass
-
-
-def test_0x_on_collapsed(tree_view: View, eso_file: EsoFile):
+def test_0x_on_collapsed(tree_view: View, hourly_df: pd.DataFrame):
     pass
 
 
