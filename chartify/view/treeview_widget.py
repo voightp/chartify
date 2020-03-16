@@ -1,4 +1,4 @@
-from typing import Dict, List, Set, Sequence
+from typing import Dict, List, Set, Sequence, Tuple
 
 import pandas as pd
 from PySide2.QtCore import (
@@ -24,13 +24,7 @@ class View(QTreeView):
     selectionPopulated = Signal(list)
     itemDoubleClicked = Signal(object)
     treeNodeChanged = Signal()
-
-    settings = {
-        "widths": {"interactive": 200, "fixed": 70},
-        "order": ("variable", Qt.AscendingOrder),
-        "header": ["variable", "key", "units"],
-        "expanded": set(),
-    }
+    viewSettingsChanged = Signal(dict)
 
     def __init__(self, id_: int, name: str):
         super().__init__()
@@ -53,10 +47,8 @@ class View(QTreeView):
         self.id_ = id_
         self.name = name
 
-        # create view model
+        # create initial view model
         model = ViewModel()
-        model.setColumnCount(len(self.settings["header"]))
-        model.setHorizontalHeaderLabels(self.settings["header"])
 
         # install proxy model
         proxy_model = FilterModel()
@@ -71,7 +63,7 @@ class View(QTreeView):
             "force_update": True,
         }
 
-        self._scrollbar_position = 0
+        self.scrollbar_position = 0
 
         self.verticalScrollBar().valueChanged.connect(self.on_slider_moved)
         self.expanded.connect(self.on_expanded)
@@ -136,10 +128,11 @@ class View(QTreeView):
             if i != j:
                 self.header().moveSection(j, i)
 
-    def update_sort_order(self, name: str, order: Qt.SortOrder) -> None:
+    def update_sort_order(self, order: Tuple[str, Qt.SortOrder]) -> None:
         """ Set header order. """
+        name, indicator = order
         log_ix = self.model().get_logical_index(name)
-        self.header().setSortIndicator(log_ix, order)
+        self.header().setSortIndicator(log_ix, indicator)
 
     def expand_items(self, expanded_set: Set) -> None:
         """ Expand items which were previously expanded (on other models). """
@@ -152,37 +145,29 @@ class View(QTreeView):
                 else:
                     self.collapse(ix)
 
-    def update_scroll_position(self) -> None:
-        """ Update the slider position. """
-        self.verticalScrollBar().setValue(self._scrollbar_position)
-
-    def scroll_to(self, var: VariableData) -> None:
+    def scroll_to(self, var: VariableData, first_col: str) -> None:
         """ Scroll to the given var. """
         proxy_model = self.model()
-        key = self.settings["header"][0]
 
         # var needs to be passed as a list
-        proxy_selection = proxy_model.find_match([var], key)
+        proxy_selection = proxy_model.find_match([var], first_col)
 
         if proxy_selection:
             self.scrollTo(proxy_selection.indexes()[0])
 
-    def update_view_appearance(self) -> None:
+    def update_view_appearance(self, settings: dict) -> None:
         """ Update the model appearance to be consistent with last view. """
-        name, order = self.settings["order"]
-        expanded_items = self.settings["expanded"]
-        view_order = self.settings["header"]
-        widths = self.settings["widths"]
+        self.resize_header(settings["widths"])
+        self.update_sort_order(settings["order"])
 
-        self.resize_header(widths)
-        self.update_sort_order(name, order)
-
-        if expanded_items:
-            self.expand_items(expanded_items)
+        if settings["expanded"]:
+            self.expand_items(settings["expanded"])
 
         # it's required to adjust columns order to match the last applied order
-        self.reshuffle_columns(view_order)
-        self.update_scroll_position()
+        self.reshuffle_columns(settings["header"])
+
+        # scroll to last position
+        self.verticalScrollBar().setValue(self.scrollbar_position)
 
     def disconnect_signals(self) -> None:
         """ Disconnect specific signals to avoid overriding stored values. """
@@ -233,8 +218,18 @@ class View(QTreeView):
             filter_tup: FilterTuple = FilterTuple("", "", ""),
             selected: List[VariableData] = None,
             scroll_to: VariableData = None,
+            settings: dict = None
     ) -> None:
         """ Set the model and define behaviour of the tree view. """
+        if not settings:
+            settings = {
+                "widths": {"interactive": 200, "fixed": 70},
+                "header": ["variable", "key", "units"],
+                "expanded": set(),
+                "order": ("variable", Qt.AscendingOrder),
+            }
+
+        # deactivate signals as those would override settings
         self.disconnect_signals()
 
         # gather units to check
@@ -256,8 +251,8 @@ class View(QTreeView):
 
             # populate new model
             model = ViewModel()
-            model.setColumnCount(len(self.settings["header"]))
-            model.setHorizontalHeaderLabels(self.settings["header"])
+            model.setColumnCount(len(settings["header"]))
+            model.setHorizontalHeaderLabels(settings["header"])
 
             # id and interval data are not required
             variables_df.drop(["id", "interval"], axis=1, inplace=True)
@@ -273,7 +268,7 @@ class View(QTreeView):
             )
 
             # update columns order based on current view
-            view_order = self.settings["header"] + ["source units"]
+            view_order = settings["header"] + ["source units"]
             variables_df = variables_df[view_order]
 
             # feed the data
@@ -303,11 +298,11 @@ class View(QTreeView):
             self.filter_view(filter_tup, is_tree)
 
         if scroll_to:
-            self.scroll_to(scroll_to)
+            self.scroll_to(scroll_to, settings["header"][0])
 
         # update visual appearance of the view to be consistent
         # with previously displayed View
-        self.update_view_appearance()
+        self.update_view_appearance(settings)
         self.connect_signals()
 
     def resize_header(self, widths) -> None:
@@ -333,39 +328,35 @@ class View(QTreeView):
         self.header().setSectionResizeMode(interactive, QHeaderView.Interactive)
 
         # resize sections programmatically
-        interactive_width = widths["interactive"]
-        fixed_width = widths["fixed"]
-
-        self.header().resizeSection(fixed, fixed_width)
-        self.header().resizeSection(interactive, interactive_width)
-
+        self.header().resizeSection(fixed, widths["fixed"])
+        self.header().resizeSection(interactive, widths["interactive"])
 
     def on_sort_order_changed(self, log_ix: int, order: Qt.SortOrder) -> None:
         """ Store current sorting order in main app. """
         name = self.model().headerData(log_ix, Qt.Horizontal)
-        self.settings["order"] = (name, order)
+        self.viewSettingsChanged.emit({"order": (name, order)})
 
     def on_view_resized(self, log_ix: int, _, new_size: int) -> None:
         """ Store interactive section width in the main app. """
         if self.header().sectionResizeMode(log_ix) == self.header().Interactive:
-            self.settings["widths"]["interactive"] = new_size
+            self.viewSettingsChanged.emit({"interactive": new_size})
 
     def on_section_moved(self, _logical_ix, old_visual_ix: int, new_visual_ix: int) -> None:
         """ Handle updating the model when first column changed. """
         names = self.get_visual_names()
         is_tree = self.temp_settings["is_tree"]
-        self.settings["header"] = names
+        self.viewSettingsChanged.emit({"header": names})
 
         if (new_visual_ix == 0 or old_visual_ix == 0) and is_tree:
             # need to update view as section has been moved
             # onto first position and tree key is applied
             self.set_next_update_forced()
             self.treeNodeChanged.emit()
-            self.update_sort_order(names[0], Qt.AscendingOrder)
+            self.update_sort_order((names[0], Qt.AscendingOrder))
 
     def on_slider_moved(self, val: int) -> None:
         """ Handle moving view slider. """
-        self._scrollbar_position = val
+        self.scrollbar_position = val
 
     def on_double_clicked(self, index: QModelIndex):
         """ Handle view double click. """
@@ -465,25 +456,19 @@ class View(QTreeView):
         proxy_model = self.model()
         if proxy_model.hasChildren(index):
             name = proxy_model.data(index)
-            exp = self.settings["expanded"]
-            try:
-                exp.remove(name)
-            except KeyError:
-                pass
+            self.viewSettingsChanged.emit({"collapsed": name})
 
     def on_expanded(self, index: QModelIndex) -> None:
         """ Deselect the row when node is expanded. """
         proxy_model = self.model()
         if proxy_model.hasChildren(index):
             name = proxy_model.data(index)
-            exp = self.settings["expanded"]
-            exp.add(name)
+            self.viewSettingsChanged.emit({"expanded": name})
 
 
 class ViewModel(QStandardItemModel):
     def __init__(self):
         super().__init__()
-        self.setSortRole(Qt.AscendingOrder)
 
     @staticmethod
     def _append_row(
@@ -566,6 +551,25 @@ class FilterModel(QSortFilterProxyModel):
         super().__init__()
         self.setRecursiveFilteringEnabled(True)
         self._filter_tup = FilterTuple(key="", variable="", units="")
+
+    def lessThan1(self, source_left: QModelIndex, source_right: QModelIndex) -> bool:
+        left_row = source_left.row()
+        right_row = source_right.row()
+        num_columns = self.sourceModel().columnCount()
+
+        print(source_left)
+
+        for i in range(num_columns):
+            left_index = self.sourceModel().index(left_row, i)
+            right_index = self.sourceModel().index(right_row, i)
+
+            left_data = self.sourceModel().data(left_index)
+            right_data = self.sourceModel().data(right_index)
+
+            if left_data != right_data:
+                return left_data < right_data
+
+        return False
 
     def setFilterTuple(self, filter_tup: FilterTuple) -> None:
         self._filter_tup = filter_tup

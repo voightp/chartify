@@ -1,3 +1,4 @@
+import contextlib
 import ctypes
 from functools import partial
 from pathlib import Path
@@ -241,6 +242,15 @@ class MainWindow(QMainWindow):
         self.load_icons()
         self.load_css()
 
+        # ~~~~ Tree view appearance ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.view_settings = {
+            "widths": {"interactive": 200, "fixed": 70},
+            "header": ["variable", "key", "units"],
+            "expanded": set(),
+            "scroll": 0,
+            "order": ("variable", Qt.AscendingOrder)
+        }
+
         # ~~~~ Connect main ui user actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.connect_ui_signals()
 
@@ -409,7 +419,8 @@ class MainWindow(QMainWindow):
                 power_units=Settings.POWER_UNITS,
                 filter_tup=filter_tup,
                 selected=selected,
-                scroll_to=scroll_to
+                scroll_to=scroll_to,
+                settings=self.view_settings
             )
 
     def on_selection_populated(self, variables):
@@ -443,13 +454,15 @@ class MainWindow(QMainWindow):
         """ Create a 'View' widget and connect its actions. """
         # create an empty 'View' widget - the data will be
         # automatically populated on 'onTabChanged' signal
-        wgt = View(id_, name)
-        wgt.selectionCleared.connect(self.on_selection_cleared)
-        wgt.selectionPopulated.connect(self.on_selection_populated)
-        wgt.treeNodeChanged.connect(self.on_settings_changed)
-        wgt.itemDoubleClicked.connect(self.rename_variable)
-        wgt.context_menu_actions = [self.remove_variables_act]
-        return wgt
+        view = View(id_, name)
+        view.selectionCleared.connect(self.on_selection_cleared)
+        view.selectionPopulated.connect(self.on_selection_populated)
+        view.treeNodeChanged.connect(self.on_settings_changed)
+        view.viewSettingsChanged.connect(self.on_view_settings_changed)
+        view.itemDoubleClicked.connect(self.rename_variable)
+        view.context_menu_actions = [self.remove_variables_act]
+
+        return view
 
     def filter_treeview(self, filter_tup):
         """ Filter current view. """
@@ -490,6 +503,35 @@ class MainWindow(QMainWindow):
         else:
             self.viewUpdateRequested.emit(self.current_view.id_)
             Settings.CURRENT_FILE_ID = self.current_view.id_
+
+    def on_view_settings_changed(self, settings: dict):
+        """ Update current ui view settings. """
+
+        def on_expanded():
+            self.view_settings["expanded"].add(value)
+
+        def on_collapsed():
+            with contextlib.suppress(KeyError):
+                self.view_settings["expanded"].remove(value)
+
+        def on_interactive():
+            self.view_settings["widths"]["interactive"] = value
+
+        def on_header():
+            self.view_settings["header"] = value
+
+        def on_order():
+            self.view_settings["order"] = value
+
+        switch = {
+            "expanded": on_expanded,
+            "collapsed": on_collapsed,
+            "interactive": on_interactive,
+            "header": on_header,
+            "order": on_order,
+        }
+        for key, value in settings.items():
+            switch[key]()
 
     def on_settings_changed(self):
         """ Update view when settings change. """
