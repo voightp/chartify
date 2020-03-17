@@ -4,6 +4,7 @@ from random import randint
 
 import numpy as np
 import pandas as pd
+from PySide2.QtCore import QObject
 from esofile_reader.constants import AVERAGED_UNITS
 from esofile_reader.conversion_tables import rate_table, energy_table, si_to_ip
 
@@ -158,11 +159,11 @@ def remove_recursively(dct, ref_dct):
 
 
 def create_proxy_units_column(
-    source_units: pd.Series,
-    rate_to_energy: bool,
-    units_system: str,
-    energy_units: str,
-    power_units: str,
+        source_units: pd.Series,
+        rate_to_energy: bool,
+        units_system: str,
+        energy_units: str,
+        power_units: str,
 ) -> pd.Series:
     # always replace whitespace with dash
     proxy_units = pd.Series(np.empty(source_units.size))
@@ -211,3 +212,16 @@ def create_proxy_units_column(
     proxy_units.loc[proxy_units.isna()] = source_units
 
     return proxy_units
+
+
+class SignalBlocker:
+    def __init__(self, *args: QObject):
+        self.args = args
+
+    def __enter__(self):
+        for a in self.args:
+            a.blockSignals(True)
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        for a in self.args:
+            a.blockSignals(False)

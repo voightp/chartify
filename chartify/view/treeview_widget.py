@@ -15,8 +15,7 @@ from PySide2.QtCore import (
 from PySide2.QtGui import QStandardItemModel, QStandardItem, QDrag, QPixmap
 from PySide2.QtWidgets import QTreeView, QAbstractItemView, QHeaderView, QMenu
 
-from chartify.utils.utils import FilterTuple, VariableData
-from chartify.utils.utils import create_proxy_units_column
+from chartify.utils.utils import FilterTuple, VariableData, create_proxy_units_column, SignalBlocker
 
 
 class View(QTreeView):
@@ -77,6 +76,9 @@ class View(QTreeView):
         self.doubleClicked.connect(self.on_double_clicked)
 
         self.header().setFirstSectionMovable(True)
+        self.header().sectionResized.connect(self.on_view_resized)
+        self.header().sectionMoved.connect(self.on_section_moved)
+        self.header().sortIndicatorChanged.connect(self.on_sort_order_changed)
 
     def mousePressEvent(self, event: QEvent) -> None:
         """ Handle mouse events. """
@@ -171,21 +173,11 @@ class View(QTreeView):
         # it's required to adjust columns order to match the last applied order
         self.reshuffle_columns(settings["header"])
 
-        # scroll to last position
+        # a workaround to always get scrollbar into previous position
+        # qt somehow does not adjust scrollbar maximum when expanding items
+        if self.scrollbar_position > self.verticalScrollBar().maximum():
+            self.verticalScrollBar().setMaximum(self.scrollbar_position)
         self.verticalScrollBar().setValue(self.scrollbar_position)
-
-    def disconnect_signals(self) -> None:
-        """ Disconnect specific signals to avoid overriding stored values. """
-        self.verticalScrollBar().valueChanged.disconnect(self.on_slider_moved)
-
-    def connect_signals(self) -> None:
-        """ Connect specific signals. """
-        self.verticalScrollBar().valueChanged.connect(self.on_slider_moved)
-        self.header().sectionResized.connect(self.on_view_resized, type=Qt.UniqueConnection)
-        self.header().sectionMoved.connect(self.on_section_moved, type=Qt.UniqueConnection)
-        self.header().sortIndicatorChanged.connect(
-            self.on_sort_order_changed, type=Qt.UniqueConnection
-        )
 
     def deselect_variables(self) -> None:
         """ Deselect all currently selected variables. """
@@ -233,9 +225,6 @@ class View(QTreeView):
                 "expanded": set(),
             }
 
-        # deactivate signals as those would override settings
-        self.disconnect_signals()
-
         # gather units to check
         units = (rate_to_energy, units_system, energy_units, power_units)
 
@@ -247,67 +236,68 @@ class View(QTreeView):
             filter_tup != self.temp_settings["filter"],
             self.temp_settings["force_update"],
         ]
+        # deactivate signals as those would override settings
+        with SignalBlocker(self.verticalScrollBar()):
+            if any(conditions):
+                print("UPDATING MODEL")
+                # clear the previous model
+                self.model().sourceModel().clear()
 
-        if any(conditions):
-            print("UPDATING MODEL")
-            # clear the previous model
-            self.model().sourceModel().clear()
+                # populate new model
+                model = ViewModel()
+                model.setColumnCount(len(settings["header"]))
+                model.setHorizontalHeaderLabels(settings["header"])
 
-            # populate new model
-            model = ViewModel()
-            model.setColumnCount(len(settings["header"]))
-            model.setHorizontalHeaderLabels(settings["header"])
+                # id and interval data are not required
+                variables_df.drop(["id", "interval"], axis=1, inplace=True)
 
-            # id and interval data are not required
-            variables_df.drop(["id", "interval"], axis=1, inplace=True)
+                # add proxy units - these will be visible on ui
+                variables_df["source units"] = variables_df["units"]
+                variables_df["units"] = create_proxy_units_column(
+                    source_units=variables_df["source units"],
+                    rate_to_energy=rate_to_energy,
+                    units_system=units_system,
+                    energy_units=energy_units,
+                    power_units=power_units,
+                )
 
-            # add proxy units - these will be visible on ui
-            variables_df["source units"] = variables_df["units"]
-            variables_df["units"] = create_proxy_units_column(
-                source_units=variables_df["source units"],
-                rate_to_energy=rate_to_energy,
-                units_system=units_system,
-                energy_units=energy_units,
-                power_units=power_units,
-            )
+                # update columns order based on current view
+                view_order = settings["header"] + ["source units"]
+                variables_df = variables_df[view_order]
 
-            # update columns order based on current view
-            view_order = settings["header"] + ["source units"]
-            variables_df = variables_df[view_order]
+                # feed the data
+                model.populate_model(variables_df, is_tree)
+                self.model().setSourceModel(model)
 
-            # feed the data
-            model.populate_model(variables_df, is_tree)
-            self.model().setSourceModel(model)
+                # Store current sorting key and interval
+                self.temp_settings = {
+                    "interval": interval,
+                    "is_tree": is_tree,
+                    "units": units,
+                    "filter": filter_tup,
+                    "force_update": False,
+                }
+                # make sure that parent column spans full width
+                if is_tree:
+                    self.setFirstTreeColumnSpanned()
 
-            # Store current sorting key and interval
-            self.temp_settings = {
-                "interval": interval,
-                "is_tree": is_tree,
-                "units": units,
-                "filter": filter_tup,
-                "force_update": False,
-            }
-            # make sure that parent column spans full width
-            if is_tree:
-                self.setFirstTreeColumnSpanned()
+            # clear selections to avoid having visually
+            # selected items from previous selection
+            self.deselect_variables()
 
-        # clear selections to avoid having visually
-        # selected items from previous selection
-        self.deselect_variables()
+            if selected:
+                self.select_variables(selected)
 
-        if selected:
-            self.select_variables(selected)
+            if any(filter_tup):
+                self.filter_view(filter_tup, is_tree)
 
-        if any(filter_tup):
-            self.filter_view(filter_tup, is_tree)
+            if scroll_to:
+                self.scroll_to(scroll_to, settings["header"][0])
 
-        if scroll_to:
-            self.scroll_to(scroll_to, settings["header"][0])
-
-        # update visual appearance of the view to be consistent
-        # with previously displayed View
-        self.update_view_appearance(settings)
-        self.connect_signals()
+            # update visual appearance of the view to be consistent
+            # with previously displayed View
+            self.update_view_appearance(settings)
+            self.verticalScrollBar().blockSignals(False)
 
     def resize_header(self, widths) -> None:
         """ Define resizing behaviour. """
