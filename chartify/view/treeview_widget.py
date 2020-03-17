@@ -195,7 +195,7 @@ class View(QTreeView):
     def select_variables(self, variables: List[VariableData]) -> None:
         """ Select previously selected items when the model changes. """
         proxy_model = self.model()
-        key = self.settings["header"][0]
+        key = self.get_visual_names()[0]
 
         # Find matching items and select items on a new model
         proxy_selection = proxy_model.find_match(variables, key)
