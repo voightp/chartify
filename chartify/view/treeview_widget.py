@@ -53,6 +53,9 @@ class View(QTreeView):
         # install proxy model
         proxy_model = FilterModel()
         proxy_model.setSourceModel(model)
+        proxy_model.setSortCaseSensitivity(Qt.CaseInsensitive)
+        proxy_model.setRecursiveFilteringEnabled(True)
+        proxy_model.setDynamicSortFilter(False)
         self.setModel(proxy_model)
 
         self.temp_settings = {
@@ -63,7 +66,9 @@ class View(QTreeView):
             "force_update": True,
         }
 
+        # hold ui attributes
         self.scrollbar_position = 0
+        self.indicator = (0, Qt.AscendingOrder)
 
         self.verticalScrollBar().valueChanged.connect(self.on_slider_moved)
         self.expanded.connect(self.on_expanded)
@@ -128,13 +133,13 @@ class View(QTreeView):
             if i != j:
                 self.header().moveSection(j, i)
 
-    def update_sort_order(self, order: Tuple[str, Qt.SortOrder]) -> None:
-        """ Set header order. """
-        name, indicator = order
-        log_ix = self.model().get_logical_index(name)
-        self.header().setSortIndicator(log_ix, indicator)
+    def update_sort_order(self) -> None:
+        """ Set order for all columns. """
+        indicator_column, order = self.indicator
+        self.model().sort(indicator_column, order)
+        self.header().setSortIndicator(indicator_column, order)
 
-    def expand_items(self, expanded_set: Set) -> None:
+    def expand_items(self, expanded_set: Set[str]) -> None:
         """ Expand items which were previously expanded (on other models). """
         for i in range(self.model().rowCount()):
             ix = self.model().index(i, 0)
@@ -158,7 +163,7 @@ class View(QTreeView):
     def update_view_appearance(self, settings: dict) -> None:
         """ Update the model appearance to be consistent with last view. """
         self.resize_header(settings["widths"])
-        self.update_sort_order(settings["order"])
+        self.update_sort_order()
 
         if settings["expanded"]:
             self.expand_items(settings["expanded"])
@@ -226,7 +231,6 @@ class View(QTreeView):
                 "widths": {"interactive": 200, "fixed": 70},
                 "header": ["variable", "key", "units"],
                 "expanded": set(),
-                "order": ("variable", Qt.AscendingOrder),
             }
 
         # deactivate signals as those would override settings
@@ -332,9 +336,9 @@ class View(QTreeView):
         self.header().resizeSection(interactive, widths["interactive"])
 
     def on_sort_order_changed(self, log_ix: int, order: Qt.SortOrder) -> None:
-        """ Store current sorting order in main app. """
+        """ Store current sorting order. """
+        self.indicator = (log_ix, order)
         name = self.model().headerData(log_ix, Qt.Horizontal)
-        self.viewSettingsChanged.emit({"order": (name, order)})
 
     def on_view_resized(self, log_ix: int, _, new_size: int) -> None:
         """ Store interactive section width in the main app. """
@@ -347,12 +351,13 @@ class View(QTreeView):
         is_tree = self.temp_settings["is_tree"]
         self.viewSettingsChanged.emit({"header": names})
 
+        # view needs to be updated when the tree structure is applied and first item changes
         if (new_visual_ix == 0 or old_visual_ix == 0) and is_tree:
-            # need to update view as section has been moved
-            # onto first position and tree key is applied
             self.set_next_update_forced()
             self.treeNodeChanged.emit()
-            self.update_sort_order((names[0], Qt.AscendingOrder))
+
+            # automatically sort first column based on last sort update
+            self.header().setSortIndicator(0, self.model().sortOrder())
 
     def on_slider_moved(self, val: int) -> None:
         """ Handle moving view slider. """
@@ -549,7 +554,6 @@ class ViewModel(QStandardItemModel):
 class FilterModel(QSortFilterProxyModel):
     def __init__(self):
         super().__init__()
-        self.setRecursiveFilteringEnabled(True)
         self._filter_tup = FilterTuple(key="", variable="", units="")
 
     def lessThan1(self, source_left: QModelIndex, source_right: QModelIndex) -> bool:

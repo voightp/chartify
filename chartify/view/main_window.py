@@ -391,10 +391,18 @@ class MainWindow(QMainWindow):
 
     def add_new_tab(self, id_, name):
         """ Add file on the UI. """
-        wgt = self.create_view_wgt(id_, name)
+        # create an empty 'View' widget - the data will be
+        # automatically populated on 'onTabChanged' signal
+        view = View(id_, name)
+        view.selectionCleared.connect(self.on_selection_cleared)
+        view.selectionPopulated.connect(self.on_selection_populated)
+        view.treeNodeChanged.connect(self.on_settings_changed)
+        view.viewSettingsChanged.connect(self.on_view_settings_changed)
+        view.itemDoubleClicked.connect(self.rename_variable)
+        view.context_menu_actions = [self.remove_variables_act]
 
         # add the new view into tab widget
-        self.tab_wgt.add_tab(wgt, name)
+        self.tab_wgt.add_tab(view, name)
 
         # enable all eso file results btn if there's multiple files
         if self.tab_wgt.count() > 1:
@@ -449,20 +457,6 @@ class MainWindow(QMainWindow):
         self.toolbar.remove_btn.setEnabled(False)
 
         self.selectionChanged.emit([])
-
-    def create_view_wgt(self, id_, name):
-        """ Create a 'View' widget and connect its actions. """
-        # create an empty 'View' widget - the data will be
-        # automatically populated on 'onTabChanged' signal
-        view = View(id_, name)
-        view.selectionCleared.connect(self.on_selection_cleared)
-        view.selectionPopulated.connect(self.on_selection_populated)
-        view.treeNodeChanged.connect(self.on_settings_changed)
-        view.viewSettingsChanged.connect(self.on_view_settings_changed)
-        view.itemDoubleClicked.connect(self.rename_variable)
-        view.context_menu_actions = [self.remove_variables_act]
-
-        return view
 
     def filter_treeview(self, filter_tup):
         """ Filter current view. """
@@ -520,15 +514,11 @@ class MainWindow(QMainWindow):
         def on_header():
             self.view_settings["header"] = value
 
-        def on_order():
-            self.view_settings["order"] = value
-
         switch = {
             "expanded": on_expanded,
             "collapsed": on_collapsed,
             "interactive": on_interactive,
             "header": on_header,
-            "order": on_order,
         }
         for key, value in settings.items():
             switch[key]()
