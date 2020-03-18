@@ -35,14 +35,6 @@ def tree_view(qtbot):
     return tree_view
 
 
-def test_00_class_attributes(tree_view: View):
-    assert tree_view.settings["widths"]["interactive"] == 200
-    assert tree_view.settings["widths"]["fixed"] == 70
-    assert tree_view.settings["order"] == ("variable", Qt.AscendingOrder)
-    assert tree_view.settings["header"] == ["variable", "key", "units"]
-    assert tree_view.settings["expanded"] == set()
-
-
 def test_01_init_tree_view(tree_view: View):
     assert tree_view.rootIsDecorated()
     assert tree_view.uniformRowHeights()
@@ -153,11 +145,11 @@ def test_05a_on_sort_order_changed_build_tree(qtbot, tree_view: View, hourly_df:
 
 
 def test_06a_on_sort_order_changed_no_build_tree(
-    qtbot, tree_view: View, hourly_df: pd.DataFrame
+        qtbot, tree_view: View, hourly_df: pd.DataFrame
 ):
     tree_view.build_view(variables_df=hourly_df, interval="hourly", is_tree=True)
 
-    assert tree_view.get_visual_names() == ["units", "variable", "key"]
+    assert tree_view.get_visual_names() == ["variable", "key", "units"]
 
     with qtbot.assertNotEmitted(tree_view.treeNodeChanged):
         tree_view.header().moveSection(2, 1)

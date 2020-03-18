@@ -94,11 +94,11 @@ class AppController:
         self.v.save_act.triggered.connect(self.on_save)
         self.v.save_as_act.triggered.connect(self.on_save_as)
 
-    def handle_selection_change(self, variables: List[tuple]) -> None:
+    def handle_selection_change(self, variable_data: List[tuple]) -> None:
         """ Handle selection update. """
-        out_str = [" | ".join(var) for var in variables]
+        out_str = [" | ".join(var) for var in variable_data]
         print("handle_selection_change!\n\t{}".format("\n\t".join(out_str)))
-        self.m.selected_variables = variables
+        self.m.selected_variable_data = variable_data
 
     def connect_model_signals(self) -> None:
         """ Create monitor signals. """
@@ -130,7 +130,7 @@ class AppController:
         self.v.toolbar.update_rate_to_energy_state(Settings.INTERVAL)
 
         self.v.build_treeview(
-            file.get_header_df(Settings.INTERVAL), selected=self.m.selected_variables
+            file.get_header_df(Settings.INTERVAL), selected=self.m.selected_variable_data
         )
 
     def handle_file_processing(self, paths: List[str]) -> None:
