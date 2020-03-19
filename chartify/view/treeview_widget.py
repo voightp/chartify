@@ -1,4 +1,4 @@
-from typing import Dict, List, Set, Sequence, Tuple
+from typing import Dict, List, Set, Sequence
 
 import pandas as pd
 from PySide2.QtCore import (
@@ -15,7 +15,8 @@ from PySide2.QtCore import (
 from PySide2.QtGui import QStandardItemModel, QStandardItem, QDrag, QPixmap
 from PySide2.QtWidgets import QTreeView, QAbstractItemView, QHeaderView, QMenu
 
-from chartify.utils.utils import FilterTuple, VariableData, create_proxy_units_column, SignalBlocker
+from chartify.utils.utils import FilterTuple, VariableData, create_proxy_units_column, \
+    SignalBlocker
 
 
 class View(QTreeView):
@@ -185,7 +186,7 @@ class View(QTreeView):
         self.selectionCleared.emit()
 
     def select_variables(self, variables: List[VariableData]) -> None:
-        """ Select previously selected items when the model changes. """
+        """ Select rows with containing given variable data. """
         proxy_model = self.model()
         key = self.get_visual_names()[0]
 
@@ -196,7 +197,7 @@ class View(QTreeView):
         self._select_items(proxy_selection)
 
         proxy_rows = proxy_selection.indexes()
-        variables_data = [proxy_model.data_from_index(index) for index in proxy_rows]
+        variables_data = [proxy_model.data_at_index(index) for index in proxy_rows]
 
         if variables_data:
             self.selectionPopulated.emit(variables_data)
@@ -239,8 +240,6 @@ class View(QTreeView):
         # deactivate signals as those would override settings
         with SignalBlocker(self.verticalScrollBar()):
             if any(conditions):
-                print("UPDATING MODEL")
-                # clear the previous model
                 self.model().sourceModel().clear()
 
                 # populate new model
@@ -281,23 +280,22 @@ class View(QTreeView):
                 if is_tree:
                     self.setFirstTreeColumnSpanned()
 
-            # clear selections to avoid having visually
-            # selected items from previous selection
-            self.deselect_variables()
-
-            if selected:
-                self.select_variables(selected)
-
-            if any(filter_tup):
-                self.filter_view(filter_tup, is_tree)
-
-            if scroll_to:
-                self.scroll_to(scroll_to, settings["header"][0])
-
             # update visual appearance of the view to be consistent
             # with previously displayed View
             self.update_view_appearance(settings)
-            self.verticalScrollBar().blockSignals(False)
+
+        # clear selections to avoid having visually
+        # selected items from previous selection
+        self.deselect_variables()
+
+        if selected:
+            self.select_variables(selected)
+
+        if any(filter_tup):
+            self.filter_view(filter_tup, is_tree)
+
+        if scroll_to:
+            self.scroll_to(scroll_to, settings["header"][0])
 
     def resize_header(self, widths) -> None:
         """ Define resizing behaviour. """
@@ -328,7 +326,6 @@ class View(QTreeView):
     def on_sort_order_changed(self, log_ix: int, order: Qt.SortOrder) -> None:
         """ Store current sorting order. """
         self.indicator = (log_ix, order)
-        name = self.model().headerData(log_ix, Qt.Horizontal)
 
     def on_view_resized(self, log_ix: int, _, new_size: int) -> None:
         """ Store interactive section width in the main app. """
@@ -356,7 +353,7 @@ class View(QTreeView):
     def on_double_clicked(self, index: QModelIndex):
         """ Handle view double click. """
         proxy_model = self.model()
-        source_item = proxy_model.item_from_index(index)
+        source_item = proxy_model.item_at_index(index)
 
         if source_item.hasChildren():
             # parent item cannot be renamed
@@ -368,7 +365,7 @@ class View(QTreeView):
         # deselect all base variables
         self.deselect_variables()
 
-        dt = proxy_model.data_from_index(index)
+        dt = proxy_model.data_at_index(index)
         if dt:
             self.select_variables([dt])
             self.itemDoubleClicked.emit(dt)
@@ -384,7 +381,7 @@ class View(QTreeView):
             # note that desired behaviour is to select all the children
             # unless any of the children is included in the multi selection
             for index in proxy_rows:
-                source_item = proxy_model.item_from_index(index)
+                source_item = proxy_model.item_at_index(index)
                 source_index = proxy_model.mapToSource(index)
 
                 if source_item.hasChildren():
@@ -402,7 +399,7 @@ class View(QTreeView):
             # needs to be called again to get updated selection
             proxy_rows = self.selectionModel().selectedRows()
 
-        variables_data = [proxy_model.data_from_index(index) for index in proxy_rows]
+        variables_data = [proxy_model.data_at_index(index) for index in proxy_rows]
 
         if variables_data:
             mime_dt = QMimeData()
@@ -587,11 +584,11 @@ class FilterModel(QSortFilterProxyModel):
             "units": names.index("units"),
         }
 
-    def data_from_index(self, index: QModelIndex) -> VariableData:
+    def data_at_index(self, index: QModelIndex) -> VariableData:
         """ Get item data from source model. """
-        return self.item_from_index(index).data(Qt.UserRole)
+        return self.item_at_index(index).data(Qt.UserRole)
 
-    def item_from_index(self, index: QModelIndex) -> QStandardItem:
+    def item_at_index(self, index: QModelIndex) -> QStandardItem:
         """ Get item from source model. """
         source_index = self.mapToSource(index)
         return self.sourceModel().itemFromIndex(source_index)
@@ -671,11 +668,11 @@ class FilterModel(QSortFilterProxyModel):
                 num_child_rows = self.rowCount(p_ix)
                 for j in range(num_child_rows):
                     ix = self.index(j, 0, p_ix)
-                    var = self.data_from_index(ix)
+                    var = self.data_at_index(ix)
                     if check_var():
                         selection.append(QItemSelectionRange(ix))
             else:
-                var = self.data_from_index(p_ix)
+                var = self.data_at_index(p_ix)
                 if check_var():
                     selection.append(QItemSelectionRange(p_ix))
 
