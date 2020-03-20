@@ -33,7 +33,7 @@ class View(QTreeView):
         self.setSortingEnabled(True)
         self.setMouseTracking(True)
 
-        self.setDragEnabled(False)
+        self.setDragEnabled(True)
         self.setWordWrap(False)  # not working at the moment
         self.setAlternatingRowColors(False)
 
@@ -95,6 +95,18 @@ class View(QTreeView):
         menu.setObjectName("contextMenu")
         menu.setWindowFlags(menu.windowFlags() | Qt.NoDropShadowWindowHint)
         menu.exec_(self.mapToGlobal(event.pos()))
+
+    def startDrag(self, event):
+        # default implementation:
+        # https://code.qt.io/cgit/qt/qtbase.git/tree/src/widgets/itemviews/qabstractitemview.cpp#n3588
+        mime_dt = QMimeData()
+        mime_dt.setText("HELLO FROM CHARTIFY")
+        pix = QPixmap("./icons/input.png")
+
+        drag = QDrag(self)
+        drag.setMimeData(mime_dt)
+        drag.setPixmap(pix)
+        drag.exec_(Qt.CopyAction)
 
     def setFirstTreeColumnSpanned(self) -> None:
         """ Set parent row to be spanned over all columns. """
@@ -402,14 +414,14 @@ class View(QTreeView):
         variables_data = [proxy_model.data_at_index(index) for index in proxy_rows]
 
         if variables_data:
-            mime_dt = QMimeData()
-            mime_dt.setText("HELLO FROM CHARTIFY")
-            pix = QPixmap("./icons/input.png")
-
-            drag = QDrag(self)
-            drag.setMimeData(mime_dt)
-            drag.setPixmap(pix)
-            drag.exec_(Qt.CopyAction)
+            # mime_dt = QMimeData()
+            # mime_dt.setText("HELLO FROM CHARTIFY")
+            # pix = QPixmap("./icons/input.png")
+            #
+            # drag = QDrag(self)
+            # drag.setMimeData(mime_dt)
+            # drag.setPixmap(pix)
+            # drag.exec_(Qt.CopyAction)
 
             self.selectionPopulated.emit(variables_data)
         else:

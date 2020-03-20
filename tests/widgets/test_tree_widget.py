@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
-from PySide2.QtCore import Qt
+from PySide2.QtCore import Qt, QEvent
 from PySide2.QtWidgets import QHeaderView, QSizePolicy
 from esofile_reader import EsoFile
 
@@ -11,6 +11,7 @@ from chartify.view.treeview_widget import View
 from tests import ROOT
 
 WIDTH = 402
+
 
 
 @pytest.fixture(scope="module")
@@ -44,8 +45,8 @@ def test_init_tree_view(tree_view: View):
     assert tree_view.uniformRowHeights()
     assert tree_view.isSortingEnabled()
     assert tree_view.hasMouseTracking()
+    assert tree_view.dragEnabled()
 
-    assert not tree_view.dragEnabled()
     assert not tree_view.wordWrap()
     assert not tree_view.alternatingRowColors()
 
@@ -206,10 +207,6 @@ def test_on_double_clicked(qtbot, tree_view: View, hourly_df: pd.DataFrame):
 
     tree_view.build_view(variables_df=hourly_df, interval="hourly", is_tree=True)
 
-    # need to disconnect pressed signal as this blocks test fixture
-    # it's ok on 'normal' interaction
-    tree_view.pressed.disconnect(tree_view.on_pressed)
-
     rect = tree_view.visualRect(tree_view.model().index(1, 0))
     # need to move mouse to hover over view
     qtbot.mouseMove(tree_view.viewport(), pos=rect.center())
@@ -248,15 +245,17 @@ def test_on_pressed(qtbot, tree_view: View, hourly_df: pd.DataFrame):
 
     tree_view.build_view(variables_df=hourly_df, interval="hourly", is_tree=True)
     index = tree_view.model().index(1, 0)
-    rect = tree_view.visualRect(index)
+    release_point = tree_view.visualRect(tree_view.model().index(3, 0)).center()
+    press_point = tree_view.visualRect(index).center()
     # need to move mouse to hover over view
-    qtbot.mouseMove(tree_view.viewport(), pos=rect.center())
+    qtbot.mouseMove(tree_view.viewport(), pos=press_point)
     signals = [tree_view.pressed, tree_view.selectionPopulated]
     callbacks = [variable_data1, variable_data2]
     with  qtbot.wait_signals(signals, check_params_cbs=callbacks):
         # need to click first as single double click would emit only pressed signal
-        qtbot.mousePress(tree_view.viewport(), Qt.LeftButton, pos=rect.center())
-        qtbot.mouseRelease(tree_view.viewport(), Qt.LeftButton, pos=rect.center())
+        qtbot.mousePress(tree_view.viewport(), Qt.LeftButton, pos=press_point)
+        qtbot.mousePress(tree_view.viewport(), Qt.LeftButton, pos=press_point)
+        qtbot.mouseRelease(tree_view.viewport(), Qt.LeftButton, pos=release_point, delay=150)
 
 
 def test_on_collapsed(tree_view: View, hourly_df: pd.DataFrame):
