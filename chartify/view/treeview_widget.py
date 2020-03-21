@@ -96,7 +96,8 @@ class View(QTreeView):
         menu.setWindowFlags(menu.windowFlags() | Qt.NoDropShadowWindowHint)
         menu.exec_(self.mapToGlobal(event.pos()))
 
-    def startDrag(self, event):
+    def startDrag(self, drop_actions:Qt.DropActions):
+        """ Create custom drag event. """
         # default implementation:
         # https://code.qt.io/cgit/qt/qtbase.git/tree/src/widgets/itemviews/qabstractitemview.cpp#n3588
         mime_dt = QMimeData()
@@ -140,7 +141,7 @@ class View(QTreeView):
         log_ixs = self.model().get_logical_ixs()
         return {k: self.header().visualIndex(i) for k, i in log_ixs.items()}
 
-    def reshuffle_columns(self, order: Dict[str, int]):
+    def reshuffle_columns(self, order: List[str]):
         """ Reset column positions to match last visual appearance. """
         for i, nm in enumerate(order):
             vis_names = self.get_visual_names()
@@ -166,7 +167,7 @@ class View(QTreeView):
                     self.collapse(ix)
 
     def scroll_to(self, var: VariableData, first_col: str) -> None:
-        """ Scroll to the given var. """
+        """ Scroll to the given variable. """
         proxy_model = self.model()
 
         # var needs to be passed as a list
@@ -177,14 +178,18 @@ class View(QTreeView):
 
     def update_view_appearance(self, settings: dict) -> None:
         """ Update the model appearance to be consistent with last view. """
-        self.resize_header(settings["widths"])
-        self.update_sort_order()
-
-        if settings["expanded"]:
-            self.expand_items(settings["expanded"])
-
         # it's required to adjust columns order to match the last applied order
         self.reshuffle_columns(settings["header"])
+
+        # resize sections
+        self.resize_header(settings["widths"])
+
+        # update vertical order
+        self.update_sort_order()
+
+        # expand items
+        if settings["expanded"]:
+            self.expand_items(settings["expanded"])
 
         # a workaround to always get scrollbar into previous position
         # qt somehow does not adjust scrollbar maximum when expanding items
@@ -192,7 +197,7 @@ class View(QTreeView):
             self.verticalScrollBar().setMaximum(self.scrollbar_position)
         self.verticalScrollBar().setValue(self.scrollbar_position)
 
-    def deselect_variables(self) -> None:
+    def deselect_all_variables(self) -> None:
         """ Deselect all currently selected variables. """
         self.selectionModel().clearSelection()
         self.selectionCleared.emit()
@@ -298,7 +303,7 @@ class View(QTreeView):
 
         # clear selections to avoid having visually
         # selected items from previous selection
-        self.deselect_variables()
+        self.deselect_all_variables()
 
         if selected:
             self.select_variables(selected)
@@ -375,7 +380,7 @@ class View(QTreeView):
             index = index.siblingAtColumn(0)
 
         # deselect all base variables
-        self.deselect_variables()
+        self.deselect_all_variables()
 
         dt = proxy_model.data_at_index(index)
         if dt:
@@ -399,9 +404,8 @@ class View(QTreeView):
                 if source_item.hasChildren():
                     # select all the children if the item is expanded
                     # and none of the children has been already selected
-                    expanded = self.isExpanded(index)
                     cond = any(map(lambda x: x.parent() == source_index, rows))
-                    if expanded and not cond:
+                    if self.isExpanded(index) and not cond:
                         self._select_children(source_item, source_index)
 
                     # deselect all the parent nodes as these should not be
@@ -414,15 +418,6 @@ class View(QTreeView):
         variables_data = [proxy_model.data_at_index(index) for index in proxy_rows]
 
         if variables_data:
-            # mime_dt = QMimeData()
-            # mime_dt.setText("HELLO FROM CHARTIFY")
-            # pix = QPixmap("./icons/input.png")
-            #
-            # drag = QDrag(self)
-            # drag.setMimeData(mime_dt)
-            # drag.setPixmap(pix)
-            # drag.exec_(Qt.CopyAction)
-
             self.selectionPopulated.emit(variables_data)
         else:
             self.selectionCleared.emit()
