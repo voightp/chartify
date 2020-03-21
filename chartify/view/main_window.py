@@ -278,10 +278,8 @@ class MainWindow(QMainWindow):
     def keyPressEvent(self, event):
         """ Manage keyboard events. """
         if event.key() == Qt.Key_Escape:
-
             if not self.tab_wgt.is_empty():
-                self.current_view.deselect_variables()
-
+                self.current_view.deselect_all_variables()
         elif event.key() == Qt.Key_Delete:
             if self.hasFocus():
                 self.remove_variables()
