@@ -24,14 +24,14 @@ from esofile_reader.convertor import rate_and_energy_units
 from esofile_reader.storage.pqt_storage import ParquetStorage
 
 from chartify.settings import Settings
-from chartify.view.buttons import MenuButton
-from chartify.view.css_theme import parse_palette, CssTheme
-from chartify.view.icons import Pixmap, filled_circle_pixmap
-from chartify.view.misc_widgets import DropFrame, TabWidget, MulInputDialog, ConfirmationDialog
-from chartify.view.progress_widget import ProgressContainer
-from chartify.view.toolbar import Toolbar
-from chartify.view.treeview_tools import ViewTools
-from chartify.view.treeview_widget import View
+from chartify.ui.buttons import MenuButton
+from chartify.ui.css_theme import parse_palette, CssTheme
+from chartify.ui.icons import Pixmap, filled_circle_pixmap
+from chartify.ui.misc_widgets import DropFrame, TabWidget, MulInputDialog, ConfirmationDialog
+from chartify.ui.progress_widget import ProgressContainer
+from chartify.ui.toolbar import Toolbar
+from chartify.ui.treeview_tools import ViewTools
+from chartify.ui.treeview_widget import View
 
 
 # noinspection PyPep8Naming,PyUnresolvedReferences

@@ -10,7 +10,7 @@ from PySide2.QtWidgets import (
     QSlider,
 )
 
-from chartify.view.misc_widgets import update_appearance
+from chartify.ui.misc_widgets import update_appearance
 
 
 class ClickButton(QToolButton):

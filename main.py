@@ -3,7 +3,7 @@ from pathlib import Path
 from PySide2.QtWidgets import QApplication
 from PySide2.QtGui import QFontDatabase
 
-from chartify.view.main_window import MainWindow
+from chartify.ui.main_window import MainWindow
 from chartify.controller.app_controller import AppController
 from chartify.controller.wv_controller import WVController
 from chartify.model.model import AppModel

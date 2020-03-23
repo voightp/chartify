@@ -3,7 +3,7 @@ import re
 from collections import namedtuple
 
 from chartify.settings import Settings
-from chartify.view.icons import Pixmap
+from chartify.ui.icons import Pixmap
 
 Color = namedtuple("Color", "r, g, b")
 

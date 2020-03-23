@@ -12,7 +12,7 @@ from PySide2.QtWidgets import (
 from esofile_reader.constants import TS, D, H, M, A, RP
 
 from chartify.settings import Settings
-from chartify.view.buttons import TitledButton, ToggleButton, CheckableButton, ClickButton
+from chartify.ui.buttons import TitledButton, ToggleButton, CheckableButton, ClickButton
 
 
 class Toolbar(QFrame):

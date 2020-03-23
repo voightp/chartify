@@ -11,7 +11,7 @@ from PySide2.QtWidgets import (
 
 from chartify.settings import Settings
 from chartify.utils.utils import FilterTuple
-from chartify.view.misc_widgets import LineEdit
+from chartify.ui.misc_widgets import LineEdit
 
 
 class ViewTools(QFrame):

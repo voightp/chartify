@@ -7,7 +7,7 @@ from PySide2.QtWidgets import QHeaderView, QSizePolicy
 from esofile_reader import EsoFile
 
 from chartify.utils.utils import FilterTuple, VariableData
-from chartify.view.treeview_widget import View
+from chartify.ui.treeview_widget import View
 from tests import ROOT
 
 WIDTH = 402

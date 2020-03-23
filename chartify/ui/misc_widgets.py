@@ -15,7 +15,7 @@ from PySide2.QtWidgets import (
     QFrame,
 )
 
-from chartify.view.treeview_widget import View
+from chartify.ui.treeview_widget import View
 
 
 def update_appearance(wgt):
