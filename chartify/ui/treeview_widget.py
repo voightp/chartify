@@ -62,7 +62,6 @@ class View(QTreeView):
             "interval": None,
             "is_tree": None,
             "units": None,
-            "filter": None,
             "force_update": True,
         }
 
@@ -96,7 +95,7 @@ class View(QTreeView):
         menu.setWindowFlags(menu.windowFlags() | Qt.NoDropShadowWindowHint)
         menu.exec_(self.mapToGlobal(event.pos()))
 
-    def startDrag(self, drop_actions:Qt.DropActions):
+    def startDrag(self, drop_actions: Qt.DropActions):
         """ Create custom drag event. """
         # default implementation:
         # https://code.qt.io/cgit/qt/qtbase.git/tree/src/widgets/itemviews/qabstractitemview.cpp#n3588
@@ -116,14 +115,12 @@ class View(QTreeView):
             if self.model().hasChildren(ix):
                 super().setFirstColumnSpanned(i, self.rootIndex(), True)
 
-    def filter_view(self, filter_tup: FilterTuple, is_tree: bool) -> None:
+    def filter_view(self, filter_tup: FilterTuple) -> None:
         """ Filter the model using given filter tuple. """
         self.model().setFilterTuple(filter_tup)
-
-        # Expand all items when filter is applied
-        self.expandAll()
-
-        if is_tree:
+        if self.temp_settings["is_tree"]:
+            # Expand all items when filter is applied
+            self.expandAll()
             # it's required to reapply column span after each filter
             self.setFirstTreeColumnSpanned()
 
@@ -133,12 +130,12 @@ class View(QTreeView):
 
     def get_visual_names(self) -> List[str]:
         """ Return sorted column names (by visual index). """
-        dct_items = sorted(self.get_visual_ixs().items(), key=lambda x: x[1])
+        dct_items = sorted(self.get_visual_indexes().items(), key=lambda x: x[1])
         return [t[0] for t in dct_items]
 
-    def get_visual_ixs(self) -> Dict[str, int]:
+    def get_visual_indexes(self) -> Dict[str, int]:
         """ Get a dictionary of section visual index pairs. """
-        log_ixs = self.model().get_logical_ixs()
+        log_ixs = self.model().get_logical_indexes()
         return {k: self.header().visualIndex(i) for k, i in log_ixs.items()}
 
     def reshuffle_columns(self, order: List[str]):
@@ -230,7 +227,6 @@ class View(QTreeView):
             units_system: str = "SI",
             energy_units: str = "J",
             power_units: str = "W",
-            filter_tup: FilterTuple = FilterTuple("", "", ""),
             selected: List[VariableData] = None,
             scroll_to: VariableData = None,
             settings: dict = None
@@ -251,7 +247,6 @@ class View(QTreeView):
             is_tree != self.temp_settings["is_tree"],
             interval != self.temp_settings["interval"],
             units != self.temp_settings["units"],
-            filter_tup != self.temp_settings["filter"],
             self.temp_settings["force_update"],
         ]
         # deactivate signals as those would override settings
@@ -290,7 +285,6 @@ class View(QTreeView):
                     "interval": interval,
                     "is_tree": is_tree,
                     "units": units,
-                    "filter": filter_tup,
                     "force_update": False,
                 }
                 # make sure that parent column spans full width
@@ -308,16 +302,13 @@ class View(QTreeView):
         if selected:
             self.select_variables(selected)
 
-        if any(filter_tup):
-            self.filter_view(filter_tup, is_tree)
-
         if scroll_to:
             self.scroll_to(scroll_to, settings["header"][0])
 
     def resize_header(self, widths) -> None:
         """ Define resizing behaviour. """
-        log_ixs = self.model().get_logical_ixs()
-        vis_ixs = self.get_visual_ixs()
+        log_ixs = self.model().get_logical_indexes()
+        vis_ixs = self.get_visual_indexes()
 
         # units column width is always fixed
         fixed = log_ixs["units"]
@@ -550,25 +541,6 @@ class FilterModel(QSortFilterProxyModel):
         super().__init__()
         self._filter_tup = FilterTuple(key="", variable="", units="")
 
-    def lessThan1(self, source_left: QModelIndex, source_right: QModelIndex) -> bool:
-        left_row = source_left.row()
-        right_row = source_right.row()
-        num_columns = self.sourceModel().columnCount()
-
-        print(source_left)
-
-        for i in range(num_columns):
-            left_index = self.sourceModel().index(left_row, i)
-            right_index = self.sourceModel().index(right_row, i)
-
-            left_data = self.sourceModel().data(left_index)
-            right_data = self.sourceModel().data(right_index)
-
-            if left_data != right_data:
-                return left_data < right_data
-
-        return False
-
     def setFilterTuple(self, filter_tup: FilterTuple) -> None:
         self._filter_tup = filter_tup
         self.invalidateFilter()
@@ -582,7 +554,7 @@ class FilterModel(QSortFilterProxyModel):
         """ Get a logical index of a given section title. """
         return self.get_logical_names().index(name)
 
-    def get_logical_ixs(self) -> Dict[str, int]:
+    def get_logical_indexes(self) -> Dict[str, int]:
         """ Return logical positions of header labels. """
         names = self.get_logical_names()
         return {

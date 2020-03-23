@@ -6,8 +6,8 @@ from PySide2.QtCore import Qt, QModelIndex
 from PySide2.QtWidgets import QHeaderView, QSizePolicy
 from esofile_reader import EsoFile
 
-from chartify.utils.utils import FilterTuple, VariableData
 from chartify.ui.treeview_widget import View
+from chartify.utils.utils import FilterTuple, VariableData
 from tests import ROOT
 
 WIDTH = 402
@@ -68,7 +68,6 @@ def test_build_tree_view(qtbot, tree_view: View, hourly_df: pd.DataFrame):
     assert tree_view.temp_settings["interval"] == "hourly"
     assert tree_view.temp_settings["is_tree"]
     assert tree_view.temp_settings["units"] == (False, "SI", "J", "W")
-    assert tree_view.temp_settings["filter"] == FilterTuple("", "", "")
     assert not tree_view.temp_settings["force_update"]
 
 
@@ -107,7 +106,6 @@ def test_build_plain_view(qtbot, tree_view: View, hourly_df: pd.DataFrame):
     assert tree_view.temp_settings["interval"] == "hourly"
     assert not tree_view.temp_settings["is_tree"]
     assert tree_view.temp_settings["units"] == (False, "SI", "J", "W")
-    assert tree_view.temp_settings["filter"] == FilterTuple("", "", "")
     assert not tree_view.temp_settings["force_update"]
 
 
@@ -325,8 +323,8 @@ def test_filter_view(tree_view: View, daily_df: pd.DataFrame):
         variables_df=daily_df,
         interval="daily",
         is_tree=True,
-        filter_tup=FilterTuple(key="block1:zonea", variable="temperature", units="")
     )
+    tree_view.filter_view(FilterTuple(key="block1:zonea", variable="temperature", units=""))
 
     assert tree_view.model().rowCount() == 3
     assert tree_view.model().sourceModel().rowCount() == 49
@@ -368,7 +366,7 @@ def test_get_visual_names(tree_view: View):
 
 
 def test_get_visual_ixs(tree_view: View):
-    assert tree_view.get_visual_ixs() == {"variable": 0, "key": 1, "units": 2}
+    assert tree_view.get_visual_indexes() == {"variable": 0, "key": 1, "units": 2}
 
 
 def test_build_view_kwargs_rate_to_energy(tree_view: View, daily_df: pd.DataFrame):
@@ -415,28 +413,12 @@ def test_build_view_kwargs_power_units(tree_view: View, daily_df: pd.DataFrame):
     assert proxy_model.data(proxy_model.index(1, 2)) == "MW"
 
 
-def test_build_view_kwargs_filter_tup(tree_view: View, daily_df: pd.DataFrame):
-    tree_view.build_view(
-        daily_df,
-        "daily",
-        is_tree=True,
-        filter_tup=FilterTuple("chiller", "electric", "")
-    )
-    assert tree_view.model().rowCount() == 2
-
-
 def test_build_view_kwargs_selected(tree_view: View, daily_df: pd.DataFrame):
     selected = [
         VariableData("BOILER", "Boiler Ancillary Electric Power", "W", "kW"),
         VariableData("BOILER", "Boiler Gas Rate", "W", "kW")
     ]
-    tree_view.build_view(
-        daily_df,
-        "daily",
-        is_tree=True,
-        power_units="kW",
-        selected=selected
-    )
+    tree_view.build_view(daily_df, "daily", is_tree=True, power_units="kW", selected=selected)
     proxy_rows = tree_view.selectionModel().selectedRows()
     variables_data = [tree_view.model().data_at_index(index) for index in proxy_rows]
 

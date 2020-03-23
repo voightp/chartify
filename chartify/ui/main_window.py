@@ -414,7 +414,6 @@ class MainWindow(QMainWindow):
     def build_treeview(self, variables_df, selected=None, scroll_to=None):
         """ Create a new view when any of related settings change """
         if self.current_view:
-            filter_tup = self.view_tools_wgt.get_filter_tup()
             self.current_view.build_view(
                 variables_df=variables_df,
                 interval=Settings.INTERVAL,
@@ -423,11 +422,13 @@ class MainWindow(QMainWindow):
                 units_system=Settings.UNITS_SYSTEM,
                 energy_units=Settings.ENERGY_UNITS,
                 power_units=Settings.POWER_UNITS,
-                filter_tup=filter_tup,
                 selected=selected,
                 scroll_to=scroll_to,
                 settings=self.view_settings
             )
+            filter_tup = self.view_tools_wgt.get_filter_tup()
+            if any(filter_tup):
+                self.current_view.filter_view(filter_tup, is_tree)
 
     def on_selection_populated(self, variables):
         """ Store current selection in main app. """
