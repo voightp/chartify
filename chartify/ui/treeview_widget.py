@@ -59,7 +59,7 @@ class View(QTreeView):
         self.setModel(proxy_model)
 
         # flag to force next update
-        self.force_next_update = True
+        self.next_update_forced = True
 
         # hold current
         self.interval = None
@@ -244,7 +244,7 @@ class View(QTreeView):
         self.units_system = units_system
         self.energy_units = energy_units
         self.power_units = power_units
-        self.force_next_update = False
+        self.next_update_forced = False
 
         # deactivate signals as those would override settings
         with SignalBlocker(self.verticalScrollBar()):
@@ -326,7 +326,7 @@ class View(QTreeView):
 
         # view needs to be updated when the tree structure is applied and first item changes
         if (new_visual_ix == 0 or old_visual_ix == 0) and self.is_tree:
-            self.force_next_update = True
+            self.next_update_forced = True
             self.treeNodeChanged.emit()
 
             # automatically sort first column based on last sort update

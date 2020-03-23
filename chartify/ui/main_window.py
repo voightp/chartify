@@ -420,7 +420,7 @@ class MainWindow(QMainWindow):
             Settings.ENERGY_UNITS != self.current_view.energy_units,
             Settings.POWER_UNITS != self.current_view.power_units
         )
-        if self.current_view and (any(conditions) or self.current_view.force_next_update):
+        if self.current_view and (any(conditions) or self.current_view.next_update_forced):
             self.current_view.build_view(
                 variables_df=variables_df,
                 interval=Settings.INTERVAL,

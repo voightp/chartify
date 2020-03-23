@@ -70,7 +70,7 @@ def test_build_tree_view(qtbot, tree_view: View, hourly_df: pd.DataFrame):
     assert not tree_view.rate_to_energy
     assert tree_view.units_system == "SI"
     assert tree_view.energy_units == "J"
-    assert not tree_view.force_next_update
+    assert not tree_view.next_update_forced
 
 
 def test_first_column_spanned(tree_view: View, hourly_df: pd.DataFrame):
@@ -110,7 +110,7 @@ def test_build_plain_view(qtbot, tree_view: View, hourly_df: pd.DataFrame):
     assert not tree_view.rate_to_energy
     assert tree_view.units_system == "SI"
     assert tree_view.energy_units == "J"
-    assert not tree_view.force_next_update
+    assert not tree_view.next_update_forced
 
 
 def test_first_column_not_spanned(tree_view: View, hourly_df: pd.DataFrame):
