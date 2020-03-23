@@ -255,7 +255,7 @@ class MainWindow(QMainWindow):
         self.connect_ui_signals()
 
     @property
-    def current_view(self):
+    def current_view(self) -> View:
         """ Currently selected outputs file. """
         return self.tab_wgt.currentWidget()
 
@@ -413,7 +413,14 @@ class MainWindow(QMainWindow):
 
     def build_treeview(self, variables_df, selected=None, scroll_to=None):
         """ Create a new view when any of related settings change """
-        if self.current_view:
+        conditions = (
+            Settings.TREE_VIEW != self.current_view.is_tree,
+            Settings.INTERVAL != self.current_view.interval,
+            Settings.RATE_TO_ENERGY != self.current_view.rate_to_energy,
+            Settings.ENERGY_UNITS != self.current_view.energy_units,
+            Settings.POWER_UNITS != self.current_view.power_units
+        )
+        if self.current_view and (any(conditions) or self.current_view.force_next_update):
             self.current_view.build_view(
                 variables_df=variables_df,
                 interval=Settings.INTERVAL,
@@ -422,13 +429,20 @@ class MainWindow(QMainWindow):
                 units_system=Settings.UNITS_SYSTEM,
                 energy_units=Settings.ENERGY_UNITS,
                 power_units=Settings.POWER_UNITS,
-                selected=selected,
-                scroll_to=scroll_to,
                 settings=self.view_settings
             )
             filter_tup = self.view_tools_wgt.get_filter_tup()
             if any(filter_tup):
-                self.current_view.filter_view(filter_tup, is_tree)
+                self.current_view.filter_view(filter_tup)
+
+            # clear selections to avoid having visually
+            # selected items from previous selection
+            self.current_view.deselect_all_variables()
+            if selected:
+                self.current_view.select_variables(selected)
+
+            if scroll_to:
+                self.current_view.scroll_to(scroll_to, self.view_settings["header"][0])
 
     def on_selection_populated(self, variables):
         """ Store current selection in main app. """

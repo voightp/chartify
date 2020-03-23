@@ -58,12 +58,16 @@ class View(QTreeView):
         proxy_model.setDynamicSortFilter(False)
         self.setModel(proxy_model)
 
-        self.temp_settings = {
-            "interval": None,
-            "is_tree": None,
-            "units": None,
-            "force_update": True,
-        }
+        # flag to force next update
+        self.force_next_update = True
+
+        # hold current
+        self.interval = None
+        self.is_tree = None
+        self.rate_to_energy = None
+        self.units_system = None
+        self.energy_units = None
+        self.power_units = None
 
         # hold ui attributes
         self.scrollbar_position = 0
@@ -118,15 +122,11 @@ class View(QTreeView):
     def filter_view(self, filter_tup: FilterTuple) -> None:
         """ Filter the model using given filter tuple. """
         self.model().setFilterTuple(filter_tup)
-        if self.temp_settings["is_tree"]:
+        if self.is_tree:
             # Expand all items when filter is applied
             self.expandAll()
             # it's required to reapply column span after each filter
             self.setFirstTreeColumnSpanned()
-
-    def set_next_update_forced(self) -> None:
-        """ Notify the view that it needs to be updated. """
-        self.temp_settings["force_update"] = True
 
     def get_visual_names(self) -> List[str]:
         """ Return sorted column names (by visual index). """
@@ -227,8 +227,6 @@ class View(QTreeView):
             units_system: str = "SI",
             energy_units: str = "J",
             power_units: str = "W",
-            selected: List[VariableData] = None,
-            scroll_to: VariableData = None,
             settings: dict = None
     ) -> None:
         """ Set the model and define behaviour of the tree view. """
@@ -239,71 +237,52 @@ class View(QTreeView):
                 "expanded": set(),
             }
 
-        # gather units to check
-        units = (rate_to_energy, units_system, energy_units, power_units)
+        # store current setup as instance attributes
+        self.is_tree = is_tree
+        self.interval = interval
+        self.rate_to_energy = rate_to_energy
+        self.units_system = units_system
+        self.energy_units = energy_units
+        self.power_units = power_units
+        self.force_next_update = False
 
-        # Only update the model if the settings have changed
-        conditions = [
-            is_tree != self.temp_settings["is_tree"],
-            interval != self.temp_settings["interval"],
-            units != self.temp_settings["units"],
-            self.temp_settings["force_update"],
-        ]
         # deactivate signals as those would override settings
         with SignalBlocker(self.verticalScrollBar()):
-            if any(conditions):
-                self.model().sourceModel().clear()
+            self.model().sourceModel().clear()
 
-                # populate new model
-                model = ViewModel()
-                model.setColumnCount(len(settings["header"]))
-                model.setHorizontalHeaderLabels(settings["header"])
+            # populate new model
+            model = ViewModel()
+            model.setColumnCount(len(settings["header"]))
+            model.setHorizontalHeaderLabels(settings["header"])
 
-                # id and interval data are not required
-                variables_df.drop(["id", "interval"], axis=1, inplace=True)
+            # id and interval data are not required
+            variables_df.drop(["id", "interval"], axis=1, inplace=True)
 
-                # add proxy units - these will be visible on ui
-                variables_df["source units"] = variables_df["units"]
-                variables_df["units"] = create_proxy_units_column(
-                    source_units=variables_df["source units"],
-                    rate_to_energy=rate_to_energy,
-                    units_system=units_system,
-                    energy_units=energy_units,
-                    power_units=power_units,
-                )
+            # add proxy units - these will be visible on ui
+            variables_df["source units"] = variables_df["units"]
+            variables_df["units"] = create_proxy_units_column(
+                source_units=variables_df["source units"],
+                rate_to_energy=rate_to_energy,
+                units_system=units_system,
+                energy_units=energy_units,
+                power_units=power_units,
+            )
 
-                # update columns order based on current view
-                view_order = settings["header"] + ["source units"]
-                variables_df = variables_df[view_order]
+            # update columns order based on current view
+            view_order = settings["header"] + ["source units"]
+            variables_df = variables_df[view_order]
 
-                # feed the data
-                model.populate_model(variables_df, is_tree)
-                self.model().setSourceModel(model)
+            # feed the data
+            model.populate_model(variables_df, is_tree)
+            self.model().setSourceModel(model)
 
-                # Store current sorting key and interval
-                self.temp_settings = {
-                    "interval": interval,
-                    "is_tree": is_tree,
-                    "units": units,
-                    "force_update": False,
-                }
-                # make sure that parent column spans full width
-                if is_tree:
-                    self.setFirstTreeColumnSpanned()
+            # make sure that parent column spans full width
+            if is_tree:
+                self.setFirstTreeColumnSpanned()
 
             # update visual appearance of the view to be consistent
             # with previously displayed View
             self.update_view_appearance(settings)
-
-        # clear selections to avoid having visually
-        # selected items from previous selection
-        self.deselect_all_variables()
-
-        if selected:
-            self.select_variables(selected)
-
-        if scroll_to:
-            self.scroll_to(scroll_to, settings["header"][0])
 
     def resize_header(self, widths) -> None:
         """ Define resizing behaviour. """
@@ -343,12 +322,11 @@ class View(QTreeView):
     def on_section_moved(self, _logical_ix, old_visual_ix: int, new_visual_ix: int) -> None:
         """ Handle updating the model when first column changed. """
         names = self.get_visual_names()
-        is_tree = self.temp_settings["is_tree"]
         self.viewSettingsChanged.emit({"header": names})
 
         # view needs to be updated when the tree structure is applied and first item changes
-        if (new_visual_ix == 0 or old_visual_ix == 0) and is_tree:
-            self.set_next_update_forced()
+        if (new_visual_ix == 0 or old_visual_ix == 0) and self.is_tree:
+            self.force_next_update = True
             self.treeNodeChanged.emit()
 
             # automatically sort first column based on last sort update

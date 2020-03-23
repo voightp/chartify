@@ -65,10 +65,12 @@ def test_build_tree_view(qtbot, tree_view: View, hourly_df: pd.DataFrame):
     assert tree_view.model().rowCount() == 49
     assert tree_view.model().sourceModel().rowCount() == 49
 
-    assert tree_view.temp_settings["interval"] == "hourly"
-    assert tree_view.temp_settings["is_tree"]
-    assert tree_view.temp_settings["units"] == (False, "SI", "J", "W")
-    assert not tree_view.temp_settings["force_update"]
+    assert tree_view.interval == "hourly"
+    assert tree_view.is_tree
+    assert not tree_view.rate_to_energy
+    assert tree_view.units_system == "SI"
+    assert tree_view.energy_units == "J"
+    assert not tree_view.force_next_update
 
 
 def test_first_column_spanned(tree_view: View, hourly_df: pd.DataFrame):
@@ -103,10 +105,12 @@ def test_build_plain_view(qtbot, tree_view: View, hourly_df: pd.DataFrame):
     assert tree_view.model().rowCount() == 77
     assert tree_view.model().sourceModel().rowCount() == 77
 
-    assert tree_view.temp_settings["interval"] == "hourly"
-    assert not tree_view.temp_settings["is_tree"]
-    assert tree_view.temp_settings["units"] == (False, "SI", "J", "W")
-    assert not tree_view.temp_settings["force_update"]
+    assert tree_view.interval == "hourly"
+    assert not tree_view.is_tree
+    assert not tree_view.rate_to_energy
+    assert tree_view.units_system == "SI"
+    assert tree_view.energy_units == "J"
+    assert not tree_view.force_next_update
 
 
 def test_first_column_not_spanned(tree_view: View, hourly_df: pd.DataFrame):
@@ -353,11 +357,6 @@ def test_filter_view(tree_view: View, daily_df: pd.DataFrame):
     assert child_index_invalid == QModelIndex()
 
 
-def test_set_next_update_forced(tree_view: View):
-    tree_view.set_next_update_forced()
-    assert tree_view.temp_settings["force_update"]
-
-
 def test_get_visual_names(tree_view: View):
     assert tree_view.get_visual_names() == ["variable", "key", "units"]
 
@@ -411,26 +410,6 @@ def test_build_view_kwargs_power_units(tree_view: View, daily_df: pd.DataFrame):
 
     assert proxy_model.data_at_index(proxy_model.index(1, 0)) == test_data
     assert proxy_model.data(proxy_model.index(1, 2)) == "MW"
-
-
-def test_build_view_kwargs_selected(tree_view: View, daily_df: pd.DataFrame):
-    selected = [
-        VariableData("BOILER", "Boiler Ancillary Electric Power", "W", "kW"),
-        VariableData("BOILER", "Boiler Gas Rate", "W", "kW")
-    ]
-    tree_view.build_view(daily_df, "daily", is_tree=True, power_units="kW", selected=selected)
-    proxy_rows = tree_view.selectionModel().selectedRows()
-    variables_data = [tree_view.model().data_at_index(index) for index in proxy_rows]
-
-    assert selected == variables_data
-
-
-def test_build_view_kwargs_scroll_to(qtbot, tree_view: View, daily_df: pd.DataFrame):
-    v = VariableData("BLOCK1:ZONEA", "Zone Infiltration Air Change Rate", "ach", "ach")
-    with qtbot.wait_signal(tree_view.verticalScrollBar().valueChanged):
-        tree_view.build_view(daily_df, "daily", is_tree=True, scroll_to=v)
-
-    assert tree_view.verticalScrollBar().value() == 29
 
 
 def test_build_view_kwargs_settings(tree_view: View, daily_df: pd.DataFrame):
@@ -487,8 +466,8 @@ def test_deselect_variables(qtbot, tree_view: View, daily_df: pd.DataFrame):
         "daily",
         is_tree=True,
         power_units="kW",
-        selected=selected
     )
+    tree_view.select_variables(selected)
     proxy_rows = tree_view.selectionModel().selectedRows()
     variables_data = [tree_view.model().data_at_index(index) for index in proxy_rows]
 
