@@ -19,7 +19,7 @@ from chartify.utils.utils import FilterTuple, VariableData, create_proxy_units_c
     SignalBlocker
 
 
-class View(QTreeView):
+class TreeView(QTreeView):
     selectionCleared = Signal()
     selectionPopulated = Signal(list)
     itemDoubleClicked = Signal(object)
@@ -48,10 +48,10 @@ class View(QTreeView):
         self.name = name
 
         # create initial view model
-        model = ViewModel()
+        model = TreeViewModel()
 
         # install proxy model
-        proxy_model = FilterModel()
+        proxy_model = TreeFilterModel()
         proxy_model.setSourceModel(model)
         proxy_model.setSortCaseSensitivity(Qt.CaseInsensitive)
         proxy_model.setRecursiveFilteringEnabled(True)
@@ -218,7 +218,7 @@ class View(QTreeView):
         else:
             self.selectionCleared.emit()
 
-    def build_view(
+    def populate_view(
             self,
             variables_df: pd.DataFrame,
             interval: str,
@@ -248,10 +248,10 @@ class View(QTreeView):
 
         # deactivate signals as those would override settings
         with SignalBlocker(self.verticalScrollBar()):
-            self.model().sourceModel().clear()
+            model = self.model().sourceModel()
+            model.clear()
 
-            # populate new model
-            model = ViewModel()
+            # assign header attributes
             model.setColumnCount(len(settings["header"]))
             model.setHorizontalHeaderLabels(settings["header"])
 
@@ -274,7 +274,6 @@ class View(QTreeView):
 
             # feed the data
             model.populate_model(variables_df, is_tree)
-            self.model().setSourceModel(model)
 
             # make sure that parent column spans full width
             if is_tree:
@@ -434,7 +433,7 @@ class View(QTreeView):
             self.viewSettingsChanged.emit({"expanded": name})
 
 
-class ViewModel(QStandardItemModel):
+class TreeViewModel(QStandardItemModel):
     def __init__(self):
         super().__init__()
 
@@ -514,7 +513,7 @@ class ViewModel(QStandardItemModel):
             self.append_tree_rows(variables_df, indexes)
 
 
-class FilterModel(QSortFilterProxyModel):
+class TreeFilterModel(QSortFilterProxyModel):
     def __init__(self):
         super().__init__()
         self._filter_tup = FilterTuple(key="", variable="", units="")

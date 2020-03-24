@@ -15,7 +15,7 @@ from PySide2.QtWidgets import (
     QFrame,
 )
 
-from chartify.ui.treeview_widget import View
+from chartify.ui.treeview_widget import TreeView
 
 
 def update_appearance(wgt):
@@ -36,7 +36,7 @@ def filter_eso_files(urls, extensions=("eso",)):
 
 
 class TabWidget(QTabWidget):
-    tabClosed = Signal(View)
+    tabClosed = Signal(TreeView)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

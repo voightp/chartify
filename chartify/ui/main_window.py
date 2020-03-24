@@ -31,7 +31,7 @@ from chartify.ui.misc_widgets import DropFrame, TabWidget, MulInputDialog, Confi
 from chartify.ui.progress_widget import ProgressContainer
 from chartify.ui.toolbar import Toolbar
 from chartify.ui.treeview_tools import ViewTools
-from chartify.ui.treeview_widget import View
+from chartify.ui.treeview_widget import TreeView
 
 
 # noinspection PyPep8Naming,PyUnresolvedReferences
@@ -255,7 +255,7 @@ class MainWindow(QMainWindow):
         self.connect_ui_signals()
 
     @property
-    def current_view(self) -> View:
+    def current_view(self) -> TreeView:
         """ Currently selected outputs file. """
         return self.tab_wgt.currentWidget()
 
@@ -391,7 +391,7 @@ class MainWindow(QMainWindow):
         """ Add file on the UI. """
         # create an empty 'View' widget - the data will be
         # automatically populated on 'onTabChanged' signal
-        view = View(id_, name)
+        view = TreeView(id_, name)
         view.selectionCleared.connect(self.on_selection_cleared)
         view.selectionPopulated.connect(self.on_selection_populated)
         view.treeNodeChanged.connect(self.on_settings_changed)
@@ -421,7 +421,7 @@ class MainWindow(QMainWindow):
             Settings.POWER_UNITS != self.current_view.power_units
         )
         if self.current_view and (any(conditions) or self.current_view.next_update_forced):
-            self.current_view.build_view(
+            self.current_view.populate_view(
                 variables_df=variables_df,
                 interval=Settings.INTERVAL,
                 is_tree=Settings.TREE_VIEW,

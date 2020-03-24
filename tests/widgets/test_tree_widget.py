@@ -6,7 +6,7 @@ from PySide2.QtCore import Qt, QModelIndex
 from PySide2.QtWidgets import QHeaderView, QSizePolicy
 from esofile_reader import EsoFile
 
-from chartify.ui.treeview_widget import View
+from chartify.ui.treeview_widget import TreeView
 from chartify.utils.utils import FilterTuple, VariableData
 from tests import ROOT
 
@@ -30,17 +30,17 @@ def daily_df(eso_file):
 
 @pytest.fixture
 def tree_view(qtbot, hourly_df):
-    tree_view = View(0, "test")
+    tree_view = TreeView(0, "test")
     tree_view.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
     tree_view.setFixedWidth(WIDTH)
     tree_view.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-    tree_view.build_view(variables_df=hourly_df.copy(), interval="hourly", is_tree=True)
+    tree_view.populate_view(variables_df=hourly_df.copy(), interval="hourly", is_tree=True)
     tree_view.show()
     qtbot.addWidget(tree_view)
     return tree_view
 
 
-def test_init_tree_view(tree_view: View):
+def test_init_tree_view(tree_view: TreeView):
     assert tree_view.rootIsDecorated()
     assert tree_view.uniformRowHeights()
     assert tree_view.isSortingEnabled()
@@ -50,9 +50,9 @@ def test_init_tree_view(tree_view: View):
     assert not tree_view.wordWrap()
     assert not tree_view.alternatingRowColors()
 
-    assert tree_view.selectionBehavior() == View.SelectRows
-    assert tree_view.selectionMode() == View.ExtendedSelection
-    assert tree_view.editTriggers() == View.NoEditTriggers
+    assert tree_view.selectionBehavior() == TreeView.SelectRows
+    assert tree_view.selectionMode() == TreeView.ExtendedSelection
+    assert tree_view.editTriggers() == TreeView.NoEditTriggers
     assert tree_view.defaultDropAction() == Qt.CopyAction
     assert tree_view.horizontalScrollBarPolicy() == Qt.ScrollBarAsNeeded
     assert tree_view.focusPolicy() == Qt.NoFocus
@@ -61,7 +61,7 @@ def test_init_tree_view(tree_view: View):
     assert tree_view.name == "test"
 
 
-def test_build_tree_view(qtbot, tree_view: View, hourly_df: pd.DataFrame):
+def test_build_tree_view(qtbot, tree_view: TreeView, hourly_df: pd.DataFrame):
     assert tree_view.model().rowCount() == 49
     assert tree_view.model().sourceModel().rowCount() == 49
 
@@ -73,7 +73,7 @@ def test_build_tree_view(qtbot, tree_view: View, hourly_df: pd.DataFrame):
     assert not tree_view.next_update_forced
 
 
-def test_first_column_spanned(tree_view: View, hourly_df: pd.DataFrame):
+def test_first_column_spanned(tree_view: TreeView, hourly_df: pd.DataFrame):
     proxy_model = tree_view.model()
     for i in range(proxy_model.rowCount()):
         index = proxy_model.index(i, 0)
@@ -86,7 +86,7 @@ def test_first_column_spanned(tree_view: View, hourly_df: pd.DataFrame):
             assert not tree_view.isFirstColumnSpanned(i, tree_view.rootIndex())
 
 
-def test_initial_view_appearance(tree_view: View, hourly_df: pd.DataFrame):
+def test_initial_view_appearance(tree_view: TreeView, hourly_df: pd.DataFrame):
     assert tree_view.header().sectionSize(0) == 200
     assert tree_view.header().sectionSize(1) == 130
     assert tree_view.header().sectionSize(2) == 70
@@ -99,8 +99,8 @@ def test_initial_view_appearance(tree_view: View, hourly_df: pd.DataFrame):
     assert tree_view.header().sortIndicatorOrder() == Qt.AscendingOrder
 
 
-def test_build_plain_view(qtbot, tree_view: View, hourly_df: pd.DataFrame):
-    tree_view.build_view(variables_df=hourly_df, interval="hourly", is_tree=False)
+def test_build_plain_view(qtbot, tree_view: TreeView, hourly_df: pd.DataFrame):
+    tree_view.populate_view(variables_df=hourly_df, interval="hourly", is_tree=False)
 
     assert tree_view.model().rowCount() == 77
     assert tree_view.model().sourceModel().rowCount() == 77
@@ -113,8 +113,8 @@ def test_build_plain_view(qtbot, tree_view: View, hourly_df: pd.DataFrame):
     assert not tree_view.next_update_forced
 
 
-def test_first_column_not_spanned(tree_view: View, hourly_df: pd.DataFrame):
-    tree_view.build_view(variables_df=hourly_df, interval="hourly", is_tree=False)
+def test_first_column_not_spanned(tree_view: TreeView, hourly_df: pd.DataFrame):
+    tree_view.populate_view(variables_df=hourly_df, interval="hourly", is_tree=False)
     proxy_model = tree_view.model()
     for i in range(proxy_model.rowCount()):
         index = proxy_model.index(i, 0)
@@ -125,8 +125,8 @@ def test_first_column_not_spanned(tree_view: View, hourly_df: pd.DataFrame):
             assert not tree_view.isFirstColumnSpanned(i, tree_view.rootIndex())
 
 
-def test_resize_header(tree_view: View, hourly_df: pd.DataFrame):
-    tree_view.build_view(variables_df=hourly_df, interval="hourly", is_tree=False)
+def test_resize_header(tree_view: TreeView, hourly_df: pd.DataFrame):
+    tree_view.populate_view(variables_df=hourly_df, interval="hourly", is_tree=False)
     tree_view.resize_header({"interactive": 250, "fixed": 100})
 
     assert tree_view.header().sectionSize(0) == 250
@@ -134,7 +134,7 @@ def test_resize_header(tree_view: View, hourly_df: pd.DataFrame):
     assert tree_view.header().sectionSize(2) == 100
 
 
-def test_on_sort_order_changed_build_tree(qtbot, tree_view: View, hourly_df: pd.DataFrame):
+def test_on_sort_order_changed_build_tree(qtbot, tree_view: TreeView, hourly_df: pd.DataFrame):
     assert tree_view.get_visual_names() == ["variable", "key", "units"]
 
     with qtbot.wait_signal(tree_view.treeNodeChanged, timeout=1000):
@@ -143,14 +143,14 @@ def test_on_sort_order_changed_build_tree(qtbot, tree_view: View, hourly_df: pd.
         assert tree_view.header().sortIndicatorOrder() == Qt.AscendingOrder
 
 
-def test_on_sort_order_changed_no_build_tree(qtbot, tree_view: View, hourly_df: pd.DataFrame):
+def test_on_sort_order_changed_no_build_tree(qtbot, tree_view: TreeView, hourly_df: pd.DataFrame):
     assert tree_view.get_visual_names() == ["variable", "key", "units"]
 
     with qtbot.assertNotEmitted(tree_view.treeNodeChanged):
         tree_view.header().moveSection(2, 1)
 
 
-def test_on_view_resized(qtbot, tree_view: View, hourly_df: pd.DataFrame):
+def test_on_view_resized(qtbot, tree_view: TreeView, hourly_df: pd.DataFrame):
     def test_size(dct):
         return dct["interactive"] == 125
 
@@ -158,12 +158,12 @@ def test_on_view_resized(qtbot, tree_view: View, hourly_df: pd.DataFrame):
         tree_view.header().resizeSection(0, 125)
 
 
-def test_on_view_resized_stretch(qtbot, tree_view: View, hourly_df: pd.DataFrame):
+def test_on_view_resized_stretch(qtbot, tree_view: TreeView, hourly_df: pd.DataFrame):
     with qtbot.assertNotEmitted(tree_view.viewSettingsChanged):
         tree_view.header().resizeSection(1, 125)
 
 
-def test_on_section_moved_rebuild(qtbot, tree_view: View, hourly_df: pd.DataFrame):
+def test_on_section_moved_rebuild(qtbot, tree_view: TreeView, hourly_df: pd.DataFrame):
     def test_header(dct):
         return dct["header"] == ["key", "units", "variable"]
 
@@ -173,22 +173,22 @@ def test_on_section_moved_rebuild(qtbot, tree_view: View, hourly_df: pd.DataFram
         tree_view.header().moveSection(0, 2)
 
 
-def test_on_section_moved_plain_view(qtbot, tree_view: View, hourly_df: pd.DataFrame):
+def test_on_section_moved_plain_view(qtbot, tree_view: TreeView, hourly_df: pd.DataFrame):
     def test_header(dct):
         return dct["header"] == ["key", "units", "variable"]
 
-    tree_view.build_view(variables_df=hourly_df, interval="hourly", is_tree=False)
+    tree_view.populate_view(variables_df=hourly_df, interval="hourly", is_tree=False)
     with qtbot.wait_signal(tree_view.viewSettingsChanged, check_params_cb=test_header):
         tree_view.header().moveSection(0, 2)
 
 
-def test_on_slider_moved(tree_view: View, hourly_df: pd.DataFrame):
+def test_on_slider_moved(tree_view: TreeView, hourly_df: pd.DataFrame):
     tree_view.verticalScrollBar().setSliderPosition(10)
 
     assert tree_view.verticalScrollBar().value() == 10
 
 
-def test_on_double_clicked(qtbot, tree_view: View, hourly_df: pd.DataFrame):
+def test_on_double_clicked(qtbot, tree_view: TreeView, hourly_df: pd.DataFrame):
     def variable_data(index):
         test_data = VariableData("BOILER", "Boiler Gas Rate", "W", "W")
         data = tree_view.model().data_at_index(index)
@@ -205,7 +205,7 @@ def test_on_double_clicked(qtbot, tree_view: View, hourly_df: pd.DataFrame):
         qtbot.mouseDClick(tree_view.viewport(), Qt.LeftButton, pos=point)
 
 
-def test_on_double_clicked_parent(qtbot, tree_view: View, hourly_df: pd.DataFrame):
+def test_on_double_clicked_parent(qtbot, tree_view: TreeView, hourly_df: pd.DataFrame):
     index = tree_view.model().index(7, 0)
     point = tree_view.visualRect(index).center()
     # need to move mouse to hover over view
@@ -219,7 +219,7 @@ def test_on_double_clicked_parent(qtbot, tree_view: View, hourly_df: pd.DataFram
     assert tree_view.isExpanded(index)
 
 
-def test_select_all_children_expanded_parent(qtbot, tree_view: View, hourly_df: pd.DataFrame):
+def test_select_all_children_expanded_parent(qtbot, tree_view: TreeView, hourly_df: pd.DataFrame):
     index = tree_view.model().index(7, 0)
     point = tree_view.visualRect(index).center()
     # need to move mouse to hover over view
@@ -250,7 +250,7 @@ def test_select_all_children_expanded_parent(qtbot, tree_view: View, hourly_df: 
         qtbot.mouseClick(tree_view.viewport(), Qt.LeftButton, pos=point)
 
 
-def test_on_pressed(qtbot, tree_view: View, hourly_df: pd.DataFrame):
+def test_on_pressed(qtbot, tree_view: TreeView, hourly_df: pd.DataFrame):
     test_data = VariableData("BOILER", "Boiler Gas Rate", "W", "W")
 
     def variable_data1(index):
@@ -271,7 +271,7 @@ def test_on_pressed(qtbot, tree_view: View, hourly_df: pd.DataFrame):
         qtbot.mousePress(tree_view.viewport(), Qt.LeftButton, pos=point)
 
 
-def test_on_pressed_collapsed_parent(qtbot, tree_view: View, hourly_df: pd.DataFrame):
+def test_on_pressed_collapsed_parent(qtbot, tree_view: TreeView, hourly_df: pd.DataFrame):
     def variable_data1(index):
         data = tree_view.model().data(index)
         return data == "Cooling Coil Sensible Cooling Rate"
@@ -289,7 +289,7 @@ def test_on_pressed_collapsed_parent(qtbot, tree_view: View, hourly_df: pd.DataF
     assert not tree_view.isExpanded(index)
 
 
-def test_on_collapsed(qtbot, tree_view: View, hourly_df: pd.DataFrame):
+def test_on_collapsed(qtbot, tree_view: TreeView, hourly_df: pd.DataFrame):
     index = tree_view.model().index(7, 0)
     tree_view.expand(index)
     point = tree_view.visualRect(index).center()
@@ -306,7 +306,7 @@ def test_on_collapsed(qtbot, tree_view: View, hourly_df: pd.DataFrame):
     assert not tree_view.isExpanded(index)
 
 
-def test_on_expanded(qtbot, tree_view: View, eso_file: EsoFile):
+def test_on_expanded(qtbot, tree_view: TreeView, eso_file: EsoFile):
     index = tree_view.model().index(7, 0)
     point = tree_view.visualRect(index).center()
     # need to move mouse to hover over view
@@ -322,8 +322,8 @@ def test_on_expanded(qtbot, tree_view: View, eso_file: EsoFile):
     assert tree_view.isExpanded(index)
 
 
-def test_filter_view(tree_view: View, daily_df: pd.DataFrame):
-    tree_view.build_view(
+def test_filter_view(tree_view: TreeView, daily_df: pd.DataFrame):
+    tree_view.populate_view(
         variables_df=daily_df,
         interval="daily",
         is_tree=True,
@@ -357,19 +357,19 @@ def test_filter_view(tree_view: View, daily_df: pd.DataFrame):
     assert child_index_invalid == QModelIndex()
 
 
-def test_get_visual_names(tree_view: View):
+def test_get_visual_names(tree_view: TreeView):
     assert tree_view.get_visual_names() == ["variable", "key", "units"]
 
     tree_view.reshuffle_columns(["units", "variable", "key"])
     assert tree_view.get_visual_names() == ["units", "variable", "key"]
 
 
-def test_get_visual_ixs(tree_view: View):
+def test_get_visual_ixs(tree_view: TreeView):
     assert tree_view.get_visual_indexes() == {"variable": 0, "key": 1, "units": 2}
 
 
-def test_build_view_kwargs_rate_to_energy(tree_view: View, daily_df: pd.DataFrame):
-    tree_view.build_view(daily_df, "daily", is_tree=True, rate_to_energy=True)
+def test_build_view_kwargs_rate_to_energy(tree_view: TreeView, daily_df: pd.DataFrame):
+    tree_view.populate_view(daily_df, "daily", is_tree=True, rate_to_energy=True)
     proxy_model = tree_view.model()
     test_data = VariableData("BOILER", "Boiler Gas Rate", "W", "J")
 
@@ -377,8 +377,8 @@ def test_build_view_kwargs_rate_to_energy(tree_view: View, daily_df: pd.DataFram
     assert proxy_model.data(proxy_model.index(1, 2)) == "J"
 
 
-def test_build_view_kwargs_units_system(tree_view: View, daily_df: pd.DataFrame):
-    tree_view.build_view(daily_df, "daily", is_tree=True, units_system="IP")
+def test_build_view_kwargs_units_system(tree_view: TreeView, daily_df: pd.DataFrame):
+    tree_view.populate_view(daily_df, "daily", is_tree=True, units_system="IP")
     proxy_model = tree_view.model()
     test_data = VariableData(
         "Environment", "Site Outdoor Air Dewpoint Temperature", "C", "F"
@@ -388,8 +388,8 @@ def test_build_view_kwargs_units_system(tree_view: View, daily_df: pd.DataFrame)
     assert proxy_model.data(proxy_model.index(22, 2)) == "F"
 
 
-def test_build_view_kwargs_energy_units(tree_view: View, daily_df: pd.DataFrame):
-    tree_view.build_view(
+def test_build_view_kwargs_energy_units(tree_view: TreeView, daily_df: pd.DataFrame):
+    tree_view.populate_view(
         daily_df,
         "daily",
         is_tree=True,
@@ -403,8 +403,8 @@ def test_build_view_kwargs_energy_units(tree_view: View, daily_df: pd.DataFrame)
     assert proxy_model.data(proxy_model.index(1, 2)) == "MWh"
 
 
-def test_build_view_kwargs_power_units(tree_view: View, daily_df: pd.DataFrame):
-    tree_view.build_view(daily_df, "daily", is_tree=True, power_units="MW")
+def test_build_view_kwargs_power_units(tree_view: TreeView, daily_df: pd.DataFrame):
+    tree_view.populate_view(daily_df, "daily", is_tree=True, power_units="MW")
     proxy_model = tree_view.model()
     test_data = VariableData("BOILER", "Boiler Gas Rate", "W", "MW")
 
@@ -412,13 +412,13 @@ def test_build_view_kwargs_power_units(tree_view: View, daily_df: pd.DataFrame):
     assert proxy_model.data(proxy_model.index(1, 2)) == "MW"
 
 
-def test_build_view_kwargs_settings(tree_view: View, daily_df: pd.DataFrame):
+def test_build_view_kwargs_settings(tree_view: TreeView, daily_df: pd.DataFrame):
     settings = {
         "widths": {"interactive": 150, "fixed": 50},
         "header": ["variable", "units", "key"],
         "expanded": {"Fan Electric Power", "Heating Coil Heating Rate"},
     }
-    tree_view.build_view(daily_df, "daily", is_tree=True, settings=settings)
+    tree_view.populate_view(daily_df, "daily", is_tree=True, settings=settings)
 
     assert tree_view.header().sectionSize(0) == 150
     assert tree_view.header().sectionSize(1) == 50
@@ -430,7 +430,7 @@ def test_build_view_kwargs_settings(tree_view: View, daily_df: pd.DataFrame):
     assert tree_view.isExpanded(tree_view.model().index(13, 0))
 
 
-def test_scroll_to(qtbot, tree_view: View, hourly_df: pd.DataFrame):
+def test_scroll_to(qtbot, tree_view: TreeView, hourly_df: pd.DataFrame):
     v = VariableData("BLOCK1:ZONEA", "Zone Infiltration Air Change Rate", "ach", "ach")
     with qtbot.wait_signal(tree_view.verticalScrollBar().valueChanged):
         tree_view.scroll_to(v, "variable")
@@ -438,7 +438,7 @@ def test_scroll_to(qtbot, tree_view: View, hourly_df: pd.DataFrame):
     assert tree_view.verticalScrollBar().value() == 29
 
 
-def test_update_view_appearance(tree_view: View, hourly_df: pd.DataFrame):
+def test_update_view_appearance(tree_view: TreeView, hourly_df: pd.DataFrame):
     settings = {
         "widths": {"interactive": 150, "fixed": 50},
         "header": ["variable", "units", "key"],
@@ -456,12 +456,12 @@ def test_update_view_appearance(tree_view: View, hourly_df: pd.DataFrame):
     assert tree_view.isExpanded(tree_view.model().index(13, 0))
 
 
-def test_deselect_variables(qtbot, tree_view: View, daily_df: pd.DataFrame):
+def test_deselect_variables(qtbot, tree_view: TreeView, daily_df: pd.DataFrame):
     selected = [
         VariableData("BOILER", "Boiler Ancillary Electric Power", "W", "kW"),
         VariableData("BOILER", "Boiler Gas Rate", "W", "kW")
     ]
-    tree_view.build_view(
+    tree_view.populate_view(
         daily_df,
         "daily",
         is_tree=True,
@@ -479,7 +479,7 @@ def test_deselect_variables(qtbot, tree_view: View, daily_df: pd.DataFrame):
     assert not tree_view.selectionModel().selectedRows()
 
 
-def test_select_variables(tree_view: View):
+def test_select_variables(tree_view: TreeView):
     selected = [
         VariableData("BOILER", "Boiler Ancillary Electric Power", "W", "W"),
         VariableData("BOILER", "Boiler Gas Rate", "W", "W")
