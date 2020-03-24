@@ -31,7 +31,7 @@ from chartify.ui.misc_widgets import DropFrame, TabWidget, MulInputDialog, Confi
 from chartify.ui.progress_widget import ProgressContainer
 from chartify.ui.toolbar import Toolbar
 from chartify.ui.treeview_tools import ViewTools
-from chartify.ui.treeview_widget import TreeView
+from chartify.ui.treeview import TreeView
 
 
 # noinspection PyPep8Naming,PyUnresolvedReferences

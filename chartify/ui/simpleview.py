@@ -1,4 +1,4 @@
-from typing import Dict, List, Set, Sequence
+from typing import Dict, List, Sequence, Type
 
 import pandas as pd
 from PySide2.QtCore import (
@@ -19,14 +19,19 @@ from chartify.utils.utils import FilterTuple, VariableData, create_proxy_units_c
     SignalBlocker
 
 
-class TreeView(QTreeView):
+class SimpleView(QTreeView):
     selectionCleared = Signal()
     selectionPopulated = Signal(list)
     itemDoubleClicked = Signal(object)
-    treeNodeChanged = Signal()
     viewSettingsChanged = Signal(dict)
 
-    def __init__(self, id_: int, name: str):
+    def __init__(
+            self,
+            id_: int,
+            name: str,
+            model_cls: Type[QStandardItemModel],
+            proxymodel_cls: Type[QSortFilterProxyModel]
+    ):
         super().__init__()
         self.setRootIsDecorated(True)
         self.setUniformRowHeights(True)
@@ -48,10 +53,10 @@ class TreeView(QTreeView):
         self.name = name
 
         # create initial view model
-        model = TreeViewModel()
+        model = model_cls()
 
         # install proxy model
-        proxy_model = TreeFilterModel()
+        proxy_model = proxymodel_cls()
         proxy_model.setSourceModel(model)
         proxy_model.setSortCaseSensitivity(Qt.CaseInsensitive)
         proxy_model.setRecursiveFilteringEnabled(True)
@@ -80,7 +85,6 @@ class TreeView(QTreeView):
         self.doubleClicked.connect(self.on_double_clicked)
 
         self.header().setFirstSectionMovable(True)
-        self.header().sectionResized.connect(self.on_view_resized)
         self.header().sectionMoved.connect(self.on_section_moved)
         self.header().sortIndicatorChanged.connect(self.on_sort_order_changed)
 
@@ -112,21 +116,9 @@ class TreeView(QTreeView):
         drag.setPixmap(pix)
         drag.exec_(Qt.CopyAction)
 
-    def setFirstTreeColumnSpanned(self) -> None:
-        """ Set parent row to be spanned over all columns. """
-        for i in range(self.model().rowCount()):
-            ix = self.model().index(i, 0)
-            if self.model().hasChildren(ix):
-                super().setFirstColumnSpanned(i, self.rootIndex(), True)
-
     def filter_view(self, filter_tup: FilterTuple) -> None:
         """ Filter the model using given filter tuple. """
         self.model().setFilterTuple(filter_tup)
-        if self.is_tree:
-            # Expand all items when filter is applied
-            self.expandAll()
-            # it's required to reapply column span after each filter
-            self.setFirstTreeColumnSpanned()
 
     def get_visual_names(self) -> List[str]:
         """ Return sorted column names (by visual index). """
@@ -138,6 +130,25 @@ class TreeView(QTreeView):
         log_ixs = self.model().get_logical_indexes()
         return {k: self.header().visualIndex(i) for k, i in log_ixs.items()}
 
+    def update_view_appearance(
+            self,
+            header: List[str],
+            widths: Dict[str, int],
+            **kwargs
+    ) -> None:
+        """ Update the model appearance to be consistent with last view. """
+        # it's required to adjust columns order to match the last applied order
+        self.reshuffle_columns(header)
+
+        # resize sections
+        self.resize_header(widths)
+
+        # update vertical order
+        self.update_sort_order()
+
+        # update slider position
+        self.update_scrollbar_position()
+
     def reshuffle_columns(self, order: List[str]):
         """ Reset column positions to match last visual appearance. """
         for i, nm in enumerate(order):
@@ -146,22 +157,19 @@ class TreeView(QTreeView):
             if i != j:
                 self.header().moveSection(j, i)
 
+    def update_scrollbar_position(self):
+        """ Set vertical scrollbar position. """
+        # a workaround to always get scrollbar into previous position
+        # qt somehow does not adjust scrollbar maximum when expanding items
+        if self.scrollbar_position > self.verticalScrollBar().maximum():
+            self.verticalScrollBar().setMaximum(self.scrollbar_position)
+        self.verticalScrollBar().setValue(self.scrollbar_position)
+
     def update_sort_order(self) -> None:
-        """ Set order for all columns. """
+        """ Set order for sort column. """
         indicator_column, order = self.indicator
         self.model().sort(indicator_column, order)
         self.header().setSortIndicator(indicator_column, order)
-
-    def expand_items(self, expanded_set: Set[str]) -> None:
-        """ Expand items which were previously expanded (on other models). """
-        for i in range(self.model().rowCount()):
-            ix = self.model().index(i, 0)
-            if self.model().hasChildren(ix):
-                data = self.model().data(ix)
-                if data in expanded_set:
-                    self.expand(ix)
-                else:
-                    self.collapse(ix)
 
     def scroll_to(self, var: VariableData, first_col: str) -> None:
         """ Scroll to the given variable. """
@@ -173,26 +181,123 @@ class TreeView(QTreeView):
         if proxy_selection:
             self.scrollTo(proxy_selection.indexes()[0])
 
-    def update_view_appearance(self, settings: dict) -> None:
-        """ Update the model appearance to be consistent with last view. """
-        # it's required to adjust columns order to match the last applied order
-        self.reshuffle_columns(settings["header"])
+    def resize_header(self, widths) -> None:
+        """ Define resizing behaviour. """
+        log_ixs = self.model().get_logical_indexes()
 
-        # resize sections
-        self.resize_header(settings["widths"])
+        # units column width is always fixed
+        fixed = log_ixs["units"]
+        self.header().setSectionResizeMode(fixed, QHeaderView.Fixed)
+        self.header().setStretchLastSection(False)
 
-        # update vertical order
-        self.update_sort_order()
+        # resize sections programmatically
+        self.header().resizeSection(fixed, widths["fixed"])
 
-        # expand items
-        if settings["expanded"]:
-            self.expand_items(settings["expanded"])
+    def populate_view(
+            self,
+            variables_df: pd.DataFrame,
+            interval: str,
+            is_tree: bool,
+            rate_to_energy: bool = False,
+            units_system: str = "SI",
+            energy_units: str = "J",
+            power_units: str = "W",
+            widths: Dict[str, int] = None,
+            header: List[str] = None,
+            **kwargs
+    ) -> None:
+        """ Set the model and define behaviour of the tree view. """
+        if not widths:
+            widths = {"fixed": 70}
+        if not header:
+            header = ["variable", "units"]
 
-        # a workaround to always get scrollbar into previous position
-        # qt somehow does not adjust scrollbar maximum when expanding items
-        if self.scrollbar_position > self.verticalScrollBar().maximum():
-            self.verticalScrollBar().setMaximum(self.scrollbar_position)
-        self.verticalScrollBar().setValue(self.scrollbar_position)
+        # store current setup as instance attributes
+        self.is_tree = is_tree
+        self.interval = interval
+        self.rate_to_energy = rate_to_energy
+        self.units_system = units_system
+        self.energy_units = energy_units
+        self.power_units = power_units
+        self.next_update_forced = False
+
+        # deactivate signals as those would override settings
+        with SignalBlocker(self.verticalScrollBar()):
+            model = self.model().sourceModel()
+            model.clear()
+
+            # assign header attributes
+            model.setColumnCount(len(header))
+            model.setHorizontalHeaderLabels(header)
+
+            # id and interval data are not required
+            variables_df.drop(["id", "interval"], axis=1, inplace=True)
+
+            # add proxy units - these will be visible on ui
+            variables_df["source units"] = variables_df["units"]
+            variables_df["units"] = create_proxy_units_column(
+                source_units=variables_df["source units"],
+                rate_to_energy=rate_to_energy,
+                units_system=units_system,
+                energy_units=energy_units,
+                power_units=power_units,
+            )
+
+            # update columns order based on current view
+            view_order = header + ["source units"]
+            variables_df = variables_df[view_order]
+
+            # feed the data
+            model.populate_model(variables_df, is_tree)
+
+            # make sure that parent column spans full width
+            if is_tree:
+                self.setFirstTreeColumnSpanned()
+
+            # update visual appearance of the view to be consistent
+            # with previously displayed View
+            self.update_view_appearance(header, widths, **kwargs)
+
+    def on_sort_order_changed(self, log_ix: int, order: Qt.SortOrder) -> None:
+        """ Store current sorting order. """
+        self.indicator = (log_ix, order)
+
+    def on_section_moved(self, _logical_ix, old_visual_ix: int, new_visual_ix: int) -> None:
+        """ Handle updating the model when first column changed. """
+        names = self.get_visual_names()
+        self.viewSettingsChanged.emit({"header": names})
+
+    def on_slider_moved(self, val: int) -> None:
+        """ Handle moving view slider. """
+        self.scrollbar_position = val
+
+    def on_double_clicked(self, index: QModelIndex):
+        """ Handle view double click. """
+        proxy_model = self.model()
+        source_item = proxy_model.item_at_index(index)
+
+        if source_item.column() > 0:
+            index = index.siblingAtColumn(0)
+
+        # deselect all base variables
+        self.deselect_all_variables()
+
+        dt = proxy_model.data_at_index(index)
+        if dt:
+            self.select_variables([dt])
+            self.itemDoubleClicked.emit(dt)
+
+    def on_pressed(self) -> None:
+        """ Handle pressing the view item or items. """
+        proxy_model = self.model()
+        proxy_rows = self.selectionModel().selectedRows()
+
+        variables_data = [proxy_model.data_at_index(index) for index in proxy_rows]
+
+        if variables_data:
+            self.selectionPopulated.emit(variables_data)
+        else:
+            self.selectionCleared.emit()
 
     def deselect_all_variables(self) -> None:
         """ Deselect all currently selected variables. """
@@ -218,188 +323,6 @@ class TreeView(QTreeView):
         else:
             self.selectionCleared.emit()
 
-    def populate_view(
-            self,
-            variables_df: pd.DataFrame,
-            interval: str,
-            is_tree: bool,
-            rate_to_energy: bool = False,
-            units_system: str = "SI",
-            energy_units: str = "J",
-            power_units: str = "W",
-            settings: dict = None
-    ) -> None:
-        """ Set the model and define behaviour of the tree view. """
-        if not settings:
-            settings = {
-                "widths": {"interactive": 200, "fixed": 70},
-                "header": ["variable", "key", "units"],
-                "expanded": set(),
-            }
-
-        # store current setup as instance attributes
-        self.is_tree = is_tree
-        self.interval = interval
-        self.rate_to_energy = rate_to_energy
-        self.units_system = units_system
-        self.energy_units = energy_units
-        self.power_units = power_units
-        self.next_update_forced = False
-
-        # deactivate signals as those would override settings
-        with SignalBlocker(self.verticalScrollBar()):
-            model = self.model().sourceModel()
-            model.clear()
-
-            # assign header attributes
-            model.setColumnCount(len(settings["header"]))
-            model.setHorizontalHeaderLabels(settings["header"])
-
-            # id and interval data are not required
-            variables_df.drop(["id", "interval"], axis=1, inplace=True)
-
-            # add proxy units - these will be visible on ui
-            variables_df["source units"] = variables_df["units"]
-            variables_df["units"] = create_proxy_units_column(
-                source_units=variables_df["source units"],
-                rate_to_energy=rate_to_energy,
-                units_system=units_system,
-                energy_units=energy_units,
-                power_units=power_units,
-            )
-
-            # update columns order based on current view
-            view_order = settings["header"] + ["source units"]
-            variables_df = variables_df[view_order]
-
-            # feed the data
-            model.populate_model(variables_df, is_tree)
-
-            # make sure that parent column spans full width
-            if is_tree:
-                self.setFirstTreeColumnSpanned()
-
-            # update visual appearance of the view to be consistent
-            # with previously displayed View
-            self.update_view_appearance(settings)
-
-    def resize_header(self, widths) -> None:
-        """ Define resizing behaviour. """
-        log_ixs = self.model().get_logical_indexes()
-        vis_ixs = self.get_visual_indexes()
-
-        # units column width is always fixed
-        fixed = log_ixs["units"]
-        self.header().setSectionResizeMode(fixed, QHeaderView.Fixed)
-        self.header().setStretchLastSection(False)
-
-        # key and variable sections can be either Stretch or Interactive
-        # Interactive section can be resized programmatically
-        if vis_ixs["key"] > vis_ixs["variable"]:
-            stretch = log_ixs["key"]
-            interactive = log_ixs["variable"]
-        else:
-            stretch = log_ixs["variable"]
-            interactive = log_ixs["key"]
-
-        self.header().setSectionResizeMode(stretch, QHeaderView.Stretch)
-        self.header().setSectionResizeMode(interactive, QHeaderView.Interactive)
-
-        # resize sections programmatically
-        self.header().resizeSection(fixed, widths["fixed"])
-        self.header().resizeSection(interactive, widths["interactive"])
-
-    def on_sort_order_changed(self, log_ix: int, order: Qt.SortOrder) -> None:
-        """ Store current sorting order. """
-        self.indicator = (log_ix, order)
-
-    def on_view_resized(self, log_ix: int, _, new_size: int) -> None:
-        """ Store interactive section width in the main app. """
-        if self.header().sectionResizeMode(log_ix) == self.header().Interactive:
-            self.viewSettingsChanged.emit({"interactive": new_size})
-
-    def on_section_moved(self, _logical_ix, old_visual_ix: int, new_visual_ix: int) -> None:
-        """ Handle updating the model when first column changed. """
-        names = self.get_visual_names()
-        self.viewSettingsChanged.emit({"header": names})
-
-        # view needs to be updated when the tree structure is applied and first item changes
-        if (new_visual_ix == 0 or old_visual_ix == 0) and self.is_tree:
-            self.next_update_forced = True
-            self.treeNodeChanged.emit()
-
-            # automatically sort first column based on last sort update
-            self.header().setSortIndicator(0, self.model().sortOrder())
-
-    def on_slider_moved(self, val: int) -> None:
-        """ Handle moving view slider. """
-        self.scrollbar_position = val
-
-    def on_double_clicked(self, index: QModelIndex):
-        """ Handle view double click. """
-        proxy_model = self.model()
-        source_item = proxy_model.item_at_index(index)
-
-        if source_item.hasChildren():
-            # parent item cannot be renamed
-            return
-
-        if source_item.column() > 0:
-            index = index.siblingAtColumn(0)
-
-        # deselect all base variables
-        self.deselect_all_variables()
-
-        dt = proxy_model.data_at_index(index)
-        if dt:
-            self.select_variables([dt])
-            self.itemDoubleClicked.emit(dt)
-
-    def on_pressed(self) -> None:
-        """ Handle pressing the view item or items. """
-        proxy_model = self.model()
-        proxy_rows = self.selectionModel().selectedRows()
-        rows = proxy_model.map_to_source_lst(proxy_rows)
-
-        if proxy_rows:
-            # handle a case in which expanded parent node is clicked
-            # note that desired behaviour is to select all the children
-            # unless any of the children is included in the multi selection
-            for index in proxy_rows:
-                source_item = proxy_model.item_at_index(index)
-                source_index = proxy_model.mapToSource(index)
-
-                if source_item.hasChildren():
-                    # select all the children if the item is expanded
-                    # and none of the children has been already selected
-                    cond = any(map(lambda x: x.parent() == source_index, rows))
-                    if self.isExpanded(index) and not cond:
-                        self._select_children(source_item, source_index)
-
-                    # deselect all the parent nodes as these should not be
-                    # included in output variable data
-                    self._deselect_item(index)
-
-            # needs to be called again to get updated selection
-            proxy_rows = self.selectionModel().selectedRows()
-
-        variables_data = [proxy_model.data_at_index(index) for index in proxy_rows]
-
-        if variables_data:
-            self.selectionPopulated.emit(variables_data)
-        else:
-            self.selectionCleared.emit()
-
-    def _select_children(self, source_item: QStandardItem, source_index: QModelIndex) -> None:
-        """ Select all children of the parent row. """
-        first_ix = source_index.child(0, 0)
-        last_ix = source_index.child((source_item.rowCount() - 1), 0)
-
-        selection = QItemSelection(first_ix, last_ix)
-        proxy_selection = self.model().mapSelectionFromSource(selection)
-
-        self._select_items(proxy_selection)
-
     def _deselect_item(self, proxy_index: QModelIndex) -> None:
         """ Select an item programmatically. """
         self.selectionModel().select(
@@ -418,22 +341,8 @@ class TreeView(QTreeView):
             proxy_selection, QItemSelectionModel.Select | QItemSelectionModel.Rows
         )
 
-    def on_collapsed(self, index: QModelIndex) -> None:
-        """ Deselect the row when node collapses."""
-        proxy_model = self.model()
-        if proxy_model.hasChildren(index):
-            name = proxy_model.data(index)
-            self.viewSettingsChanged.emit({"collapsed": name})
 
-    def on_expanded(self, index: QModelIndex) -> None:
-        """ Deselect the row when node is expanded. """
-        proxy_model = self.model()
-        if proxy_model.hasChildren(index):
-            name = proxy_model.data(index)
-            self.viewSettingsChanged.emit({"expanded": name})
-
-
-class TreeViewModel(QStandardItemModel):
+class SimpleViewModel(QStandardItemModel):
     def __init__(self):
         super().__init__()
 
@@ -446,13 +355,10 @@ class TreeViewModel(QStandardItemModel):
     ) -> None:
         """ Append row to the given parent. """
         # assign status tip for all items in row
-        key = row[indexes["key"]]
         variable = row[indexes["variable"]]
         proxy_units = row[indexes["units"]]
         source_units = row[indexes["source units"]]
-        status_tip = (
-            f"{key} | {variable} | {proxy_units}" if key else f"{variable} | {proxy_units}"
-        )
+        status_tip = f"{variable} | {proxy_units}"
 
         # show all the info for each item in row
         for item in item_row:
@@ -461,7 +367,7 @@ class TreeViewModel(QStandardItemModel):
         # first item holds the variable data used for search
         item_row[0].setData(
             VariableData(
-                key=key, variable=variable, units=source_units, proxyunits=proxy_units
+                key=None, variable=variable, units=source_units, proxyunits=proxy_units
             ),
             role=Qt.UserRole,
         )
@@ -473,30 +379,9 @@ class TreeViewModel(QStandardItemModel):
             item_row = [QStandardItem(item) for item in row[:-1]]
             self._append_row(self, row, item_row, indexes)
 
-    def append_tree_rows(self, variables_df: pd.DataFrame, indexes: Dict[str, int]) -> None:
-        """ Add rows for a tree like view. """
-        root = self.invisibleRootItem()
-        grouped = variables_df.groupby(by=[variables_df.columns[0]])
-        for parent, df in grouped:
-            if len(df.index) == 1:
-                self.append_plain_rows(df, indexes)
-            else:
-                parent_item = QStandardItem(parent)
-                parent_item.setDragEnabled(False)
-                root.appendRow(parent_item)
-                for row in df.values:
-                    # first standard item is empty to avoid
-                    # having parent string in the child row
-                    item_row = [QStandardItem("")]
-
-                    # source units will not be displayed (last item)
-                    for item in row[1:-1]:
-                        item_row.append(QStandardItem(item))
-
-                    self._append_row(parent_item, row, item_row, indexes)
-
     def populate_model(self, variables_df: pd.DataFrame, is_tree: bool) -> None:
         """  Create a model and set up its appearance. """
+        _ = is_tree  # convenience attribute to be used for tree view
         columns = variables_df.columns.tolist()
         key_index = columns.index("key") if "key" in columns else None
         indexes = {
@@ -505,15 +390,11 @@ class TreeViewModel(QStandardItemModel):
             "units": columns.index("units"),
             "source units": columns.index("source units"),
         }
-
-        if not is_tree:
-            # create plain table when tree structure not requested
-            self.append_plain_rows(variables_df, indexes)
-        else:
-            self.append_tree_rows(variables_df, indexes)
+        # create plain table when tree structure not requested
+        self.append_plain_rows(variables_df, indexes)
 
 
-class TreeFilterModel(QSortFilterProxyModel):
+class SimpleFilterModel(QSortFilterProxyModel):
     def __init__(self):
         super().__init__()
         self._filter_tup = FilterTuple(key="", variable="", units="")
@@ -535,7 +416,6 @@ class TreeFilterModel(QSortFilterProxyModel):
         """ Return logical positions of header labels. """
         names = self.get_logical_names()
         return {
-            "key": names.index("key"),
             "variable": names.index("variable"),
             "units": names.index("units"),
         }
@@ -596,41 +476,14 @@ class TreeFilterModel(QSortFilterProxyModel):
 
     def find_match(self, variables: List[VariableData], key: str) -> QItemSelection:
         """ Check if output variables are available in a new model. """
-
-        def check_var():
-            v = (var.key, var.variable)
-            return v in stripped_vars
-
         selection = QItemSelection()
-        stripped_vars = [(var.key, var.variable) for var in variables]
-
-        # create a list which holds parent parts of currently
-        # selected items, if the part of variable does not match,
-        # than the variable (or any children) will not be selected
-        quick_check = [var.__getattribute__(key) for var in variables]
-
+        test_variables = [var.variable for var in variables]
         num_rows = self.rowCount()
         for i in range(num_rows):
-            # loop through the first column
             p_ix = self.index(i, 0)
-            dt = self.data(p_ix)
-
-            if dt not in quick_check:
-                # skip the variable as a quick check part does not match
-                continue
-
-            if self.hasChildren(p_ix):
-                # check if the variable is nested
-                num_child_rows = self.rowCount(p_ix)
-                for j in range(num_child_rows):
-                    ix = self.index(j, 0, p_ix)
-                    var = self.data_at_index(ix)
-                    if check_var():
-                        selection.append(QItemSelectionRange(ix))
-            else:
-                var = self.data_at_index(p_ix)
-                if check_var():
-                    selection.append(QItemSelectionRange(p_ix))
+            var = self.data_at_index(p_ix)
+            if var.variable in test_variables:
+                selection.append(QItemSelectionRange(p_ix))
 
         return selection
 

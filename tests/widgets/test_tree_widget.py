@@ -6,7 +6,7 @@ from PySide2.QtCore import Qt, QModelIndex
 from PySide2.QtWidgets import QHeaderView, QSizePolicy
 from esofile_reader import EsoFile
 
-from chartify.ui.treeview_widget import TreeView
+from chartify.ui.treeview import TreeView
 from chartify.utils.utils import FilterTuple, VariableData
 from tests import ROOT
 
@@ -143,7 +143,8 @@ def test_on_sort_order_changed_build_tree(qtbot, tree_view: TreeView, hourly_df:
         assert tree_view.header().sortIndicatorOrder() == Qt.AscendingOrder
 
 
-def test_on_sort_order_changed_no_build_tree(qtbot, tree_view: TreeView, hourly_df: pd.DataFrame):
+def test_on_sort_order_changed_no_build_tree(qtbot, tree_view: TreeView,
+                                             hourly_df: pd.DataFrame):
     assert tree_view.get_visual_names() == ["variable", "key", "units"]
 
     with qtbot.assertNotEmitted(tree_view.treeNodeChanged):
@@ -219,7 +220,8 @@ def test_on_double_clicked_parent(qtbot, tree_view: TreeView, hourly_df: pd.Data
     assert tree_view.isExpanded(index)
 
 
-def test_select_all_children_expanded_parent(qtbot, tree_view: TreeView, hourly_df: pd.DataFrame):
+def test_select_all_children_expanded_parent(qtbot, tree_view: TreeView,
+                                             hourly_df: pd.DataFrame):
     index = tree_view.model().index(7, 0)
     point = tree_view.visualRect(index).center()
     # need to move mouse to hover over view
@@ -413,12 +415,18 @@ def test_build_view_kwargs_power_units(tree_view: TreeView, daily_df: pd.DataFra
 
 
 def test_build_view_kwargs_settings(tree_view: TreeView, daily_df: pd.DataFrame):
-    settings = {
-        "widths": {"interactive": 150, "fixed": 50},
-        "header": ["variable", "units", "key"],
-        "expanded": {"Fan Electric Power", "Heating Coil Heating Rate"},
-    }
-    tree_view.populate_view(daily_df, "daily", is_tree=True, settings=settings)
+    widths = {"interactive": 150, "fixed": 50}
+    header = ["variable", "units", "key"]
+    expanded = {"Fan Electric Power", "Heating Coil Heating Rate"}
+    tree_view.update_view_appearance(header, widths, expanded)
+    tree_view.populate_view(
+        daily_df,
+        "daily",
+        is_tree=True,
+        widths=widths,
+        header=header,
+        expanded=expanded
+    )
 
     assert tree_view.header().sectionSize(0) == 150
     assert tree_view.header().sectionSize(1) == 50
@@ -439,12 +447,10 @@ def test_scroll_to(qtbot, tree_view: TreeView, hourly_df: pd.DataFrame):
 
 
 def test_update_view_appearance(tree_view: TreeView, hourly_df: pd.DataFrame):
-    settings = {
-        "widths": {"interactive": 150, "fixed": 50},
-        "header": ["variable", "units", "key"],
-        "expanded": {"Fan Electric Power", "Heating Coil Heating Rate"},
-    }
-    tree_view.update_view_appearance(settings)
+    widths = {"interactive": 150, "fixed": 50}
+    header = ["variable", "units", "key"]
+    expanded = {"Fan Electric Power", "Heating Coil Heating Rate"}
+    tree_view.update_view_appearance(header, widths, expanded)
 
     assert tree_view.header().sectionSize(0) == 150
     assert tree_view.header().sectionSize(2) == 50
