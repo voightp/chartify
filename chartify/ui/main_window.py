@@ -474,7 +474,7 @@ class MainWindow(QMainWindow):
     def filter_treeview(self, filter_tup):
         """ Filter current view. """
         if not self.tab_wgt.is_empty():
-            self.current_view.filter_view(filter_tup, Settings.TREE_VIEW)
+            self.current_view.filter_view(filter_tup)
 
     def expand_all(self):
         """ Expand all tree view items. """
