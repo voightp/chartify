@@ -24,9 +24,9 @@ exclude_lines =
 ignore_errors = True
 
 omit  =
-    # Ignore abstract class
     venv\*
     tests\*
+    *__init__.py
 
 [paths]
 source =
