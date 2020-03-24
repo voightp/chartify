@@ -438,6 +438,35 @@ def test_build_view_kwargs_settings(tree_view: TreeView, daily_df: pd.DataFrame)
     assert tree_view.isExpanded(tree_view.model().index(13, 0))
 
 
+def test_build_view_kwargs_default_settings(tree_view: TreeView, daily_df: pd.DataFrame):
+    tree_view.populate_view(
+        daily_df,
+        "daily",
+        is_tree=True,
+    )
+
+    assert tree_view.header().sectionSize(0) == 200
+    assert tree_view.header().sectionSize(1) == 130
+    assert tree_view.header().sectionSize(2) == 70
+
+    assert tree_view.get_visual_names() == ["variable", "key", "units"]
+
+
+def test_build_view_reversed_header(tree_view: TreeView, daily_df: pd.DataFrame):
+    tree_view.populate_view(
+        daily_df,
+        "daily",
+        is_tree=True,
+        header=["units", "key", "variable"]
+    )
+
+    assert tree_view.header().sectionSize(0) == 70
+    assert tree_view.header().sectionSize(1) == 200
+    assert tree_view.header().sectionSize(2) == 130
+
+    assert tree_view.get_visual_names() == ["units", "key", "variable"]
+
+
 def test_scroll_to(qtbot, tree_view: TreeView, hourly_df: pd.DataFrame):
     v = VariableData("BLOCK1:ZONEA", "Zone Infiltration Air Change Rate", "ach", "ach")
     with qtbot.wait_signal(tree_view.verticalScrollBar().valueChanged):
