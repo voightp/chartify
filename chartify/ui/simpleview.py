@@ -1,4 +1,4 @@
-from typing import Dict, List, Sequence, Type
+from typing import Dict, List, Sequence
 
 import pandas as pd
 from PySide2.QtCore import (
@@ -19,6 +19,159 @@ from chartify.utils.utils import FilterTuple, VariableData, create_proxy_units_c
     SignalBlocker
 
 
+class SimpleViewModel(QStandardItemModel):
+    def __init__(self):
+        super().__init__()
+
+    @staticmethod
+    def _append_row(
+            parent: QStandardItem,
+            row: Sequence[str],
+            item_row: List[QStandardItem],
+            indexes: Dict[str, int]
+    ) -> None:
+        """ Append row to the given parent. """
+        # assign status tip for all items in row
+        variable = row[indexes["variable"]]
+        proxy_units = row[indexes["units"]]
+        source_units = row[indexes["source units"]]
+        status_tip = f"{variable} | {proxy_units}"
+
+        # show all the info for each item in row
+        for item in item_row:
+            item.setStatusTip(status_tip)
+
+        # first item holds the variable data used for search
+        item_row[0].setData(
+            VariableData(
+                key=None, variable=variable, units=source_units, proxyunits=proxy_units
+            ),
+            role=Qt.UserRole,
+        )
+
+        parent.appendRow(item_row)
+
+    def append_plain_rows(self, variables_df: pd.DataFrame, indexes: Dict[str, int]) -> None:
+        for row in variables_df.values:
+            item_row = [QStandardItem(item) for item in row[:-1]]
+            self._append_row(self, row, item_row, indexes)
+
+    def populate_model(self, variables_df: pd.DataFrame, is_tree: bool) -> None:
+        """  Create a model and set up its appearance. """
+        _ = is_tree  # convenience attribute to be used for tree view
+        columns = variables_df.columns.tolist()
+        key_index = columns.index("key") if "key" in columns else None
+        indexes = {
+            "key": key_index,
+            "variable": columns.index("variable"),
+            "units": columns.index("units"),
+            "source units": columns.index("source units"),
+        }
+        # create plain table when tree structure not requested
+        self.append_plain_rows(variables_df, indexes)
+
+
+class SimpleFilterModel(QSortFilterProxyModel):
+    def __init__(self):
+        super().__init__()
+        self._filter_tup = FilterTuple(key="", variable="", units="")
+
+    def setFilterTuple(self, filter_tup: FilterTuple) -> None:
+        self._filter_tup = filter_tup
+        self.invalidateFilter()
+
+    def get_logical_names(self) -> List[str]:
+        """ Get names sorted by logical index. """
+        num = self.columnCount()
+        return [self.headerData(i, Qt.Horizontal).lower() for i in range(num)]
+
+    def get_logical_index(self, name: str) -> int:
+        """ Get a logical index of a given section title. """
+        return self.get_logical_names().index(name)
+
+    def get_logical_indexes(self) -> Dict[str, int]:
+        """ Return logical positions of header labels. """
+        names = self.get_logical_names()
+        return {
+            "variable": names.index("variable"),
+            "units": names.index("units"),
+        }
+
+    def data_at_index(self, index: QModelIndex) -> VariableData:
+        """ Get item data from source model. """
+        return self.item_at_index(index).data(Qt.UserRole)
+
+    def item_at_index(self, index: QModelIndex) -> QStandardItem:
+        """ Get item from source model. """
+        source_index = self.mapToSource(index)
+        return self.sourceModel().itemFromIndex(source_index)
+
+    def map_to_source_lst(self, indexes: List[QModelIndex]) -> List[QModelIndex]:
+        """ Map a list of indexes to the source model. """
+        return [self.mapToSource(ix) for ix in indexes]
+
+    def map_from_source_lst(self, indexes: List[QModelIndex]) -> List[QModelIndex]:
+        """ Map a list of source indexes to the proxy model. """
+        return [self.mapFromSource(ix) for ix in indexes]
+
+    def filterAcceptsRow(self, source_row: int, source_parent: QStandardItem) -> bool:
+        """ Set up filtering rules for the model. """
+
+        def valid():
+            if fval:
+                return fval.lower() in val.lower()
+            else:
+                return True
+
+        if not any(self._filter_tup):
+            return True
+
+        # first item can be either parent for 'tree' structure or a normal item
+        ix0 = self.sourceModel().index(source_row, 0, source_parent)
+        it0 = self.sourceModel().itemFromIndex(ix0)
+
+        if it0.hasChildren():
+            # exclude parent nodes (these are enabled due to recursive filter)
+            return False
+
+        else:
+            variable_data = it0.data(role=Qt.UserRole)
+
+            # check if all filter fields match
+            for k, fval in self._filter_tup._asdict().items():
+                if not fval:
+                    continue
+                else:
+                    fval = fval.strip()
+                    val = variable_data.__getattribute__(k)
+
+                if not valid():
+                    # condition fails if any of filter fields does not match
+                    return False
+
+            return True
+
+    def find_match(self, variables: List[VariableData], key: str) -> QItemSelection:
+        """ Check if output variables are available in a new model. """
+        selection = QItemSelection()
+        test_variables = [var.variable for var in variables]
+        num_rows = self.rowCount()
+        for i in range(num_rows):
+            p_ix = self.index(i, 0)
+            var = self.data_at_index(p_ix)
+            if var.variable in test_variables:
+                selection.append(QItemSelectionRange(p_ix))
+
+        return selection
+
+    def flags(self, index: QModelIndex) -> None:
+        """ Set item flags. """
+        if self.hasChildren(index):
+            return Qt.ItemIsEnabled | Qt.ItemIsSelectable
+
+        return Qt.ItemIsEnabled | Qt.ItemIsDragEnabled | Qt.ItemIsSelectable
+
+
 class SimpleView(QTreeView):
     selectionCleared = Signal()
     selectionPopulated = Signal(list)
@@ -29,8 +182,8 @@ class SimpleView(QTreeView):
             self,
             id_: int,
             name: str,
-            model_cls: Type[QStandardItemModel],
-            proxymodel_cls: Type[QSortFilterProxyModel]
+            model_cls=SimpleViewModel,
+            proxymodel_cls=SimpleFilterModel
     ):
         super().__init__()
         self.setRootIsDecorated(True)
@@ -340,156 +493,3 @@ class SimpleView(QTreeView):
         self.selectionModel().select(
             proxy_selection, QItemSelectionModel.Select | QItemSelectionModel.Rows
         )
-
-
-class SimpleViewModel(QStandardItemModel):
-    def __init__(self):
-        super().__init__()
-
-    @staticmethod
-    def _append_row(
-            parent: QStandardItem,
-            row: Sequence[str],
-            item_row: List[QStandardItem],
-            indexes: Dict[str, int]
-    ) -> None:
-        """ Append row to the given parent. """
-        # assign status tip for all items in row
-        variable = row[indexes["variable"]]
-        proxy_units = row[indexes["units"]]
-        source_units = row[indexes["source units"]]
-        status_tip = f"{variable} | {proxy_units}"
-
-        # show all the info for each item in row
-        for item in item_row:
-            item.setStatusTip(status_tip)
-
-        # first item holds the variable data used for search
-        item_row[0].setData(
-            VariableData(
-                key=None, variable=variable, units=source_units, proxyunits=proxy_units
-            ),
-            role=Qt.UserRole,
-        )
-
-        parent.appendRow(item_row)
-
-    def append_plain_rows(self, variables_df: pd.DataFrame, indexes: Dict[str, int]) -> None:
-        for row in variables_df.values:
-            item_row = [QStandardItem(item) for item in row[:-1]]
-            self._append_row(self, row, item_row, indexes)
-
-    def populate_model(self, variables_df: pd.DataFrame, is_tree: bool) -> None:
-        """  Create a model and set up its appearance. """
-        _ = is_tree  # convenience attribute to be used for tree view
-        columns = variables_df.columns.tolist()
-        key_index = columns.index("key") if "key" in columns else None
-        indexes = {
-            "key": key_index,
-            "variable": columns.index("variable"),
-            "units": columns.index("units"),
-            "source units": columns.index("source units"),
-        }
-        # create plain table when tree structure not requested
-        self.append_plain_rows(variables_df, indexes)
-
-
-class SimpleFilterModel(QSortFilterProxyModel):
-    def __init__(self):
-        super().__init__()
-        self._filter_tup = FilterTuple(key="", variable="", units="")
-
-    def setFilterTuple(self, filter_tup: FilterTuple) -> None:
-        self._filter_tup = filter_tup
-        self.invalidateFilter()
-
-    def get_logical_names(self) -> List[str]:
-        """ Get names sorted by logical index. """
-        num = self.columnCount()
-        return [self.headerData(i, Qt.Horizontal).lower() for i in range(num)]
-
-    def get_logical_index(self, name: str) -> int:
-        """ Get a logical index of a given section title. """
-        return self.get_logical_names().index(name)
-
-    def get_logical_indexes(self) -> Dict[str, int]:
-        """ Return logical positions of header labels. """
-        names = self.get_logical_names()
-        return {
-            "variable": names.index("variable"),
-            "units": names.index("units"),
-        }
-
-    def data_at_index(self, index: QModelIndex) -> VariableData:
-        """ Get item data from source model. """
-        return self.item_at_index(index).data(Qt.UserRole)
-
-    def item_at_index(self, index: QModelIndex) -> QStandardItem:
-        """ Get item from source model. """
-        source_index = self.mapToSource(index)
-        return self.sourceModel().itemFromIndex(source_index)
-
-    def map_to_source_lst(self, indexes: List[QModelIndex]) -> List[QModelIndex]:
-        """ Map a list of indexes to the source model. """
-        return [self.mapToSource(ix) for ix in indexes]
-
-    def map_from_source_lst(self, indexes: List[QModelIndex]) -> List[QModelIndex]:
-        """ Map a list of source indexes to the proxy model. """
-        return [self.mapFromSource(ix) for ix in indexes]
-
-    def filterAcceptsRow(self, source_row: int, source_parent: QStandardItem) -> bool:
-        """ Set up filtering rules for the model. """
-
-        def valid():
-            if fval:
-                return fval.lower() in val.lower()
-            else:
-                return True
-
-        if not any(self._filter_tup):
-            return True
-
-        # first item can be either parent for 'tree' structure or a normal item
-        ix0 = self.sourceModel().index(source_row, 0, source_parent)
-        it0 = self.sourceModel().itemFromIndex(ix0)
-
-        if it0.hasChildren():
-            # exclude parent nodes (these are enabled due to recursive filter)
-            return False
-
-        else:
-            variable_data = it0.data(role=Qt.UserRole)
-
-            # check if all filter fields match
-            for k, fval in self._filter_tup._asdict().items():
-                if not fval:
-                    continue
-                else:
-                    fval = fval.strip()
-                    val = variable_data.__getattribute__(k)
-
-                if not valid():
-                    # condition fails if any of filter fields does not match
-                    return False
-
-            return True
-
-    def find_match(self, variables: List[VariableData], key: str) -> QItemSelection:
-        """ Check if output variables are available in a new model. """
-        selection = QItemSelection()
-        test_variables = [var.variable for var in variables]
-        num_rows = self.rowCount()
-        for i in range(num_rows):
-            p_ix = self.index(i, 0)
-            var = self.data_at_index(p_ix)
-            if var.variable in test_variables:
-                selection.append(QItemSelectionRange(p_ix))
-
-        return selection
-
-    def flags(self, index: QModelIndex) -> None:
-        """ Set item flags. """
-        if self.hasChildren(index):
-            return Qt.ItemIsEnabled | Qt.ItemIsSelectable
-
-        return Qt.ItemIsEnabled | Qt.ItemIsDragEnabled | Qt.ItemIsSelectable

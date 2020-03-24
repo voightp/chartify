@@ -2,17 +2,143 @@ from typing import Dict, List, Set, Sequence
 
 import pandas as pd
 from PySide2.QtCore import (
-    Qt,
     QItemSelection,
     QItemSelectionRange,
     Signal,
-    QModelIndex
+    QModelIndex,
+    Qt
 )
 from PySide2.QtGui import QStandardItem
 from PySide2.QtWidgets import QHeaderView
 
 from chartify.ui.simpleview import SimpleView, SimpleFilterModel, SimpleViewModel
 from chartify.utils.utils import FilterTuple, VariableData
+
+
+class TreeViewModel(SimpleViewModel):
+    def __init__(self):
+        super().__init__()
+
+    @staticmethod
+    def _append_row(
+            parent: QStandardItem,
+            row: Sequence[str],
+            item_row: List[QStandardItem],
+            indexes: Dict[str, int]
+    ) -> None:
+        """ Append row to the given parent. """
+        # assign status tip for all items in row
+        key = row[indexes["key"]]
+        variable = row[indexes["variable"]]
+        proxy_units = row[indexes["units"]]
+        source_units = row[indexes["source units"]]
+        status_tip = f"{key} | {variable} | {proxy_units}"
+
+        # show all the info for each item in row
+        for item in item_row:
+            item.setStatusTip(status_tip)
+
+        # first item holds the variable data used for search
+        item_row[0].setData(
+            VariableData(
+                key=key, variable=variable, units=source_units, proxyunits=proxy_units
+            ),
+            role=Qt.UserRole,
+        )
+
+        parent.appendRow(item_row)
+
+    def append_tree_rows(self, variables_df: pd.DataFrame, indexes: Dict[str, int]) -> None:
+        """ Add rows for a tree like view. """
+        root = self.invisibleRootItem()
+        grouped = variables_df.groupby(by=[variables_df.columns[0]])
+        for parent, df in grouped:
+            if len(df.index) == 1:
+                self.append_plain_rows(df, indexes)
+            else:
+                parent_item = QStandardItem(parent)
+                parent_item.setDragEnabled(False)
+                root.appendRow(parent_item)
+                for row in df.values:
+                    # first standard item is empty to avoid
+                    # having parent string in the child row
+                    item_row = [QStandardItem("")]
+
+                    # source units will not be displayed (last item)
+                    for item in row[1:-1]:
+                        item_row.append(QStandardItem(item))
+
+                    self._append_row(parent_item, row, item_row, indexes)
+
+    def populate_model(self, variables_df: pd.DataFrame, is_tree: bool) -> None:
+        """  Create a model and set up its appearance. """
+        columns = variables_df.columns.tolist()
+        indexes = {
+            "key": columns.index("key"),
+            "variable": columns.index("variable"),
+            "units": columns.index("units"),
+            "source units": columns.index("source units"),
+        }
+
+        if not is_tree:
+            # create plain table when tree structure not requested
+            self.append_plain_rows(variables_df, indexes)
+        else:
+            self.append_tree_rows(variables_df, indexes)
+
+
+class TreeFilterModel(SimpleFilterModel):
+    def __init__(self):
+        super().__init__()
+
+    def get_logical_indexes(self) -> Dict[str, int]:
+        """ Return logical positions of header labels. """
+        names = self.get_logical_names()
+        return {
+            "key": names.index("key"),
+            "variable": names.index("variable"),
+            "units": names.index("units"),
+        }
+
+    def find_match(self, variables: List[VariableData], key: str) -> QItemSelection:
+        """ Check if output variables are available in a new model. """
+
+        def check_var():
+            v = (var.key, var.variable)
+            return v in test_variables
+
+        selection = QItemSelection()
+        test_variables = [(var.key, var.variable) for var in variables]
+
+        # create a list which holds parent parts of currently
+        # selected items, if the part of variable does not match,
+        # than the variable (or any children) will not be selected
+        quick_check = [var.__getattribute__(key) for var in variables]
+
+        num_rows = self.rowCount()
+        for i in range(num_rows):
+            # loop through the first column
+            p_ix = self.index(i, 0)
+            dt = self.data(p_ix)
+
+            if dt not in quick_check:
+                # skip the variable as a quick check part does not match
+                continue
+
+            if self.hasChildren(p_ix):
+                # check if the variable is nested
+                num_child_rows = self.rowCount(p_ix)
+                for j in range(num_child_rows):
+                    ix = self.index(j, 0, p_ix)
+                    var = self.data_at_index(ix)
+                    if check_var():
+                        selection.append(QItemSelectionRange(ix))
+            else:
+                var = self.data_at_index(p_ix)
+                if check_var():
+                    selection.append(QItemSelectionRange(p_ix))
+
+        return selection
 
 
 class TreeView(SimpleView):
@@ -196,129 +322,3 @@ class TreeView(SimpleView):
         if proxy_model.hasChildren(index):
             name = proxy_model.data(index)
             self.viewSettingsChanged.emit({"expanded": name})
-
-
-class TreeViewModel(SimpleViewModel):
-    def __init__(self):
-        super().__init__()
-
-    @staticmethod
-    def _append_row(
-            parent: QStandardItem,
-            row: Sequence[str],
-            item_row: List[QStandardItem],
-            indexes: Dict[str, int]
-    ) -> None:
-        """ Append row to the given parent. """
-        # assign status tip for all items in row
-        key = row[indexes["key"]]
-        variable = row[indexes["variable"]]
-        proxy_units = row[indexes["units"]]
-        source_units = row[indexes["source units"]]
-        status_tip = f"{key} | {variable} | {proxy_units}"
-
-        # show all the info for each item in row
-        for item in item_row:
-            item.setStatusTip(status_tip)
-
-        # first item holds the variable data used for search
-        item_row[0].setData(
-            VariableData(
-                key=key, variable=variable, units=source_units, proxyunits=proxy_units
-            ),
-            role=Qt.UserRole,
-        )
-
-        parent.appendRow(item_row)
-
-    def append_tree_rows(self, variables_df: pd.DataFrame, indexes: Dict[str, int]) -> None:
-        """ Add rows for a tree like view. """
-        root = self.invisibleRootItem()
-        grouped = variables_df.groupby(by=[variables_df.columns[0]])
-        for parent, df in grouped:
-            if len(df.index) == 1:
-                self.append_plain_rows(df, indexes)
-            else:
-                parent_item = QStandardItem(parent)
-                parent_item.setDragEnabled(False)
-                root.appendRow(parent_item)
-                for row in df.values:
-                    # first standard item is empty to avoid
-                    # having parent string in the child row
-                    item_row = [QStandardItem("")]
-
-                    # source units will not be displayed (last item)
-                    for item in row[1:-1]:
-                        item_row.append(QStandardItem(item))
-
-                    self._append_row(parent_item, row, item_row, indexes)
-
-    def populate_model(self, variables_df: pd.DataFrame, is_tree: bool) -> None:
-        """  Create a model and set up its appearance. """
-        columns = variables_df.columns.tolist()
-        indexes = {
-            "key": columns.index("key"),
-            "variable": columns.index("variable"),
-            "units": columns.index("units"),
-            "source units": columns.index("source units"),
-        }
-
-        if not is_tree:
-            # create plain table when tree structure not requested
-            self.append_plain_rows(variables_df, indexes)
-        else:
-            self.append_tree_rows(variables_df, indexes)
-
-
-class TreeFilterModel(SimpleFilterModel):
-    def __init__(self):
-        super().__init__()
-
-    def get_logical_indexes(self) -> Dict[str, int]:
-        """ Return logical positions of header labels. """
-        names = self.get_logical_names()
-        return {
-            "key": names.index("key"),
-            "variable": names.index("variable"),
-            "units": names.index("units"),
-        }
-
-    def find_match(self, variables: List[VariableData], key: str) -> QItemSelection:
-        """ Check if output variables are available in a new model. """
-
-        def check_var():
-            v = (var.key, var.variable)
-            return v in test_variables
-
-        selection = QItemSelection()
-        test_variables = [(var.key, var.variable) for var in variables]
-
-        # create a list which holds parent parts of currently
-        # selected items, if the part of variable does not match,
-        # than the variable (or any children) will not be selected
-        quick_check = [var.__getattribute__(key) for var in variables]
-
-        num_rows = self.rowCount()
-        for i in range(num_rows):
-            # loop through the first column
-            p_ix = self.index(i, 0)
-            dt = self.data(p_ix)
-
-            if dt not in quick_check:
-                # skip the variable as a quick check part does not match
-                continue
-
-            if self.hasChildren(p_ix):
-                # check if the variable is nested
-                num_child_rows = self.rowCount(p_ix)
-                for j in range(num_child_rows):
-                    ix = self.index(j, 0, p_ix)
-                    var = self.data_at_index(ix)
-                    if check_var():
-                        selection.append(QItemSelectionRange(ix))
-            else:
-                var = self.data_at_index(p_ix)
-                if check_var():
-                    selection.append(QItemSelectionRange(p_ix))
-
-        return selection
