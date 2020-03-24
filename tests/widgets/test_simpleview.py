@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
-from PySide2.QtCore import Qt, QModelIndex
+from PySide2.QtCore import Qt
 from PySide2.QtWidgets import QHeaderView, QSizePolicy
 from esofile_reader import EsoFile
 
@@ -35,6 +35,7 @@ def simple_view(qtbot, hourly_df):
     simple_view.setFixedWidth(WIDTH)
     simple_view.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
     simple_view.populate_view(variables_df=hourly_df.copy(), interval="hourly", is_tree=True)
+    simple_view.update_view_appearance()
     simple_view.show()
     qtbot.addWidget(simple_view)
     return simple_view
@@ -66,46 +67,6 @@ def test_build_simple_view(qtbot, simple_view: SimpleView, hourly_df: pd.DataFra
     assert simple_view.model().sourceModel().rowCount() == 49
 
     assert simple_view.interval == "hourly"
-    assert simple_view.is_tree
-    assert not simple_view.rate_to_energy
-    assert simple_view.units_system == "SI"
-    assert simple_view.energy_units == "J"
-    assert not simple_view.next_update_forced
-
-
-def test_first_column_spanned(simple_view: SimpleView, hourly_df: pd.DataFrame):
-    proxy_model = simple_view.model()
-    for i in range(proxy_model.rowCount()):
-        index = proxy_model.index(i, 0)
-        item = proxy_model.item_at_index(index)
-        if item.hasChildren():
-            assert simple_view.isFirstColumnSpanned(i, simple_view.rootIndex())
-            for j in range(item.rowCount()):
-                assert not simple_view.isFirstColumnSpanned(j, index)
-        else:
-            assert not simple_view.isFirstColumnSpanned(i, simple_view.rootIndex())
-
-
-def test_initial_view_appearance(simple_view: SimpleView, hourly_df: pd.DataFrame):
-    assert simple_view.header().sectionSize(0) == 200
-    assert simple_view.header().sectionSize(1) == 130
-    assert simple_view.header().sectionSize(2) == 70
-
-    assert not simple_view.header().stretchLastSection()
-    assert simple_view.header().sectionResizeMode(0) == QHeaderView.Interactive
-    assert simple_view.header().sectionResizeMode(1) == QHeaderView.Stretch
-    assert simple_view.header().sectionResizeMode(2) == QHeaderView.Fixed
-
-    assert simple_view.header().sortIndicatorOrder() == Qt.AscendingOrder
-
-
-def test_build_plain_view(qtbot, simple_view: SimpleView, hourly_df: pd.DataFrame):
-    simple_view.populate_view(variables_df=hourly_df, interval="hourly", is_tree=False)
-
-    assert simple_view.model().rowCount() == 77
-    assert simple_view.model().sourceModel().rowCount() == 77
-
-    assert simple_view.interval == "hourly"
     assert not simple_view.is_tree
     assert not simple_view.rate_to_energy
     assert simple_view.units_system == "SI"
@@ -113,74 +74,29 @@ def test_build_plain_view(qtbot, simple_view: SimpleView, hourly_df: pd.DataFram
     assert not simple_view.next_update_forced
 
 
-def test_first_column_not_spanned(simple_view: SimpleView, hourly_df: pd.DataFrame):
-    simple_view.populate_view(variables_df=hourly_df, interval="hourly", is_tree=False)
-    proxy_model = simple_view.model()
-    for i in range(proxy_model.rowCount()):
-        index = proxy_model.index(i, 0)
-        item = proxy_model.item_at_index(index)
-        if item.hasChildren():
-            assert False, "Plain model should not have any child items!"
-        else:
-            assert not simple_view.isFirstColumnSpanned(i, simple_view.rootIndex())
+def test_initial_view_appearance(qtbot, simple_view: SimpleView, hourly_df: pd.DataFrame):
+    assert simple_view.header().sectionSize(0) == 330
+    assert simple_view.header().sectionSize(1) == 70
 
+    assert not simple_view.header().stretchLastSection()
+    assert simple_view.header().sectionResizeMode(0) == QHeaderView.Stretch
+    assert simple_view.header().sectionResizeMode(1) == QHeaderView.Fixed
 
-def test_resize_header(simple_view: SimpleView, hourly_df: pd.DataFrame):
-    simple_view.populate_view(variables_df=hourly_df, interval="hourly", is_tree=False)
-    simple_view.resize_header({"interactive": 250, "fixed": 100})
-
-    assert simple_view.header().sectionSize(0) == 250
-    assert simple_view.header().sectionSize(1) == 50
-    assert simple_view.header().sectionSize(2) == 100
-
-
-def test_on_sort_order_changed_build_tree(qtbot, simple_view: SimpleView, hourly_df: pd.DataFrame):
-    assert simple_view.get_visual_names() == ["variable", "key", "units"]
-
-    with qtbot.wait_signal(simple_view.treeNodeChanged, timeout=1000):
-        simple_view.header().moveSection(2, 0)
-        assert simple_view.get_visual_names() == ["units", "variable", "key"]
-        assert simple_view.header().sortIndicatorOrder() == Qt.AscendingOrder
-
-
-def test_on_sort_order_changed_no_build_tree(qtbot, simple_view: SimpleView,
-                                             hourly_df: pd.DataFrame):
-    assert simple_view.get_visual_names() == ["variable", "key", "units"]
-
-    with qtbot.assertNotEmitted(simple_view.treeNodeChanged):
-        simple_view.header().moveSection(2, 1)
-
-
-def test_on_view_resized(qtbot, simple_view: SimpleView, hourly_df: pd.DataFrame):
-    def test_size(dct):
-        return dct["interactive"] == 125
-
-    with qtbot.wait_signal(simple_view.viewSettingsChanged, check_params_cb=test_size):
-        simple_view.header().resizeSection(0, 125)
+    assert simple_view.header().sortIndicatorOrder() == Qt.AscendingOrder
 
 
 def test_on_view_resized_stretch(qtbot, simple_view: SimpleView, hourly_df: pd.DataFrame):
+    simple_view.update_view_appearance()
     with qtbot.assertNotEmitted(simple_view.viewSettingsChanged):
         simple_view.header().resizeSection(1, 125)
 
 
-def test_on_section_moved_rebuild(qtbot, simple_view: SimpleView, hourly_df: pd.DataFrame):
+def test_on_section_moved(qtbot, simple_view: SimpleView, hourly_df: pd.DataFrame):
     def test_header(dct):
-        return dct["header"] == ["key", "units", "variable"]
+        return dct["header"] == ("units", "variable")
 
-    signals = [(simple_view.viewSettingsChanged, "0"), (simple_view.treeNodeChanged, "1")]
-    callbacks = [test_header, None]
-    with qtbot.wait_signals(signals=signals, check_params_cbs=callbacks):
-        simple_view.header().moveSection(0, 2)
-
-
-def test_on_section_moved_plain_view(qtbot, simple_view: SimpleView, hourly_df: pd.DataFrame):
-    def test_header(dct):
-        return dct["header"] == ["key", "units", "variable"]
-
-    simple_view.populate_view(variables_df=hourly_df, interval="hourly", is_tree=False)
     with qtbot.wait_signal(simple_view.viewSettingsChanged, check_params_cb=test_header):
-        simple_view.header().moveSection(0, 2)
+        simple_view.header().moveSection(0, 1)
 
 
 def test_on_slider_moved(simple_view: SimpleView, hourly_df: pd.DataFrame):
@@ -191,7 +107,7 @@ def test_on_slider_moved(simple_view: SimpleView, hourly_df: pd.DataFrame):
 
 def test_on_double_clicked(qtbot, simple_view: SimpleView, hourly_df: pd.DataFrame):
     def variable_data(index):
-        test_data = VariableData("BOILER", "Boiler Gas Rate", "W", "W")
+        test_data = VariableData(None, "Boiler Gas Rate", "W", "W")
         data = simple_view.model().data_at_index(index)
         return test_data == data
 
@@ -206,54 +122,27 @@ def test_on_double_clicked(qtbot, simple_view: SimpleView, hourly_df: pd.DataFra
         qtbot.mouseDClick(simple_view.viewport(), Qt.LeftButton, pos=point)
 
 
-def test_on_double_clicked_parent(qtbot, simple_view: SimpleView, hourly_df: pd.DataFrame):
-    index = simple_view.model().index(7, 0)
-    point = simple_view.visualRect(index).center()
+def test_on_double_clicked_second_column(
+        qtbot, simple_view: SimpleView, hourly_df: pd.DataFrame
+):
+    def variable_data(index):
+        test_data = VariableData(None, "Boiler Gas Rate", "W", "W")
+        data = simple_view.model().data_at_index(index.siblingAtColumn(0))
+        return test_data == data
+
+    point = simple_view.visualRect(simple_view.model().index(1, 1)).center()
     # need to move mouse to hover over view
     qtbot.mouseMove(simple_view.viewport(), pos=point)
-    with qtbot.assert_not_emitted(simple_view.itemDoubleClicked):
-        with  qtbot.wait_signal(simple_view.doubleClicked):
-            # need to click first as single double click would emit only pressed signal
-            qtbot.mouseClick(simple_view.viewport(), Qt.LeftButton, pos=point)
-            qtbot.mouseDClick(simple_view.viewport(), Qt.LeftButton, pos=point)
-
-    assert simple_view.isExpanded(index)
-
-
-def test_select_all_children_expanded_parent(qtbot, simple_view: SimpleView,
-                                             hourly_df: pd.DataFrame):
-    index = simple_view.model().index(7, 0)
-    point = simple_view.visualRect(index).center()
-    # need to move mouse to hover over view
-    qtbot.mouseMove(simple_view.viewport(), pos=point)
-    # need to click first as single double click would emit only pressed signal
-    qtbot.mouseClick(simple_view.viewport(), Qt.LeftButton, pos=point)
-    qtbot.mouseDClick(simple_view.viewport(), Qt.LeftButton, pos=point)
-
-    assert simple_view.isExpanded(index)
-
-    def test_data(variable_data):
-        dt = [
-            VariableData(
-                "BLOCK1:ZONEB FAN COIL UNIT COOLING COIL",
-                "Cooling Coil Sensible Cooling Rate",
-                "W",
-                "W"
-            ),
-            VariableData(
-                "BLOCK1:ZONEA FAN COIL UNIT COOLING COIL",
-                "Cooling Coil Sensible Cooling Rate",
-                "W",
-                "W")
-        ]
-        return dt == variable_data
-
-    with qtbot.wait_signal(simple_view.selectionPopulated, check_params_cb=test_data):
+    signals = [simple_view.doubleClicked, simple_view.itemDoubleClicked]
+    callbacks = [variable_data, None]
+    with  qtbot.wait_signals(signals, check_params_cbs=callbacks):
+        # need to click first as single double click would emit only pressed signal
         qtbot.mouseClick(simple_view.viewport(), Qt.LeftButton, pos=point)
+        qtbot.mouseDClick(simple_view.viewport(), Qt.LeftButton, pos=point)
 
 
 def test_on_pressed(qtbot, simple_view: SimpleView, hourly_df: pd.DataFrame):
-    test_data = VariableData("BOILER", "Boiler Gas Rate", "W", "W")
+    test_data = VariableData(None, "Boiler Gas Rate", "W", "W")
 
     def variable_data1(index):
         data = simple_view.model().data_at_index(index)
@@ -273,121 +162,76 @@ def test_on_pressed(qtbot, simple_view: SimpleView, hourly_df: pd.DataFrame):
         qtbot.mousePress(simple_view.viewport(), Qt.LeftButton, pos=point)
 
 
-def test_on_pressed_collapsed_parent(qtbot, simple_view: SimpleView, hourly_df: pd.DataFrame):
-    def variable_data1(index):
-        data = simple_view.model().data(index)
-        return data == "Cooling Coil Sensible Cooling Rate"
-
-    index = simple_view.model().index(7, 0)
-    press_point = simple_view.visualRect(index).center()
-    # need to move mouse to hover over view
-    qtbot.mouseMove(simple_view.viewport(), pos=press_point)
-    signals = [simple_view.pressed, simple_view.selectionCleared]
-    callbacks = [variable_data1, None]
-    with  qtbot.wait_signals(signals, check_params_cbs=callbacks):
-        # need to click first as single double click would emit only pressed signal
-        qtbot.mousePress(simple_view.viewport(), Qt.LeftButton, pos=press_point)
-
-    assert not simple_view.isExpanded(index)
-
-
-def test_on_collapsed(qtbot, simple_view: SimpleView, hourly_df: pd.DataFrame):
-    index = simple_view.model().index(7, 0)
-    simple_view.expand(index)
+def test_on_pressed_right_mb(qtbot, simple_view: SimpleView, hourly_df: pd.DataFrame):
+    index = simple_view.model().index(1, 0)
     point = simple_view.visualRect(index).center()
-    # need to move mouse to hover over view
     qtbot.mouseMove(simple_view.viewport(), pos=point)
-
-    def test_collapsed(dct):
-        return dct["collapsed"] == "Cooling Coil Sensible Cooling Rate"
-
-    with qtbot.wait_signal(simple_view.viewSettingsChanged, check_params_cb=test_collapsed):
-        qtbot.mouseClick(simple_view.viewport(), Qt.LeftButton, pos=point)
-        qtbot.mouseDClick(simple_view.viewport(), Qt.LeftButton, pos=point)
-
-    assert not simple_view.isExpanded(index)
+    with qtbot.assert_not_emitted(simple_view.pressed, ):
+        qtbot.mousePress(simple_view.viewport(), Qt.RightButton, pos=point)
 
 
-def test_on_expanded(qtbot, simple_view: SimpleView, eso_file: EsoFile):
-    index = simple_view.model().index(7, 0)
-    point = simple_view.visualRect(index).center()
-    # need to move mouse to hover over view
-    qtbot.mouseMove(simple_view.viewport(), pos=point)
-
-    def test_collapsed(dct):
-        return dct["expanded"] == "Cooling Coil Sensible Cooling Rate"
-
-    with qtbot.wait_signal(simple_view.viewSettingsChanged, check_params_cb=test_collapsed):
-        qtbot.mouseClick(simple_view.viewport(), Qt.LeftButton, pos=point)
-        qtbot.mouseDClick(simple_view.viewport(), Qt.LeftButton, pos=point)
-
-    assert simple_view.isExpanded(index)
-
-
-def test_filter_view(simple_view: SimpleView, daily_df: pd.DataFrame):
+def test_is_tree_kwarg(simple_view: SimpleView, daily_df: pd.DataFrame):
     simple_view.populate_view(
         variables_df=daily_df,
         interval="daily",
-        is_tree=True,
+        is_tree=True
     )
+    # simpleview is always plain table
+    assert not simple_view.is_tree
+
+
+def test_filter_view(simple_view: SimpleView):
     simple_view.filter_view(FilterTuple(key="block1:zonea", variable="temperature", units=""))
 
-    assert simple_view.model().rowCount() == 3
+    assert simple_view.model().rowCount() == 5
     assert simple_view.model().sourceModel().rowCount() == 49
 
-    index0 = simple_view.model().index(0, 0)
-    index1 = simple_view.model().index(1, 0)
-    index2 = simple_view.model().index(2, 0)
+    test_data = [
+        VariableData(None, "Site Outdoor Air Dewpoint Temperature", "C", "C"),
+        VariableData(None, "Site Outdoor Air Drybulb Temperature", "C", "C"),
+        VariableData(None, "Zone Mean Air Temperature", "C", "C"),
+        VariableData(None, "Zone Mean Radiant Temperature", "C", "C"),
+        VariableData(None, "Zone Operative Temperature", "C", "C"),
+    ]
 
-    assert simple_view.isExpanded(index0)
-    assert simple_view.isExpanded(index1)
-    assert simple_view.isExpanded(index2)
-
-    child_index0 = simple_view.model().index(0, 0, index0)
-    child_index1 = simple_view.model().index(0, 0, index1)
-    child_index2 = simple_view.model().index(0, 0, index2)
-
-    vd0 = VariableData("BLOCK1:ZONEA", "Zone Mean Air Temperature", "C", "C")
-    vd1 = VariableData("BLOCK1:ZONEA", "Zone Mean Radiant Temperature", "C", "C")
-    vd2 = VariableData("BLOCK1:ZONEA", "Zone Operative Temperature", "C", "C")
-
-    assert simple_view.model().data_at_index(child_index0) == vd0
-    assert simple_view.model().data_at_index(child_index1) == vd1
-    assert simple_view.model().data_at_index(child_index2) == vd2
-
-    child_index_invalid = simple_view.model().index(1, 0, index0)
-    assert child_index_invalid == QModelIndex()
+    for i, test_var in enumerate(test_data):
+        index = simple_view.model().index(i, 0)
+        data = simple_view.model().data_at_index(index)
+        print(data)
+        print(test_var)
+        assert data == test_var
 
 
 def test_get_visual_names(simple_view: SimpleView):
-    assert simple_view.get_visual_names() == ["variable", "key", "units"]
+    assert simple_view.get_visual_names() == ("variable", "units")
 
-    simple_view.reshuffle_columns(["units", "variable", "key"])
-    assert simple_view.get_visual_names() == ["units", "variable", "key"]
+    simple_view.reshuffle_columns(("units", "variable"))
+    assert simple_view.get_visual_names() == ("units", "variable")
 
 
 def test_get_visual_ixs(simple_view: SimpleView):
-    assert simple_view.get_visual_indexes() == {"variable": 0, "key": 1, "units": 2}
+    assert simple_view.get_visual_indexes() == {"variable": 0, "units": 1}
 
 
 def test_build_view_kwargs_rate_to_energy(simple_view: SimpleView, daily_df: pd.DataFrame):
     simple_view.populate_view(daily_df, "daily", is_tree=True, rate_to_energy=True)
+    simple_view.update_view_appearance()
     proxy_model = simple_view.model()
-    test_data = VariableData("BOILER", "Boiler Gas Rate", "W", "J")
-
+    test_data = VariableData(None, "Boiler Gas Rate", "W", "J")
     assert proxy_model.data_at_index(proxy_model.index(1, 0)) == test_data
-    assert proxy_model.data(proxy_model.index(1, 2)) == "J"
+    assert proxy_model.data(proxy_model.index(1, 1)) == "J"
 
 
 def test_build_view_kwargs_units_system(simple_view: SimpleView, daily_df: pd.DataFrame):
     simple_view.populate_view(daily_df, "daily", is_tree=True, units_system="IP")
+    simple_view.update_view_appearance()
     proxy_model = simple_view.model()
     test_data = VariableData(
-        "Environment", "Site Outdoor Air Dewpoint Temperature", "C", "F"
+        None, "Site Outdoor Air Dewpoint Temperature", "C", "F"
     )
 
     assert proxy_model.data_at_index(proxy_model.index(22, 0)) == test_data
-    assert proxy_model.data(proxy_model.index(22, 2)) == "F"
+    assert proxy_model.data(proxy_model.index(22, 1)) == "F"
 
 
 def test_build_view_kwargs_energy_units(simple_view: SimpleView, daily_df: pd.DataFrame):
@@ -398,110 +242,69 @@ def test_build_view_kwargs_energy_units(simple_view: SimpleView, daily_df: pd.Da
         rate_to_energy=True,
         energy_units="MWh"
     )
+    simple_view.update_view_appearance()
     proxy_model = simple_view.model()
-    test_data = VariableData("BOILER", "Boiler Gas Rate", "W", "MWh")
+    test_data = VariableData(None, "Boiler Gas Rate", "W", "MWh")
 
     assert proxy_model.data_at_index(proxy_model.index(1, 0)) == test_data
-    assert proxy_model.data(proxy_model.index(1, 2)) == "MWh"
+    assert proxy_model.data(proxy_model.index(1, 1)) == "MWh"
 
 
 def test_build_view_kwargs_power_units(simple_view: SimpleView, daily_df: pd.DataFrame):
     simple_view.populate_view(daily_df, "daily", is_tree=True, power_units="MW")
+    simple_view.update_view_appearance()
     proxy_model = simple_view.model()
-    test_data = VariableData("BOILER", "Boiler Gas Rate", "W", "MW")
+    test_data = VariableData(None, "Boiler Gas Rate", "W", "MW")
 
     assert proxy_model.data_at_index(proxy_model.index(1, 0)) == test_data
-    assert proxy_model.data(proxy_model.index(1, 2)) == "MW"
+    assert proxy_model.data(proxy_model.index(1, 1)) == "MW"
 
 
-def test_build_view_kwargs_settings(simple_view: SimpleView, daily_df: pd.DataFrame):
-    widths = {"interactive": 150, "fixed": 50}
-    header = ["variable", "units", "key"]
-    expanded = {"Fan Electric Power", "Heating Coil Heating Rate"}
-    simple_view.update_view_appearance(header, widths, expanded)
+def test_update_view_appearance(simple_view: SimpleView, daily_df: pd.DataFrame):
+    header = ("units", "variable")
     simple_view.populate_view(
         daily_df,
         "daily",
-        is_tree=True,
-        widths=widths,
         header=header,
-        expanded=expanded
     )
 
-    assert simple_view.header().sectionSize(0) == 150
-    assert simple_view.header().sectionSize(1) == 50
-    assert simple_view.header().sectionSize(2) == 200
+    widths = {"fixed": 50}
+    simple_view.update_view_appearance(header=header, widths=widths)
 
-    assert simple_view.get_visual_names() == ["variable", "units", "key"]
+    assert simple_view.header().sectionSize(0) == 50
+    assert simple_view.header().sectionSize(1) == 350
 
-    assert simple_view.isExpanded(simple_view.model().index(11, 0))
-    assert simple_view.isExpanded(simple_view.model().index(13, 0))
-
-
-def test_build_view_kwargs_default_settings(simple_view: SimpleView, daily_df: pd.DataFrame):
-    simple_view.populate_view(
-        daily_df,
-        "daily",
-        is_tree=True,
-    )
-
-    assert simple_view.header().sectionSize(0) == 200
-    assert simple_view.header().sectionSize(1) == 130
-    assert simple_view.header().sectionSize(2) == 70
-
-    assert simple_view.get_visual_names() == ["variable", "key", "units"]
+    assert simple_view.get_visual_names() == ("units", "variable")
 
 
-def test_build_view_reversed_header(simple_view: SimpleView, daily_df: pd.DataFrame):
-    simple_view.populate_view(
-        daily_df,
-        "daily",
-        is_tree=True,
-        header=["units", "key", "variable"]
-    )
+def test_update_view_appearance_default(simple_view: SimpleView, daily_df: pd.DataFrame):
+    simple_view.update_view_appearance()
 
-    assert simple_view.header().sectionSize(0) == 70
-    assert simple_view.header().sectionSize(1) == 200
-    assert simple_view.header().sectionSize(2) == 130
+    assert simple_view.header().sectionSize(0) == 330
+    assert simple_view.header().sectionSize(1) == 70
 
-    assert simple_view.get_visual_names() == ["units", "key", "variable"]
+    assert simple_view.get_visual_names() == ("variable", "units")
 
 
 def test_scroll_to(qtbot, simple_view: SimpleView, hourly_df: pd.DataFrame):
-    v = VariableData("BLOCK1:ZONEA", "Zone Infiltration Air Change Rate", "ach", "ach")
+    v = VariableData(None, "Zone Infiltration Air Change Rate", "ach", "ach")
     with qtbot.wait_signal(simple_view.verticalScrollBar().valueChanged):
         simple_view.scroll_to(v, "variable")
 
-    assert simple_view.verticalScrollBar().value() == 29
-
-
-def test_update_view_appearance(simple_view: SimpleView, hourly_df: pd.DataFrame):
-    widths = {"interactive": 150, "fixed": 50}
-    header = ["variable", "units", "key"]
-    expanded = {"Fan Electric Power", "Heating Coil Heating Rate"}
-    simple_view.update_view_appearance(header, widths, expanded)
-
-    assert simple_view.header().sectionSize(0) == 150
-    assert simple_view.header().sectionSize(2) == 50
-    assert simple_view.header().sectionSize(1) == 200
-
-    assert simple_view.get_visual_names() == ["variable", "units", "key"]
-
-    assert simple_view.isExpanded(simple_view.model().index(11, 0))
-    assert simple_view.isExpanded(simple_view.model().index(13, 0))
+    assert simple_view.verticalScrollBar().value() == 27
 
 
 def test_deselect_variables(qtbot, simple_view: SimpleView, daily_df: pd.DataFrame):
     selected = [
-        VariableData("BOILER", "Boiler Ancillary Electric Power", "W", "kW"),
-        VariableData("BOILER", "Boiler Gas Rate", "W", "kW")
+        VariableData(None, "Boiler Ancillary Electric Power", "W", "kW"),
+        VariableData(None, "Boiler Gas Rate", "W", "kW")
     ]
     simple_view.populate_view(
         daily_df,
         "daily",
-        is_tree=True,
         power_units="kW",
     )
+    simple_view.update_view_appearance()
     simple_view.select_variables(selected)
     proxy_rows = simple_view.selectionModel().selectedRows()
     variables_data = [simple_view.model().data_at_index(index) for index in proxy_rows]
@@ -514,14 +317,42 @@ def test_deselect_variables(qtbot, simple_view: SimpleView, daily_df: pd.DataFra
     assert not simple_view.selectionModel().selectedRows()
 
 
-def test_select_variables(simple_view: SimpleView):
+def test_select_variables(qtbot, simple_view: SimpleView):
+    def variable_data(data):
+        return data == selected
+
     selected = [
-        VariableData("BOILER", "Boiler Ancillary Electric Power", "W", "W"),
-        VariableData("BOILER", "Boiler Gas Rate", "W", "W")
+        VariableData(None, "Boiler Ancillary Electric Power", "W", "W"),
+        VariableData(None, "Boiler Gas Rate", "W", "W")
     ]
-    simple_view.select_variables(selected)
+
+    with qtbot.wait_signal(simple_view.selectionPopulated, check_params_cb=variable_data):
+        simple_view.select_variables(selected)
 
     proxy_rows = simple_view.selectionModel().selectedRows()
     variables_data = [simple_view.model().data_at_index(index) for index in proxy_rows]
 
     assert selected == variables_data
+
+
+def test_select_variables_invalid(qtbot, simple_view: SimpleView):
+    selected = [
+        VariableData(None, "FOO", "W", "W"),
+        VariableData(None, "BAR", "W", "W")
+    ]
+
+    with qtbot.wait_signal(simple_view.selectionCleared):
+        simple_view.select_variables(selected)
+
+
+def test_drag(qtbot, simple_view: SimpleView):
+    # difficult to test something properly as QTest mouse
+    # actions do not have an impact on drag and drop
+    import threading
+
+    def drag():
+        simple_view.startDrag(Qt.CopyAction)
+
+    t = threading.Thread(target=drag)
+    t.start()
+    t.join(0.1)

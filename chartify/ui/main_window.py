@@ -30,8 +30,8 @@ from chartify.ui.icons import Pixmap, filled_circle_pixmap
 from chartify.ui.misc_widgets import DropFrame, TabWidget, MulInputDialog, ConfirmationDialog
 from chartify.ui.progress_widget import ProgressContainer
 from chartify.ui.toolbar import Toolbar
-from chartify.ui.treeview_tools import ViewTools
 from chartify.ui.treeview import TreeView
+from chartify.ui.treeview_tools import ViewTools
 
 
 # noinspection PyPep8Naming,PyUnresolvedReferences
@@ -245,10 +245,8 @@ class MainWindow(QMainWindow):
         # ~~~~ Tree view appearance ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.view_settings = {
             "widths": {"interactive": 200, "fixed": 70},
-            "header": ["variable", "key", "units"],
+            "header": ("variable", "key", "units"),
             "expanded": set(),
-            "scroll": 0,
-            "order": ("variable", Qt.AscendingOrder)
         }
 
         # ~~~~ Connect main ui user actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -397,7 +395,6 @@ class MainWindow(QMainWindow):
         view.treeNodeChanged.connect(self.on_settings_changed)
         view.viewSettingsChanged.connect(self.on_view_settings_changed)
         view.itemDoubleClicked.connect(self.rename_variable)
-        view.context_menu_actions = [self.remove_variables_act]
 
         # add the new view into tab widget
         self.tab_wgt.add_tab(view, name)
@@ -429,8 +426,12 @@ class MainWindow(QMainWindow):
                 units_system=Settings.UNITS_SYSTEM,
                 energy_units=Settings.ENERGY_UNITS,
                 power_units=Settings.POWER_UNITS,
-                settings=self.view_settings
+                header=self.view_settings["header"],
             )
+            # update visual appearance of the view to be consistent
+            # with previously displayed View
+            self.current_view.update_view_appearance(**self.view_settings)
+
             filter_tup = self.view_tools_wgt.get_filter_tup()
             if any(filter_tup):
                 self.current_view.filter_view(filter_tup)

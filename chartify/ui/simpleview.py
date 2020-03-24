@@ -13,7 +13,7 @@ from PySide2.QtCore import (
     QModelIndex
 )
 from PySide2.QtGui import QStandardItemModel, QStandardItem, QDrag, QPixmap
-from PySide2.QtWidgets import QTreeView, QAbstractItemView, QHeaderView, QMenu
+from PySide2.QtWidgets import QTreeView, QAbstractItemView, QHeaderView
 
 from chartify.utils.utils import FilterTuple, VariableData, create_proxy_units_column, \
     SignalBlocker
@@ -56,9 +56,8 @@ class SimpleViewModel(QStandardItemModel):
             item_row = [QStandardItem(item) for item in row[:-1]]
             self._append_row(self, row, item_row, indexes)
 
-    def populate_model(self, variables_df: pd.DataFrame, is_tree: bool) -> None:
+    def populate_model(self, variables_df: pd.DataFrame, **kwargs) -> None:
         """  Create a model and set up its appearance. """
-        _ = is_tree  # convenience attribute to be used for tree view
         columns = variables_df.columns.tolist()
         key_index = columns.index("key") if "key" in columns else None
         indexes = {
@@ -110,16 +109,12 @@ class SimpleFilterModel(QSortFilterProxyModel):
         """ Map a list of indexes to the source model. """
         return [self.mapToSource(ix) for ix in indexes]
 
-    def map_from_source_lst(self, indexes: List[QModelIndex]) -> List[QModelIndex]:
-        """ Map a list of source indexes to the proxy model. """
-        return [self.mapFromSource(ix) for ix in indexes]
-
     def filterAcceptsRow(self, source_row: int, source_parent: QStandardItem) -> bool:
         """ Set up filtering rules for the model. """
 
         def valid():
-            if fval:
-                return fval.lower() in val.lower()
+            if filter_string and val:
+                return filter_string.lower() in val.lower()
             else:
                 return True
 
@@ -138,11 +133,11 @@ class SimpleFilterModel(QSortFilterProxyModel):
             variable_data = it0.data(role=Qt.UserRole)
 
             # check if all filter fields match
-            for k, fval in self._filter_tup._asdict().items():
-                if not fval:
+            for k, filter_string in self._filter_tup._asdict().items():
+                if not filter_string:
                     continue
                 else:
-                    fval = fval.strip()
+                    filter_string = filter_string.strip()
                     val = variable_data.__getattribute__(k)
 
                 if not valid():
@@ -219,9 +214,8 @@ class SimpleView(QTreeView):
         # flag to force next update
         self.next_update_forced = True
 
-        # hold current
+        self.is_tree = False
         self.interval = None
-        self.is_tree = None
         self.rate_to_energy = None
         self.units_system = None
         self.energy_units = None
@@ -232,8 +226,6 @@ class SimpleView(QTreeView):
         self.indicator = (0, Qt.AscendingOrder)
 
         self.verticalScrollBar().valueChanged.connect(self.on_slider_moved)
-        self.expanded.connect(self.on_expanded)
-        self.collapsed.connect(self.on_collapsed)
         self.pressed.connect(self.on_pressed)
         self.doubleClicked.connect(self.on_double_clicked)
 
@@ -248,13 +240,6 @@ class SimpleView(QTreeView):
             return
         else:
             super().mousePressEvent(event)
-
-    def contextMenuEvent(self, event: QEvent) -> None:
-        """ Manage context menu. """
-        menu = QMenu(self)
-        menu.setObjectName("contextMenu")
-        menu.setWindowFlags(menu.windowFlags() | Qt.NoDropShadowWindowHint)
-        menu.exec_(self.mapToGlobal(event.pos()))
 
     def startDrag(self, drop_actions: Qt.DropActions):
         """ Create custom drag event. """
@@ -273,10 +258,10 @@ class SimpleView(QTreeView):
         """ Filter the model using given filter tuple. """
         self.model().setFilterTuple(filter_tup)
 
-    def get_visual_names(self) -> List[str]:
+    def get_visual_names(self) -> tuple:
         """ Return sorted column names (by visual index). """
         dct_items = sorted(self.get_visual_indexes().items(), key=lambda x: x[1])
-        return [t[0] for t in dct_items]
+        return tuple([t[0] for t in dct_items])
 
     def get_visual_indexes(self) -> Dict[str, int]:
         """ Get a dictionary of section visual index pairs. """
@@ -285,12 +270,15 @@ class SimpleView(QTreeView):
 
     def update_view_appearance(
             self,
-            header: List[str],
-            widths: Dict[str, int],
+            header: tuple = ("variable", "units"),
+            widths: Dict[str, int] = None,
             **kwargs
     ) -> None:
         """ Update the model appearance to be consistent with last view. """
         # it's required to adjust columns order to match the last applied order
+        if not widths:
+            widths = {"fixed": 70}
+
         self.reshuffle_columns(header)
 
         # resize sections
@@ -302,7 +290,7 @@ class SimpleView(QTreeView):
         # update slider position
         self.update_scrollbar_position()
 
-    def reshuffle_columns(self, order: List[str]):
+    def reshuffle_columns(self, order: tuple):
         """ Reset column positions to match last visual appearance. """
         for i, nm in enumerate(order):
             vis_names = self.get_visual_names()
@@ -312,10 +300,6 @@ class SimpleView(QTreeView):
 
     def update_scrollbar_position(self):
         """ Set vertical scrollbar position. """
-        # a workaround to always get scrollbar into previous position
-        # qt somehow does not adjust scrollbar maximum when expanding items
-        if self.scrollbar_position > self.verticalScrollBar().maximum():
-            self.verticalScrollBar().setMaximum(self.scrollbar_position)
         self.verticalScrollBar().setValue(self.scrollbar_position)
 
     def update_sort_order(self) -> None:
@@ -339,8 +323,10 @@ class SimpleView(QTreeView):
         log_ixs = self.model().get_logical_indexes()
 
         # units column width is always fixed
-        fixed = log_ixs["units"]
+        fixed = self.model().get_logical_index("units")
+        stretch = self.model().get_logical_index("variable")
         self.header().setSectionResizeMode(fixed, QHeaderView.Fixed)
+        self.header().setSectionResizeMode(stretch, QHeaderView.Stretch)
         self.header().setStretchLastSection(False)
 
         # resize sections programmatically
@@ -350,23 +336,15 @@ class SimpleView(QTreeView):
             self,
             variables_df: pd.DataFrame,
             interval: str,
-            is_tree: bool,
             rate_to_energy: bool = False,
             units_system: str = "SI",
             energy_units: str = "J",
             power_units: str = "W",
-            widths: Dict[str, int] = None,
-            header: List[str] = None,
+            header: tuple = ("variable", "units"),
             **kwargs
     ) -> None:
         """ Set the model and define behaviour of the tree view. """
-        if not widths:
-            widths = {"fixed": 70}
-        if not header:
-            header = ["variable", "units"]
-
         # store current setup as instance attributes
-        self.is_tree = is_tree
         self.interval = interval
         self.rate_to_energy = rate_to_energy
         self.units_system = units_system
@@ -397,19 +375,11 @@ class SimpleView(QTreeView):
             )
 
             # update columns order based on current view
-            view_order = header + ["source units"]
-            variables_df = variables_df[view_order]
+            view_order = header + ("source units",)
+            variables_df = variables_df[list(view_order)]
 
             # feed the data
-            model.populate_model(variables_df, is_tree)
-
-            # make sure that parent column spans full width
-            if is_tree:
-                self.setFirstTreeColumnSpanned()
-
-            # update visual appearance of the view to be consistent
-            # with previously displayed View
-            self.update_view_appearance(header, widths, **kwargs)
+            model.populate_model(variables_df, **kwargs)
 
     def on_sort_order_changed(self, log_ix: int, order: Qt.SortOrder) -> None:
         """ Store current sorting order. """
@@ -480,12 +450,6 @@ class SimpleView(QTreeView):
         """ Select an item programmatically. """
         self.selectionModel().select(
             proxy_index, QItemSelectionModel.Deselect | QItemSelectionModel.Rows
-        )
-
-    def _select_item(self, proxy_index: QModelIndex) -> None:
-        """ Select an item programmatically. """
-        self.selectionModel().select(
-            proxy_index, QItemSelectionModel.Select | QItemSelectionModel.Rows
         )
 
     def _select_items(self, proxy_selection: QItemSelection) -> None:

@@ -1,4 +1,4 @@
-from typing import Dict, List, Set, Sequence
+from typing import Dict, List, Set, Sequence, Tuple
 
 import pandas as pd
 from PySide2.QtCore import (
@@ -147,6 +147,8 @@ class TreeView(SimpleView):
     def __init__(self, id_: int, name: str):
         super().__init__(id_, name, TreeViewModel, TreeFilterModel)
         self.setRootIsDecorated(True)
+        self.expanded.connect(self.on_expanded)
+        self.collapsed.connect(self.on_collapsed)
         self.header().sectionResized.connect(self.on_view_resized)
 
     def setFirstTreeColumnSpanned(self) -> None:
@@ -203,12 +205,15 @@ class TreeView(SimpleView):
         self.header().resizeSection(interactive, widths["interactive"])
 
     def update_view_appearance(
-            self, header: List[str],
-            widths: Dict[str, int],
+            self,
+            header: tuple = ("variable", "key", "units"),
+            widths: Dict[str, int] = None,
             expanded: Set[str] = None,
             **kwargs
     ) -> None:
         """ Update the model appearance to be consistent with last view. """
+        if not widths:
+            widths = {"interactive": 200, "fixed": 70}
         if expanded:
             self.expand_items(expanded)
         super().update_view_appearance(header, widths)
@@ -217,21 +222,15 @@ class TreeView(SimpleView):
             self,
             variables_df: pd.DataFrame,
             interval: str,
-            is_tree: bool,
+            is_tree: bool =True,
             rate_to_energy: bool = False,
             units_system: str = "SI",
             energy_units: str = "J",
             power_units: str = "W",
-            widths: Dict[str, int] = None,
-            header: List[str] = None,
-            expanded: Set[str] = None
+            header: Tuple[str, str, str] = ("variable", "key", "units"),
     ) -> None:
         """ Set the model and define behaviour of the tree view. """
-        if not widths:
-            widths = {"interactive": 200, "fixed": 70}
-        if not header:
-            header = ["variable", "key", "units"]
-
+        self.is_tree = is_tree
         super().populate_view(
             variables_df=variables_df,
             interval=interval,
@@ -240,10 +239,11 @@ class TreeView(SimpleView):
             units_system=units_system,
             energy_units=energy_units,
             power_units=power_units,
-            widths=widths,
             header=header,
-            expanded=expanded
         )
+        # make sure that parent column spans full width
+        if is_tree:
+            self.setFirstTreeColumnSpanned()
 
     def on_view_resized(self, log_ix: int, _, new_size: int) -> None:
         """ Store interactive section width in the main app. """
