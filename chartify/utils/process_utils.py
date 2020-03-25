@@ -69,7 +69,7 @@ def store_file(
         data=results_file.data,
         file_created=results_file.file_created,
         search_tree=results_file.search_tree,
-        totals=isinstance(results_file, TotalsFile),
+        type_=results_file.__class__.__name__,
         pardir=workdir,
         monitor=monitor,
     )

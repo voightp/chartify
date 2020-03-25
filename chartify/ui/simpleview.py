@@ -19,7 +19,20 @@ from chartify.utils.utils import FilterTuple, VariableData, create_proxy_units_c
     SignalBlocker
 
 
-class SimpleViewModel(QStandardItemModel):
+class SimpleModel(QStandardItemModel):
+    """
+    A simple view table model.
+
+    Model only shows two columns 'variable' and 'units'.
+    The 'VariableData' named tuple containing variable
+    information is stored as 'UserData' on the first
+    item in row.
+
+    Source Variables DataFrame must include three columns
+    'variable', 'units' and 'source units'.
+
+    """
+
     def __init__(self):
         super().__init__()
 
@@ -59,9 +72,7 @@ class SimpleViewModel(QStandardItemModel):
     def populate_model(self, variables_df: pd.DataFrame, **kwargs) -> None:
         """  Create a model and set up its appearance. """
         columns = variables_df.columns.tolist()
-        key_index = columns.index("key") if "key" in columns else None
         indexes = {
-            "key": key_index,
             "variable": columns.index("variable"),
             "units": columns.index("units"),
             "source units": columns.index("source units"),
@@ -71,6 +82,12 @@ class SimpleViewModel(QStandardItemModel):
 
 
 class SimpleFilterModel(QSortFilterProxyModel):
+    """
+    Proxy model to be used in conjunction with 'SimpleModel'
+    model. Filtering is provided using custom "FilterTuple" named tuple.
+
+    """
+
     def __init__(self):
         super().__init__()
         self._filter_tup = FilterTuple(key="", variable="", units="")
@@ -168,19 +185,62 @@ class SimpleFilterModel(QSortFilterProxyModel):
 
 
 class SimpleView(QTreeView):
+    """
+    A simple view table view.
+
+    View should be used altogether with underlying
+    'SimpleModel' and 'SimpleFilterModel' which are
+    set up to work with this class.
+
+    Parameters
+    ----------
+    id_: int
+        An id identifier of the base file.
+
+    Attributes
+    ----------
+    id_ : int
+    next_update_forced : bool
+        Automatically schedules next full view rebuild.
+    is_tree : bool
+        Specifies if current view has a tree structure.
+    interval : str
+        Current view interval.
+    rate_to_energy : bool
+        Checks if rate is transposed to energy.
+    units_system : str
+        Current view units system {SI, IP}.
+    energy_units : str
+        Used energy units.
+    power_units : str
+        Used power units.
+    scrollbar_position : int
+        Last scrollbar position.
+    indicator : tuple
+        Last column index and direction.
+
+    Signals
+    -------
+    selectionCleared
+        Is emitted when selection is canceled or any of preselected
+        variables cannot be found in the model.
+    selectionPopulated
+        Is emitted when selection is canceled or any of preselected
+        variables cannot be found in the model.
+    itemDoubleClicked
+         Is emitted on item double click.
+    viewSettingsChanged
+        Is emitted when visual appearence changes.
+
+    """
     selectionCleared = Signal()
     selectionPopulated = Signal(list)
-    itemDoubleClicked = Signal(object)
+    itemDoubleClicked = Signal(list)
     viewSettingsChanged = Signal(dict)
 
-    def __init__(
-            self,
-            id_: int,
-            name: str,
-            model_cls=SimpleViewModel,
-            proxymodel_cls=SimpleFilterModel
-    ):
+    def __init__(self, id_: int, model_cls=SimpleModel, proxymodel_cls=SimpleFilterModel):
         super().__init__()
+        self.id_ = id_
         self.setRootIsDecorated(True)
         self.setUniformRowHeights(True)
         self.setSortingEnabled(True)
@@ -196,9 +256,6 @@ class SimpleView(QTreeView):
         self.setDefaultDropAction(Qt.CopyAction)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         self.setFocusPolicy(Qt.NoFocus)
-
-        self.id_ = id_
-        self.name = name
 
         # create initial view model
         model = model_cls()
@@ -232,6 +289,10 @@ class SimpleView(QTreeView):
         self.header().setFirstSectionMovable(True)
         self.header().sectionMoved.connect(self.on_section_moved)
         self.header().sortIndicatorChanged.connect(self.on_sort_order_changed)
+
+    @property
+    def class_type(self) -> str:
+        return self.__class__.__name__.lower()
 
     def mousePressEvent(self, event: QEvent) -> None:
         """ Handle mouse events. """
@@ -320,8 +381,6 @@ class SimpleView(QTreeView):
 
     def resize_header(self, widths) -> None:
         """ Define resizing behaviour. """
-        log_ixs = self.model().get_logical_indexes()
-
         # units column width is always fixed
         fixed = self.model().get_logical_index("units")
         stretch = self.model().get_logical_index("variable")

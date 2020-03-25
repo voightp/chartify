@@ -30,7 +30,7 @@ def daily_df(eso_file):
 
 @pytest.fixture
 def tree_view(qtbot, hourly_df):
-    tree_view = TreeView(0, "test")
+    tree_view = TreeView(0)
     tree_view.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
     tree_view.setFixedWidth(WIDTH)
     tree_view.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
@@ -59,7 +59,6 @@ def test_init_tree_view(tree_view: TreeView):
     assert tree_view.focusPolicy() == Qt.NoFocus
 
     assert tree_view.id_ == 0
-    assert tree_view.name == "test"
 
 
 def test_build_tree_view(qtbot, tree_view: TreeView, hourly_df: pd.DataFrame):

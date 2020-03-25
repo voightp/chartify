@@ -11,11 +11,11 @@ from PySide2.QtCore import (
 from PySide2.QtGui import QStandardItem
 from PySide2.QtWidgets import QHeaderView
 
-from chartify.ui.simpleview import SimpleView, SimpleFilterModel, SimpleViewModel
+from chartify.ui.simpleview import SimpleView, SimpleFilterModel, SimpleModel
 from chartify.utils.utils import FilterTuple, VariableData
 
 
-class TreeViewModel(SimpleViewModel):
+class TreeViewModel(SimpleModel):
     def __init__(self):
         super().__init__()
 
@@ -70,7 +70,7 @@ class TreeViewModel(SimpleViewModel):
 
                     self._append_row(parent_item, row, item_row, indexes)
 
-    def populate_model(self, variables_df: pd.DataFrame, is_tree: bool) -> None:
+    def populate_model(self, variables_df: pd.DataFrame, is_tree: bool = True) -> None:
         """  Create a model and set up its appearance. """
         columns = variables_df.columns.tolist()
         indexes = {
@@ -144,8 +144,8 @@ class TreeFilterModel(SimpleFilterModel):
 class TreeView(SimpleView):
     treeNodeChanged = Signal()
 
-    def __init__(self, id_: int, name: str):
-        super().__init__(id_, name, TreeViewModel, TreeFilterModel)
+    def __init__(self, id_: int, model_cls=TreeViewModel, proxymodel_cls=TreeFilterModel):
+        super().__init__(id_, model_cls, proxymodel_cls)
         self.setRootIsDecorated(True)
         self.expanded.connect(self.on_expanded)
         self.collapsed.connect(self.on_collapsed)
@@ -222,7 +222,7 @@ class TreeView(SimpleView):
             self,
             variables_df: pd.DataFrame,
             interval: str,
-            is_tree: bool =True,
+            is_tree: bool = True,
             rate_to_energy: bool = False,
             units_system: str = "SI",
             energy_units: str = "J",

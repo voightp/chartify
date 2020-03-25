@@ -161,8 +161,11 @@ class AppController:
         # store file reference in model
         self.m.storage.files[file.id_] = file
 
+        # number of columns can be either 2 or 3
+        simpleview = file.type_ in ["TotalsFile"]
+
         # add new tab into tab widget
-        self.v.add_new_tab(file.id_, name)
+        self.v.add_new_tab(file.id_, name, simpleview=simpleview)
 
     def _apply_async(self, id_: int, func: Callable, *args, **kwargs) -> Any:
         """ A wrapper to apply functions to current views. """

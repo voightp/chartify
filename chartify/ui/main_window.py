@@ -29,6 +29,7 @@ from chartify.ui.css_theme import parse_palette, CssTheme
 from chartify.ui.icons import Pixmap, filled_circle_pixmap
 from chartify.ui.misc_widgets import DropFrame, TabWidget, MulInputDialog, ConfirmationDialog
 from chartify.ui.progress_widget import ProgressContainer
+from chartify.ui.simpleview import SimpleView
 from chartify.ui.toolbar import Toolbar
 from chartify.ui.treeview import TreeView
 from chartify.ui.treeview_tools import ViewTools
@@ -244,9 +245,15 @@ class MainWindow(QMainWindow):
 
         # ~~~~ Tree view appearance ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.view_settings = {
-            "widths": {"interactive": 200, "fixed": 70},
-            "header": ("variable", "key", "units"),
-            "expanded": set(),
+            "simpleview": {
+                "widths": {"fixed": 70},
+                "header": ("variable", "units"),
+            },
+            "treeview": {
+                "widths": {"interactive": 200, "fixed": 70},
+                "header": ("variable", "key", "units"),
+                "expanded": set(),
+            }
         }
 
         # ~~~~ Connect main ui user actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -385,14 +392,19 @@ class MainWindow(QMainWindow):
             self.load_icons()
             self.paletteUpdated.emit()
 
-    def add_new_tab(self, id_, name):
+    def add_new_tab(self, id_, name, simpleview=False):
         """ Add file on the UI. """
         # create an empty 'View' widget - the data will be
         # automatically populated on 'onTabChanged' signal
-        view = TreeView(id_, name)
+        if simpleview:
+            view = SimpleView(id_)
+        else:
+            view = TreeView(id_)
+            view.treeNodeChanged.connect(self.on_settings_changed)
+
+        # connect shared signals
         view.selectionCleared.connect(self.on_selection_cleared)
         view.selectionPopulated.connect(self.on_selection_populated)
-        view.treeNodeChanged.connect(self.on_settings_changed)
         view.viewSettingsChanged.connect(self.on_view_settings_changed)
         view.itemDoubleClicked.connect(self.rename_variable)
 
@@ -417,6 +429,7 @@ class MainWindow(QMainWindow):
             Settings.ENERGY_UNITS != self.current_view.energy_units,
             Settings.POWER_UNITS != self.current_view.power_units
         )
+        view_settings = self.view_settings[self.current_view.class_type]
         if self.current_view and (any(conditions) or self.current_view.next_update_forced):
             self.current_view.populate_view(
                 variables_df=variables_df,
@@ -426,11 +439,11 @@ class MainWindow(QMainWindow):
                 units_system=Settings.UNITS_SYSTEM,
                 energy_units=Settings.ENERGY_UNITS,
                 power_units=Settings.POWER_UNITS,
-                header=self.view_settings["header"],
+                header=view_settings["header"]
             )
             # update visual appearance of the view to be consistent
             # with previously displayed View
-            self.current_view.update_view_appearance(**self.view_settings)
+            self.current_view.update_view_appearance(**view_settings)
 
             filter_tup = self.view_tools_wgt.get_filter_tup()
             if any(filter_tup):

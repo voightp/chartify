@@ -40,9 +40,10 @@ class AppModel(QObject):
 
     def get_other_files(self) -> List[ParquetFile]:
         """ Get all the other files than currently selected. """
+        current_file = self.get_file(Settings.CURRENT_FILE_ID)
         other_files = []
         for id_, file in self.storage.files.items():
-            if id_ != Settings.CURRENT_FILE_ID and file.totals == Settings.TOTALS:
+            if id_ != Settings.CURRENT_FILE_ID and file.type_ == current_file.type_:
                 other_files.append(file)
         return other_files
 

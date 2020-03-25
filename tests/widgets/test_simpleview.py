@@ -30,7 +30,7 @@ def daily_df(eso_file):
 
 @pytest.fixture
 def simple_view(qtbot, hourly_df):
-    simple_view = SimpleView(0, "test")
+    simple_view = SimpleView(0)
     simple_view.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
     simple_view.setFixedWidth(WIDTH)
     simple_view.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
@@ -59,7 +59,6 @@ def test_init_simple_view(simple_view: SimpleView):
     assert simple_view.focusPolicy() == Qt.NoFocus
 
     assert simple_view.id_ == 0
-    assert simple_view.name == "test"
 
 
 def test_build_simple_view(qtbot, simple_view: SimpleView, hourly_df: pd.DataFrame):
