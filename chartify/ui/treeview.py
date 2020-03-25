@@ -15,7 +15,22 @@ from chartify.ui.simpleview import SimpleView, SimpleFilterModel, SimpleModel
 from chartify.utils.utils import FilterTuple, VariableData
 
 
-class TreeViewModel(SimpleModel):
+class TreeModel(SimpleModel):
+    """ View models allowing 'tree' like structure.
+
+    Model shows three columns 'variable', 'key' and 'units'.
+    The 'VariableData' named tuple containing variable information
+    is stored as 'UserData' on the first item in row (only for
+    'child' items when tree structure is applied).
+
+    Tree items which would only have one child are automatically
+    treated as plain table rows.
+
+    Source Variables DataFrame must include four columns
+    'variable', 'key', 'units' and 'source units'.
+
+    """
+
     def __init__(self):
         super().__init__()
 
@@ -88,6 +103,8 @@ class TreeViewModel(SimpleModel):
 
 
 class TreeFilterModel(SimpleFilterModel):
+    """ Proxy model to be used with 'TreeModel' model. """
+
     def __init__(self):
         super().__init__()
 
@@ -142,9 +159,21 @@ class TreeFilterModel(SimpleFilterModel):
 
 
 class TreeView(SimpleView):
+    """ A simple view table view.
+
+    View should be used altogether with underlying
+    'TreeModel' and 'TreeFilterModel' which are
+    set up to work with this class.
+
+    Signals
+    -------
+    treeNodeChanged
+        Is emitted if the view uses tree structure and first column changes.
+
+    """
     treeNodeChanged = Signal()
 
-    def __init__(self, id_: int, model_cls=TreeViewModel, proxymodel_cls=TreeFilterModel):
+    def __init__(self, id_: int, model_cls=TreeModel, proxymodel_cls=TreeFilterModel):
         super().__init__(id_, model_cls, proxymodel_cls)
         self.setRootIsDecorated(True)
         self.expanded.connect(self.on_expanded)

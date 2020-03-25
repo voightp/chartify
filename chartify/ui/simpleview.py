@@ -20,8 +20,7 @@ from chartify.utils.utils import FilterTuple, VariableData, create_proxy_units_c
 
 
 class SimpleModel(QStandardItemModel):
-    """
-    A simple view table model.
+    """ A simple view table model.
 
     Model only shows two columns 'variable' and 'units'.
     The 'VariableData' named tuple containing variable
@@ -82,11 +81,7 @@ class SimpleModel(QStandardItemModel):
 
 
 class SimpleFilterModel(QSortFilterProxyModel):
-    """
-    Proxy model to be used in conjunction with 'SimpleModel'
-    model. Filtering is provided using custom "FilterTuple" named tuple.
-
-    """
+    """ Proxy model to be used with 'SimpleModel' model. """
 
     def __init__(self):
         super().__init__()
@@ -185,10 +180,9 @@ class SimpleFilterModel(QSortFilterProxyModel):
 
 
 class SimpleView(QTreeView):
-    """
-    A simple view table view.
+    """ A simple table view.
 
-    View should be used altogether with underlying
+    This class should be used altogether with underlying
     'SimpleModel' and 'SimpleFilterModel' which are
     set up to work with this class.
 
@@ -230,7 +224,7 @@ class SimpleView(QTreeView):
     itemDoubleClicked
          Is emitted on item double click.
     viewSettingsChanged
-        Is emitted when visual appearence changes.
+        Is emitted when visual appearance changes.
 
     """
     selectionCleared = Signal()
