@@ -144,7 +144,7 @@ def test_on_tree_node_changed_build_tree(qtbot, tree_view: TreeView, hourly_df: 
 
 
 def test_on_tree_node_changed_dont_build_tree(qtbot, tree_view: TreeView,
-                                             hourly_df: pd.DataFrame):
+                                              hourly_df: pd.DataFrame):
     assert tree_view.get_visual_names() == ("variable", "key", "units")
 
     with qtbot.assertNotEmitted(tree_view.treeNodeChanged):
@@ -152,8 +152,8 @@ def test_on_tree_node_changed_dont_build_tree(qtbot, tree_view: TreeView,
 
 
 def test_on_view_resized(qtbot, tree_view: TreeView, hourly_df: pd.DataFrame):
-    def test_size(dct):
-        return dct["interactive"] == 125
+    def test_size(cls, dct):
+        return cls == "treeview" and dct["interactive"] == 125
 
     with qtbot.wait_signal(tree_view.viewSettingsChanged, check_params_cb=test_size):
         tree_view.header().resizeSection(0, 125)
@@ -165,8 +165,8 @@ def test_on_view_resized_stretch(qtbot, tree_view: TreeView, hourly_df: pd.DataF
 
 
 def test_on_section_moved_rebuild(qtbot, tree_view: TreeView, hourly_df: pd.DataFrame):
-    def test_header(dct):
-        return dct["header"] == ("key", "units", "variable")
+    def test_header(cls, dct):
+        return cls == "treeview" and dct["header"] == ("key", "units", "variable")
 
     signals = [(tree_view.viewSettingsChanged, "0"), (tree_view.treeNodeChanged, "1")]
     callbacks = [test_header, None]
@@ -175,8 +175,8 @@ def test_on_section_moved_rebuild(qtbot, tree_view: TreeView, hourly_df: pd.Data
 
 
 def test_on_section_moved_plain_view(qtbot, tree_view: TreeView, hourly_df: pd.DataFrame):
-    def test_header(dct):
-        return dct["header"] == ("key", "units", "variable")
+    def test_header(cls, dct):
+        return cls == "treeview" and dct["header"] == ("key", "units", "variable")
 
     tree_view.populate_view(variables_df=hourly_df, interval="hourly", is_tree=False)
     with qtbot.wait_signal(tree_view.viewSettingsChanged, check_params_cb=test_header):
@@ -298,8 +298,8 @@ def test_on_collapsed(qtbot, tree_view: TreeView, hourly_df: pd.DataFrame):
     # need to move mouse to hover over view
     qtbot.mouseMove(tree_view.viewport(), pos=point)
 
-    def test_collapsed(dct):
-        return dct["collapsed"] == "Cooling Coil Sensible Cooling Rate"
+    def test_collapsed(cls, dct):
+        return cls == "treeview" and dct["collapsed"] == "Cooling Coil Sensible Cooling Rate"
 
     with qtbot.wait_signal(tree_view.viewSettingsChanged, check_params_cb=test_collapsed):
         qtbot.mouseClick(tree_view.viewport(), Qt.LeftButton, pos=point)
@@ -314,8 +314,8 @@ def test_on_expanded(qtbot, tree_view: TreeView, eso_file: EsoFile):
     # need to move mouse to hover over view
     qtbot.mouseMove(tree_view.viewport(), pos=point)
 
-    def test_collapsed(dct):
-        return dct["expanded"] == "Cooling Coil Sensible Cooling Rate"
+    def test_collapsed(cls, dct):
+        return cls == "treeview" and dct["expanded"] == "Cooling Coil Sensible Cooling Rate"
 
     with qtbot.wait_signal(tree_view.viewSettingsChanged, check_params_cb=test_collapsed):
         qtbot.mouseClick(tree_view.viewport(), Qt.LeftButton, pos=point)

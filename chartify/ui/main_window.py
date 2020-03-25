@@ -525,21 +525,22 @@ class MainWindow(QMainWindow):
             self.viewUpdateRequested.emit(self.current_view.id_)
             Settings.CURRENT_FILE_ID = self.current_view.id_
 
-    def on_view_settings_changed(self, settings: dict):
+    def on_view_settings_changed(self, view_type: str, new_settings: dict):
         """ Update current ui view settings. """
+        settings = self.view_settings[view_type]
 
         def on_expanded():
-            self.view_settings["expanded"].add(value)
+            settings["expanded"].add(value)
 
         def on_collapsed():
             with contextlib.suppress(KeyError):
-                self.view_settings["expanded"].remove(value)
+                settings["expanded"].remove(value)
 
         def on_interactive():
-            self.view_settings["widths"]["interactive"] = value
+            settings["widths"]["interactive"] = value
 
         def on_header():
-            self.view_settings["header"] = value
+            settings["header"] = value
 
         switch = {
             "expanded": on_expanded,
@@ -547,7 +548,7 @@ class MainWindow(QMainWindow):
             "interactive": on_interactive,
             "header": on_header,
         }
-        for key, value in settings.items():
+        for key, value in new_settings.items():
             switch[key]()
 
     def on_settings_changed(self):

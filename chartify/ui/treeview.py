@@ -277,7 +277,7 @@ class TreeView(SimpleView):
     def on_view_resized(self, log_ix: int, _, new_size: int) -> None:
         """ Store interactive section width in the main app. """
         if self.header().sectionResizeMode(log_ix) == self.header().Interactive:
-            self.viewSettingsChanged.emit({"interactive": new_size})
+            self.viewSettingsChanged.emit(self.class_type, {"interactive": new_size})
 
     def on_section_moved(self, _logical_ix, old_visual_ix: int, new_visual_ix: int) -> None:
         """ Handle updating the model when first column changed. """
@@ -343,11 +343,11 @@ class TreeView(SimpleView):
         proxy_model = self.model()
         if proxy_model.hasChildren(index):
             name = proxy_model.data(index)
-            self.viewSettingsChanged.emit({"collapsed": name})
+            self.viewSettingsChanged.emit(self.class_type, {"collapsed": name})
 
     def on_expanded(self, index: QModelIndex) -> None:
         """ Deselect the row when node is expanded. """
         proxy_model = self.model()
         if proxy_model.hasChildren(index):
             name = proxy_model.data(index)
-            self.viewSettingsChanged.emit({"expanded": name})
+            self.viewSettingsChanged.emit(self.class_type, {"expanded": name})

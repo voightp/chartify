@@ -56,7 +56,7 @@ class SimpleModel(QStandardItemModel):
         # first item holds the variable data used for search
         item_row[0].setData(
             VariableData(
-                key=None, variable=variable, units=source_units, proxyunits=proxy_units
+                key="", variable=variable, units=source_units, proxyunits=proxy_units
             ),
             role=Qt.UserRole,
         )
@@ -230,7 +230,7 @@ class SimpleView(QTreeView):
     selectionCleared = Signal()
     selectionPopulated = Signal(list)
     itemDoubleClicked = Signal(list)
-    viewSettingsChanged = Signal(dict)
+    viewSettingsChanged = Signal(str, dict)
 
     def __init__(self, id_: int, model_cls=SimpleModel, proxymodel_cls=SimpleFilterModel):
         super().__init__()
@@ -355,7 +355,12 @@ class SimpleView(QTreeView):
 
     def update_scrollbar_position(self):
         """ Set vertical scrollbar position. """
-        self.verticalScrollBar().setValue(self.scrollbar_position)
+        pos = self.scrollbar_position
+        # maximum is sometimes left as '0' which blocks
+        # setting position and leaves slider on top
+        if self.verticalScrollBar().maximum() < pos:
+            self.verticalScrollBar().setMaximum(pos)
+        self.verticalScrollBar().setValue(pos)
 
     def update_sort_order(self) -> None:
         """ Set order for sort column. """
@@ -441,7 +446,7 @@ class SimpleView(QTreeView):
     def on_section_moved(self, _logical_ix, old_visual_ix: int, new_visual_ix: int) -> None:
         """ Handle updating the model when first column changed. """
         names = self.get_visual_names()
-        self.viewSettingsChanged.emit({"header": names})
+        self.viewSettingsChanged.emit(self.class_type, {"header": names})
 
     def on_slider_moved(self, val: int) -> None:
         """ Handle moving view slider. """
