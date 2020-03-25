@@ -1,13 +1,7 @@
 from typing import Dict, List, Set, Sequence, Tuple
 
 import pandas as pd
-from PySide2.QtCore import (
-    QItemSelection,
-    QItemSelectionRange,
-    Signal,
-    QModelIndex,
-    Qt
-)
+from PySide2.QtCore import QItemSelection, QItemSelectionRange, Signal, QModelIndex, Qt
 from PySide2.QtGui import QStandardItem
 from PySide2.QtWidgets import QHeaderView
 
@@ -36,10 +30,10 @@ class TreeModel(SimpleModel):
 
     @staticmethod
     def _append_row(
-            parent: QStandardItem,
-            row: Sequence[str],
-            item_row: List[QStandardItem],
-            indexes: Dict[str, int]
+        parent: QStandardItem,
+        row: Sequence[str],
+        item_row: List[QStandardItem],
+        indexes: Dict[str, int],
     ) -> None:
         """ Append row to the given parent. """
         # assign status tip for all items in row
@@ -171,6 +165,7 @@ class TreeView(SimpleView):
         Is emitted if the view uses tree structure and first column changes.
 
     """
+
     treeNodeChanged = Signal()
 
     def __init__(self, id_: int, model_cls=TreeModel, proxymodel_cls=TreeFilterModel):
@@ -234,11 +229,11 @@ class TreeView(SimpleView):
         self.header().resizeSection(interactive, widths["interactive"])
 
     def update_view_appearance(
-            self,
-            header: tuple = ("variable", "key", "units"),
-            widths: Dict[str, int] = None,
-            expanded: Set[str] = None,
-            **kwargs
+        self,
+        header: tuple = ("variable", "key", "units"),
+        widths: Dict[str, int] = None,
+        expanded: Set[str] = None,
+        **kwargs,
     ) -> None:
         """ Update the model appearance to be consistent with last view. """
         if not widths:
@@ -248,15 +243,15 @@ class TreeView(SimpleView):
         super().update_view_appearance(header, widths)
 
     def populate_view(
-            self,
-            variables_df: pd.DataFrame,
-            interval: str,
-            is_tree: bool = True,
-            rate_to_energy: bool = False,
-            units_system: str = "SI",
-            energy_units: str = "J",
-            power_units: str = "W",
-            header: Tuple[str, str, str] = ("variable", "key", "units"),
+        self,
+        variables_df: pd.DataFrame,
+        interval: str,
+        is_tree: bool = True,
+        rate_to_energy: bool = False,
+        units_system: str = "SI",
+        energy_units: str = "J",
+        power_units: str = "W",
+        header: Tuple[str, str, str] = ("variable", "key", "units"),
     ) -> None:
         """ Set the model and define behaviour of the tree view. """
         self.is_tree = is_tree

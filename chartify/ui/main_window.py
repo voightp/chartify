@@ -245,15 +245,12 @@ class MainWindow(QMainWindow):
 
         # ~~~~ Tree view appearance ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.view_settings = {
-            "simpleview": {
-                "widths": {"fixed": 70},
-                "header": ("variable", "units"),
-            },
+            "simpleview": {"widths": {"fixed": 70}, "header": ("variable", "units"),},
             "treeview": {
                 "widths": {"interactive": 200, "fixed": 70},
                 "header": ("variable", "key", "units"),
                 "expanded": set(),
-            }
+            },
         }
 
         # ~~~~ Connect main ui user actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -427,7 +424,7 @@ class MainWindow(QMainWindow):
             Settings.INTERVAL != self.current_view.interval,
             Settings.RATE_TO_ENERGY != self.current_view.rate_to_energy,
             Settings.ENERGY_UNITS != self.current_view.energy_units,
-            Settings.POWER_UNITS != self.current_view.power_units
+            Settings.POWER_UNITS != self.current_view.power_units,
         )
         view_settings = self.view_settings[self.current_view.class_type]
         if self.current_view and (any(conditions) or self.current_view.next_update_forced):
@@ -439,7 +436,7 @@ class MainWindow(QMainWindow):
                 units_system=Settings.UNITS_SYSTEM,
                 energy_units=Settings.ENERGY_UNITS,
                 power_units=Settings.POWER_UNITS,
-                header=view_settings["header"]
+                header=view_settings["header"],
             )
             # update visual appearance of the view to be consistent
             # with previously displayed View

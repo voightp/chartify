@@ -80,8 +80,10 @@ class AppModel(QObject):
             files = self.storage.files[Settings.CURRENT_FILE_ID]
 
         # transform variable data to variable (variable data holds extra proxy units)
-        variables = [Variable(Settings.INTERVAL, v.key, v.variable, v.units)
-                     for v in self.selected_variable_data]
+        variables = [
+            Variable(Settings.INTERVAL, v.key, v.variable, v.units)
+            for v in self.selected_variable_data
+        ]
 
         args = (files, variables)
         kwargs = {

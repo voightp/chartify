@@ -122,14 +122,14 @@ def test_on_double_clicked(qtbot, simple_view: SimpleView, hourly_df: pd.DataFra
     qtbot.mouseMove(simple_view.viewport(), pos=point)
     signals = [simple_view.doubleClicked, simple_view.itemDoubleClicked]
     callbacks = [variable_data, None]
-    with  qtbot.wait_signals(signals, check_params_cbs=callbacks):
+    with qtbot.wait_signals(signals, check_params_cbs=callbacks):
         # need to click first as single double click would emit only pressed signal
         qtbot.mouseClick(simple_view.viewport(), Qt.LeftButton, pos=point)
         qtbot.mouseDClick(simple_view.viewport(), Qt.LeftButton, pos=point)
 
 
 def test_on_double_clicked_second_column(
-        qtbot, simple_view: SimpleView, hourly_df: pd.DataFrame
+    qtbot, simple_view: SimpleView, hourly_df: pd.DataFrame
 ):
     def variable_data(index):
         test_data = VariableData("", "Boiler Gas Rate", "W", "W")
@@ -141,7 +141,7 @@ def test_on_double_clicked_second_column(
     qtbot.mouseMove(simple_view.viewport(), pos=point)
     signals = [simple_view.doubleClicked, simple_view.itemDoubleClicked]
     callbacks = [variable_data, None]
-    with  qtbot.wait_signals(signals, check_params_cbs=callbacks):
+    with qtbot.wait_signals(signals, check_params_cbs=callbacks):
         # need to click first as single double click would emit only pressed signal
         qtbot.mouseClick(simple_view.viewport(), Qt.LeftButton, pos=point)
         qtbot.mouseDClick(simple_view.viewport(), Qt.LeftButton, pos=point)
@@ -172,16 +172,12 @@ def test_on_pressed_right_mb(qtbot, simple_view: SimpleView, hourly_df: pd.DataF
     index = simple_view.model().index(1, 0)
     point = simple_view.visualRect(index).center()
     qtbot.mouseMove(simple_view.viewport(), pos=point)
-    with qtbot.assert_not_emitted(simple_view.pressed, ):
+    with qtbot.assert_not_emitted(simple_view.pressed,):
         qtbot.mousePress(simple_view.viewport(), Qt.RightButton, pos=point)
 
 
 def test_is_tree_kwarg(simple_view: SimpleView, daily_df: pd.DataFrame):
-    simple_view.populate_view(
-        variables_df=daily_df,
-        interval="daily",
-        is_tree=True
-    )
+    simple_view.populate_view(variables_df=daily_df, interval="daily", is_tree=True)
     # simpleview is always plain table
     assert not simple_view.is_tree
 
@@ -230,9 +226,7 @@ def test_build_view_kwargs_units_system(simple_view: SimpleView, daily_df: pd.Da
     simple_view.populate_view(daily_df, "daily", is_tree=True, units_system="IP")
     simple_view.update_view_appearance()
     proxy_model = simple_view.model()
-    test_data = VariableData(
-        "", "Site Outdoor Air Dewpoint Temperature", "C", "F"
-    )
+    test_data = VariableData("", "Site Outdoor Air Dewpoint Temperature", "C", "F")
 
     assert proxy_model.data_at_index(proxy_model.index(22, 0)) == test_data
     assert proxy_model.data(proxy_model.index(22, 1)) == "F"
@@ -240,11 +234,7 @@ def test_build_view_kwargs_units_system(simple_view: SimpleView, daily_df: pd.Da
 
 def test_build_view_kwargs_energy_units(simple_view: SimpleView, daily_df: pd.DataFrame):
     simple_view.populate_view(
-        daily_df,
-        "daily",
-        is_tree=True,
-        rate_to_energy=True,
-        energy_units="MWh"
+        daily_df, "daily", is_tree=True, rate_to_energy=True, energy_units="MWh"
     )
     simple_view.update_view_appearance()
     proxy_model = simple_view.model()
@@ -267,9 +257,7 @@ def test_build_view_kwargs_power_units(simple_view: SimpleView, daily_df: pd.Dat
 def test_update_view_appearance(simple_view: SimpleView, daily_df: pd.DataFrame):
     header = ("units", "variable")
     simple_view.populate_view(
-        daily_df,
-        "daily",
-        header=header,
+        daily_df, "daily", header=header,
     )
 
     widths = {"fixed": 50}
@@ -301,12 +289,10 @@ def test_scroll_to(qtbot, simple_view: SimpleView, hourly_df: pd.DataFrame):
 def test_deselect_variables(qtbot, simple_view: SimpleView, daily_df: pd.DataFrame):
     selected = [
         VariableData("", "Boiler Ancillary Electric Power", "W", "kW"),
-        VariableData("", "Boiler Gas Rate", "W", "kW")
+        VariableData("", "Boiler Gas Rate", "W", "kW"),
     ]
     simple_view.populate_view(
-        daily_df,
-        "daily",
-        power_units="kW",
+        daily_df, "daily", power_units="kW",
     )
     simple_view.update_view_appearance()
     simple_view.select_variables(selected)
@@ -327,7 +313,7 @@ def test_select_variables(qtbot, simple_view: SimpleView):
 
     selected = [
         VariableData("", "Boiler Ancillary Electric Power", "W", "W"),
-        VariableData("", "Boiler Gas Rate", "W", "W")
+        VariableData("", "Boiler Gas Rate", "W", "W"),
     ]
 
     with qtbot.wait_signal(simple_view.selectionPopulated, check_params_cb=variable_data):
@@ -340,10 +326,7 @@ def test_select_variables(qtbot, simple_view: SimpleView):
 
 
 def test_select_variables_invalid(qtbot, simple_view: SimpleView):
-    selected = [
-        VariableData("", "FOO", "W", "W"),
-        VariableData("", "BAR", "W", "W")
-    ]
+    selected = [VariableData("", "FOO", "W", "W"), VariableData("", "BAR", "W", "W")]
 
     with qtbot.wait_signal(simple_view.selectionCleared):
         simple_view.select_variables(selected)

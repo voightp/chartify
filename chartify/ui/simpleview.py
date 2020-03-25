@@ -10,13 +10,17 @@ from PySide2.QtCore import (
     QMimeData,
     QEvent,
     Signal,
-    QModelIndex
+    QModelIndex,
 )
 from PySide2.QtGui import QStandardItemModel, QStandardItem, QDrag, QPixmap
 from PySide2.QtWidgets import QTreeView, QAbstractItemView, QHeaderView
 
-from chartify.utils.utils import FilterTuple, VariableData, create_proxy_units_column, \
-    SignalBlocker
+from chartify.utils.utils import (
+    FilterTuple,
+    VariableData,
+    create_proxy_units_column,
+    SignalBlocker,
+)
 
 
 class SimpleModel(QStandardItemModel):
@@ -37,10 +41,10 @@ class SimpleModel(QStandardItemModel):
 
     @staticmethod
     def _append_row(
-            parent: QStandardItem,
-            row: Sequence[str],
-            item_row: List[QStandardItem],
-            indexes: Dict[str, int]
+        parent: QStandardItem,
+        row: Sequence[str],
+        item_row: List[QStandardItem],
+        indexes: Dict[str, int],
     ) -> None:
         """ Append row to the given parent. """
         # assign status tip for all items in row
@@ -55,9 +59,7 @@ class SimpleModel(QStandardItemModel):
 
         # first item holds the variable data used for search
         item_row[0].setData(
-            VariableData(
-                key="", variable=variable, units=source_units, proxyunits=proxy_units
-            ),
+            VariableData(key="", variable=variable, units=source_units, proxyunits=proxy_units),
             role=Qt.UserRole,
         )
 
@@ -227,6 +229,7 @@ class SimpleView(QTreeView):
         Is emitted when visual appearance changes.
 
     """
+
     selectionCleared = Signal()
     selectionPopulated = Signal(list)
     itemDoubleClicked = Signal(list)
@@ -324,10 +327,7 @@ class SimpleView(QTreeView):
         return {k: self.header().visualIndex(i) for k, i in log_ixs.items()}
 
     def update_view_appearance(
-            self,
-            header: tuple = ("variable", "units"),
-            widths: Dict[str, int] = None,
-            **kwargs
+        self, header: tuple = ("variable", "units"), widths: Dict[str, int] = None, **kwargs
     ) -> None:
         """ Update the model appearance to be consistent with last view. """
         # it's required to adjust columns order to match the last applied order
@@ -391,15 +391,15 @@ class SimpleView(QTreeView):
         self.header().resizeSection(fixed, widths["fixed"])
 
     def populate_view(
-            self,
-            variables_df: pd.DataFrame,
-            interval: str,
-            rate_to_energy: bool = False,
-            units_system: str = "SI",
-            energy_units: str = "J",
-            power_units: str = "W",
-            header: tuple = ("variable", "units"),
-            **kwargs
+        self,
+        variables_df: pd.DataFrame,
+        interval: str,
+        rate_to_energy: bool = False,
+        units_system: str = "SI",
+        energy_units: str = "J",
+        power_units: str = "W",
+        header: tuple = ("variable", "units"),
+        **kwargs,
     ) -> None:
         """ Set the model and define behaviour of the tree view. """
         # store current setup as instance attributes
