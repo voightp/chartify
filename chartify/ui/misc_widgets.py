@@ -162,6 +162,10 @@ class LineEdit(QFrame):
         """ Set LineEdit placeholder text. """
         self.line_edit.setPlaceholderText(text)
 
+    def placeholderText(self):
+        """ Get placeholderText attribute. """
+        return self.line_edit.placeholderText()
+
 
 class MulInputDialog(QDialog):
     """
