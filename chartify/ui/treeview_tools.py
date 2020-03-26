@@ -4,6 +4,7 @@ from PySide2.QtWidgets import (
     QHBoxLayout,
     QToolButton,
     QLabel,
+    QLineEdit,
     QSpacerItem,
     QSizePolicy,
     QFrame,
@@ -11,7 +12,6 @@ from PySide2.QtWidgets import (
 
 from chartify.settings import Settings
 from chartify.utils.utils import FilterTuple
-from chartify.ui.misc_widgets import LineEdit
 
 
 class ViewTools(QFrame):
@@ -45,11 +45,11 @@ class ViewTools(QFrame):
 
         self.collapse_all_btn = QToolButton(self)
         self.collapse_all_btn.setObjectName("collapseButton")
-        self.collapse_all_btn.setEnabled(True)
+        self.collapse_all_btn.setEnabled(Settings.TREE_VIEW)
 
         self.expand_all_btn = QToolButton(self)
         self.expand_all_btn.setObjectName("expandButton")
-        self.expand_all_btn.setEnabled(True)
+        self.expand_all_btn.setEnabled(Settings.TREE_VIEW)
 
         self.filter_icon = QLabel(self)
         self.filter_icon.setObjectName("filterIcon")
@@ -59,17 +59,17 @@ class ViewTools(QFrame):
         btn_layout.addWidget(self.tree_view_btn)
 
         # ~~~~ Line edit ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.variable_line_edit = LineEdit(self)
+        self.variable_line_edit = QLineEdit(self)
         self.variable_line_edit.setPlaceholderText("variable...")
         self.variable_line_edit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.variable_line_edit.setFixedWidth(100)
 
-        self.key_line_edit = LineEdit(self)
+        self.key_line_edit = QLineEdit(self)
         self.key_line_edit.setPlaceholderText("key...")
         self.key_line_edit.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         self.key_line_edit.setFixedWidth(100)
 
-        self.units_line_edit = LineEdit(self)
+        self.units_line_edit = QLineEdit(self)
         self.units_line_edit.setPlaceholderText("units...")
         self.units_line_edit.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         self.units_line_edit.setFixedWidth(50)
@@ -90,9 +90,9 @@ class ViewTools(QFrame):
         self.timer.timeout.connect(self.request_filter)
 
         # ~~~~ Filter actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.variable_line_edit.textEdited.connect(self.text_edited)
-        self.key_line_edit.textEdited.connect(self.text_edited)
-        self.units_line_edit.textEdited.connect(self.text_edited)
+        self.variable_line_edit.textEdited.connect(self.on_text_edited)
+        self.key_line_edit.textEdited.connect(self.on_text_edited)
+        self.units_line_edit.textEdited.connect(self.on_text_edited)
         self.expand_all_btn.clicked.connect(self.expandRequested.emit)
         self.collapse_all_btn.clicked.connect(self.collapseRequested.emit)
         self.tree_view_btn.toggled.connect(self.tree_btn_toggled)
@@ -121,7 +121,7 @@ class ViewTools(QFrame):
         Settings.TREE_VIEW = checked
         self.structureChanged.emit()
 
-    def text_edited(self):
+    def on_text_edited(self):
         """ Delay firing a text edited event. """
         self.timer.start(200)
 
