@@ -116,7 +116,6 @@ class ViewTools(QFrame):
         # collapse and expand all buttons are not relevant for plain view
         self.collapse_all_btn.setEnabled(checked)
         self.expand_all_btn.setEnabled(checked)
-
         # store current state in settings
         Settings.TREE_VIEW = checked
         self.structureChanged.emit()

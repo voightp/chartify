@@ -4,25 +4,18 @@ import pytest
 from PySide2.QtCore import QMargins, Qt
 from PySide2.QtWidgets import QSizePolicy
 
+from chartify.ui.treeview_tools import ViewTools
 from chartify.utils.utils import FilterTuple
-from tests.mock_settings import MockSettings, TestTuple
 
 
 @pytest.fixture
-def view_tools_and_settings(qtbot):
-    with patch("chartify.settings.Settings", MockSettings) as mock_settings:
-        from chartify.ui.treeview_tools import ViewTools
-
+def view_tools(qtbot):
+    with patch("chartify.ui.treeview_tools.Settings") as mock_settings:
+        mock_settings.TREE_VIEW = False
         tools = ViewTools()
         tools.show()
         qtbot.add_widget(tools)
-        tt = TestTuple(widget=tools, settings=mock_settings)
-        return tt
-
-
-@pytest.fixture
-def view_tools(qtbot, view_tools_and_settings):
-    return view_tools_and_settings.widget
+        return tools
 
 
 def test_init_view_tools(view_tools):
@@ -58,12 +51,12 @@ def test_init_view_tools(view_tools):
 
 
 def test_tree_requested(qtbot, view_tools):
-    assert not view_tools.tree_requested()
+    with patch("chartify.ui.treeview_tools.Settings") as mock_settings:
+        assert not view_tools.tree_requested()
 
-    qtbot.mouseClick(view_tools.tree_view_btn, Qt.LeftButton)
-    assert view_tools.tree_requested()
-    # revert back to original state
-    qtbot.mouseClick(view_tools.tree_view_btn, Qt.LeftButton)
+        qtbot.mouseClick(view_tools.tree_view_btn, Qt.LeftButton)
+        assert view_tools.tree_requested()
+        assert mock_settings.TREE_VIEW
 
 
 def test_get_filter_tup(qtbot, view_tools):
@@ -82,29 +75,30 @@ def test_get_filter_tup(qtbot, view_tools):
     assert view_tools.get_filter_tup() == test_filter
 
 
-def test_toggle_tree_button(qtbot, view_tools_and_settings):
-    view_tools = view_tools_and_settings.widget
-    settings = view_tools_and_settings.settings
+def test_toggle_tree_button(qtbot, view_tools):
+    with patch("chartify.ui.treeview_tools.Settings") as mock_settings:
 
-    def test_tree_btn_toggled(checked):
-        assert view_tools.tree_view_btn.property("checked")
-        assert view_tools.collapse_all_btn.isEnabled()
-        assert view_tools.expand_all_btn.isEnabled()
-        assert settings.TREE_VIEW
+        def test_tree_btn_toggled(checked):
+            assert view_tools.tree_view_btn.property("checked")
+            assert view_tools.collapse_all_btn.isEnabled()
+            assert view_tools.expand_all_btn.isEnabled()
+            assert mock_settings.TREE_VIEW
 
-        return checked
+            return checked
 
-    callbacks = [test_tree_btn_toggled, None]
-    signals = [view_tools.tree_view_btn.toggled, view_tools.structureChanged]
-    with qtbot.wait_signals(signals=signals, check_params_cbs=callbacks):
-        qtbot.mouseClick(view_tools.tree_view_btn, Qt.LeftButton)
+        callbacks = [test_tree_btn_toggled, None]
+        signals = [view_tools.tree_view_btn.toggled, view_tools.structureChanged]
+        with qtbot.wait_signals(signals=signals, check_params_cbs=callbacks):
+            qtbot.mouseClick(view_tools.tree_view_btn, Qt.LeftButton)
 
 
 def test_expand_all(qtbot, view_tools):
+    view_tools.expand_all_btn.setEnabled(True)
     with qtbot.wait_signal(view_tools.expandRequested):
         qtbot.mouseClick(view_tools.expand_all_btn, Qt.LeftButton)
 
 
 def test_collapse_all(qtbot, view_tools):
+    view_tools.collapse_all_btn.setEnabled(True)
     with qtbot.wait_signal(view_tools.collapseRequested):
         qtbot.mouseClick(view_tools.collapse_all_btn, Qt.LeftButton)
