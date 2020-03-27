@@ -57,20 +57,29 @@ def test_init_view_tools(view_tools):
     assert view_tools.units_line_edit.width() == 50
 
 
-def test_tree_requested(view_tools):
-    assert not view_tools.tree_view_btn.isChecked()
+def test_tree_requested(qtbot, view_tools):
+    assert not view_tools.tree_requested()
+
+    qtbot.mouseClick(view_tools.tree_view_btn, Qt.LeftButton)
+    assert view_tools.tree_requested()
+    # revert back to original state
+    qtbot.mouseClick(view_tools.tree_view_btn, Qt.LeftButton)
 
 
 def test_get_filter_tup(qtbot, view_tools):
-    qtbot.keyClicks(view_tools.key_line_edit, "foo")
-    qtbot.keyClicks(view_tools.variable_line_edit, "bar")
-    qtbot.keyClicks(view_tools.units_line_edit, "baz")
+    test_filter = FilterTuple(key="foo", variable="bar", units="baz")
+    signals = [view_tools.timer.timeout, view_tools.textFiltered]
+    callbacks = [None, lambda x: x == test_filter]
+    with qtbot.wait_signals(signals=signals, check_params_cbs=callbacks):
+        qtbot.keyClicks(view_tools.key_line_edit, "foo")
+        qtbot.keyClicks(view_tools.variable_line_edit, "bar")
+        qtbot.keyClicks(view_tools.units_line_edit, "baz")
 
     assert view_tools.key_line_edit.text() == "foo"
     assert view_tools.variable_line_edit.text() == "bar"
     assert view_tools.units_line_edit.text() == "baz"
 
-    assert view_tools.get_filter_tup() == FilterTuple(key="foo", variable="bar", units="baz")
+    assert view_tools.get_filter_tup() == test_filter
 
 
 def test_toggle_tree_button(qtbot, view_tools_and_settings):
@@ -91,17 +100,11 @@ def test_toggle_tree_button(qtbot, view_tools_and_settings):
         qtbot.mouseClick(view_tools.tree_view_btn, Qt.LeftButton)
 
 
-def test_text_edited(view_tools):
-    assert False
+def test_expand_all(qtbot, view_tools):
+    with qtbot.wait_signal(view_tools.expandRequested):
+        qtbot.mouseClick(view_tools.expand_all_btn, Qt.LeftButton)
 
 
-def test_request_filter(view_tools):
-    assert False
-
-
-def test_expand_all(view_tools):
-    assert False
-
-
-def test_collapse_all(view_tools):
-    assert False
+def test_collapse_all(qtbot, view_tools):
+    with qtbot.wait_signal(view_tools.collapseRequested):
+        qtbot.mouseClick(view_tools.collapse_all_btn, Qt.LeftButton)

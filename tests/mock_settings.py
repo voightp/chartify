@@ -1,6 +1,7 @@
-from PySide2.QtCore import QSettings, QSize, QPoint
-from pathlib import Path
 from collections import namedtuple
+from pathlib import Path
+
+from PySide2.QtCore import QSize, QPoint
 
 # helper tuple to be returned from pytest fixture
 TestTuple = namedtuple("TestTuple", ["widget", "settings"])
