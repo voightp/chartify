@@ -83,7 +83,6 @@ def test_toggle_tree_button(qtbot, view_tools):
             assert view_tools.collapse_all_btn.isEnabled()
             assert view_tools.expand_all_btn.isEnabled()
             assert mock_settings.TREE_VIEW
-
             return checked
 
         callbacks = [test_tree_btn_toggled, None]
