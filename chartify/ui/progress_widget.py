@@ -26,8 +26,8 @@ class ProgressContainer(QWidget):
     MAX_VISIBLE_JOBS = 5
     CHILD_SPACING = 3
 
-    def __init__(self, parent):
-        super().__init__(parent)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -117,13 +117,12 @@ class ProgressContainer(QWidget):
 
     def add_file(self, id_, name):
         """ Add progress file to the container. """
-        f = ProgressFile(id_, name)
-        self.files[id_] = f
+        self.files[id_] = ProgressFile(id_, name)
         self._update_bar()
 
     def set_range(self, id_, value, max_value):
         """ Set up maximum progress value. """
-        try:
+        with contextlib.suppress(KeyError):
             f = self.files[id_]
             f.maximum = max_value
             f.value = value
@@ -131,12 +130,10 @@ class ProgressContainer(QWidget):
             i = self._get_visible_index(f)
             if i is not None:
                 self.widgets[i].update_max()
-        except KeyError:
-            pass
 
     def update_progress(self, id_, value):
         """ Update file progress. """
-        try:
+        with contextlib.suppress(KeyError):
             f = self.files[id_]
             f.value = value
 
@@ -146,8 +143,6 @@ class ProgressContainer(QWidget):
 
             if self._position_changed(f):
                 self._update_bar()
-        except KeyError:
-            pass
 
     def set_failed(self, id_, message):
         """ Set failed status on the given file. """
@@ -164,7 +159,7 @@ class ProgressContainer(QWidget):
 
         if file not in self.locked:
             # pending files become locked so their position does not change
-            # condition is inplace to avoid multiple references when calling
+            # condition is in place to avoid multiple references when calling
             # set_pending multiple times
             self.locked.append(file)
 
@@ -200,7 +195,7 @@ class ProgressFile:
         self.failed = False
 
     @property
-    def rel_value(self):
+    def rel_value(self) -> float:
         """ Get current progress value (as percentage). """
         try:
             val = self.value / self.maximum * 100
@@ -208,12 +203,12 @@ class ProgressFile:
             val = -1
         return val
 
-    def set_pending(self):
+    def set_pending(self) -> None:
         """ Set infinite pending value. """
         self.value = 0
         self.maximum = 0
 
-    def set_failed(self):
+    def set_failed(self) -> None:
         """ Set failed values. """
         self.failed = True
         self.value = 999
@@ -236,7 +231,7 @@ class SummaryFile:
         self.file_ref = "summary"
         self.failed = False
 
-    def update_label(self, n):
+    def update_label(self, n) -> None:
         """ Update number of pending jobs. """
         self.label = "processing {} files...".format(n)
 
@@ -275,7 +270,6 @@ class ProgressWidget(QWidget):
         self.del_btn = QPushButton(wgt)
         self.del_btn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         self.del_btn.setFixedSize(15, 15)
-        self.del_btn.setVisible(False)
         self.del_btn.clicked.connect(self.send_remove_me)
 
         self.label = QLabel(wgt)
