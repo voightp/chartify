@@ -149,8 +149,14 @@ class ProgressContainer(QWidget):
 
     def set_failed(self, id_, message):
         """ Set failed status on the given file. """
-        self.files[id_].set_failed()
-        i = self._get_visible_index(self.files[id_])
+        file = self.files[id_]
+        file.set_failed()
+        i = self._get_visible_index(file)
+
+        if file not in self.locked:
+            # let failed files be always visible
+            self.locked.append(file)
+
         if i is not None:
             self.widgets[i].update_all_values()
             self.widgets[i].set_failed_status(message)
