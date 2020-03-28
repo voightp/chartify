@@ -21,19 +21,15 @@ class Pixmap(QPixmap):
 
     def repaint(self, path, r, g, b, a):
         """ Repaint all non-transparent pixels with given color. """
-        try:
-            img = QImage(path)
-            for x in range(img.width()):
-                for y in range(img.height()):
-                    col = img.pixelColor(x, y)
-                    r1, g1, b1, f = col.getRgbF()
-                    new_col = QColor(r, g, b, f * 255 * a)
-                    img.setPixelColor(x, y, new_col)
+        img = QImage(path)
+        for x in range(img.width()):
+            for y in range(img.height()):
+                col = img.pixelColor(x, y)
+                r1, g1, b1, f = col.getRgbF()
+                new_col = QColor(r, g, b, f * 255 * a)
+                img.setPixelColor(x, y, new_col)
 
-            self.convertFromImage(img)
-
-        except IOError:
-            print(f"Could not open {path}")
+        self.convertFromImage(img)
 
     def as_temp(self):
         """ Save the pixmap as a temporary file. """
