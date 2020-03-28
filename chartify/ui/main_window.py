@@ -584,7 +584,7 @@ class MainWindow(QMainWindow):
     def rename_file(self, tab_index):
         """ Rename file on a tab identified by the given index. """
         view = self.tab_wgt.widget(tab_index)
-        orig_name = view.name
+        orig_name = self.tab_wgt.tabText(tab_index)
 
         check_list = self.tab_wgt.get_all_child_names()[:]
         check_list.remove(orig_name)
@@ -598,7 +598,6 @@ class MainWindow(QMainWindow):
             return
 
         name = d.get_input("name")
-        view.name = name
 
         self.tab_wgt.setTabText(tab_index, name)
         self.fileRenamed.emit(view.id_, name)

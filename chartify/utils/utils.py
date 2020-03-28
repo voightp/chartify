@@ -225,3 +225,10 @@ class SignalBlocker:
     def __exit__(self, exc_type, exc_val, exc_tb):
         for a in self.args:
             a.blockSignals(False)
+
+
+def refresh_css(*args):
+    """ Refresh CSS of the widget. """
+    for a in args:
+        a.style().unpolish(a)
+        a.style().polish(a)

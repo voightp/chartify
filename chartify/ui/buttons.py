@@ -10,7 +10,7 @@ from PySide2.QtWidgets import (
     QSlider,
 )
 
-from chartify.ui.misc_widgets import update_appearance
+from chartify.utils.utils import refresh_css
 
 
 class ClickButton(QToolButton):
@@ -254,24 +254,18 @@ class ToggleButton(QFrame):
 
     def setChecked(self, checked):
         """ Set toggle button checked. """
-        sl = self.slider
-        sl.setValue(int(checked))
-
-        nm = "true" if checked else ""
-        sl.setProperty("checked", nm)
-        update_appearance(sl)
+        self.slider.setValue(int(checked))
+        self.slider.setProperty("checked", "true" if checked else "")
+        refresh_css(self.slider)
 
     def setEnabled(self, enabled):
         """ Enable or disable the button. """
-        sl = self.slider
-        sl.setEnabled(enabled)
-
+        self.slider.setEnabled(enabled)
         if self.isChecked():
-            sl.setProperty("checked", "true")
+            self.slider.setProperty("checked", "true")
         else:
-            nm = "" if enabled else "false"
-            sl.setProperty("enabled", nm)
-        update_appearance(sl)
+            self.slider.setProperty("enabled", "" if enabled else "false")
+        refresh_css(self.slider)
 
 
 class MenuButton(QToolButton):

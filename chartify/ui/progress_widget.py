@@ -2,6 +2,7 @@ import contextlib
 
 from PySide2.QtCore import Signal, Qt
 from PySide2.QtWidgets import (
+    QFrame,
     QWidget,
     QLabel,
     QProgressBar,
@@ -10,6 +11,8 @@ from PySide2.QtWidgets import (
     QPushButton,
     QHBoxLayout,
 )
+
+from chartify.utils.utils import refresh_css
 
 
 class ProgressContainer(QWidget):
@@ -236,7 +239,7 @@ class SummaryFile:
         self.label = "processing {} files...".format(n)
 
 
-class ProgressWidget(QWidget):
+class ProgressWidget(QFrame):
     """
     A widget to display current eso file
     processing progress.
@@ -245,13 +248,13 @@ class ProgressWidget(QWidget):
 
     remove = Signal(ProgressFile)
 
-    WIDTH = 140
+    WIDTH = 160
 
     def __init__(self, parent):
         super().__init__(parent)
         self.file_ref = None
 
-        self.main_layout = QVBoxLayout(self)
+        self.main_layout = QHBoxLayout(self)
         self.main_layout.setContentsMargins(0, 0, 0, 0)
         self.main_layout.setSpacing(1)
 
@@ -260,25 +263,25 @@ class ProgressWidget(QWidget):
         self.setProperty("failed", False)
 
         wgt = QWidget(self)
-        layout = QHBoxLayout(wgt)
+        layout = QVBoxLayout(wgt)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(2)
+        layout.setSpacing(1)
 
         self.progress_bar = QProgressBar(wgt)
         self.progress_bar.setTextVisible(False)
 
-        self.del_btn = QPushButton(wgt)
-        self.del_btn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-        self.del_btn.setFixedSize(15, 15)
-        self.del_btn.clicked.connect(self.send_remove_me)
+        self.file_btn = QPushButton(wgt)
+        self.file_btn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self.file_btn.setFixedSize(18, 18)
+        self.file_btn.clicked.connect(self.send_remove_me)
 
         self.label = QLabel(wgt)
 
-        layout.addWidget(self.del_btn)
         layout.addWidget(self.label)
+        layout.addWidget(self.progress_bar)
 
+        self.main_layout.addWidget(self.file_btn)
         self.main_layout.addWidget(wgt)
-        self.main_layout.addWidget(self.progress_bar)
 
     def set_file_ref(self, file):
         """ Update widget properties. """
@@ -312,24 +315,14 @@ class ProgressWidget(QWidget):
     def set_normal_status(self):
         """ Apply standard style. """
         self.setProperty("failed", "false")
-        self.style().unpolish(self.label)
-        self.style().unpolish(self.progress_bar)
-        self.style().polish(self.label)
-        self.style().polish(self.progress_bar)
-
-        self.del_btn.hide()
         self.setToolTip("")
+        refresh_css(self.label, self.progress_bar, self.file_btn)
 
     def set_failed_status(self, message):
         """ Apply 'failed' style. """
         self.setProperty("failed", "true")
-        self.style().unpolish(self.label)
-        self.style().unpolish(self.progress_bar)
-        self.style().polish(self.label)
-        self.style().polish(self.progress_bar)
-
-        self.del_btn.show()
         self.setToolTip(message)
+        refresh_css(self.label, self.progress_bar, self.file_btn)
 
     def send_remove_me(self):
         """ Give signal to status bar to remove this widget. """

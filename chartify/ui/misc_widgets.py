@@ -16,12 +16,7 @@ from PySide2.QtWidgets import (
 )
 
 from chartify.ui.treeview import TreeView
-
-
-def update_appearance(wgt):
-    """ Refresh CSS of the widget. """
-    wgt.style().unpolish(wgt)
-    wgt.style().polish(wgt)
+from chartify.utils.utils import refresh_css
 
 
 def filter_eso_files(urls, extensions=("eso",)):
@@ -107,12 +102,12 @@ class DropFrame(QFrame):
 
         # update appearance
         self.setProperty("drag-accept", bool(files))
-        update_appearance(self)
+        refresh_css(self)
 
     def dragLeaveEvent(self, event):
         """ Handle appearance when a drag event is leaving. """
         self.setProperty("drag-accept", "")
-        update_appearance(self)
+        refresh_css(self)
 
     def dropEvent(self, event):
         """ Handle file drops. """
@@ -125,7 +120,7 @@ class DropFrame(QFrame):
 
         # update appearance
         self.setProperty("drag-accept", "")
-        update_appearance(self)
+        refresh_css(self)
 
 
 class LineEdit(QFrame):
