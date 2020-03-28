@@ -1,3 +1,4 @@
+import contextlib
 import math
 import traceback
 import uuid
@@ -8,7 +9,7 @@ from typing import Tuple, List
 import loky
 import psutil
 from esofile_reader import EsoFile, TotalsFile
-from esofile_reader.base_file import IncompleteFile
+from esofile_reader.base_file import IncompleteFile, BlankLineError, InvalidLineSyntax
 from esofile_reader.data.pqt_data import ParquetFrame
 from esofile_reader.storage.storage_files import ParquetFile
 from esofile_reader.utils.mini_classes import ResultsFile
@@ -43,7 +44,7 @@ def kill_child_processes(parent_pid):
 
 
 def store_file(
-    results_file: ResultsFile, workdir: str, monitor: GuiMonitor, ids: List[int], lock: Lock
+        results_file: ResultsFile, workdir: str, monitor: GuiMonitor, ids: List[int], lock: Lock
 ) -> Tuple[int, ParquetFile]:
     """ Store results file as 'ParquetFile'. """
     n_steps = 0
@@ -81,32 +82,36 @@ def store_file(
 
 
 def load_file(
-    path: str, workdir: str, progress_queue, file_queue, ids: List[int], lock: Lock
+        path: str, workdir: str, progress_queue, file_queue, ids: List[int], lock: Lock
 ) -> None:
     """ Process and store eso file. """
     monitor_id = str(uuid.uuid1())
     monitor = GuiMonitor(path, monitor_id, progress_queue)
 
     try:
-        files = EsoFile.process_multi_env_file(path, monitor=monitor)
-        monitor.building_totals_finished()
+        with contextlib.suppress(IncompleteFile, BlankLineError, InvalidLineSyntax):
+            # monitor.failed is called in processing function so suppressed
+            # functions do not need to be dealt with explicitly
+            files = EsoFile.process_multi_env_file(path, monitor=monitor)
+            monitor.building_totals_finished()
+            for f in files:
+                id_, file = store_file(
+                    results_file=f, workdir=workdir, monitor=monitor, ids=ids, lock=lock
+                )
+                file_queue.put(file)
+                id_, file = store_file(
+                    results_file=TotalsFile(f),
+                    workdir=workdir,
+                    monitor=monitor,
+                    ids=ids,
+                    lock=lock
+                )
+                file_queue.put(file)
+            file_queue.put(monitor_id)
+            monitor.done()
 
-        for f in files:
-            id_, file = store_file(
-                results_file=f, workdir=workdir, monitor=monitor, ids=ids, lock=lock
-            )
-            file_queue.put(file)
-
-            id_, file = store_file(
-                results_file=TotalsFile(f), workdir=workdir, monitor=monitor, ids=ids, lock=lock
-            )
-
-            file_queue.put(file)
-
-        file_queue.put(monitor_id)
-        monitor.done()
-
-    except IncompleteFile:
+    except Exception:
+        # catch any unexpected generic exception
         monitor.processing_failed(
-            f"Processing failed - incomplete file!" f"\n{traceback.format_exc()}"
+            f"Processing failed - exception!" f"\n{traceback.format_exc()}"
         )

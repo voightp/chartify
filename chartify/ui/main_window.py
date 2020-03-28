@@ -136,7 +136,7 @@ class MainWindow(QMainWindow):
             c1 = QColor(*colors.get_color("SECONDARY_COLOR", as_tuple=True))
             c2 = QColor(*colors.get_color("BACKGROUND_COLOR", as_tuple=True))
             act.setIcon(
-                filled_circle_pixmap(QSize(60, 60), c1, c2=c2, border_col=QColor(255, 255, 255))
+                filled_circle_pixmap(QSize(60, 60), c1, c2=c2, border_color=QColor(255, 255, 255))
             )
             actions.append(act)
             if name == Settings.PALETTE_NAME:
