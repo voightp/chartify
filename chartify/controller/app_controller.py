@@ -97,7 +97,8 @@ class AppController:
     def handle_selection_change(self, variable_data: List[tuple]) -> None:
         """ Handle selection update. """
         out_str = [" | ".join(var) for var in variable_data]
-        print("handle_selection_change!\n\t{}".format("\n\t".join(out_str)))
+        if out_str:
+            print("Selected Variables:\n\t{}".format("\n\t".join(out_str)))
         self.m.selected_variable_data = variable_data
 
     def connect_model_signals(self) -> None:
