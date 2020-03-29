@@ -56,7 +56,7 @@ class TabWidget(QTabWidget):
         return [self.widget(i) for i in range(self.count())]
 
     def get_all_child_names(self):
-        return [wgt.name for wgt in self.get_all_children()]
+        return [self.tabText(i) for i in range(self.count())]
 
     def add_tab(self, wgt, title):
         if self.is_empty():

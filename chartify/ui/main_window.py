@@ -46,7 +46,7 @@ class MainWindow(QMainWindow):
     viewUpdateRequested = Signal(int)
     paletteUpdated = Signal()
     fileProcessingRequested = Signal(list)
-    fileRenamed = Signal(int, str, str)
+    fileRenamed = Signal(int, str)
     selectionChanged = Signal(list)
     variableRenamed = Signal(int, tuple, str, str)
     variablesRemoved = Signal(int, list)
