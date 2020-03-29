@@ -17,27 +17,25 @@ class Pixmap(QPixmap):
     def __init__(self, path, r: int = 0, g: int = 0, b: int = 0, a: float = 1):
         path = path if isinstance(path, str) else str(path)
         super().__init__(path)
-
         if not (r == 0 and g == 0 and b == 0 and a == 1):
             self.repaint(path, r, g, b, a)
 
     def repaint(self, path: str, r: int, g: int, b: int, a: float) -> None:
         """ Repaint all non-transparent pixels with given color. """
-        img = QImage(path)
+        img = QImage(self.toImage())
         for x in range(img.width()):
             for y in range(img.height()):
                 col = img.pixelColor(x, y)
                 r1, g1, b1, f = col.getRgbF()
                 new_col = QColor(r, g, b, f * 255 * a)
-                img.setPixelColor(x, y, new_col)
-
+                if f > 0:
+                    img.setPixelColor(x, y, new_col)
         self.convertFromImage(img)
 
     def as_temp(self) -> QTemporaryFile:
         """ Save the pixmap as a temporary file. """
         buff = QBuffer()
         self.save(buff, "PNG")
-
         tf = QTemporaryFile()
         tf.open()
         tf.write(buff.data())
