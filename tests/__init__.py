@@ -1,3 +1,3 @@
-from pathlib import Path
+import pathlib
 
-ROOT = Path(__file__).parent.absolute()
+ROOT = pathlib.Path(__file__).parent

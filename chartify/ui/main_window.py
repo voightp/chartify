@@ -438,22 +438,22 @@ class MainWindow(QMainWindow):
                 power_units=Settings.POWER_UNITS,
                 header=view_settings["header"],
             )
-            # update visual appearance of the view to be consistent
-            # with previously displayed View
-            self.current_view.update_view_appearance(**view_settings)
+        # update visual appearance of the view to be consistent
+        # with previously displayed View
+        self.current_view.update_view_appearance(**view_settings)
 
-            filter_tup = self.view_tools_wgt.get_filter_tup()
-            if any(filter_tup):
-                self.current_view.filter_view(filter_tup)
+        filter_tup = self.view_tools_wgt.get_filter_tup()
+        if any(filter_tup) or filter_tup != self.current_view.model().fi:
+            self.current_view.filter_view(filter_tup)
 
-            # clear selections to avoid having visually
-            # selected items from previous selection
-            self.current_view.deselect_all_variables()
-            if selected:
-                self.current_view.select_variables(selected)
+        # clear selections to avoid having visually
+        # selected items from previous selection
+        self.current_view.deselect_all_variables()
+        if selected:
+            self.current_view.select_variables(selected)
 
-            if scroll_to:
-                self.current_view.scroll_to(scroll_to, self.view_settings["header"][0])
+        if scroll_to:
+            self.current_view.scroll_to(scroll_to, self.view_settings["header"][0])
 
     def on_selection_populated(self, variables):
         """ Store current selection in main app. """

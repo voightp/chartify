@@ -41,10 +41,10 @@ class SimpleModel(QStandardItemModel):
 
     @staticmethod
     def _append_row(
-        parent: QStandardItem,
-        row: Sequence[str],
-        item_row: List[QStandardItem],
-        indexes: Dict[str, int],
+            parent: QStandardItem,
+            row: Sequence[str],
+            item_row: List[QStandardItem],
+            indexes: Dict[str, int],
     ) -> None:
         """ Append row to the given parent. """
         # assign status tip for all items in row
@@ -87,10 +87,15 @@ class SimpleFilterModel(QSortFilterProxyModel):
 
     def __init__(self):
         super().__init__()
-        self._filter_tup = FilterTuple(key="", variable="", units="")
+        self._filter_tuple = FilterTuple(key="", variable="", units="")
 
-    def setFilterTuple(self, filter_tup: FilterTuple) -> None:
-        self._filter_tup = filter_tup
+    @property
+    def filter_tuple(self) -> FilterTuple:
+        return self._filter_tup
+
+    @filter_tuple.setter
+    def filter_tuple(self, filter_tup: FilterTuple) -> None:
+        self._filter_tuple = filter_tup
         self.invalidateFilter()
 
     def get_logical_names(self) -> List[str]:
@@ -132,7 +137,7 @@ class SimpleFilterModel(QSortFilterProxyModel):
             else:
                 return True
 
-        if not any(self._filter_tup):
+        if not any(self._filter_tuple):
             return True
 
         # first item can be either parent for 'tree' structure or a normal item
@@ -147,7 +152,7 @@ class SimpleFilterModel(QSortFilterProxyModel):
             variable_data = it0.data(role=Qt.UserRole)
 
             # check if all filter fields match
-            for k, filter_string in self._filter_tup._asdict().items():
+            for k, filter_string in self._filter_tuple._asdict().items():
                 if not filter_string:
                     continue
                 else:
@@ -314,7 +319,7 @@ class SimpleView(QTreeView):
 
     def filter_view(self, filter_tup: FilterTuple) -> None:
         """ Filter the model using given filter tuple. """
-        self.model().setFilterTuple(filter_tup)
+        self.model().filter_tuple = filter_tup
 
     def get_visual_names(self) -> tuple:
         """ Return sorted column names (by visual index). """
@@ -327,7 +332,7 @@ class SimpleView(QTreeView):
         return {k: self.header().visualIndex(i) for k, i in log_ixs.items()}
 
     def update_view_appearance(
-        self, header: tuple = ("variable", "units"), widths: Dict[str, int] = None, **kwargs
+            self, header: tuple = ("variable", "units"), widths: Dict[str, int] = None, **kwargs
     ) -> None:
         """ Update the model appearance to be consistent with last view. """
         # it's required to adjust columns order to match the last applied order
@@ -391,15 +396,15 @@ class SimpleView(QTreeView):
         self.header().resizeSection(fixed, widths["fixed"])
 
     def populate_view(
-        self,
-        variables_df: pd.DataFrame,
-        interval: str,
-        rate_to_energy: bool = False,
-        units_system: str = "SI",
-        energy_units: str = "J",
-        power_units: str = "W",
-        header: tuple = ("variable", "units"),
-        **kwargs,
+            self,
+            variables_df: pd.DataFrame,
+            interval: str,
+            rate_to_energy: bool = False,
+            units_system: str = "SI",
+            energy_units: str = "J",
+            power_units: str = "W",
+            header: tuple = ("variable", "units"),
+            **kwargs,
     ) -> None:
         """ Set the model and define behaviour of the tree view. """
         # store current setup as instance attributes
