@@ -27,14 +27,12 @@ class ProgressContainer(QWidget):
     """
 
     MAX_VISIBLE_JOBS = 5
-    CHILD_SPACING = 3
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(self.CHILD_SPACING)
         layout.setAlignment(Qt.AlignLeft)
 
         widgets = []
