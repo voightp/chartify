@@ -72,7 +72,7 @@ def test_get_filter_tup(qtbot, view_tools):
     assert view_tools.variable_line_edit.text() == "bar"
     assert view_tools.units_line_edit.text() == "baz"
 
-    assert view_tools.get_filter_tup() == test_filter
+    assert view_tools.get_filter_tuple() == test_filter
 
 
 def test_toggle_tree_button(qtbot, view_tools):

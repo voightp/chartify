@@ -91,11 +91,11 @@ class SimpleFilterModel(QSortFilterProxyModel):
 
     @property
     def filter_tuple(self) -> FilterTuple:
-        return self._filter_tup
+        return self._filter_tuple
 
     @filter_tuple.setter
-    def filter_tuple(self, filter_tup: FilterTuple) -> None:
-        self._filter_tuple = filter_tup
+    def filter_tuple(self, filter_tuple: FilterTuple) -> None:
+        self._filter_tuple = filter_tuple
         self.invalidateFilter()
 
     def get_logical_names(self) -> List[str]:

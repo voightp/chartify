@@ -442,8 +442,8 @@ class MainWindow(QMainWindow):
         # with previously displayed View
         self.current_view.update_view_appearance(**view_settings)
 
-        filter_tup = self.view_tools_wgt.get_filter_tup()
-        if any(filter_tup) or filter_tup != self.current_view.model().fi:
+        filter_tup = self.view_tools_wgt.get_filter_tuple()
+        if any(filter_tup) or filter_tup != self.current_view.model().filter_tuple:
             self.current_view.filter_view(filter_tup)
 
         # clear selections to avoid having visually

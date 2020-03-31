@@ -101,7 +101,7 @@ class ViewTools(QFrame):
         """ Check if tree structure is requested. """
         return self.tree_view_btn.isChecked()
 
-    def get_filter_tup(self):
+    def get_filter_tuple(self):
         """ Get current filter string. """
         return FilterTuple(
             key=self.key_line_edit.text(),
@@ -126,4 +126,4 @@ class ViewTools(QFrame):
 
     def request_filter(self):
         """ Apply a filter when the filter text is edited. """
-        self.textFiltered.emit(self.get_filter_tup())
+        self.textFiltered.emit(self.get_filter_tuple())
