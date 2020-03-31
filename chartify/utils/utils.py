@@ -159,11 +159,11 @@ def remove_recursively(dct, ref_dct):
 
 
 def create_proxy_units_column(
-    source_units: pd.Series,
-    rate_to_energy: bool,
-    units_system: str,
-    energy_units: str,
-    power_units: str,
+        source_units: pd.Series,
+        rate_to_energy: bool,
+        units_system: str,
+        energy_units: str,
+        power_units: str,
 ) -> pd.Series:
     # always replace whitespace with dash
     proxy_units = pd.Series(np.empty(source_units.size))
@@ -232,3 +232,26 @@ def refresh_css(*args):
     for a in args:
         a.style().unpolish(a)
         a.style().polish(a)
+
+
+def printdict(dct, limit=10):
+    """ Print dictionary ignoring massive lists. """
+    print_dict = {}
+    for k, v in dct.items():
+        if isinstance(v, dict):
+            print_dict[k] = printdict(v, limit=limit)
+        elif isinstance(v, list):
+            lst = []
+            if len(v) > limit:
+                print_dict[k] = "[... list too long ...]"
+                continue
+            else:
+                for item in v:
+                    if isinstance(item, dict):
+                        lst.append(printdict(item))
+                    else:
+                        lst.append(item)
+            print_dict[k] = lst
+        else:
+            print_dict[k] = v
+    return print_dict

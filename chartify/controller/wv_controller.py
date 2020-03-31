@@ -1,6 +1,6 @@
 import json
 import uuid
-from typing import Tuple, List, Union
+from typing import Tuple, Union
 
 from PySide2 import QtWebChannel
 from PySide2.QtCore import QObject, Slot, Signal, QJsonValue, QUrl, QThreadPool
@@ -15,7 +15,7 @@ from chartify.model.model import AppModel
 from chartify.settings import Settings
 from chartify.utils.threads import Worker
 from chartify.utils.tiny_profiler import profile
-from chartify.utils.utils import int_generator, calculate_totals
+from chartify.utils.utils import int_generator, calculate_totals, printdict
 
 
 class MyPage(QWebEnginePage):
@@ -107,7 +107,7 @@ class WVController(QObject):
                 grid_color,
                 background_color,
             )
-        print(json.dumps(component, indent=4))
+        print(json.dumps(printdict(component, limit=20), indent=4))
         return component
 
     @profile
@@ -197,7 +197,7 @@ class WVController(QObject):
 
     @Slot(str, QJsonValue, QJsonValue)
     def onChartLayoutChanged(
-        self, item_id: str, layout: QJsonValue, geometry: QJsonValue
+            self, item_id: str, layout: QJsonValue, geometry: QJsonValue
     ) -> None:
         """ Handle chart resize interaction. """
         chart = self.m.fetch_component(item_id)
