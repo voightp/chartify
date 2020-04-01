@@ -10,8 +10,8 @@ def container(qtbot):
     qtbot.add_widget(container)
 
     for i in range(1, 9):
-        container.add_file(str(i), f"file-{i}")
-        container.set_range(str(i), 10 * i, 100)
+        container.add_file(f"{i}", f"file-{i}")
+        container.set_range(f"{i}", 10 * i, 100)
 
     return container
 
@@ -29,39 +29,76 @@ def test_sorted_files(qtbot, container: ProgressContainer):
 def test_visible_files(qtbot, container: ProgressContainer):
     summary = container.widgets[-1].file_ref
     test_files = [
-        container.files[str(7)],
-        container.files[str(6)],
-        container.files[str(5)],
-        container.files[str(4)],
+        container.files["8"],
+        container.files["7"],
+        container.files["6"],
+        container.files["5"],
         summary
     ]
     assert container.visible_files == test_files
 
 
 def test__get_visible_index(container: ProgressContainer):
-    file = container.files[str(5)]
-    assert container._get_visible_index(file) == 2
+    file = container.files["5"]
+    assert container._get_visible_index(file) == 3
 
 
 def test__get_visible_index_hidden(container: ProgressContainer):
-    file = container.files[str(1)]
+    file = container.files["1"]
     assert not container._get_visible_index(file)
 
 
+def test__position_not_changed(container: ProgressContainer):
+    file = container.files["5"]
+    assert not container._position_changed(file)
+
+
 def test__position_changed(container: ProgressContainer):
-    assert False
+    file = container.files["5"]
+    file.value = 99
+    assert container._position_changed(file)
 
 
-def test__update_bar(container: ProgressContainer):
-    assert False
+def test__position_changed_hidden_file(container: ProgressContainer):
+    file = container.files["1"]
+    file.value = 99
+    assert container._position_changed(file)
+
+
+def test__update_bar_display_summary(container: ProgressContainer):
+    container.MAX_VISIBLE_JOBS = 4
+    container.widgets.pop(0)
+    container._update_bar()
+    summary = container.widgets[-1].file_ref
+    test_files = [
+        container.files["8"],
+        container.files["7"],
+        container.files["6"],
+        summary
+    ]
+    assert summary.label == "processing 5 files..."
+    assert container.visible_files == test_files
 
 
 def test_add_file(container: ProgressContainer):
-    assert False
+    container.add_file("100", "added file")
+    file = container.files["100"]
+    assert len(container.files) == 9
+    assert file.id_ == "100"
+    assert file.label == "added file"
+    assert file.maximum == 0
+    assert file.value == 0
+    assert not file.failed
 
 
 def test_set_range(container: ProgressContainer):
-    assert False
+    container.set_range("8", 1, 200)
+    file = container.files["8"]
+    assert not container._get_visible_index(file)
+    assert file.maximum == 200
+    assert file.value == 1
+    assert file.rel
+    assert not file.failed
 
 
 def test_update_progress(container: ProgressContainer):

@@ -255,16 +255,16 @@ class ToggleButton(QFrame):
     def setChecked(self, checked):
         """ Set toggle button checked. """
         self.slider.setValue(int(checked))
-        self.slider.setProperty("checked", "true" if checked else "")
+        self.slider.setProperty("checked", True if checked else "")
         refresh_css(self.slider)
 
     def setEnabled(self, enabled):
         """ Enable or disable the button. """
         self.slider.setEnabled(enabled)
         if self.isChecked():
-            self.slider.setProperty("checked", "true")
+            self.slider.setProperty("checked", True)
         else:
-            self.slider.setProperty("enabled", "" if enabled else "false")
+            self.slider.setProperty("enabled", "" if enabled else False)
         refresh_css(self.slider)
 
 

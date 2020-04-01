@@ -1,6 +1,6 @@
 import contextlib
 from typing import List, Optional
-
+from itertools import zip_longest
 from PySide2.QtCore import Signal, Qt
 from PySide2.QtWidgets import (
     QFrame,
@@ -173,13 +173,13 @@ class ProgressWidget(QFrame):
 
     def set_normal_status(self) -> None:
         """ Apply standard style. """
-        self.setProperty("failed", "false")
+        self.setProperty("failed", False)
         self.setToolTip("")
         refresh_css(self.label, self.progress_bar, self.file_btn)
 
     def set_failed_status(self, message) -> None:
         """ Apply 'failed' style. """
-        self.setProperty("failed", "true")
+        self.setProperty("failed", True)
         self.setToolTip(message)
         refresh_css(self.label, self.progress_bar, self.file_btn)
 
@@ -257,9 +257,8 @@ class ProgressContainer(QWidget):
         i = self._get_visible_index(file)
 
         if i is None:
-            # widget is in pending section, although it
-            # can still be being processed on machines with
-            # number of cpu greater than MAX_VISIBLE_JOBS
+            # file is in hidden section, however it can still being processed
+            # on machines with number of cpu greater than MAX_VISIBLE_JOBS
             vals = [v.rel_value for v in self.visible_files if not isinstance(v, SummaryFile)]
             return any(map(lambda x: x < (file.rel_value + 3), vals))
 
@@ -270,8 +269,7 @@ class ProgressContainer(QWidget):
         max_ = self.MAX_VISIBLE_JOBS
         n = len(self.sorted_files)
 
-        fill = [None for _ in range(n, max_)]
-        displayed = self.sorted_files[0:max_] if n > max_ else self.sorted_files + fill
+        displayed = self.sorted_files[0:max_]
         if n > max_:
             # there's more files than maximum, show summary info
             n = n - max_ + 1
@@ -279,7 +277,7 @@ class ProgressContainer(QWidget):
             summary_file.update_label(n)
             displayed[-1] = summary_file
 
-        for f, w in zip(displayed, self.widgets):
+        for f, w in zip_longest(displayed, self.widgets):
             if not f:
                 w.file_ref = None
             elif f != w.file_ref:
@@ -302,7 +300,9 @@ class ProgressContainer(QWidget):
 
             i = self._get_visible_index(f)
             if i is not None:
-                self.widgets[i].update_max()
+                self.widgets[i].update_all_values()
+
+            self._update_bar()
 
     def update_progress(self, id_: str, value: int) -> None:
         """ Update file progress. """

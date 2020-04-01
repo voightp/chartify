@@ -189,7 +189,7 @@ class MulInputDialog(QDialog):
 
         main_text = QLabel(self)
         main_text.setText(text)
-        main_text.setProperty("primary", "true")
+        main_text.setProperty("primary", True)
         layout.addWidget(main_text)
 
         form = QWidget(self)
@@ -270,7 +270,7 @@ class ConfirmationDialog(QDialog):
 
         main_text = QLabel(self)
         main_text.setText(text)
-        main_text.setProperty("primary", "true")
+        main_text.setProperty("primary",True)
         layout.addWidget(main_text)
 
         if inf_text:
