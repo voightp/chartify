@@ -5,6 +5,7 @@ from esofile_reader.storage.storage_files import ParquetFile
 # noinspection PyUnresolvedReferences
 class Monitor(QThread):
     bar_updated = Signal(str, int)
+    info_updated = Signal(str, str)
     pending = Signal(str)
     range_changed = Signal(str, int, int)
     started = Signal(str, str)
@@ -20,28 +21,30 @@ class Monitor(QThread):
     def run(self):
         while True:
             monitor, identifier, message = self.progress_queue.get()
-            mon_id, mon_name = monitor.id, monitor.name
 
             def send_new_file():
-                self.file_added.emit(mon_id, mon_name)
+                self.file_added.emit(monitor.id, monitor.name)
 
             def send_set_range():
-                self.range_changed.emit(mon_id, monitor.progress, monitor.max_progress)
+                self.range_changed.emit(monitor.id, monitor.progress, monitor.max_progress)
 
             def send_pending():
-                self.pending.emit(mon_id)
+                self.pending.emit(monitor.id)
 
             def send_update_bar():
-                self.bar_updated.emit(mon_id, message)
+                self.bar_updated.emit(monitor.id, message)
 
             def do_not_report():
                 pass
 
             def send_failed():
-                self.failed.emit(mon_id, message)
+                self.failed.emit(monitor.id, message)
 
             def send_done():
-                self.done.emit(mon_id)
+                self.done.emit(monitor.id)
+
+            def send_update_info():
+                print(message)
 
             switch = {
                 -1: send_failed,
@@ -56,7 +59,7 @@ class Monitor(QThread):
                 8: send_pending,  # file processing finished
                 9: send_set_range,  # storing started
                 10: do_not_report,  # storing finished
-                50: do_not_report,  # building totals generated
+                50: do_not_report,  # totals started
                 99: send_update_bar,
                 100: send_done,
             }

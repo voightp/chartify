@@ -56,12 +56,10 @@ def store_file(
     monitor.storing_started()
 
     with lock:
-        i = 0
-        while i in ids:
-            i += 1
-        ids.append(i)
-
-    id_ = i
+        id_ = 0
+        while id_ in ids:
+            id_ += 1
+        ids.append(id_)
 
     file = ParquetFile(
         id_=id_,
@@ -74,7 +72,6 @@ def store_file(
         pardir=workdir,
         monitor=monitor,
     )
-    file.CLEAN_UP = False
 
     monitor.storing_finished()
 
@@ -87,20 +84,22 @@ def load_file(
     """ Process and store eso file. """
     monitor_id = str(uuid.uuid1())
     monitor = GuiMonitor(path, monitor_id, progress_queue)
-
     try:
         with contextlib.suppress(IncompleteFile, BlankLineError, InvalidLineSyntax):
             # monitor.failed is called in processing function so suppressed
             # functions do not need to be dealt with explicitly
             files = EsoFile.process_multi_env_file(path, monitor=monitor)
-            monitor.building_totals_finished()
             for f in files:
                 id_, file = store_file(
                     results_file=f, workdir=workdir, monitor=monitor, ids=ids, lock=lock
                 )
                 file_queue.put(file)
+
+                # generate and store totals file
+                monitor.totals_started()
+                totals_file = TotalsFile(f)
                 id_, file = store_file(
-                    results_file=TotalsFile(f),
+                    results_file=totals_file,
                     workdir=workdir,
                     monitor=monitor,
                     ids=ids,

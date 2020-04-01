@@ -129,7 +129,6 @@ class AppController:
         # and rate to energy button when applicable
         self.v.toolbar.update_intervals_state(file.available_intervals)
         self.v.toolbar.update_rate_to_energy_state(Settings.INTERVAL)
-
         self.v.build_treeview(
             file.get_header_df(Settings.INTERVAL), selected=self.m.selected_variable_data
         )

@@ -1,6 +1,7 @@
 import contextlib
-from typing import List, Optional
 from itertools import zip_longest
+from typing import List, Optional
+
 from PySide2.QtCore import Signal, Qt
 from PySide2.QtWidgets import (
     QFrame,
@@ -40,9 +41,19 @@ class ProgressFile:
         self.maximum = 0
         self.value = 0
         self.failed = False
+        self.info = ""
+
+    def __repr__(self):
+        return f"Class: '{self.__class__.__name__}'" \
+               f"id: '{self.id_}'" \
+               f"label : '{self.label}'" \
+               f"maximum : '{self.maximum}'" \
+               f"value : '{self.value}'" \
+               f"failed : '{self.failed}'" \
+               f"info : '{self.info}'"
 
     @property
-    def rel_value(self) -> float:
+    def relative_value(self) -> float:
         """ Get current progress value (as percentage). """
         try:
             val = self.value / self.maximum * 100
@@ -236,7 +247,7 @@ class ProgressContainer(QWidget):
         files = list(filter(lambda x: x not in self.locked, all_files))
 
         # locked files take precedent
-        sorted_files = self.locked + sorted(files, key=lambda x: x.rel_value, reverse=True)
+        sorted_files = self.locked + sorted(files, key=lambda x: x.relative_value, reverse=True)
 
         return sorted_files
 
@@ -259,8 +270,8 @@ class ProgressContainer(QWidget):
         if i is None:
             # file is in hidden section, however it can still being processed
             # on machines with number of cpu greater than MAX_VISIBLE_JOBS
-            vals = [v.rel_value for v in self.visible_files if not isinstance(v, SummaryFile)]
-            return any(map(lambda x: x < (file.rel_value + 3), vals))
+            vals = [f.relative_value for f in self.visible_files if isinstance(f, ProgressFile)]
+            return any(map(lambda x: x < (file.relative_value + 3), vals))
 
         return pos != i
 

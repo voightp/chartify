@@ -13,8 +13,8 @@ class GuiMonitor(DefaultMonitor):
     def done(self):
         self.send_message(100, "Done!")
 
-    def building_totals_finished(self):
-        self.send_message(50, "Totals produced!")
+    def totals_started(self):
+        self.send_message(50, "Generating totals!")
 
     def set_chunk_size(self, n_lines):
         n_processing_steps = n_lines // self.CHUNK_SIZE
