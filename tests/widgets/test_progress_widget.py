@@ -97,12 +97,18 @@ def test_set_range(container: ProgressContainer):
     assert not container._get_visible_index(file)
     assert file.maximum == 200
     assert file.value == 1
-    assert file.rel
+    assert file.relative_value == 1 / 200 * 100
     assert not file.failed
 
 
 def test_update_progress(container: ProgressContainer):
-    assert False
+    container.update_progress("8", 99)
+    file = container.files["8"]
+    assert not container._get_visible_index(file)
+    assert file.maximum == 100
+    assert file.value == 99
+    assert file.relative_value == 99 / 100 * 100
+    assert not file.failed
 
 
 def test_set_failed(container: ProgressContainer):
