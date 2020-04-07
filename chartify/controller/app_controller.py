@@ -104,7 +104,7 @@ class AppController:
     def connect_model_signals(self) -> None:
         """ Create monitor signals. """
         self.monitor.file_added.connect(self.v.progress_cont.add_file)
-        self.monitor.bar_updated.connect(self.v.progress_cont.update_progress)
+        self.monitor.progress_updated.connect(self.v.progress_cont.update_progress)
         self.monitor.range_changed.connect(self.v.progress_cont.set_range)
         self.monitor.pending.connect(self.v.progress_cont.set_pending)
         self.monitor.failed.connect(self.v.progress_cont.set_failed)

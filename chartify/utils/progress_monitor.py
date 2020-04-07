@@ -1,20 +1,20 @@
 from esofile_reader.processor.monitor import DefaultMonitor
 
 
-class GuiMonitor(DefaultMonitor):
+class ProgressMonitor(DefaultMonitor):
     CHUNK_SIZE = 10000
 
     def __init__(self, path, id_, queue):
         super().__init__(path)
         self.queue = queue
         self.id = id_
-        self.send_message(0, "Waiting")
+        self.send_message(0, "initialized!")
 
     def done(self):
-        self.send_message(100, "Done!")
+        self.send_message(100, "done!")
 
     def totals_started(self):
-        self.send_message(50, "Generating totals!")
+        self.send_message(50, "generating totals!")
 
     def set_chunk_size(self, n_lines):
         n_processing_steps = n_lines // self.CHUNK_SIZE

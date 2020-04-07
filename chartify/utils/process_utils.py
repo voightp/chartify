@@ -14,7 +14,7 @@ from esofile_reader.data.pqt_data import ParquetFrame
 from esofile_reader.storage.storage_files import ParquetFile
 from esofile_reader.utils.mini_classes import ResultsFile
 
-from chartify.utils.monitor import GuiMonitor
+from chartify.utils.progress_monitor import ProgressMonitor
 
 
 def create_pool():
@@ -44,7 +44,8 @@ def kill_child_processes(parent_pid):
 
 
 def store_file(
-        results_file: ResultsFile, workdir: str, monitor: GuiMonitor, ids: List[int], lock: Lock
+        results_file: ResultsFile, workdir: str, monitor: ProgressMonitor, ids: List[int],
+        lock: Lock
 ) -> Tuple[int, ParquetFile]:
     """ Store results file as 'ParquetFile'. """
     n_steps = 0
@@ -83,7 +84,7 @@ def load_file(
 ) -> None:
     """ Process and store eso file. """
     monitor_id = str(uuid.uuid1())
-    monitor = GuiMonitor(path, monitor_id, progress_queue)
+    monitor = ProgressMonitor(path, monitor_id, progress_queue)
     try:
         with contextlib.suppress(IncompleteFile, BlankLineError, InvalidLineSyntax):
             # monitor.failed is called in processing function so suppressed
@@ -111,6 +112,4 @@ def load_file(
 
     except Exception:
         # catch any unexpected generic exception
-        monitor.processing_failed(
-            f"Processing failed - exception!" f"\n{traceback.format_exc()}"
-        )
+        monitor.processing_failed(traceback.format_exc())

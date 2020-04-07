@@ -10,7 +10,7 @@ def container(qtbot):
     qtbot.add_widget(container)
 
     for i in range(1, 9):
-        container.add_file(f"{i}", f"file-{i}")
+        container.add_file(f"{i}", f"file-{i}", f"C:/dummy/path/file-{i}.eso")
         container.set_range(f"{i}", 10 * i, 100)
 
     return container
@@ -69,64 +69,144 @@ def test__update_bar_display_summary(container: ProgressContainer):
     container.MAX_VISIBLE_JOBS = 4
     container.widgets.pop(0)
     container._update_bar()
-    summary = container.widgets[-1].file_ref
+
     test_files = [
         container.files["8"],
         container.files["7"],
         container.files["6"],
-        summary
+        container.files["5"],
     ]
-    assert summary.label == "processing 5 files..."
+    assert container.summary.label.text() == "processing 4 files..."
     assert container.visible_files == test_files
 
 
 def test_add_file(container: ProgressContainer):
-    container.add_file("100", "added file")
+    container.add_file("100", "added file", "C:/added/file/path.eso")
     file = container.files["100"]
     assert len(container.files) == 9
     assert file.id_ == "100"
     assert file.label == "added file"
+    assert file.file_path == "C:/added/file/path.eso"
     assert file.maximum == 0
     assert file.value == 0
     assert not file.failed
+    assert not file.widget
 
 
-def test_set_range(container: ProgressContainer):
-    container.set_range("8", 1, 200)
-    file = container.files["8"]
-    assert not container._get_visible_index(file)
-    assert file.maximum == 200
-    assert file.value == 1
-    assert file.relative_value == 1 / 200 * 100
+def test_add_file_visible(container: ProgressContainer):
+    for i in range(4, 9)[::-1]:
+        container.remove_file(str(i))
+
+    container.add_file("100", "added file", "C:/added/file/path.eso")
+    file = container.files["100"]
+    widget = container.widgets[3]
+
+    assert len(container.files) == 4
+    assert file.id_ == "100"
+    assert file.label == "added file"
+    assert file.file_path == "C:/added/file/path.eso"
+    assert file.maximum == 0
+    assert file.value == 0
     assert not file.failed
+    assert file.widget == widget
+
+    assert widget.file_ref == file
+    assert widget.label
+    assert widget.progress_bar.value() == 0
+    assert widget.progress_bar.maximum() == 0
+    assert widget.file_btn.toolTip() == "File: C:/added/file/path.eso\nStatus: "
+
+
+def test_set_range_invisible_to_visible(container: ProgressContainer):
+    container.set_range("1", 500, 1000)
+    file = container.files["1"]
+    widget = container.widgets[3]
+
+    assert container._get_visible_index(file) == 3
+    assert file.maximum == 1000
+    assert file.value == 500
+    assert file.relative_value == 500 / 1000 * 100
+    assert not file.failed
+    assert file.widget == widget
+
+    assert widget.file_ref == file
+    assert widget.label.text() == "file-1"
+    assert widget.progress_bar.value() == 500
+    assert widget.progress_bar.maximum() == 1000
+    assert widget.file_btn.toolTip() == "File: C:/dummy/path/file-1.eso\nStatus: "
 
 
 def test_update_progress(container: ProgressContainer):
     container.update_progress("8", 99)
     file = container.files["8"]
-    assert not container._get_visible_index(file)
+    widget = container.widgets[0]
+
+    assert container._get_visible_index(file) == 0
     assert file.maximum == 100
     assert file.value == 99
     assert file.relative_value == 99 / 100 * 100
-    assert not file.failed
+
+    assert widget.file_ref == file
+    assert widget.label.text() == "file-8"
+    assert widget.progress_bar.value() == 99
+    assert widget.progress_bar.maximum() == 100
+    assert widget.file_btn.toolTip() == "File: C:/dummy/path/file-8.eso\nStatus: "
 
 
 def test_set_failed(container: ProgressContainer):
-    assert False
+    container.set_failed("8", "Failed for some evil reason!")
+    file = container.files["8"]
+    widget = container.widgets[0]
+
+    assert file.maximum == 999
+    assert file.value == 999
+    assert file.failed
+    assert file.widget == widget
+
+    assert widget.file_ref == file
+    assert widget.label.text() == "file-8"
+    assert widget.progress_bar.value() == 999
+    assert widget.progress_bar.maximum() == 999
+    assert widget.file_btn.toolTip() == f"File: C:/dummy/path/file-8.eso" \
+                                        f"\nStatus: Failed for some evil reason!"
+    assert not widget.property("failed")
 
 
 def test_set_pending(container: ProgressContainer):
-    assert False
+    container.set_pending("8")
+    file = container.files["8"]
+    widget = container.widgets[0]
+
+    assert file.maximum == 0
+    assert file.value == 0
+
+    assert widget.file_ref == file
+    assert widget.label.text() == "file-8"
+    assert widget.progress_bar.value() == 0
+    assert widget.progress_bar.maximum() == 0
+    assert widget.file_btn.toolTip() == f"File: C:/dummy/path/file-8.eso" \
+                                        f"\nStatus: "
 
 
 def test_remove_file(container: ProgressContainer):
-    assert False
+    container.remove_file("8")
+    with pytest.raises(KeyError):
+        _ = container.files["8"]
+    assert len(container.files) == 7
 
 
 def test_summary_file(container: ProgressContainer):
-    summary = container.widgets[-1].file_ref
-    assert summary.maximum == 0
-    assert summary.value == 0
-    assert summary.label == "processing 4 files..."
-    assert summary.file_ref == "summary"
-    assert summary.failed == False
+    summary = container.summary
+    assert summary.label.text() == "processing 3 files..."
+    assert summary.progress_bar.value() == -1
+    assert summary.progress_bar.maximum() == 100
+    assert summary.isVisible()
+
+
+def test_summary_hidden(qtbot, container: ProgressContainer):
+    for i in range(4, 9)[::-1]:
+        container.remove_file(str(i))
+
+    summary = container.summary
+    assert summary.label.text() == ""
+    assert not summary.isVisible()
