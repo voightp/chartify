@@ -4,21 +4,17 @@ from esofile_reader.storage.storage_files import ParquetFile
 
 # noinspection PyUnresolvedReferences
 class Monitor(QThread):
-    progress_updated = Signal(str, int)
-    status_updated = Signal(str, str)
-    pending = Signal(str)
-    range_changed = Signal(str, int, int)
-    started = Signal(str, str)
     file_added = Signal(str, str, str)
+    status_changed = Signal(str, str)
+    progress_updated = Signal(str, int)
+    pending = Signal(str, str)
+    range_changed = Signal(str, int, int, str)
     failed = Signal(str, str)
-    locked = Signal(str)
     done = Signal(str)
 
     def __init__(self, progress_queue):
         super().__init__()
         self.progress_queue = progress_queue
-
-
 
     def run(self):
         while True:
@@ -27,41 +23,43 @@ class Monitor(QThread):
             def do_not_report():
                 pass
 
-            def initialized():
-                self.file_added.emit(id_, label, file_path)
+            def send_new_file():
+                self.file_added.emit(monitor.id, monitor.name, monitor.path)
 
-            def send_set_range(self, id_: str, progress: int, max_progress: int):
-                self.range_changed.emit(id_, progress, max_progress)
+            def send_range():
+                self.range_changed.emit(
+                    monitor.id, monitor.progress, monitor.max_progress, message
+                )
 
-            def send_pending(self, id_: str):
-                self.pending.emit(id_)
+            def send_pending():
+                self.pending.emit(monitor.id, message)
 
-            def send_update_bar(self, id_: str, message: str):
-                self.progress_updated.emit(id_, message)
+            def send_update_bar():
+                self.progress_updated.emit(monitor.id, message)
 
-            def send_done(self, id_: str):
-                self.done.emit(id_)
+            def send_failed():
+                self.failed.emit(monitor.id, message)
 
-            def send_failed(self, id_: str, message: str):
-                self.failed.emit(id_, message)
+            def send_status():
+                self.status_changed.emit(monitor.id, message)
 
-            def send_status_updated(self, id_: str, status: str):
-                self.status_updated.emit(id_, status)
+            def send_done():
+                self.done.emit(monitor.id)
 
             switch = {
                 -1: send_failed,
-                0: initialized,  # initialized!
-                1: do_not_report,  # pre-processing!
-                2: send_set_range,  # processing data dictionary!
-                3: do_not_report,  # processing data!
-                4: do_not_report,  # processing intervals!
-                5: do_not_report,  # generating search tree!
+                0: send_new_file,  # initialized!
+                1: send_status,  # pre-processing!
+                2: send_range,  # processing data dictionary!
+                3: send_status,  # processing data!
+                4: send_status,  # processing intervals!
+                5: send_status,  # generating search tree!
                 6: do_not_report,  # skipping peak tables!
-                7: do_not_report,  # generating tables!
+                7: send_status,  # generating tables!
                 8: send_pending,  # processing finished!
-                9: send_set_range,  # writing parquets!
-                10: do_not_report,  # parquets written!
-                50: do_not_report,  # generating totals!
+                9: send_range,  # writing parquets!
+                10: send_status,  # parquets written!
+                50: send_status,  # generating totals!
                 99: send_update_bar,
                 100: send_done,
             }

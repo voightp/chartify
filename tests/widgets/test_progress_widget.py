@@ -27,15 +27,26 @@ def test_sorted_files(qtbot, container: ProgressContainer):
 
 
 def test_visible_files(qtbot, container: ProgressContainer):
-    summary = container.widgets[-1].file_ref
     test_files = [
         container.files["8"],
         container.files["7"],
         container.files["6"],
         container.files["5"],
-        summary
+        container.files["4"],
     ]
     assert container.visible_files == test_files
+    for wgt, f in zip(container.widgets, test_files):
+        assert wgt.file_ref == f
+
+
+def test_invisible_files(qtbot, container: ProgressContainer):
+    test_files = [
+        container.files["3"],
+        container.files["2"],
+        container.files["1"],
+    ]
+    for f in test_files:
+        assert not f.widget
 
 
 def test__get_visible_index(container: ProgressContainer):
@@ -107,6 +118,7 @@ def test_add_file_visible(container: ProgressContainer):
     assert file.file_path == "C:/added/file/path.eso"
     assert file.maximum == 0
     assert file.value == 0
+    assert file.status == ""
     assert not file.failed
     assert file.widget == widget
 
@@ -118,13 +130,14 @@ def test_add_file_visible(container: ProgressContainer):
 
 
 def test_set_range_invisible_to_visible(container: ProgressContainer):
-    container.set_range("1", 500, 1000)
+    container.set_range("1", 500, 1000, "range set!")
     file = container.files["1"]
     widget = container.widgets[3]
 
     assert container._get_visible_index(file) == 3
     assert file.maximum == 1000
     assert file.value == 500
+    assert file.status == "range set!"
     assert file.relative_value == 500 / 1000 * 100
     assert not file.failed
     assert file.widget == widget
@@ -133,7 +146,7 @@ def test_set_range_invisible_to_visible(container: ProgressContainer):
     assert widget.label.text() == "file-1"
     assert widget.progress_bar.value() == 500
     assert widget.progress_bar.maximum() == 1000
-    assert widget.file_btn.toolTip() == "File: C:/dummy/path/file-1.eso\nStatus: "
+    assert widget.file_btn.toolTip() == "File: C:/dummy/path/file-1.eso\nStatus: range set!"
 
 
 def test_update_progress(container: ProgressContainer):
@@ -153,6 +166,25 @@ def test_update_progress(container: ProgressContainer):
     assert widget.file_btn.toolTip() == "File: C:/dummy/path/file-8.eso\nStatus: "
 
 
+def test_update_status_visible(container: ProgressContainer):
+    test_status = "testing status!"
+    container.set_status("8", test_status)
+    file = container.files["8"]
+    widget = container.widgets[0]
+
+    assert file.status == "testing status!"
+    assert widget.file_btn.toolTip() == f"File: C:/dummy/path/file-8.eso\nStatus: {test_status}"
+
+
+def test_update_status_invisible(container: ProgressContainer):
+    test_status = "testing status!"
+    container.set_status("1", test_status)
+    file = container.files["1"]
+
+    assert file.status == "testing status!"
+    assert not file.widget
+
+
 def test_set_failed(container: ProgressContainer):
     container.set_failed("8", "Failed for some evil reason!")
     file = container.files["8"]
@@ -161,6 +193,7 @@ def test_set_failed(container: ProgressContainer):
     assert file.maximum == 999
     assert file.value == 999
     assert file.failed
+    assert file.status == "Failed for some evil reason!"
     assert file.widget == widget
 
     assert widget.file_ref == file
@@ -173,19 +206,20 @@ def test_set_failed(container: ProgressContainer):
 
 
 def test_set_pending(container: ProgressContainer):
-    container.set_pending("8")
+    container.set_pending("8", "pending!")
     file = container.files["8"]
     widget = container.widgets[0]
 
     assert file.maximum == 0
     assert file.value == 0
+    assert file.status == "pending!"
 
     assert widget.file_ref == file
     assert widget.label.text() == "file-8"
     assert widget.progress_bar.value() == 0
     assert widget.progress_bar.maximum() == 0
     assert widget.file_btn.toolTip() == f"File: C:/dummy/path/file-8.eso" \
-                                        f"\nStatus: "
+                                        f"\nStatus: pending!"
 
 
 def test_remove_file(container: ProgressContainer):

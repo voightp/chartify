@@ -108,6 +108,7 @@ class AppController:
         self.monitor.range_changed.connect(self.v.progress_cont.set_range)
         self.monitor.pending.connect(self.v.progress_cont.set_pending)
         self.monitor.failed.connect(self.v.progress_cont.set_failed)
+        self.monitor.status_changed.connect(self.v.progress_cont.set_status)
 
     def on_save(self):
         if not self.m.storage.path:
@@ -191,7 +192,7 @@ class AppController:
             return var
 
     def handle_rename_variable(
-        self, id_: int, variable: tuple, var_nm: str, key_nm: str
+            self, id_: int, variable: tuple, var_nm: str, key_nm: str
     ) -> None:
         """ Overwrite variable name. """
         variable = self._apply_async(id_, self.rename_var, var_nm, key_nm, variable)
@@ -217,11 +218,11 @@ class AppController:
 
     @staticmethod
     def aggr_vars(
-        file: ResultsFile,
-        variables: List[tuple],
-        var_name: str,
-        key_name: str,
-        func: Union[str, Callable],
+            file: ResultsFile,
+            variables: List[tuple],
+            var_name: str,
+            key_name: str,
+            func: Union[str, Callable],
     ) -> tuple:
         """ Add a new aggregated variable to the file. """
         res = file.aggregate_variables(
@@ -232,12 +233,12 @@ class AppController:
             return var
 
     def handle_aggregate_variables(
-        self,
-        id_: int,
-        variables: List[tuple],
-        var_nm: str,
-        key_nm: str,
-        func: Union[str, Callable],
+            self,
+            id_: int,
+            variables: List[tuple],
+            var_nm: str,
+            key_nm: str,
+            func: Union[str, Callable],
     ) -> None:
         """ Create a new variable using given aggregation function. """
         variable = self._apply_async(id_, self.aggr_vars, variables, var_nm, key_nm, func)
