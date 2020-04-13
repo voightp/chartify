@@ -32,10 +32,12 @@ class ProgressFile:
         Maximum progress set on progress bar.
     value: int
         Current progress value.
-    failed : bool, default False
+    _failed : bool, default False
         Checks if processing failed.
-    widget : ProgressWidget
+    _widget : ProgressWidget
         Widget displaying the file.
+    _status : str
+        Report current processing stage.
 
     """
 
@@ -216,9 +218,6 @@ class ProgressWidget(QFrame):
 
     @file_ref.setter
     def file_ref(self, file: Optional[ProgressFile]) -> None:
-        if self._file_ref:
-            # remove any assigned reference
-            self._file_ref.widget = None
         self._file_ref = file
         if file:
             file.widget = self  # cross reference
@@ -228,13 +227,15 @@ class ProgressWidget(QFrame):
 
     def update_style(self) -> None:
         """ Update style according to the 'failed' state. """
-        self.setProperty("failed", self.file_ref.failed)
-        refresh_css(self.label, self.progress_bar, self.file_btn)
+        if self.property("failed") != self.file_ref.failed:
+            self.setProperty("failed", self.file_ref.failed)
+            refresh_css(self.label, self.progress_bar, self.file_btn)
 
     def update_tooltip(self) -> None:
         """ Update button tooltip. """
         self.file_btn.setToolTip(
-            f"File: {self.file_ref.file_path}\nPhase: {self.file_ref.status}"
+            f"File: {self.file_ref.file_path}"
+            f"\nPhase: {self.file_ref.status}"
         )
 
     def update_label(self):
@@ -355,16 +356,17 @@ class ProgressContainer(QWidget):
     def _update_bar(self) -> None:
         """ Update progress widget order on the status bar. """
         displayed = self.sorted_files[0:self.MAX_VISIBLE_JOBS]
-
         for f, w in zip_longest(displayed, self.widgets):
             if not f:
                 w.file_ref = None
             elif f != w.file_ref:
                 w.file_ref = f
-        # TODO check if can make invisible in setter
-        # for w in self.widgets:
-        #     # hide widgets without a file reference
-        #     w.setVisible(bool(w.file_ref))
+
+        # remove widget reference for previously visible files
+        hidden = self.sorted_files[self.MAX_VISIBLE_JOBS:]
+        for f in hidden:
+            if f.widget:
+                f.widget = None
 
         # show summary file if there's more files than maximum
         n = len(self.sorted_files)
