@@ -1,4 +1,5 @@
 import pytest
+from PySide2.QtCore import Qt
 
 from chartify.ui.progress_widget import ProgressContainer
 
@@ -202,7 +203,7 @@ def test_set_failed(container: ProgressContainer):
     assert widget.progress_bar.maximum() == 999
     assert widget.file_btn.toolTip() == f"File: C:/dummy/path/file-8.eso" \
                                         f"\nPhase: Failed for some evil reason!"
-    assert not widget.property("failed")
+    assert widget.property("failed")
 
 
 def test_set_pending(container: ProgressContainer):
@@ -244,3 +245,33 @@ def test_summary_hidden(qtbot, container: ProgressContainer):
     summary = container.summary
     assert summary.label.text() == ""
     assert not summary.isVisible()
+
+
+def test_button_disabled(qtbot, container: ProgressContainer):
+    for wgt in container.widgets:
+        assert not wgt.file_btn.isEnabled()
+        with qtbot.assert_not_emitted(wgt.remove):
+            qtbot.mouseClick(wgt.file_btn, Qt.LeftButton)
+
+
+def test_button_remove_file(qtbot, container: ProgressContainer):
+    container.set_failed("1", "Horribly failed!")
+    file = container.files["1"]
+    widget = container.widgets[0]
+
+    assert file.widget == widget
+    assert widget.file_ref == file
+    assert widget.file_btn.isEnabled()
+    assert widget.property("failed")
+
+    assert container.locked == [file]
+    assert container.visible_files[0] == file
+
+    with qtbot.wait_signal(widget.remove):
+        qtbot.mouseClick(widget.file_btn, Qt.LeftButton)
+
+    with pytest.raises(KeyError):
+        _ = container.files["1"]
+
+    assert widget.file_ref == container.files["8"]
+    assert not widget.file_btn.isEnabled()

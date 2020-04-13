@@ -89,6 +89,9 @@ class ProgressFile:
             self.maximum = 999
             self.value = 999
         self._failed = failed
+        if self.widget:
+            self.widget.set_enabled()
+            self.widget.update_style()
 
     @property
     def status(self):
@@ -197,6 +200,7 @@ class ProgressWidget(QFrame):
         self.file_btn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         self.file_btn.setFixedSize(18, 18)
         self.file_btn.clicked.connect(self.send_remove_me)
+        self.file_btn.setEnabled(False)
 
         self.label = QLabel(wgt)
 
@@ -230,7 +234,7 @@ class ProgressWidget(QFrame):
     def update_tooltip(self) -> None:
         """ Update button tooltip. """
         self.file_btn.setToolTip(
-            f"File: {self.file_ref.file_path}\nPhase2: {self.file_ref.status}"
+            f"File: {self.file_ref.file_path}\nPhase: {self.file_ref.status}"
         )
 
     def update_label(self):
@@ -245,6 +249,10 @@ class ProgressWidget(QFrame):
         """ Update progress bar current value. """
         self.progress_bar.setValue(self.file_ref.value)
 
+    def set_enabled(self):
+        """ Control button state. """
+        self.file_btn.setEnabled(self.file_ref.failed)
+
     def update_all_attributes(self) -> None:
         """ Refresh all attributes. """
         self.update_label()
@@ -252,6 +260,7 @@ class ProgressWidget(QFrame):
         self.update_value()
         self.update_tooltip()
         self.update_style()
+        self.set_enabled()
 
     def send_remove_me(self) -> None:
         """ Give signal to status bar to remove file reference. """
