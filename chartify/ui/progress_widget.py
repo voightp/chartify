@@ -230,7 +230,7 @@ class ProgressWidget(QFrame):
     def update_tooltip(self) -> None:
         """ Update button tooltip. """
         self.file_btn.setToolTip(
-            f"File: {self.file_ref.file_path}\nStatus: {self.file_ref.status}"
+            f"File: {self.file_ref.file_path}\nPhase2: {self.file_ref.status}"
         )
 
     def update_label(self):
