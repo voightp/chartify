@@ -1,5 +1,6 @@
-from PySide2.QtCore import QSettings, QSize, QPoint
 from pathlib import Path
+
+from PySide2.QtCore import QSettings, QSize, QPoint
 
 
 class Settings:
@@ -11,9 +12,9 @@ class Settings:
 
     ROOT = Path(__file__).parents[1]
     URL = "http://127.0.0.1:8080/"
-    PALETTE_PATH = str(Path(ROOT, "styles/palettes.json"))
-    CSS_PATH = str(Path(ROOT, "styles/app_style.css"))
-    ICONS_PATH = str(Path(ROOT, "icons/"))
+    PALETTE_PATH = str(Path(ROOT, "resources/styles/palettes.json"))
+    CSS_PATH = str(Path(ROOT, "resources/styles/app_style.css"))
+    ICONS_PATH = str(Path(ROOT, "resources/icons/"))
     PALETTE = None
 
     IP_ENERGY_UNITS = ["Btu", "kBtu", "MBtu"]
