@@ -23,58 +23,138 @@ class TestChartLayout(unittest.TestCase):
         runperiod = [base_date + datetime.timedelta(days=random.randint(100, 400))]
 
         # timestamp trace data
-        self.ts_dt0 = TraceData("item-0", uuid.uuid1(), "ts-0",
-                                [random.random() for _ in range(n_timestamp)],
-                                5.123, "W", timestamps=timestep, interval=H)
+        self.ts_dt0 = TraceData(
+            "item-0",
+            uuid.uuid1(),
+            "ts-0",
+            [random.random() for _ in range(n_timestamp)],
+            5.123,
+            "W",
+            timestamps=timestep,
+            interval=H,
+        )
 
         # hourly trace data
-        self.h_dt0 = TraceData("item-0", uuid.uuid1(), "h-0",
-                               [random.random() for _ in range(n_hourly)],
-                               5.123, "W", timestamps=hourly, interval=H)
-        self.h_dt1 = TraceData("item-0", uuid.uuid1(), "h-1",
-                               [random.random() for _ in range(n_hourly)],
-                               5.123, "W", timestamps=hourly, interval=H)
-        self.h_dt2 = TraceData("item-0", uuid.uuid1(), "h-2",
-                               [random.random() for _ in range(n_hourly)],
-                               5.123, "kWh", timestamps=hourly, interval=H)
-        self.h_dt3 = TraceData("item-0", uuid.uuid1(), "h-3",
-                               [random.random() for _ in range(n_hourly)],
-                               5.123, "W", timestamps=hourly, interval=H)
+        self.h_dt0 = TraceData(
+            "item-0",
+            uuid.uuid1(),
+            "h-0",
+            [random.random() for _ in range(n_hourly)],
+            5.123,
+            "W",
+            timestamps=hourly,
+            interval=H,
+        )
+        self.h_dt1 = TraceData(
+            "item-0",
+            uuid.uuid1(),
+            "h-1",
+            [random.random() for _ in range(n_hourly)],
+            5.123,
+            "W",
+            timestamps=hourly,
+            interval=H,
+        )
+        self.h_dt2 = TraceData(
+            "item-0",
+            uuid.uuid1(),
+            "h-2",
+            [random.random() for _ in range(n_hourly)],
+            5.123,
+            "kWh",
+            timestamps=hourly,
+            interval=H,
+        )
+        self.h_dt3 = TraceData(
+            "item-0",
+            uuid.uuid1(),
+            "h-3",
+            [random.random() for _ in range(n_hourly)],
+            5.123,
+            "W",
+            timestamps=hourly,
+            interval=H,
+        )
 
         # daily trace data
-        self.d_dt0 = TraceData("item-0", uuid.uuid1(), "d-0",
-                               [random.random() for _ in range(n_daily)],
-                               3.123, "J", timestamps=daily, interval=D)
-        self.d_dt1 = TraceData("item-0", uuid.uuid1(), "d-1",
-                               [random.random() for _ in range(n_daily)],
-                               3.123, "", timestamps=daily, interval=D)
+        self.d_dt0 = TraceData(
+            "item-0",
+            uuid.uuid1(),
+            "d-0",
+            [random.random() for _ in range(n_daily)],
+            3.123,
+            "J",
+            timestamps=daily,
+            interval=D,
+        )
+        self.d_dt1 = TraceData(
+            "item-0",
+            uuid.uuid1(),
+            "d-1",
+            [random.random() for _ in range(n_daily)],
+            3.123,
+            "",
+            timestamps=daily,
+            interval=D,
+        )
 
         # monthly trace data
-        self.m_dt0 = TraceData("item-0", uuid.uuid1(), "m-0",
-                               [random.random() for _ in range(n_monthly)],
-                               3.123, "kWh", timestamps=monthly, interval=M)
-        self.m_dt1 = TraceData("item-0", uuid.uuid1(), "m-1",
-                               [random.random() for _ in range(n_monthly)],
-                               3.123, "J", timestamps=monthly, interval=M)
+        self.m_dt0 = TraceData(
+            "item-0",
+            uuid.uuid1(),
+            "m-0",
+            [random.random() for _ in range(n_monthly)],
+            3.123,
+            "kWh",
+            timestamps=monthly,
+            interval=M,
+        )
+        self.m_dt1 = TraceData(
+            "item-0",
+            uuid.uuid1(),
+            "m-1",
+            [random.random() for _ in range(n_monthly)],
+            3.123,
+            "J",
+            timestamps=monthly,
+            interval=M,
+        )
 
         # runperiod trace data
-        self.rp_dt0 = TraceData("item-0", uuid.uuid1(), "rp-0",
-                                [random.random()], 3.123, "W",
-                                timestamps=runperiod, interval=RP)
+        self.rp_dt0 = TraceData(
+            "item-0",
+            uuid.uuid1(),
+            "rp-0",
+            [random.random()],
+            3.123,
+            "W",
+            timestamps=runperiod,
+            interval=RP,
+        )
 
         # no interval trace data
-        self.ni_dt0 = TraceData("item-0", uuid.uuid1(), "ni-0",
-                                [random.random() for _ in range(n_hourly)],
-                                1.123, "")
-        self.ni_dt1 = TraceData("item-0", uuid.uuid1(), "ni-1",
-                                [random.random() for _ in range(n_daily)],
-                                7.123, "")
-        self.ni_dt2 = TraceData("item-0", uuid.uuid1(), "ni-2",
-                                [random.random() for _ in range(n_monthly)],
-                                7.123, "")
-        self.ni_dt3 = TraceData("item-0", uuid.uuid1(), "ni-3",
-                                [random.random() for _ in range(1)],
-                                7.123, "")
+        self.ni_dt0 = TraceData(
+            "item-0",
+            uuid.uuid1(),
+            "ni-0",
+            [random.random() for _ in range(n_hourly)],
+            1.123,
+            "",
+        )
+        self.ni_dt1 = TraceData(
+            "item-0", uuid.uuid1(), "ni-1", [random.random() for _ in range(n_daily)], 7.123, ""
+        )
+        self.ni_dt2 = TraceData(
+            "item-0",
+            uuid.uuid1(),
+            "ni-2",
+            [random.random() for _ in range(n_monthly)],
+            7.123,
+            "",
+        )
+        self.ni_dt3 = TraceData(
+            "item-0", uuid.uuid1(), "ni-3", [random.random() for _ in range(1)], 7.123, ""
+        )
 
         # timestamp traces
         self.ts_trace0 = Trace2D("item-0", uuid.uuid1(), "rgb(10,10,10)", "line", "trace-0")
@@ -170,11 +250,9 @@ class TestChartLayout(unittest.TestCase):
             next(gen)
 
     def test_gen_domain_vectors(self):
-        x_domains, y_domains = gen_domains(5, gap=0.1,
-                                           max_columns=2, square=False)
+        x_domains, y_domains = gen_domains(5, gap=0.1, max_columns=2, square=False)
         res_xs = [[0, 0.45], [0.55, 1.0], [0, 0.45], [0.55, 1.0], [0, 1.0]]
-        res_ys = [[0, 0.267], [0, 0.267], [0.367, 0.633],
-                  [0.367, 0.633], [0.733, 1.0]]
+        res_ys = [[0, 0.267], [0, 0.267], [0.367, 0.633], [0.367, 0.633], [0.733, 1.0]]
 
         for x, res_x in zip(x_domains, res_xs):
             for ix, ires_x in zip(x, res_x):
@@ -184,8 +262,7 @@ class TestChartLayout(unittest.TestCase):
             for iy, ires_y in zip(y, res_y):
                 self.assertAlmostEqual(iy, ires_y, 3)
 
-        x_domains, y_domains = gen_domains(4, gap=0.1,
-                                           max_columns=2, square=True)
+        x_domains, y_domains = gen_domains(4, gap=0.1, max_columns=2, square=True)
 
         res_xs = [[0, 0.45], [0.55, 1.0], [0, 0.45], [0.55, 1.0]]
         res_ys = [[0, 0.45], [0, 0.45], [0.55, 1.0], [0.55, 1.0]]
@@ -198,8 +275,7 @@ class TestChartLayout(unittest.TestCase):
             for iy, ires_y in zip(y, res_y):
                 self.assertAlmostEqual(iy, ires_y, 3)
 
-        x_domains, y_domains = gen_domains(4, gap=0.1,
-                                           max_columns=3, square=False)
+        x_domains, y_domains = gen_domains(4, gap=0.1, max_columns=3, square=False)
 
         res_xs = [[0, 0.267], [0.367, 0.633], [0.733, 1.0], [0, 1.0]]
         res_ys = [[0, 0.45], [0, 0.45], [0, 0.45], [0.55, 1.0]]

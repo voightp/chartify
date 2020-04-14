@@ -1,5 +1,9 @@
-from chartify.charts.chart_functions import (get_axis_settings, pie_chart,
-                                             create_2d_axis_map, set_axes_position)
+from chartify.charts.chart_functions import (
+    get_axis_settings,
+    pie_chart,
+    create_2d_axis_map,
+    set_axes_position,
+)
 from chartify.charts.chart_settings import get_layout, style, config
 from chartify.charts.trace import Axis
 from chartify.utils.tiny_profiler import profile
@@ -11,6 +15,7 @@ class Chart:
     hold chart related data.
 
     """
+
     LEGEND_MAX_HEIGHT = 100
     LEGEND_TRACE_HEIGHT = 19
     LEGEND_GAP = 20
@@ -94,11 +99,17 @@ class Chart:
             axes_map = [(Axis("x", ""), Axis("y", ""))]
 
         for xaxis, yaxis in axes_map:
-            y_axes.update(get_axis_settings(chart_type, yaxis, line_color,
-                                            grid_color, ranges=self.ranges["y"]))
+            y_axes.update(
+                get_axis_settings(
+                    chart_type, yaxis, line_color, grid_color, ranges=self.ranges["y"]
+                )
+            )
 
-            x_axes.update(get_axis_settings(chart_type, xaxis, line_color,
-                                            grid_color, ranges=self.ranges["x"]))
+            x_axes.update(
+                get_axis_settings(
+                    chart_type, xaxis, line_color, grid_color, ranges=self.ranges["x"]
+                )
+            )
 
             annotations.extend(xaxis.get_title_annotations(line_color))
             annotations.extend(yaxis.get_title_annotations(line_color))
@@ -106,16 +117,29 @@ class Chart:
         return {**x_axes, **y_axes}, annotations
 
     @profile
-    def as_plotly(self, traces, modebar_active_color, modebar_color,
-                  line_color, grid_color, background_color):
+    def as_plotly(
+        self,
+        traces,
+        modebar_active_color,
+        modebar_color,
+        line_color,
+        grid_color,
+        background_color,
+    ):
         """ Create 'plotly' like chart. """
         # assign priority to set an appearance for each trace
         self.set_trace_priority(traces)
 
         top_margin = self.get_top_margin(len(traces))
-        layout = get_layout(self.type_, modebar_active_color, modebar_color,
-                            top_margin, self.BOTTOM_MARGIN, self.LEFT_MARGIN,
-                            self.RIGHT_MARGIN)
+        layout = get_layout(
+            self.type_,
+            modebar_active_color,
+            modebar_color,
+            top_margin,
+            self.BOTTOM_MARGIN,
+            self.LEFT_MARGIN,
+            self.RIGHT_MARGIN,
+        )
 
         # convert pixels to chart relative ratios
         ratio = self.get_ratio_per_pixel(top_margin)
@@ -127,19 +151,35 @@ class Chart:
         shared_y_gap = self.SHARED_Y_GAP * h_ratio
 
         if self.type_ == "pie":
-            axes, annotations = self.generate_layout_axes(self.type_, [],
-                                                          line_color, grid_color)
-            data = pie_chart(traces, background_color, max_columns=self.N_COLUMNS,
-                             square=True, v_gap=v_gap, h_gap=h_gap)
+            axes, annotations = self.generate_layout_axes(
+                self.type_, [], line_color, grid_color
+            )
+            data = pie_chart(
+                traces,
+                background_color,
+                max_columns=self.N_COLUMNS,
+                square=True,
+                v_gap=v_gap,
+                h_gap=h_gap,
+            )
         else:
             axes_map = create_2d_axis_map(traces, self.group_datetime, self.shared_x)
-            set_axes_position(axes_map, self.shared_x, self.shared_y,
-                              max_columns=self.N_COLUMNS, v_gap=v_gap, h_gap=h_gap,
-                              square=True, stacked_y_gap=stacked_y_gap,
-                              shared_x_gap=shared_x_gap, shared_y_gap=shared_y_gap)
+            set_axes_position(
+                axes_map,
+                self.shared_x,
+                self.shared_y,
+                max_columns=self.N_COLUMNS,
+                v_gap=v_gap,
+                h_gap=h_gap,
+                square=True,
+                stacked_y_gap=stacked_y_gap,
+                shared_x_gap=shared_x_gap,
+                shared_y_gap=shared_y_gap,
+            )
             data = [trace.as_plotly() for trace in traces]
-            axes, annotations = self.generate_layout_axes(self.type_, axes_map,
-                                                          line_color, grid_color)
+            axes, annotations = self.generate_layout_axes(
+                self.type_, axes_map, line_color, grid_color
+            )
         return {
             "componentType": "chart",
             "showCustomLegend": self.show_custom_legend,
@@ -149,12 +189,9 @@ class Chart:
             "chartType": self.type_,
             "divId": self.chart_id,
             "geometry": self.geometry,
-            "layout": {
-                **layout, **axes,
-                "annotations": annotations
-            },
+            "layout": {**layout, **axes, "annotations": annotations},
             "data": data,
             "style": style,
             "config": config,
-            "useResizeHandler": True
+            "useResizeHandler": True,
         }

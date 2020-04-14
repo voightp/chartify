@@ -94,19 +94,21 @@ class AppController:
         self.v.save_act.triggered.connect(self.on_save)
         self.v.save_as_act.triggered.connect(self.on_save_as)
 
-    def handle_selection_change(self, variables: List[tuple]) -> None:
+    def handle_selection_change(self, variable_data: List[tuple]) -> None:
         """ Handle selection update. """
-        out_str = [" | ".join(var) for var in variables]
-        print("handle_selection_change!\n\t{}".format("\n\t".join(out_str)))
-        self.m.selected_variables = variables
+        out_str = [" | ".join(var) for var in variable_data]
+        if out_str:
+            print("Selected Variables:\n\t{}".format("\n\t".join(out_str)))
+        self.m.selected_variable_data = variable_data
 
     def connect_model_signals(self) -> None:
         """ Create monitor signals. """
         self.monitor.file_added.connect(self.v.progress_cont.add_file)
-        self.monitor.bar_updated.connect(self.v.progress_cont.update_progress)
+        self.monitor.progress_updated.connect(self.v.progress_cont.update_progress)
         self.monitor.range_changed.connect(self.v.progress_cont.set_range)
         self.monitor.pending.connect(self.v.progress_cont.set_pending)
         self.monitor.failed.connect(self.v.progress_cont.set_failed)
+        self.monitor.status_changed.connect(self.v.progress_cont.set_status)
 
     def on_save(self):
         if not self.m.storage.path:
@@ -128,9 +130,9 @@ class AppController:
         # and rate to energy button when applicable
         self.v.toolbar.update_intervals_state(file.available_intervals)
         self.v.toolbar.update_rate_to_energy_state(Settings.INTERVAL)
-
-        self.v.build_view(file.get_header_df(Settings.INTERVAL),
-                          selected=self.m.selected_variables)
+        self.v.build_treeview(
+            file.get_header_df(Settings.INTERVAL), selected=self.m.selected_variable_data
+        )
 
     def handle_file_processing(self, paths: List[str]) -> None:
         """ Load new files. """
@@ -143,7 +145,7 @@ class AppController:
                 self.progress_queue,
                 self.file_queue,
                 self.ids,
-                self.lock
+                self.lock,
             )
 
     def on_all_files_loaded(self, monitor_id: str) -> None:
@@ -160,8 +162,11 @@ class AppController:
         # store file reference in model
         self.m.storage.files[file.id_] = file
 
+        # number of columns can be either 2 or 3
+        simpleview = file.type_ in ["TotalsFile"]
+
         # add new tab into tab widget
-        self.v.add_new_tab(file.id_, name)
+        self.v.add_new_tab(file.id_, name, simpleview=simpleview)
 
     def _apply_async(self, id_: int, func: Callable, *args, **kwargs) -> Any:
         """ A wrapper to apply functions to current views. """
@@ -179,21 +184,22 @@ class AppController:
         return val
 
     @staticmethod
-    def rename_var(file: ResultsFile, var_nm: str,
-                   key_nm: str, variable: tuple) -> tuple:
+    def rename_var(file: ResultsFile, var_nm: str, key_nm: str, variable: tuple) -> tuple:
         """ Rename given 'Variable'. """
         res = file.rename_variable(variable, var_nm, key_nm)
         if res:
             var_id, var = res
             return var
 
-    def handle_rename_variable(self, id_: int, variable: tuple,
-                               var_nm: str, key_nm: str) -> None:
+    def handle_rename_variable(
+            self, id_: int, variable: tuple, var_nm: str, key_nm: str
+    ) -> None:
         """ Overwrite variable name. """
         variable = self._apply_async(id_, self.rename_var, var_nm, key_nm, variable)
-        self.v.build_view(
+        self.v.build_treeview(
             self.m.get_file(id_).get_header_df(Settings.INTERVAL),
-            selected=[variable], scroll_to=variable
+            selected=[variable],
+            scroll_to=variable,
         )
 
     def handle_file_rename(self, id_: int, name: str) -> None:
@@ -208,27 +214,38 @@ class AppController:
     def handle_remove_variables(self, id_: int, variables: List[tuple]) -> None:
         """ Remove variables from a file or all files. """
         self._apply_async(id_, self.dump_vars, variables)
-        self.v.build_view(self.m.get_file(id_).get_header_df(Settings.INTERVAL))
+        self.v.build_treeview(self.m.get_file(id_).get_header_df(Settings.INTERVAL))
 
     @staticmethod
-    def aggr_vars(file: ResultsFile, variables: List[tuple], var_name: str,
-                  key_name: str, func: Union[str, Callable]) -> tuple:
+    def aggr_vars(
+            file: ResultsFile,
+            variables: List[tuple],
+            var_name: str,
+            key_name: str,
+            func: Union[str, Callable],
+    ) -> tuple:
         """ Add a new aggregated variable to the file. """
-        res = file.aggregate_variables(variables, func,
-                                       key_name=key_name,
-                                       var_name=var_name,
-                                       part_match=False)
+        res = file.aggregate_variables(
+            variables, func, key_name=key_name, var_name=var_name, part_match=False
+        )
         if res:
             var_id, var = res
             return var
 
-    def handle_aggregate_variables(self, id_: int, variables: List[tuple], var_nm: str,
-                                   key_nm: str, func: Union[str, Callable]) -> None:
+    def handle_aggregate_variables(
+            self,
+            id_: int,
+            variables: List[tuple],
+            var_nm: str,
+            key_nm: str,
+            func: Union[str, Callable],
+    ) -> None:
         """ Create a new variable using given aggregation function. """
         variable = self._apply_async(id_, self.aggr_vars, variables, var_nm, key_nm, func)
-        self.v.build_view(
+        self.v.build_treeview(
             self.m.get_file(id_).get_header_df(Settings.INTERVAL),
-            selected=[variable], scroll_to=variable
+            selected=[variable],
+            scroll_to=variable,
         )
 
     def handle_close_tab(self, id_: int) -> None:

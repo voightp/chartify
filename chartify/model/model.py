@@ -1,21 +1,16 @@
 from typing import List, Union
 
 import pandas as pd
-from PySide2.QtCore import Signal, QObject
+from PySide2.QtCore import QObject
+from esofile_reader import Variable
 from esofile_reader import get_results
+from esofile_reader.storage.pqt_storage import ParquetStorage
+from esofile_reader.storage.storage_files import ParquetFile
 from esofile_reader.utils.mini_classes import ResultsFile
-from esofile_reader import TotalsFile
 
 from chartify.charts.chart import Chart
 from chartify.charts.trace import Trace1D, Trace2D, TraceData
 from chartify.settings import Settings
-from multiprocessing import Manager, Array, Lock
-from multiprocessing.managers import BaseManager
-
-from chartify.view.css_theme import parse_palette, Palette
-
-from esofile_reader.storage.pqt_storage import ParquetStorage
-from esofile_reader.storage.storage_files import ParquetFile
 
 
 class AppModel(QObject):
@@ -34,15 +29,10 @@ class AppModel(QObject):
         self.storage = ParquetStorage()
 
         # ~~~~ Currently selected variables ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.selected_variables = []
+        self.selected_variable_data = []
 
         # ~~~~ Webview Database ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.wv_database = {
-            "trace_data": [],
-            "traces": [],
-            "components": [],
-            "items": {}
-        }
+        self.wv_database = {"trace_data": [], "traces": [], "components": [], "items": {}}
 
     def get_file(self, id_: int) -> ParquetFile:
         """ Get 'DatabaseFile for the given id. """
@@ -50,9 +40,10 @@ class AppModel(QObject):
 
     def get_other_files(self) -> List[ParquetFile]:
         """ Get all the other files than currently selected. """
+        current_file = self.get_file(Settings.CURRENT_FILE_ID)
         other_files = []
         for id_, file in self.storage.files.items():
-            if id_ != Settings.CURRENT_FILE_ID and file.totals == Settings.TOTALS:
+            if id_ != Settings.CURRENT_FILE_ID and file.type_ == current_file.type_:
                 other_files.append(file)
         return other_files
 
@@ -72,16 +63,14 @@ class AppModel(QObject):
         try:
             self.storage.delete_file(id_)
         except KeyError:
-            print(f"Cannot delete file: id '{id_}',"
-                  f"\nFile was not found in the database.")
+            print(f"Cannot delete file: id '{id_}'," f"\nFile was not found in the database.")
 
     def rename_file(self, id_: int, name: str):
         """ Rename given file. """
         try:
             self.storage.files[id_].rename(name)
         except KeyError:
-            print(f"Cannot rename file: '{id_}',"
-                  f"\nFile was not found in database.")
+            print(f"Cannot rename file: '{id_}'," f"\nFile was not found in database.")
 
     def get_results(self, **kwargs) -> pd.DataFrame:
         """ Get output values for given variables. """
@@ -90,15 +79,19 @@ class AppModel(QObject):
         else:
             files = self.storage.files[Settings.CURRENT_FILE_ID]
 
-        args = (files, self.selected_variables)
+        # transform variable data to variable (variable data holds extra proxy units)
+        variables = [
+            Variable(Settings.INTERVAL, v.key, v.variable, v.units)
+            for v in self.selected_variable_data
+        ]
+
+        args = (files, variables)
         kwargs = {
             "rate_units": Settings.POWER_UNITS,
             "energy_units": Settings.ENERGY_UNITS,
             "add_file_name": "column",
-            "rate_to_energy_dct": {
-                Settings.INTERVAL: Settings.RATE_TO_ENERGY
-            },
-            **kwargs
+            "rate_to_energy_dct": {Settings.INTERVAL: Settings.RATE_TO_ENERGY},
+            **kwargs,
         }
 
         return get_results(*args, **kwargs)

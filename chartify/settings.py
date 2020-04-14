@@ -8,6 +8,7 @@ class Settings:
 
 
     """
+
     ROOT = Path(__file__).parents[1]
     URL = "http://127.0.0.1:8080/"
     PALETTE_PATH = str(Path(ROOT, "styles/palettes.json"))
@@ -43,13 +44,15 @@ class Settings:
 
     @classmethod
     def as_str(cls):
-        return "Current Settings:" \
-               f"\n\tInterval: '{cls.INTERVAL}'" \
-               f"\n\tEnergy units: '{cls.ENERGY_UNITS}'" \
-               f"\n\tPower units: '{cls.POWER_UNITS}'" \
-               f"\n\tUnits system: '{cls.UNITS_SYSTEM}'" \
-               f"\n\tRate to Energy: '{cls.RATE_TO_ENERGY}'" \
-               f"\n\tCustom units: '{cls.CUSTOM_UNITS}'"
+        return (
+            "Current Settings:"
+            f"\n\tInterval: '{cls.INTERVAL}'"
+            f"\n\tEnergy units: '{cls.ENERGY_UNITS}'"
+            f"\n\tPower units: '{cls.POWER_UNITS}'"
+            f"\n\tUnits system: '{cls.UNITS_SYSTEM}'"
+            f"\n\tRate to Energy: '{cls.RATE_TO_ENERGY}'"
+            f"\n\tCustom units: '{cls.CUSTOM_UNITS}'"
+        )
 
     @classmethod
     def load_reg_settings(cls):
@@ -72,7 +75,7 @@ class Settings:
         cls.SIZE = QSettings().value("MainWindow/size", QSize(800, 600))
         cls.POSITION = QSettings().value("MainWindow/pos", QPoint(50, 50))
         cls.MIRRORED = bool(QSettings().value("MainWindow/mirrored", False))
-        cls.SPLIT = (QSettings().value("MainWindow/split", [524, 400]))
+        cls.SPLIT = QSettings().value("MainWindow/split", [524, 400])
 
     @classmethod
     def write_reg_settings(cls):

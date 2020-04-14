@@ -1,9 +1,9 @@
 import json
 import uuid
-from typing import Tuple, List, Union
+from typing import Tuple, Union
 
 from PySide2 import QtWebChannel
-from PySide2.QtCore import (QObject, Slot, Signal, QJsonValue, QUrl, QThreadPool)
+from PySide2.QtCore import QObject, Slot, Signal, QJsonValue, QUrl, QThreadPool
 from PySide2.QtGui import QColor
 from PySide2.QtWebEngineWidgets import QWebEnginePage, QWebEngineView
 
@@ -15,7 +15,7 @@ from chartify.model.model import AppModel
 from chartify.settings import Settings
 from chartify.utils.threads import Worker
 from chartify.utils.tiny_profiler import profile
-from chartify.utils.utils import int_generator, calculate_totals
+from chartify.utils.utils import int_generator, calculate_totals, printdict
 
 
 class MyPage(QWebEnginePage):
@@ -34,6 +34,7 @@ class WVController(QObject):
     web view instance and core application.
 
     """
+
     fullLayoutUpdated = Signal("QVariantMap", "QVariantMap", "QVariantMap")
     componentUpdated = Signal(str, "QVariantMap")
     componentAdded = Signal(str, "QVariantMap", "QVariantMap")
@@ -68,8 +69,7 @@ class WVController(QObject):
 
         items = self.m.fetch_all_items()
 
-        self.fullLayoutUpdated.emit(items, components,
-                                    Settings.PALETTE.get_all_colors())
+        self.fullLayoutUpdated.emit(items, components, Settings.PALETTE.get_all_colors())
 
     @profile
     def gen_component_ids(self, name: str) -> Tuple[str, str, str]:
@@ -80,7 +80,11 @@ class WVController(QObject):
             if item_id not in self.m.fetch_all_item_ids():
                 break
 
-        return item_id, f"frame-{i}", f"{name}-{i}",
+        return (
+            item_id,
+            f"frame-{i}",
+            f"{name}-{i}",
+        )
 
     @profile
     def plot_component(self, component: Union[Chart]) -> dict:
@@ -95,9 +99,15 @@ class WVController(QObject):
 
         if isinstance(component, Chart):
             traces = self.m.fetch_traces(component.item_id)
-            component = component.as_plotly(traces, line_color, modebar_active_color,
-                                            modebar_color, grid_color, background_color)
-        print(json.dumps(component, indent=4))
+            component = component.as_plotly(
+                traces,
+                line_color,
+                modebar_active_color,
+                modebar_color,
+                grid_color,
+                background_color,
+            )
+        print(json.dumps(printdict(component, limit=20), indent=4))
         return component
 
     @profile
@@ -123,9 +133,16 @@ class WVController(QObject):
             units = col_ix[-1]
             interval = col_ix[1]
             total_value = float(totals.loc[col_ix])
-            trace_dt = TraceData(item_id, trace_data_id, name, values.tolist(),
-                                 total_value, units, timestamps=timestamps,
-                                 interval=interval)
+            trace_dt = TraceData(
+                item_id,
+                trace_data_id,
+                name,
+                values.tolist(),
+                total_value,
+                units,
+                timestamps=timestamps,
+                interval=interval,
+            )
 
             self.m.wv_database["trace_data"].append(trace_dt)
 
@@ -179,8 +196,9 @@ class WVController(QObject):
             pass
 
     @Slot(str, QJsonValue, QJsonValue)
-    def onChartLayoutChanged(self, item_id: str, layout: QJsonValue,
-                             geometry: QJsonValue) -> None:
+    def onChartLayoutChanged(
+            self, item_id: str, layout: QJsonValue, geometry: QJsonValue
+    ) -> None:
         """ Handle chart resize interaction. """
         chart = self.m.fetch_component(item_id)
         chart.geometry = geometry.toObject()
@@ -241,8 +259,7 @@ class WVController(QObject):
         self.update_component(item_id)
 
     @Slot(str, str, bool)
-    def onChartModebarButtonClicked(self, item_id: str, attr: str,
-                                    val: bool) -> None:
+    def onChartModebarButtonClicked(self, item_id: str, attr: str, val: bool) -> None:
         """ Update current layout of given chart. """
         print("onChartModebarButtonClicked")
         chart = self.m.fetch_component(item_id)

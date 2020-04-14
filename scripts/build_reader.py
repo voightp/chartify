@@ -10,4 +10,3 @@ if process.returncode == 0:
     wheel = [w for w in Path(reader, "dist").iterdir() if w.suffix == ".whl"][0]
     subprocess.run(f"pip uninstall -y esofile-reader")
     subprocess.run(f"pip install {wheel}")
-

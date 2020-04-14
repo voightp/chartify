@@ -4,6 +4,7 @@ from random import randint
 
 import numpy as np
 import pandas as pd
+from PySide2.QtCore import QObject
 from esofile_reader.constants import AVERAGED_UNITS
 from esofile_reader.conversion_tables import rate_table, energy_table, si_to_ip
 
@@ -56,8 +57,7 @@ def generate_id(used_ids, max_id=99999):
     return generate_ids(used_ids, n=1, max_id=max_id)[0]
 
 
-def get_str_identifier(base_name, check_list, delimiter=" ",
-                       start_i=None, brackets=True):
+def get_str_identifier(base_name, check_list, delimiter=" ", start_i=None, brackets=True):
     """ Create a unique name by adding index number to the base name. """
 
     def add_num():
@@ -108,8 +108,10 @@ def update_list_recursively(lst, ref_lst):
             try:
                 lst[i]
             except IndexError:
-                raise IndexError("Cannot skip an item as the base list"
-                                 " length is lower than current index. ")
+                raise IndexError(
+                    "Cannot skip an item as the base list"
+                    " length is lower than current index. "
+                )
             continue
         try:
             lst[i]
@@ -135,8 +137,10 @@ def update_recursively(obj, ref_obj):
     elif isinstance(obj, dict) and isinstance(ref_obj, dict):
         obj = update_dct_recursively(obj, ref_obj)
     else:
-        raise TypeError(f"Cannot update object '{obj.__class__.__name__}' using"
-                        f" object '{ref_obj.__class__.__name__}'")
+        raise TypeError(
+            f"Cannot update object '{obj.__class__.__name__}' using"
+            f" object '{ref_obj.__class__.__name__}'"
+        )
     return obj
 
 
@@ -159,7 +163,7 @@ def create_proxy_units_column(
         rate_to_energy: bool,
         units_system: str,
         energy_units: str,
-        power_units: str
+        power_units: str,
 ) -> pd.Series:
     # always replace whitespace with dash
     proxy_units = pd.Series(np.empty(source_units.size))
@@ -171,7 +175,7 @@ def create_proxy_units_column(
         pairs.extend(
             [
                 ("J", energy_table(energy_units)[1]),
-                ("J/m2", energy_table(energy_units, per_area=True)[1])
+                ("J/m2", energy_table(energy_units, per_area=True)[1]),
             ]
         )
 
@@ -179,7 +183,7 @@ def create_proxy_units_column(
         pairs.extend(
             [
                 ("W", rate_table(power_units)[1]),
-                ("W/m2", rate_table(power_units, per_area=True)[1])
+                ("W/m2", rate_table(power_units, per_area=True)[1]),
             ]
         )
 
@@ -188,7 +192,7 @@ def create_proxy_units_column(
             pairs.extend(
                 [
                     ("W", energy_table(energy_units)[1]),
-                    ("W/m2", energy_table(energy_units, per_area=True)[1])
+                    ("W/m2", energy_table(energy_units, per_area=True)[1]),
                 ]
             )
         else:
@@ -208,3 +212,46 @@ def create_proxy_units_column(
     proxy_units.loc[proxy_units.isna()] = source_units
 
     return proxy_units
+
+
+class SignalBlocker:
+    def __init__(self, *args: QObject):
+        self.args = args
+
+    def __enter__(self):
+        for a in self.args:
+            a.blockSignals(True)
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        for a in self.args:
+            a.blockSignals(False)
+
+
+def refresh_css(*args):
+    """ Refresh CSS of the widget. """
+    for a in args:
+        a.style().unpolish(a)
+        a.style().polish(a)
+
+
+def printdict(dct, limit=10):
+    """ Print dictionary ignoring massive lists. """
+    print_dict = {}
+    for k, v in dct.items():
+        if isinstance(v, dict):
+            print_dict[k] = printdict(v, limit=limit)
+        elif isinstance(v, list):
+            lst = []
+            if len(v) > limit:
+                print_dict[k] = "[... list too long ...]"
+                continue
+            else:
+                for item in v:
+                    if isinstance(item, dict):
+                        lst.append(printdict(item))
+                    else:
+                        lst.append(item)
+            print_dict[k] = lst
+        else:
+            print_dict[k] = v
+    return print_dict

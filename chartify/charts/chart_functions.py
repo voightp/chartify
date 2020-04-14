@@ -23,32 +23,38 @@ def combine_traces(traces: List[Trace1D]) -> Dict[str, Union[str, List]]:
     return combined
 
 
-def pie_chart(traces: List[Trace1D], background_color: str, max_columns: int = 3,
-              h_gap: float = 0.05, v_gap: float = 0.05, square: bool = True) -> List[Dict[str, Any]]:
+def pie_chart(
+    traces: List[Trace1D],
+    background_color: str,
+    max_columns: int = 3,
+    h_gap: float = 0.05,
+    v_gap: float = 0.05,
+    square: bool = True,
+) -> List[Dict[str, Any]]:
     """ Plot a 'special' pie chart data. """
     groups = group_by_units(traces)
     n = len(groups.keys())
-    x_domains, y_domains = gen_domains(n, square=square, max_columns=max_columns,
-                                       h_gap=h_gap, v_gap=v_gap)
+    x_domains, y_domains = gen_domains(
+        n, square=square, max_columns=max_columns, h_gap=h_gap, v_gap=v_gap
+    )
     data = []
     for x_dom, y_dom, traces in zip(x_domains, y_domains, groups.values()):
         combined = combine_traces(traces)
         colors = combined.pop("colors")
         priorities = combined.pop("priorities")
 
-        data.append({
-            "type": "pie",
-            "opacity": 1,
-            "itemId": traces[0].item_id,
-            "pull": [0.1 if trace.selected else 0 for trace in traces],
-            "hole": 0.3,
-            "domain": {
-                "x": x_dom,
-                "y": y_dom
-            },
-            **combined,
-            **get_pie_trace_appearance(priorities, colors, background_color)
-        })
+        data.append(
+            {
+                "type": "pie",
+                "opacity": 1,
+                "itemId": traces[0].item_id,
+                "pull": [0.1 if trace.selected else 0 for trace in traces],
+                "hole": 0.3,
+                "domain": {"x": x_dom, "y": y_dom},
+                **combined,
+                **get_pie_trace_appearance(priorities, colors, background_color),
+            }
+        )
 
     return data
 
@@ -88,8 +94,9 @@ def domain_gen(n: int, gap: float, start: float = 0, end: float = 1) -> List[flo
         start = end + gap
 
 
-def gen_domains(n: int, v_gap: float = 0.05, h_gap: float = 0.05, max_columns: int = 3,
-                square: bool = True) -> Tuple[List[List[float]], List[List[float]]]:
+def gen_domains(
+    n: int, v_gap: float = 0.05, h_gap: float = 0.05, max_columns: int = 3, square: bool = True
+) -> Tuple[List[List[float]], List[List[float]]]:
     """ Create x and y list with domain data. """
     ref_matrix = gen_ref_matrix(n, max_columns, square)
 
@@ -111,8 +118,7 @@ def gen_domains(n: int, v_gap: float = 0.05, h_gap: float = 0.05, max_columns: i
     return x_dom_vector, y_dom_vector
 
 
-def set_shared_x_positions(xaxis: Axis, y_domain: List[float],
-                           increment: float) -> List[float]:
+def set_shared_x_positions(xaxis: Axis, y_domain: List[float], increment: float) -> List[float]:
     """ Set x axis position for shared x axis charts. """
     y_bottom = y_domain[0] - increment
     for i, child in enumerate(xaxis.visible_children[::-1]):
@@ -124,8 +130,7 @@ def set_shared_x_positions(xaxis: Axis, y_domain: List[float],
     return [round(y_bottom, 3), round(y_domain[1], 3)]
 
 
-def set_shared_y_positions(yaxis: Axis, x_domain: List[float],
-                           increment: float) -> List[float]:
+def set_shared_y_positions(yaxis: Axis, x_domain: List[float], increment: float) -> List[float]:
     """ Set y axis position for shared y axis charts. """
     n = len(yaxis.visible_children)
     x_left = x_domain[0] - increment
@@ -153,14 +158,23 @@ def set_shared_y_positions(yaxis: Axis, x_domain: List[float],
     return [round(x_left, 3), round(x_right, 3)]
 
 
-def set_axes_position(axes_map: List[Tuple[Axis, Axis]], shared_x: bool, shared_y: bool,
-                      max_columns: int = 3, h_gap: float = 0.05, v_gap: float = 0.05,
-                      square: bool = True, stacked_y_gap: float = 0.02,
-                      shared_x_gap: float = 0.08, shared_y_gap: float = 0.08) -> None:
+def set_axes_position(
+    axes_map: List[Tuple[Axis, Axis]],
+    shared_x: bool,
+    shared_y: bool,
+    max_columns: int = 3,
+    h_gap: float = 0.05,
+    v_gap: float = 0.05,
+    square: bool = True,
+    stacked_y_gap: float = 0.02,
+    shared_x_gap: float = 0.08,
+    shared_y_gap: float = 0.08,
+) -> None:
     """ Assign position and domain for all axes at given axes map. """
     n = len(axes_map)
-    x_domains, y_domains = gen_domains(n, max_columns=max_columns,
-                                       h_gap=h_gap, v_gap=v_gap, square=square)
+    x_domains, y_domains = gen_domains(
+        n, max_columns=max_columns, h_gap=h_gap, v_gap=v_gap, square=square
+    )
 
     for (xaxis, yaxis), x_dom, y_dom in zip(axes_map, x_domains, y_domains):
         xaxis.anchor = yaxis
@@ -192,8 +206,13 @@ def set_axes_position(axes_map: List[Tuple[Axis, Axis]], shared_x: bool, shared_
             child.domain = x_dom
 
 
-def get_axis_settings(chart_type: str, axis: Axis, line_color: str, grid_color: str,
-                      ranges: Dict[str, List[float]] = None) -> Dict[str, Any]:
+def get_axis_settings(
+    chart_type: str,
+    axis: Axis,
+    line_color: str,
+    grid_color: str,
+    ranges: Dict[str, List[float]] = None,
+) -> Dict[str, Any]:
     """ Create axes plotly dictionary. """
     appearance = get_axis_appearance(chart_type, line_color, grid_color)
 
@@ -207,8 +226,9 @@ def get_axis_settings(chart_type: str, axis: Axis, line_color: str, grid_color: 
     return axes
 
 
-def group_traces(traces: List[Trace2D], x_types: List[str],
-                 y_types: List[str]) -> Dict[str, Dict[str, List[Trace2D]]]:
+def group_traces(
+    traces: List[Trace2D], x_types: List[str], y_types: List[str]
+) -> Dict[str, Dict[str, List[Trace2D]]]:
     """ Group traces based on axis types. """
     grouped = defaultdict(partial(defaultdict, list))
     for trace, x, y in zip(traces, x_types, y_types):
@@ -259,8 +279,9 @@ def standard_axis(type_: str, axes_gen: Generator, axes: Dict[str, str]) -> Axis
     return Axis(axis_name, type_)
 
 
-def shared_interval_axis(traces: List[Trace2D], axes_gen: Generator,
-                         axes: Dict[str, str]) -> Axis:
+def shared_interval_axis(
+    traces: List[Trace2D], axes_gen: Generator, axes: Dict[str, str]
+) -> Axis:
     """ Assign trace interval reference and create parent axis. """
     intervals = get_intervals(traces)
 
@@ -285,8 +306,9 @@ def shared_interval_axis(traces: List[Trace2D], axes_gen: Generator,
     return parent
 
 
-def assign_trace_axes(traces: List[Trace2D], xaxes: Dict[str, str],
-                      yaxes: Dict[str, str]) -> None:
+def assign_trace_axes(
+    traces: List[Trace2D], xaxes: Dict[str, str], yaxes: Dict[str, str]
+) -> None:
     """ Assign trace 'x' and 'y' axes. """
     for trace in traces:
         if trace.x_ref == "datetime":
@@ -300,8 +322,9 @@ def assign_trace_axes(traces: List[Trace2D], xaxes: Dict[str, str],
             trace.yaxis = yaxes[trace.y_type]
 
 
-def create_2d_axis_map(traces: List[Trace2D], group_datetime: bool = True,
-                       shared_x: bool = True) -> List[Tuple[Axis, Axis]]:
+def create_2d_axis_map(
+    traces: List[Trace2D], group_datetime: bool = True, shared_x: bool = True
+) -> List[Tuple[Axis, Axis]]:
     """ Create axis reference dictionaries. """
     # group axis based on x data type, different intervals will be plotted
     # as independent charts when shared x is not requested
