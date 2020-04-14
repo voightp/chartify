@@ -1,4 +1,4 @@
-from PySide2.QtCore import Qt, Signal, QSize
+from PySide2.QtCore import Qt, Signal, QSize, QEvent
 from PySide2.QtGui import QIcon
 from PySide2.QtWidgets import (
     QToolButton,
@@ -75,7 +75,6 @@ class TitledButton(QFrame):
     """
     A custom button to include a top left title label.
 
-    Menu and its actions can be added via kwargs.
     Note that when extending QToolButton behaviour,
     it's required to ad wrapping functions to pass
     arguments to child self.button attributes.
@@ -86,16 +85,7 @@ class TitledButton(QFrame):
             A button' parent.
         fill_space : bool, default True
             Defines if the label is inside the button layout or above.
-        title : str
-            A title of the button.
-        menu : QMenu, default None
-            QToolButton menu component.
-        items : list of str, default None
-            A list of menu item names.
-        default_action_index : int
-            An index of the tool button default action.
-        data : list of str, default None
-            If specified, 'data' attribute is added for menu actions.
+
     """
 
     button_name = "buttonFrame"
@@ -183,7 +173,6 @@ class TitledButton(QFrame):
         if changed:
             current_act.setChecked(False)
             self.setDefaultAction(act)
-
         else:
             current_act.setChecked(True)
 
@@ -415,3 +404,27 @@ class DualActionButton(QToolButton):
         enabled = "enabled" if self.isEnabled() else "disabled"
 
         self.setIcon(self.icons[key][enabled])
+
+
+class StatusButton(QToolButton):
+    """  A button which can display some information on hover. """
+
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.setFixedSize(QSize(30, 30))
+        self.status_label = QLabel()
+        self.status_label.setVisible(False)
+        self.status_label.setObjectName("statusLabel")
+        self.status_label.setText("FOO BAR BAZ")
+
+    def enterEvent(self, event: QEvent):
+        pos = self.pos()
+        pos.setX(pos.x())
+        pos.setY(pos.y() + -30)
+        self.status_label.move(pos)
+        self.status_label.setVisible(True)
+        print("Mouse Enter")
+
+    def leaveEvent(self, event: QEvent):
+        self.status_label.setVisible(False)
+        print("Mouse leave")
