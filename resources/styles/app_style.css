@@ -348,7 +348,7 @@ LineEdit, QLineEdit {
 
 /* ~~~~~ PROGRESS WIDGET ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
-ProgressWidget SummaryWidget{
+ProgressWidget {
     border-right: 1px solid PRIMARY_COLOR #50;
     padding-right: 8px;
     padding-left: 2px;
