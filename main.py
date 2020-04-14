@@ -1,15 +1,16 @@
+import logging
 import sys
 from pathlib import Path
-from PySide2.QtWidgets import QApplication
-from PySide2.QtGui import QFontDatabase
 
-from chartify.ui.main_window import MainWindow
+from PySide2.QtGui import QFontDatabase
+from PySide2.QtWidgets import QApplication
+
 from chartify.controller.app_controller import AppController
 from chartify.controller.wv_controller import WVController
 from chartify.model.model import AppModel
-from chartify.utils.utils import install_fonts
 from chartify.settings import Settings
-import logging
+from chartify.ui.main_window import MainWindow
+from chartify.utils.utils import install_fonts
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
@@ -17,8 +18,8 @@ if __name__ == "__main__":
     app = QApplication()
 
     db = QFontDatabase()
-    install_fonts(str(Path(root, "resources")), db)
-    db.addApplicationFont(str(Path(root, "resources/Roboto-Regular.ttf")))
+    install_fonts(str(Path(root, "resources/fonts")), db)
+    db.addApplicationFont(str(Path(root, "resources/fonts/Roboto-Regular.ttf")))
 
     Settings.load_reg_settings()
 
