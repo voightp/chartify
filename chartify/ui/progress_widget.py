@@ -200,7 +200,7 @@ class ProgressWidget(QFrame):
 
         self.file_btn = StatusButton(wgt)
         self.file_btn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-        self.file_btn.setFixedSize(18, 18)
+        # self.file_btn.setFixedSize(18, 18)
         self.file_btn.clicked.connect(self.send_remove_me)
         self.file_btn.setEnabled(False)
 

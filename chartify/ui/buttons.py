@@ -437,8 +437,6 @@ class StatusButton(QToolButton):
 
     def enterEvent(self, event: QEvent):
         self.show_status()
-        print("Mouse Enter")
 
     def leaveEvent(self, event: QEvent):
         self.hide_status()
-        print("Mouse leave")

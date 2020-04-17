@@ -394,8 +394,8 @@ ProgressWidget StatusButton {
     padding: 0px;
     border: 0px solid transparent;
     background: transparent;
-    width: 10px;
-    height: 10px;
+    width: 15px;
+    height: 15px;
 }
 
 ProgressWidget[failed=true] StatusButton {
