@@ -163,7 +163,7 @@ class AppController:
         self.m.storage.files[file.id_] = file
 
         # number of columns can be either 2 or 3
-        simpleview = file.type_ in ["TotalsFile"]
+        simpleview = file.type_ in []
 
         # add new tab into tab widget
         self.v.add_new_tab(file.id_, name, simpleview=simpleview)
