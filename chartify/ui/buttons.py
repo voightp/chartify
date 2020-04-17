@@ -7,10 +7,11 @@ from PySide2.QtWidgets import (
     QLabel,
     QSizePolicy,
     QFrame,
-    QSlider
+    QSlider,
+    QDialog
 )
 
-from chartify.utils.utils import refresh_css, get_top_level_widget
+from chartify.utils.utils import refresh_css
 
 
 class ClickButton(QToolButton):
@@ -281,10 +282,10 @@ class CheckableButton(QToolButton):
 
     """
 
-    def __init__(self, parent):
+    def __init__(self, parent, icon_size=QSize(20, 20)):
         super().__init__(parent)
         self.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
-        self.setIconSize(QSize(20, 20))
+        self.setIconSize(icon_size)
         self.setCheckable(True)
         self.toggled.connect(self._toggled)
         self.icons = {
@@ -334,10 +335,10 @@ class DualActionButton(QToolButton):
 
     """
 
-    def __init__(self, parent):
+    def __init__(self, parent, icon_size=QSize(20, 20)):
         super().__init__(parent)
         self.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
-        self.setIconSize(QSize(20, 20))
+        self.setIconSize(icon_size)
         self.icons = {
             "primary": {"enabled": QIcon(), "disabled": QIcon()},
             "secondary": {"enabled": QIcon(), "disabled": QIcon()},
@@ -411,12 +412,10 @@ class StatusButton(QToolButton):
 
     def __init__(self, parent):
         super().__init__(parent)
-        self.setFixedSize(QSize(25, 25))
-        # label cannot be displayed outside parent widget
-        main_window = get_top_level_widget(self)
-        self._status_label = QLabel(main_window)
+        self.status_dialog = QDialog(self)
+        self.status_dialog.setWindowFlag(Qt.FramelessWindowHint)
+        self._status_label = QLabel(self.status_dialog)
         self._status_label.setObjectName("statusLabel")
-        self._status_label.setVisible(False)
 
     @property
     def status_label(self) -> QLabel:
@@ -428,13 +427,13 @@ class StatusButton(QToolButton):
         self._status_label.resize(self._status_label.sizeHint())
 
     def show_status(self):
-        p = self.mapTo(get_top_level_widget(self), QPoint(0, 0))
-        p.setY(p.y() - self.status_label.height())
-        self.status_label.move(p)
-        self.status_label.setVisible(True)
+        p = self.mapToGlobal(QPoint(0, 0))
+        p.setY(p.y() - self.status_label.height() - 5)
+        self.status_dialog.move(p)
+        self.status_dialog.setVisible(True)
 
     def hide_status(self):
-        self.status_label.setVisible(False)
+        self.status_dialog.setVisible(False)
 
     def enterEvent(self, event: QEvent):
         self.show_status()
