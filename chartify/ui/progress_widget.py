@@ -145,6 +145,7 @@ class SummaryWidget(QFrame):
 
         self.progress_bar = QProgressBar(self)
         self.progress_bar.setTextVisible(False)
+        self.progress_bar.setRange(0,0)
 
         self.label = QLabel(self)
 
