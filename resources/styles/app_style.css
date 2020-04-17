@@ -218,6 +218,17 @@ QToolButton#dropButton:hover {
     background: transparent;
 }
 
+StatusButton {
+
+}
+
+QLabel#statusLabel {
+    background-color: SURFACE_COLOR;
+    border: 1px solid PRIMARY_COLOR;
+    padding: 5px;
+    margin: 0px;
+}
+
 /* ~~~~~ MENU BUTTON ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
 MenuButton {

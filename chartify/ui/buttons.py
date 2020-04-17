@@ -1,4 +1,4 @@
-from PySide2.QtCore import Qt, Signal, QSize, QEvent
+from PySide2.QtCore import Qt, Signal, QSize, QEvent, QPoint
 from PySide2.QtGui import QIcon
 from PySide2.QtWidgets import (
     QToolButton,
@@ -7,10 +7,10 @@ from PySide2.QtWidgets import (
     QLabel,
     QSizePolicy,
     QFrame,
-    QSlider,
+    QSlider
 )
 
-from chartify.utils.utils import refresh_css
+from chartify.utils.utils import refresh_css, get_top_level_widget
 
 
 class ClickButton(QToolButton):
@@ -411,20 +411,35 @@ class StatusButton(QToolButton):
 
     def __init__(self, parent):
         super().__init__(parent)
-        self.setFixedSize(QSize(30, 30))
-        self.status_label = QLabel()
+        self.setFixedSize(QSize(25, 25))
+        # label cannot be displayed outside parent widget
+        main_window = get_top_level_widget(self)
+        self._status_label = QLabel(main_window)
+        self._status_label.setObjectName("statusLabel")
+        self._status_label.setVisible(False)
+
+    @property
+    def status_label(self) -> QLabel:
+        return self._status_label
+
+    @status_label.setter
+    def status_label(self, label: str) -> None:
+        self._status_label.setText(label)
+        self._status_label.resize(self._status_label.sizeHint())
+
+    def show_status(self):
+        p = self.mapTo(get_top_level_widget(self), QPoint(0, 0))
+        p.setY(p.y() - self.status_label.height())
+        self.status_label.move(p)
+        self.status_label.setVisible(True)
+
+    def hide_status(self):
         self.status_label.setVisible(False)
-        self.status_label.setObjectName("statusLabel")
-        self.status_label.setText("FOO BAR BAZ")
 
     def enterEvent(self, event: QEvent):
-        pos = self.pos()
-        pos.setX(pos.x())
-        pos.setY(pos.y() + -30)
-        self.status_label.move(pos)
-        self.status_label.setVisible(True)
+        self.show_status()
         print("Mouse Enter")
 
     def leaveEvent(self, event: QEvent):
-        self.status_label.setVisible(False)
+        self.hide_status()
         print("Mouse leave")
