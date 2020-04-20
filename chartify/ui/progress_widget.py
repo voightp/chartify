@@ -145,7 +145,7 @@ class SummaryWidget(QFrame):
 
         self.progress_bar = QProgressBar(self)
         self.progress_bar.setTextVisible(False)
-        self.progress_bar.setRange(0,0)
+        self.progress_bar.setRange(0, 0)
 
         self.label = QLabel(self)
 
@@ -236,7 +236,6 @@ class ProgressWidget(QFrame):
         """ Update button tooltip. """
         self.file_btn.status_label = f"File: {self.file_ref.file_path}" \
                                      f"\nPhase: {self.file_ref.status}"
-
 
     def update_label(self):
         """ Update widget label. """

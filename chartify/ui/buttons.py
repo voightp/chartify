@@ -418,6 +418,10 @@ class StatusButton(QToolButton):
         self._status_label.setObjectName("statusLabel")
 
     @property
+    def text(self):
+        return self._status_label.text()
+
+    @property
     def status_label(self) -> QLabel:
         return self._status_label
 
