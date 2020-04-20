@@ -398,7 +398,6 @@ class Toolbar(QFrame):
         if units_system == "IP":
             en_acts = Settings.IP_ENERGY_UNITS
             pw_acts = Settings.IP_POWER_UNITS
-
         else:
             en_acts = Settings.SI_ENERGY_UNITS
             pw_acts = Settings.SI_POWER_UNITS
@@ -422,7 +421,6 @@ class Toolbar(QFrame):
     def power_units_changed(self, act):
         """ Request view update when energy units are changed. """
         changed = self.power_btn.update_state(act)
-
         if changed:
             Settings.POWER_UNITS = act.data()
             self.settingsUpdated.emit()
@@ -430,7 +428,6 @@ class Toolbar(QFrame):
     def energy_units_changed(self, act):
         """ Request view update when energy units are changed. """
         changed = self.energy_btn.update_state(act)
-
         if changed:
             Settings.ENERGY_UNITS = act.data()
             self.settingsUpdated.emit()

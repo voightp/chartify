@@ -1,8 +1,9 @@
+from typing import List
+
 from PySide2.QtCore import Qt, Signal, QSize, QEvent, QPoint
 from PySide2.QtGui import QIcon
 from PySide2.QtWidgets import (
     QToolButton,
-    QVBoxLayout,
     QHBoxLayout,
     QLabel,
     QSizePolicy,
@@ -33,7 +34,6 @@ class ClickButton(QToolButton):
         self.setCheckable(False)
         self.setIconSize(icon_size)
         self.icons = {"enabled": QIcon(), "disabled": QIcon()}
-
         self.click_act = None
         self.clicked.connect(self.trigger_act)
 
@@ -57,13 +57,11 @@ class ClickButton(QToolButton):
         """ Populate button's icons. """
         self.icons["enabled"] = enabled_icon
         self.icons["disabled"] = disabled_icon
-        icon = enabled_icon if self.isEnabled() else disabled_icon
-        self.setIcon(icon)
+        self.setIcon(enabled_icon if self.isEnabled() else disabled_icon)
 
     def setEnabled(self, enabled: bool) -> None:
         """ Override to adjust icon opacity. """
         super().setEnabled(enabled)
-
         # update icon appearance, if icons attr has not been
         # set before, this won't make any difference
         icon = self.icons["enabled"] if enabled else self.icons["disabled"]
@@ -71,113 +69,50 @@ class ClickButton(QToolButton):
             self.setIcon(icon)
 
 
-class TitledButton(QFrame):
-    """ A custom button to include a top left title label.
+class TitledButton(ClickButton):
+    """ A custom button to include a top left title label.  """
 
-    Note that when extending QToolButton behaviour,
-    it's required to ad wrapping functions to pass
-    arguments to child self.button attributes.
-
-    Parameters:
-    -----------
-        parent : QWidget
-            A button' parent.
-        fill_space : bool, default True
-            Defines if the label is inside the button layout or above.
-
-    """
-
-    def __init__(self, text, parent, fill_space=True):
+    def __init__(self, text, parent):
         super().__init__(parent)
-        self.button = ClickButton(self)
-        self.button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-        self.button.setPopupMode(QToolButton.InstantPopup)
-        self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
-
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(0)
-
+        self.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self.setPopupMode(QToolButton.InstantPopup)
         self.title = QLabel(text, self)
+        self.title.move(QPoint(4, 2))
+        self.title.setAttribute(Qt.WA_TransparentForMouseEvents)
 
-        if fill_space:
-            self.title.setAttribute(Qt.WA_TransparentForMouseEvents)
-            self.title.move(4, -8)
-        else:
-            layout.addWidget(self.title)
+    def setEnabled(self, enabled: bool) -> None:
+        super().setEnabled(enabled)
+        self.title.setEnabled(enabled)
 
-        layout.addWidget(self.button)
-
-    def menu(self):
-        return self.button.menu()
-
-    def data(self):
+    def data(self) -> str:
         return self.defaultAction().data()
 
-    def setMenu(self, menu):
-        self.button.setMenu(menu)
-
-    def setEnabled(self, enabled):
-        self.title.setEnabled(enabled)
-        self.button.setEnabled(enabled)
-
-    def setToolButtonStyle(self, style):
-        self.button.setToolButtonStyle(style)
-
-    def setDefaultAction(self, action):
-        self.button.setDefaultAction(action)
-
-    def setButtonObjectName(self, name):
-        self.button.setObjectName(name)
-
-    def setText(self, text):
-        self.button.setText(text)
-
-    def defaultAction(self):
-        return self.button.defaultAction()
-
-    def get_action(self, i=-1, data=""):
-        """ Get an action based on index or action's data. """
-        acts = self.button.menu().actions()
-
-        if i > 0:
-            return acts[i]
-
-        elif data:
-            for act in acts:
-                if act.data() == data:
-                    return act
-
-    def filter_visible_actions(self, acts_dt):
+    def filter_visible_actions(self, actions_data: List[str]) -> None:
         """ Show only actions on the given list(based on data). """
-        acts = self.button.menu().actions()
+        if self.data() not in actions_data:
+            # current action is not in requested actions
+            self.update_state_internally(actions_data[0])
+        for act in self.menu().actions():
+            act.setVisible(act.data() in actions_data)
 
-        if self.data() not in acts_dt:
-            self.update_state_internally(acts_dt[0])
-
-        for act in acts:
-            act.setVisible(act.data() in acts_dt)
-
-    def update_state(self, act):
+    def update_state(self, act: QAction) -> bool:
         """ Handle changing button actions. """
         current_act = self.defaultAction()
         changed = current_act != act
-
         if changed:
-            current_act.setChecked(False)
             self.setDefaultAction(act)
-        else:
-            current_act.setChecked(True)
-
+        current_act.setChecked(not changed)
         return changed
 
-    def update_state_internally(self, dt):
-        """ Handle changing buttons state when handling internally. """
-        act = self.get_action(data=dt)
-        changed = self.update_state(act)
-
-        if changed:
-            act.setChecked(True)
+    def update_state_internally(self, data: str) -> None:
+        """ Handle changing buttons state when handling not internally. """
+        for act in self.menu().actions():
+            if act.data() == data:
+                changed = self.update_state(act)
+                act.setChecked(changed)
+                break
+        else:
+            raise KeyError(f"Unexpected action {data} requested!")
 
 
 class ToggleButton(QFrame):
@@ -192,14 +127,11 @@ class ToggleButton(QFrame):
 
     """
 
-    OBJECT_NAME = "toggleButton"
-    CONTAINER_NAME = "toggleButtonContainer"
     stateChanged = Signal(int)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
-        self.setObjectName(ToggleButton.CONTAINER_NAME)
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -210,7 +142,6 @@ class ToggleButton(QFrame):
         self.slider.setMaximum(1)
         self.slider.setValue(0)
         self.slider.valueChanged.connect(self.onValueChange)
-        self.slider.setObjectName(ToggleButton.OBJECT_NAME)
 
         self.label = None
 
@@ -284,11 +215,7 @@ class CheckableButton(QToolButton):
         """ Update icons state. """
         key = "secondary" if checked else "primary"
         enabled = "enabled" if self.isEnabled() else "disabled"
-
-        try:
-            self.setIcon(self.icons[key][enabled])
-        except KeyError:
-            pass
+        self.setIcon(self.icons[key][enabled])
 
     def set_icons(self, icon1, icon1_disabled, icon2, icon2_disabled):
         """ Assign button icons. """

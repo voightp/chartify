@@ -247,36 +247,31 @@ MenuButton::menu-indicator {
 /* ~~~~~ TITLED BUTTON ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
 TitledButton {
-    background: transparent;
-    border: transparent;
-}
-
-TitledButton QToolButton {
     font-size: 13px;
 }
 
-TitledButton QToolButton::menu-indicator {
+TitledButton::menu-indicator {
     image: URL(./resources/icons/expand_more.png) #PRIMARY_COLOR;
     margin: 1px;
     width: 12px;
     height: 12px;
 }
 
-TitledButton QToolButton:checked {
+TitledButton:checked {
     background-color: transparent;
     border-color: PRIMARY_COLOR;
     color: PRIMARY_TEXT_COLOR;
     font-weight: normal;
 }
 
-TitledButton QToolButton:disabled {
+TitledButton:disabled {
     border-color: PRIMARY_COLOR #50;
     background-color: transparent;
     color: PRIMARY_COLOR #50;
     border-style: dashed;
 }
 
-TitledButton QToolButton:checked:hover {
+TitledButton:checked:hover {
     border-color: PRIMARY_COLOR;
     background-color: transparent;
 }
@@ -713,8 +708,7 @@ QMenu::indicator:non-exclusive:checked {
     image: URL(./resources/icons/check.png) #SECONDARY_TEXT_COLOR;
 }
 
-
-QFrame#toggleButtonContainer {
+ToggleButton {
     margin: 2px;
 }
 
@@ -723,7 +717,7 @@ ToggleButton QLabel {
     text-transform: uppercase;
 }
 
-QSlider {
+ToggleButton QSlider {
     margin: 0px 2px 0px 0px;
     padding: 2px 5px;
     height: 11px;
@@ -733,20 +727,20 @@ QSlider {
     border: 0px solid transparent;
 }
 
-QSlider[checked=true] {
+ToggleButton QSlider[checked=true] {
     background: SECONDARY_COLOR;
 }
 
-QSlider[enabled=false] {
+ToggleButton QSlider[enabled=false] {
     opacity: 0.5;
     background: PRIMARY_COLOR #50;
 }
 
-QSlider::groove:horizontal {
+ToggleButton QSlider::groove:horizontal {
     background: transparent;
 }
 
-QSlider::handle:horizontal {
+ToggleButton QSlider::handle:horizontal {
     height: 5px;
     width: 11px;
     border-radius: 5px;
