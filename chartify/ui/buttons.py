@@ -8,15 +8,15 @@ from PySide2.QtWidgets import (
     QSizePolicy,
     QFrame,
     QSlider,
-    QDialog
+    QDialog,
+    QAction
 )
 
 from chartify.utils.utils import refresh_css
 
 
 class ClickButton(QToolButton):
-    """
-    A base class which automatically modifies
+    """ A base class which automatically modifies
     icon transparency when disabled.
 
     Clicked signal triggers a previously assigned
@@ -27,17 +27,17 @@ class ClickButton(QToolButton):
 
     """
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, parent, icon_size=QSize(20, 20)):
+        super().__init__(parent)
         self.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
         self.setCheckable(False)
-        self.setIconSize(QSize(20, 20))
+        self.setIconSize(icon_size)
         self.icons = {"enabled": QIcon(), "disabled": QIcon()}
 
         self.click_act = None
         self.clicked.connect(self.trigger_act)
 
-    def trigger_act(self):
+    def trigger_act(self) -> None:
         """ Execute assigned action. """
         # set 'checked' state while the action executes
         self.setCheckable(True)
@@ -49,19 +49,18 @@ class ClickButton(QToolButton):
         # revert to the original state
         self.setCheckable(False)
 
-    def connect_action(self, act):
+    def connect_action(self, act: QAction) -> None:
         """ Assign click action to the button. """
         self.click_act = act
 
-    def set_icons(self, enabled_icon, disabled_icon):
+    def set_icons(self, enabled_icon: QIcon, disabled_icon: QIcon) -> None:
         """ Populate button's icons. """
         self.icons["enabled"] = enabled_icon
         self.icons["disabled"] = disabled_icon
-
         icon = enabled_icon if self.isEnabled() else disabled_icon
         self.setIcon(icon)
 
-    def setEnabled(self, enabled):
+    def setEnabled(self, enabled: bool) -> None:
         """ Override to adjust icon opacity. """
         super().setEnabled(enabled)
 
@@ -73,8 +72,7 @@ class ClickButton(QToolButton):
 
 
 class TitledButton(QFrame):
-    """
-    A custom button to include a top left title label.
+    """ A custom button to include a top left title label.
 
     Note that when extending QToolButton behaviour,
     it's required to ad wrapping functions to pass
@@ -89,28 +87,22 @@ class TitledButton(QFrame):
 
     """
 
-    button_name = "buttonFrame"
-    title_name = "buttonTitle"
-
     def __init__(self, text, parent, fill_space=True):
         super().__init__(parent)
         self.button = ClickButton(self)
         self.button.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         self.button.setPopupMode(QToolButton.InstantPopup)
         self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
-        self.setObjectName(TitledButton.button_name)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
         self.title = QLabel(text, self)
-        self.title.setObjectName(TitledButton.title_name)
 
         if fill_space:
             self.title.setAttribute(Qt.WA_TransparentForMouseEvents)
             self.title.move(4, -8)
-
         else:
             layout.addWidget(self.title)
 
@@ -189,8 +181,7 @@ class TitledButton(QFrame):
 
 
 class ToggleButton(QFrame):
-    """
-    A custom button to represent a toggle button.
+    """ A custom button to represent a toggle button.
 
     The appearance is handled by CSS. Default object name is 'toggleButton'
     ('toggleButtonContainer' for parent frame) and the appearance changes
@@ -198,16 +189,17 @@ class ToggleButton(QFrame):
 
     There can be tree states enabled unchecked ('toggleButton'), enabled
     checked ('toggleButtonChecked') and disabled ('toggleButtonDisabled').
+
     """
 
-    object_name = "toggleButton"
-    container_name = "toggleButtonContainer"
-    stateChanged = Signal(int)  # camel case to follow qt rules
+    OBJECT_NAME = "toggleButton"
+    CONTAINER_NAME = "toggleButtonContainer"
+    stateChanged = Signal(int)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
-        self.setObjectName(ToggleButton.container_name)
+        self.setObjectName(ToggleButton.CONTAINER_NAME)
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -218,7 +210,7 @@ class ToggleButton(QFrame):
         self.slider.setMaximum(1)
         self.slider.setValue(0)
         self.slider.valueChanged.connect(self.onValueChange)
-        self.slider.setObjectName(ToggleButton.object_name)
+        self.slider.setObjectName(ToggleButton.OBJECT_NAME)
 
         self.label = None
 
@@ -259,8 +251,7 @@ class ToggleButton(QFrame):
 
 
 class MenuButton(QToolButton):
-    """
-    A button to mimic 'Action' behaviour.
+    """ A button to mimic 'Action' behaviour.
 
     This is in place to allow resizing the
     icon as QAction does not allow that.
@@ -276,11 +267,7 @@ class MenuButton(QToolButton):
 
 
 class CheckableButton(QToolButton):
-    """
-    A button to allow changing icon color
-    when checked.
-
-    """
+    """ A button to allow changing icon color when checked. """
 
     def __init__(self, parent, icon_size=QSize(20, 20)):
         super().__init__(parent)
@@ -329,11 +316,7 @@ class CheckableButton(QToolButton):
 
 
 class DualActionButton(QToolButton):
-    """
-    A button which allows registering two
-    icons and actions.
-
-    """
+    """ A button which allows registering two icons and actions. """
 
     def __init__(self, parent, icon_size=QSize(20, 20)):
         super().__init__(parent)

@@ -244,12 +244,12 @@ MenuButton::menu-indicator {
     height: 10px;
 }
 
-QFrame#buttonFrame {
+/* ~~~~~ TITLED BUTTON ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
+
+TitledButton {
     background: transparent;
     border: transparent;
 }
-
-/* ~~~~~ TITLED BUTTON ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
 TitledButton QToolButton {
     font-size: 13px;
@@ -281,12 +281,12 @@ TitledButton QToolButton:checked:hover {
     background-color: transparent;
 }
 
-QLabel#buttonTitle {
+TitledButton QLabel {
     font-size: 9px;
     background: transparent;
 }
 
-QLabel#buttonTitle:disabled {
+TitledButton QLabel:disabled {
     color: PRIMARY_COLOR #50;
 }
 
