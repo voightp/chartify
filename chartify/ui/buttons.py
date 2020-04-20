@@ -1,4 +1,4 @@
-from PySide2.QtCore import Qt, Signal, QSize
+from PySide2.QtCore import Qt, Signal, QSize, QEvent, QPoint
 from PySide2.QtGui import QIcon
 from PySide2.QtWidgets import (
     QToolButton,
@@ -8,6 +8,7 @@ from PySide2.QtWidgets import (
     QSizePolicy,
     QFrame,
     QSlider,
+    QDialog
 )
 
 from chartify.utils.utils import refresh_css
@@ -75,7 +76,6 @@ class TitledButton(QFrame):
     """
     A custom button to include a top left title label.
 
-    Menu and its actions can be added via kwargs.
     Note that when extending QToolButton behaviour,
     it's required to ad wrapping functions to pass
     arguments to child self.button attributes.
@@ -86,16 +86,7 @@ class TitledButton(QFrame):
             A button' parent.
         fill_space : bool, default True
             Defines if the label is inside the button layout or above.
-        title : str
-            A title of the button.
-        menu : QMenu, default None
-            QToolButton menu component.
-        items : list of str, default None
-            A list of menu item names.
-        default_action_index : int
-            An index of the tool button default action.
-        data : list of str, default None
-            If specified, 'data' attribute is added for menu actions.
+
     """
 
     button_name = "buttonFrame"
@@ -183,7 +174,6 @@ class TitledButton(QFrame):
         if changed:
             current_act.setChecked(False)
             self.setDefaultAction(act)
-
         else:
             current_act.setChecked(True)
 
@@ -292,10 +282,10 @@ class CheckableButton(QToolButton):
 
     """
 
-    def __init__(self, parent):
+    def __init__(self, parent, icon_size=QSize(20, 20)):
         super().__init__(parent)
         self.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
-        self.setIconSize(QSize(20, 20))
+        self.setIconSize(icon_size)
         self.setCheckable(True)
         self.toggled.connect(self._toggled)
         self.icons = {
@@ -345,10 +335,10 @@ class DualActionButton(QToolButton):
 
     """
 
-    def __init__(self, parent):
+    def __init__(self, parent, icon_size=QSize(20, 20)):
         super().__init__(parent)
         self.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
-        self.setIconSize(QSize(20, 20))
+        self.setIconSize(icon_size)
         self.icons = {
             "primary": {"enabled": QIcon(), "disabled": QIcon()},
             "secondary": {"enabled": QIcon(), "disabled": QIcon()},
@@ -415,3 +405,42 @@ class DualActionButton(QToolButton):
         enabled = "enabled" if self.isEnabled() else "disabled"
 
         self.setIcon(self.icons[key][enabled])
+
+
+class StatusButton(QToolButton):
+    """  A button which can display some information on hover. """
+
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.status_dialog = QDialog(self)
+        self.status_dialog.setWindowFlag(Qt.FramelessWindowHint)
+        self._status_label = QLabel(self.status_dialog)
+        self._status_label.setObjectName("statusLabel")
+
+    @property
+    def text(self):
+        return self._status_label.text()
+
+    @property
+    def status_label(self) -> QLabel:
+        return self._status_label
+
+    @status_label.setter
+    def status_label(self, label: str) -> None:
+        self._status_label.setText(label)
+        self._status_label.resize(self._status_label.sizeHint())
+
+    def show_status(self):
+        p = self.mapToGlobal(QPoint(0, 0))
+        p.setY(p.y() - self.status_label.height() - 5)
+        self.status_dialog.move(p)
+        self.status_dialog.setVisible(True)
+
+    def hide_status(self):
+        self.status_dialog.setVisible(False)
+
+    def enterEvent(self, event: QEvent):
+        self.show_status()
+
+    def leaveEvent(self, event: QEvent):
+        self.hide_status()

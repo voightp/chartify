@@ -348,16 +348,10 @@ LineEdit, QLineEdit {
 
 /* ~~~~~ PROGRESS WIDGET ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
-ProgressWidget SummaryWidget{
+ProgressWidget {
     border-right: 1px solid PRIMARY_COLOR #50;
     padding-right: 8px;
     padding-left: 2px;
-}
-
-ProgressWidget QPushButton {
-    image: URL(./resources/icons/file.png) #PRIMARY_COLOR;
-    margin-bottom: 2px;
-    background: transparent;
 }
 
 SummaryWidget QProgressBar {
@@ -394,15 +388,33 @@ ProgressWidget[failed=true] QProgressBar::chunk {
     background: ERROR_COLOR;
 }
 
-ProgressWidget[failed=true] QPushButton {
+ProgressWidget StatusButton {
+    image: URL(./resources/icons/file.png) #PRIMARY_COLOR;
+    margin: 0px;
+    padding: 0px;
+    border: 0px solid transparent;
+    background: transparent;
+    width: 15px;
+    height: 15px;
+}
+
+ProgressWidget[failed=true] StatusButton {
     image: URL(./resources/icons/remove_file.png) #ERROR_COLOR;
 }
 
-ProgressWidget QLabel {
+#statusLabel {
+    background-color: SURFACE_COLOR;
+    border: 1px solid PRIMARY_COLOR;
+    padding: 5px;
+    margin: 0px;
+}
+
+#statusLabel {
     font-size: 11px;
 }
 
 ProgressWidget[failed=true] QLabel {
+    font-size: 11px;
     color: ERROR_COLOR;
 }
 

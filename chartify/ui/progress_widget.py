@@ -10,10 +10,10 @@ from PySide2.QtWidgets import (
     QProgressBar,
     QVBoxLayout,
     QSizePolicy,
-    QPushButton,
     QHBoxLayout,
 )
 
+from chartify.ui.buttons import StatusButton
 from chartify.utils.utils import refresh_css
 
 
@@ -103,7 +103,7 @@ class ProgressFile:
     def status(self, status):
         self._status = status
         if self.widget:
-            self.widget.update_tooltip()
+            self.widget.update_status()
 
     @property
     def widget(self):
@@ -145,6 +145,7 @@ class SummaryWidget(QFrame):
 
         self.progress_bar = QProgressBar(self)
         self.progress_bar.setTextVisible(False)
+        self.progress_bar.setRange(0, 0)
 
         self.label = QLabel(self)
 
@@ -198,9 +199,9 @@ class ProgressWidget(QFrame):
         self.progress_bar = QProgressBar(wgt)
         self.progress_bar.setTextVisible(False)
 
-        self.file_btn = QPushButton(wgt)
+        self.file_btn = StatusButton(wgt)
         self.file_btn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-        self.file_btn.setFixedSize(18, 18)
+        # self.file_btn.setFixedSize(18, 18)
         self.file_btn.clicked.connect(self.send_remove_me)
         self.file_btn.setEnabled(False)
 
@@ -231,12 +232,10 @@ class ProgressWidget(QFrame):
             self.setProperty("failed", self.file_ref.failed)
             refresh_css(self.label, self.progress_bar, self.file_btn)
 
-    def update_tooltip(self) -> None:
+    def update_status(self) -> None:
         """ Update button tooltip. """
-        self.file_btn.setToolTip(
-            f"File: {self.file_ref.file_path}"
-            f"\nPhase: {self.file_ref.status}"
-        )
+        self.file_btn.status_label = f"File: {self.file_ref.file_path}" \
+                                     f"\nPhase: {self.file_ref.status}"
 
     def update_label(self):
         """ Update widget label. """
@@ -259,7 +258,7 @@ class ProgressWidget(QFrame):
         self.update_label()
         self.update_maximum()
         self.update_value()
-        self.update_tooltip()
+        self.update_status()
         self.update_style()
         self.set_enabled()
 

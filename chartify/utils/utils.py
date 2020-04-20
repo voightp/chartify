@@ -255,3 +255,19 @@ def printdict(dct, limit=10):
         else:
             print_dict[k] = v
     return print_dict
+
+
+def get_top_level_widget(wgt):
+    top_level = None
+
+    def traverse(wgt):
+        parent = (wgt.parent())
+        if parent:
+            traverse(parent)
+        else:
+            nonlocal top_level
+            top_level = wgt
+
+    traverse(wgt)
+
+    return top_level
