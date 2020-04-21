@@ -727,11 +727,11 @@ ToggleButton QSlider {
     border: 0px solid transparent;
 }
 
-ToggleButton QSlider[checked=true] {
+ToggleButton QSlider[isChecked=true] {
     background: SECONDARY_COLOR;
 }
 
-ToggleButton QSlider[enabled=false] {
+ToggleButton QSlider[isEnabled=false] {
     opacity: 0.5;
     background: PRIMARY_COLOR #50;
 }

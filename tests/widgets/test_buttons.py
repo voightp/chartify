@@ -3,7 +3,7 @@ from PySide2.QtCore import QPoint, QSize, Qt
 from PySide2.QtGui import QIcon
 from PySide2.QtWidgets import QAction, QMenu
 
-from chartify.ui.buttons import StatusButton, ClickButton, TitledButton
+from chartify.ui.buttons import StatusButton, ClickButton, TitledButton, ToggleButton
 
 
 class TestClickButton:
@@ -96,6 +96,71 @@ class TestTitledButton:
         data = "Invalid data"
         with pytest.raises(KeyError):
             button.update_state_internally(data)
+
+
+class TestToggleButton:
+    @pytest.fixture
+    def button(self, qtbot):
+        button = ToggleButton(None)
+        button.show()
+        qtbot.add_widget(button)
+        return button
+
+    def test_button_init(self, button: ToggleButton):
+        assert button.slider.minimum() == 0
+        assert button.slider.maximum() == 1
+        assert button.slider.value() == 0
+        assert not button.label
+
+    def test_button_signal(self, qtbot, button: ToggleButton):
+        signals = [button.slider.valueChanged, button.stateChanged]
+        callbacks = [lambda x: 1, lambda x: x]
+        with qtbot.wait_signals(signals=signals, check_params_cbs=callbacks):
+            button.slider.setValue(1)
+        assert button.isChecked()
+
+    def test_is_checked(self, button: ToggleButton):
+        assert not button.isChecked()
+
+    def test_set_checked(self, button: ToggleButton):
+        button.setChecked(True)
+        assert button.isChecked()
+        assert button.slider.property("isChecked") is True
+
+    def test_set_unchecked(self, button: ToggleButton):
+        button.setChecked(False)
+        assert not button.isChecked()
+        assert button.slider.property("isChecked") == ""
+
+    def test_set_enabled_checked(self, button: ToggleButton):
+        button.setChecked(True)
+        button.setEnabled(True)
+        assert button.isChecked()
+        assert button.isEnabled()
+        assert button.slider.property("isChecked") is True
+
+    def test_set_enabled_unchecked(self, button: ToggleButton):
+        button.setChecked(False)
+        button.setEnabled(True)
+        assert not button.isChecked()
+        assert button.isEnabled()
+        assert button.slider.property("isChecked") == ""
+
+    def test_set_disabled_checked(self, button: ToggleButton):
+        button.setChecked(True)
+        button.setEnabled(False)
+        assert button.isChecked()
+        assert not button.isEnabled()
+        assert button.slider.property("isChecked") == ""
+        assert button.slider.property("isEnabled") is False
+
+    def test_set_disabled_unchecked(self, button: ToggleButton):
+        button.setChecked(False)
+        button.setEnabled(False)
+        assert not button.isChecked()
+        assert not button.isEnabled()
+        assert button.slider.property("isChecked") == ""
+        assert button.slider.property("isEnabled") is False
 
 
 class TestStatusButton:

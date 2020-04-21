@@ -129,8 +129,8 @@ class ToggleButton(QFrame):
 
     stateChanged = Signal(int)
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, parent):
+        super().__init__(parent)
         self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
 
         layout = QHBoxLayout(self)
@@ -147,16 +147,20 @@ class ToggleButton(QFrame):
 
         layout.addWidget(self.slider)
 
-    def onValueChange(self, val):
+    def onValueChange(self, val: int) -> None:
         """ Trigger slider stateChange signal. """
         self.setChecked(bool(val))
         self.stateChanged.emit(val)
 
-    def isChecked(self):
+    def isChecked(self) -> bool:
         """ Get the current state of toggle button. """
         return bool(self.slider.value())
 
-    def setText(self, text):
+    def isEnabled(self) -> bool:
+        """ Check if the slider is enabled. """
+        return self.slider.isEnabled()
+
+    def setText(self, text: str) -> None:
         """ Set toggle button label. """
         self.label = QLabel(self)
         self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
@@ -165,19 +169,21 @@ class ToggleButton(QFrame):
         self.label.setIndent(0)
         self.layout().insertWidget(0, self.label)
 
-    def setChecked(self, checked):
+    def setChecked(self, checked: bool) -> None:
         """ Set toggle button checked. """
         self.slider.setValue(int(checked))
-        self.slider.setProperty("checked", True if checked else "")
+        self.slider.setProperty("isChecked", True if checked else "")
         refresh_css(self.slider)
 
-    def setEnabled(self, enabled):
+    def setEnabled(self, enabled: bool) -> None:
         """ Enable or disable the button. """
         self.slider.setEnabled(enabled)
-        if self.isChecked():
-            self.slider.setProperty("checked", True)
+        if enabled:
+            self.slider.setProperty("isChecked", True if self.isChecked() else "")
+            self.slider.setProperty("isEnabled", "")
         else:
-            self.slider.setProperty("enabled", "" if enabled else False)
+            self.slider.setProperty("isChecked", "")
+            self.slider.setProperty("isEnabled", False)
         refresh_css(self.slider)
 
 
