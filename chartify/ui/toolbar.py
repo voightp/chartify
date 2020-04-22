@@ -53,6 +53,7 @@ class Toolbar(QFrame):
         self.outputs_group.setObjectName("outputsGroup")
 
         self.totals_btn = CheckableButton(self.outputs_group)
+        self.totals_btn.setIconSize(Settings.ICON_SMALL_SIZE)
         self.totals_btn.setText("totals")
         self.totals_btn.setEnabled(False)
 
@@ -69,8 +70,11 @@ class Toolbar(QFrame):
         self.tools_group.setObjectName("toolsGroup")
 
         self.sum_btn = ClickButton(self.tools_group)
+        self.sum_btn.setIconSize(Settings.ICON_SMALL_SIZE)
         self.mean_btn = ClickButton(self.tools_group)
+        self.mean_btn.setIconSize(Settings.ICON_SMALL_SIZE)
         self.remove_btn = ClickButton(self.tools_group)
+        self.remove_btn.setIconSize(Settings.ICON_SMALL_SIZE)
         self.set_up_tools()
 
         self.layout.addWidget(self.tools_group)

@@ -1,21 +1,21 @@
 import pytest
-from PySide2.QtCore import QPoint, QSize, Qt
+from PySide2.QtCore import QPoint, Qt
 from PySide2.QtGui import QIcon
 from PySide2.QtWidgets import QAction, QMenu
 
-from chartify.ui.buttons import StatusButton, ClickButton, TitledButton, ToggleButton
+from chartify.ui.buttons import StatusButton, ClickButton, TitledButton, ToggleButton, \
+    CheckableButton
 
 
 class TestClickButton:
     @pytest.fixture
     def button(self, qtbot):
-        button = ClickButton(None, icon_size=QSize(30, 30))
+        button = ClickButton(None)
         button.show()
         qtbot.add_widget(button)
         return button
 
     def test_button_init(self, qtbot, button: ClickButton):
-        assert button.iconSize() == QSize(30, 30)
         assert button.toolButtonStyle() == Qt.ToolButtonTextUnderIcon
         assert not button.isCheckable()
         assert not button.click_act
@@ -161,6 +161,15 @@ class TestToggleButton:
         assert not button.isEnabled()
         assert button.slider.property("isChecked") == ""
         assert button.slider.property("isEnabled") is False
+
+class TestCheckableButton:
+    @pytest.fixture
+    def button(self, qtbot):
+        button = CheckableButton(None)
+        button.status_label = "FOO BAR BAZ\nSomething something something Dark Side"
+        button.show()
+        qtbot.add_widget(button)
+        return button
 
 
 class TestStatusButton:

@@ -1,6 +1,6 @@
 from typing import List
 
-from PySide2.QtCore import Qt, Signal, QSize, QEvent, QPoint
+from PySide2.QtCore import Qt, Signal, QEvent, QPoint
 from PySide2.QtGui import QIcon
 from PySide2.QtWidgets import (
     QToolButton,
@@ -28,11 +28,10 @@ class ClickButton(QToolButton):
 
     """
 
-    def __init__(self, parent, icon_size=QSize(20, 20)):
+    def __init__(self, parent):
         super().__init__(parent)
         self.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
         self.setCheckable(False)
-        self.setIconSize(icon_size)
         self.icons = {"enabled": QIcon(), "disabled": QIcon()}
         self.click_act = None
         self.clicked.connect(self.trigger_act)
@@ -195,21 +194,19 @@ class MenuButton(QToolButton):
 
     """
 
-    def __init__(self, text, parent, size=QSize(25, 25)):
+    def __init__(self, text, parent):
         super().__init__(parent)
         self.setToolButtonStyle(Qt.ToolButtonIconOnly)
         self.setText(text)
-        self.setIconSize(size)
         self.setPopupMode(QToolButton.InstantPopup)
 
 
 class CheckableButton(QToolButton):
     """ A button to allow changing icon color when checked. """
 
-    def __init__(self, parent, icon_size=QSize(20, 20)):
+    def __init__(self, parent):
         super().__init__(parent)
         self.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
-        self.setIconSize(icon_size)
         self.setCheckable(True)
         self.toggled.connect(self._toggled)
         self.icons = {
