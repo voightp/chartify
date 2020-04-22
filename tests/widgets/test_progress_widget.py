@@ -6,7 +6,7 @@ from chartify.ui.progress_widget import ProgressContainer
 
 @pytest.fixture
 def container(qtbot):
-    container = ProgressContainer()
+    container = ProgressContainer(None)
     container.show()
     qtbot.add_widget(container)
 
@@ -202,7 +202,7 @@ def test_set_failed(container: ProgressContainer):
     assert widget.progress_bar.value() == 999
     assert widget.progress_bar.maximum() == 999
     assert widget.file_btn.text == f"File: C:/dummy/path/file-8.eso" \
-                                        f"\nPhase: Failed for some evil reason!"
+                                   f"\nPhase: Failed for some evil reason!"
     assert widget.property("failed")
 
 
@@ -220,7 +220,7 @@ def test_set_pending(container: ProgressContainer):
     assert widget.progress_bar.value() == 0
     assert widget.progress_bar.maximum() == 0
     assert widget.file_btn.text == f"File: C:/dummy/path/file-8.eso" \
-                                        f"\nPhase: pending!"
+                                   f"\nPhase: pending!"
 
 
 def test_remove_file(container: ProgressContainer):

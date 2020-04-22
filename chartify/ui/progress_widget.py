@@ -66,27 +66,27 @@ class ProgressFile:
         return self._maximum
 
     @maximum.setter
-    def maximum(self, maximum):
+    def maximum(self, maximum: int) -> None:
         self._maximum = maximum
         if self.widget:
             self.widget.update_maximum()
 
     @property
-    def value(self):
+    def value(self) -> int:
         return self._value
 
     @value.setter
-    def value(self, value):
+    def value(self, value: int) -> None:
         self._value = value
         if self.widget:
             self.widget.update_value()
 
     @property
-    def failed(self):
+    def failed(self) -> bool:
         return self._failed
 
     @failed.setter
-    def failed(self, failed):
+    def failed(self, failed: bool) -> None:
         if failed:
             self.maximum = 999
             self.value = 999
@@ -96,21 +96,21 @@ class ProgressFile:
             self.widget.update_style()
 
     @property
-    def status(self):
+    def status(self) -> str:
         return self._status
 
     @status.setter
-    def status(self, status):
+    def status(self, status: str) -> None:
         self._status = status
         if self.widget:
             self.widget.update_status()
 
     @property
-    def widget(self):
+    def widget(self) -> "ProgressWidget":
         return self._widget
 
     @widget.setter
-    def widget(self, widget):
+    def widget(self, widget: "ProgressWidget"):
         self._widget = widget
         if widget:
             self._widget.update_all_attributes()
@@ -152,7 +152,7 @@ class SummaryWidget(QFrame):
         self.main_layout.addWidget(self.label)
         self.main_layout.addWidget(self.progress_bar)
 
-    def update_label(self, n) -> None:
+    def update_label(self, n: int) -> None:
         """ Update number of pending jobs. """
         if n >= 1:
             self.label.setText(f"processing {n} files...")
@@ -214,7 +214,7 @@ class ProgressWidget(QFrame):
         self.main_layout.addWidget(wgt)
 
     @property
-    def file_ref(self):
+    def file_ref(self) -> ProgressFile:
         return self._file_ref
 
     @file_ref.setter
@@ -237,19 +237,19 @@ class ProgressWidget(QFrame):
         self.file_btn.status_label = f"File: {self.file_ref.file_path}" \
                                      f"\nPhase: {self.file_ref.status}"
 
-    def update_label(self):
+    def update_label(self) -> None:
         """ Update widget label. """
         self.label.setText(self.file_ref.label)
 
-    def update_maximum(self):
+    def update_maximum(self) -> None:
         """ Update progress bar maximum value. """
         self.progress_bar.setMaximum(self.file_ref.maximum)
 
-    def update_value(self):
+    def update_value(self) -> None:
         """ Update progress bar current value. """
         self.progress_bar.setValue(self.file_ref.value)
 
-    def set_enabled(self):
+    def set_enabled(self) -> None:
         """ Control button state. """
         self.file_btn.setEnabled(self.file_ref.failed)
 
@@ -296,8 +296,8 @@ class ProgressContainer(QWidget):
     MAX_VISIBLE_JOBS = 5
     OVERLAP = 3
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, parent):
+        super().__init__(parent)
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
