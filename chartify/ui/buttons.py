@@ -214,35 +214,32 @@ class CheckableButton(QToolButton):
             "secondary": {"enabled": QIcon(), "disabled": QIcon()},
         }
 
-    def _toggled(self, checked):
+    def _toggled(self, checked: bool) -> None:
         """ Update icons state. """
         key = "secondary" if checked else "primary"
         enabled = "enabled" if self.isEnabled() else "disabled"
         self.setIcon(self.icons[key][enabled])
 
-    def set_icons(self, icon1, icon1_disabled, icon2, icon2_disabled):
+    def update_icon(self) -> None:
+        """ Update current icon based on button state. """
+        key = "secondary" if self.isChecked() else "primary"
+        enabled = "enabled" if self.isEnabled() else "disabled"
+        self.setIcon(self.icons[key][enabled])
+
+    def set_icons(
+            self, icon1: QIcon, icon1_disabled: QIcon, icon2: QIcon, icon2_disabled: QIcon
+    ) -> None:
         """ Assign button icons. """
         self.icons["primary"]["enabled"] = icon1
         self.icons["primary"]["disabled"] = icon1_disabled
-
         self.icons["secondary"]["enabled"] = icon2
         self.icons["secondary"]["disabled"] = icon2_disabled
+        self.update_icon()
 
-        key = "secondary" if self.isChecked() else "primary"
-        enabled = "enabled" if self.isEnabled() else "disabled"
-
-        self.setIcon(self.icons[key][enabled])
-
-    def setEnabled(self, enabled):
+    def setEnabled(self, enabled: bool) -> None:
         """ Override to adjust icon opacity. """
         super().setEnabled(enabled)
-
-        # update icon appearance, if icons attr have not been
-        # set before, this won't make any difference
-        key = "secondary" if self.isChecked() else "primary"
-        enabled = "enabled" if self.isEnabled() else "disabled"
-
-        self.setIcon(self.icons[key][enabled])
+        self.update_icon()
 
 
 class StatusButton(QToolButton):
@@ -268,17 +265,19 @@ class StatusButton(QToolButton):
         self._status_label.setText(label)
         self._status_label.resize(self._status_label.sizeHint())
 
+    def enterEvent(self, event: QEvent):
+        self.show_status()
+
+    def leaveEvent(self, event: QEvent):
+        self.hide_status()
+
     def show_status(self):
+        """ Display status dialog. """
         p = self.mapToGlobal(QPoint(0, 0))
         p.setY(p.y() - self.status_label.height() - 5)
         self.status_dialog.move(p)
         self.status_dialog.setVisible(True)
 
     def hide_status(self):
+        """ Hide status dialog. """
         self.status_dialog.setVisible(False)
-
-    def enterEvent(self, event: QEvent):
-        self.show_status()
-
-    def leaveEvent(self, event: QEvent):
-        self.hide_status()

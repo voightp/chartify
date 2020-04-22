@@ -162,6 +162,7 @@ class TestToggleButton:
         assert button.slider.property("isChecked") == ""
         assert button.slider.property("isEnabled") is False
 
+
 class TestCheckableButton:
     @pytest.fixture
     def button(self, qtbot):
@@ -170,6 +171,31 @@ class TestCheckableButton:
         button.show()
         qtbot.add_widget(button)
         return button
+
+    def test_button_init(self, button: CheckableButton):
+        assert button.toolButtonStyle() == Qt.ToolButtonTextUnderIcon
+        assert button.isCheckable()
+
+    def test_button_toggled(self, qtbot, button: CheckableButton):
+        icon = button.icon()
+        with qtbot.wait_signal(button.toggled, check_params_cb=lambda x: x):
+            qtbot.mouseClick(button, Qt.LeftButton)
+        assert button.isChecked()
+        assert button.icon() is not icon
+
+    def test_set_icons(self, button: CheckableButton):
+        i1, i2, i3, i4 = QIcon(), QIcon(), QIcon(), QIcon()
+        button.set_icons(i1, i2, i3, i4)
+        assert button.icons["primary"]["enabled"] == i1
+        assert button.icons["primary"]["disabled"] == i2
+        assert button.icons["secondary"]["enabled"] == i3
+        assert button.icons["secondary"]["disabled"] == i4
+
+    def test_button_enabled(self, button: CheckableButton):
+        icon = button.icon()
+        button.setEnabled(True)
+        assert button.isEnabled()
+        assert button.icon() is not icon
 
 
 class TestStatusButton:
