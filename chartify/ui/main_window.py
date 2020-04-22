@@ -214,18 +214,21 @@ class MainWindow(QMainWindow):
         self.remove_variables_act.setEnabled(False)
 
         self.load_file_btn = MenuButton("Load file | files", self)
+        self.load_file_btn.setIconSize(Settings.ICON_SMALL_SIZE)
         menu = QMenu(self)
         menu.setWindowFlags(menu.windowFlags() | Qt.NoDropShadowWindowHint)
         menu.addActions([self.load_file_act, self.close_all_act])
         self.load_file_btn.setMenu(menu)
 
         self.save_btn = MenuButton("Tools", self)
+        self.save_btn.setIconSize(Settings.ICON_SMALL_SIZE)
         menu = QMenu(self)
         menu.setWindowFlags(menu.windowFlags() | Qt.NoDropShadowWindowHint)
         menu.addActions([self.save_act, self.save_as_act])
         self.save_btn.setMenu(menu)
 
         self.about_btn = MenuButton("About", self)
+        self.about_btn.setIconSize(Settings.ICON_SMALL_SIZE)
 
         self.load_file_btn.setObjectName("fileButton")
         self.save_btn.setObjectName("saveButton")

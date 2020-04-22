@@ -53,6 +53,7 @@ class Toolbar(QFrame):
         self.outputs_group.setObjectName("outputsGroup")
 
         self.totals_btn = CheckableButton(self.outputs_group)
+        self.totals_btn.setIconSize(Settings.ICON_SMALL_SIZE)
         self.totals_btn.setText("totals")
         self.totals_btn.setEnabled(False)
 
@@ -69,8 +70,11 @@ class Toolbar(QFrame):
         self.tools_group.setObjectName("toolsGroup")
 
         self.sum_btn = ClickButton(self.tools_group)
+        self.sum_btn.setIconSize(Settings.ICON_SMALL_SIZE)
         self.mean_btn = ClickButton(self.tools_group)
+        self.mean_btn.setIconSize(Settings.ICON_SMALL_SIZE)
         self.remove_btn = ClickButton(self.tools_group)
+        self.remove_btn.setIconSize(Settings.ICON_SMALL_SIZE)
         self.set_up_tools()
 
         self.layout.addWidget(self.tools_group)
@@ -398,7 +402,6 @@ class Toolbar(QFrame):
         if units_system == "IP":
             en_acts = Settings.IP_ENERGY_UNITS
             pw_acts = Settings.IP_POWER_UNITS
-
         else:
             en_acts = Settings.SI_ENERGY_UNITS
             pw_acts = Settings.SI_POWER_UNITS
@@ -422,7 +425,6 @@ class Toolbar(QFrame):
     def power_units_changed(self, act):
         """ Request view update when energy units are changed. """
         changed = self.power_btn.update_state(act)
-
         if changed:
             Settings.POWER_UNITS = act.data()
             self.settingsUpdated.emit()
@@ -430,7 +432,6 @@ class Toolbar(QFrame):
     def energy_units_changed(self, act):
         """ Request view update when energy units are changed. """
         changed = self.energy_btn.update_state(act)
-
         if changed:
             Settings.ENERGY_UNITS = act.data()
             self.settingsUpdated.emit()
