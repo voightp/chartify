@@ -1,10 +1,12 @@
 import os
 from collections import namedtuple
+from pathlib import Path
 from random import randint
+from typing import Sequence, List
 
 import numpy as np
 import pandas as pd
-from PySide2.QtCore import QObject, QFileInfo
+from PySide2.QtCore import QObject
 from esofile_reader.constants import AVERAGED_UNITS
 from esofile_reader.conversion_tables import rate_table, energy_table, si_to_ip
 
@@ -273,12 +275,11 @@ def get_top_level_widget(wgt):
     return top_level
 
 
-def filter_eso_files(urls, extensions=("eso",)):
+def filter_files(paths: List[str], extensions: Sequence[str] = (".eso",)):
     """ Return a list of file paths with given extensions. """
-    files = []
-    for url in urls:
-        f = url.toLocalFile()
-        info = QFileInfo(f)
-        if info.suffix() in extensions:
-            files.append(f)
-    return files
+    filtered = []
+    for path in paths:
+        p = Path(path)
+        if p.suffix in extensions:
+            filtered.append(path)
+    return filtered
