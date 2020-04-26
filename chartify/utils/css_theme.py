@@ -5,7 +5,7 @@ from collections import namedtuple
 from typing import Tuple, Dict, Union, Iterable
 
 from chartify.settings import Settings
-from chartify.ui.icons import Pixmap
+from chartify.utils.icons_utils import Pixmap
 
 Color = namedtuple("Color", "r, g, b")
 

@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Union, Tuple
 
 from PySide2.QtCore import Qt, QBuffer, QTemporaryFile, QRectF, QSize
@@ -5,22 +6,20 @@ from PySide2.QtGui import QImage, QPixmap, QColor, QPainter, QFontMetrics, QPen,
 
 
 class Pixmap(QPixmap):
-    """
-    Wrapper class which allows changing a color
-    of .PNG icon.
+    """ Wrapper class which allows changing a color of .PNG icon.
 
-    Note that this only works well for black and
-    transparent icons as all the pixels color is
-    overridden using specified RGB values.
+    Note that this only works well for black and transparent icons
+    as all the pixels color is overridden using specified RGB values.
+
     """
 
-    def __init__(self, path, r: int = 0, g: int = 0, b: int = 0, a: float = 1):
-        path = path if isinstance(path, str) else str(path)
-        super().__init__(path)
+    def __init__(self, path: Union[str, Path], r: int = 0, g: int = 0, b: int = 0,
+                 a: float = 1):
+        super().__init__(path if isinstance(path, str) else str(path))
         if not (r == 0 and g == 0 and b == 0 and a == 1):
-            self.repaint(path, r, g, b, a)
+            self.repaint(r, g, b, a)
 
-    def repaint(self, path: str, r: int, g: int, b: int, a: float) -> None:
+    def repaint(self, r: int, g: int, b: int, a: float) -> None:
         """ Repaint all non-transparent pixels with given color. """
         img = QImage(self.toImage())
         for x in range(img.width()):
@@ -43,18 +42,13 @@ class Pixmap(QPixmap):
         return tf
 
 
-def text_to_pixmap(text: str, font: QFont, color: QColor, size=None):
+def text_to_pixmap(text: str, font: QFont, color: QColor, size: QSize=None) -> QPixmap:
     """ Convert text to QPixmap of a given size. """
-
-    def text_geometry():
-        fm = QFontMetrics(font)
-        return fm.width(text), fm.height()
-
     if not size:
-        w, h = text_geometry()
+        fm = QFontMetrics(font)
+        w, h = fm.width(text), fm.height()
     else:
         w, h = size
-
     pix = QPixmap(w, h)
     pix.fill(Qt.transparent)
     p = QPainter(pix)
@@ -78,7 +72,6 @@ def filled_circle_pixmap(
     pix.fill(Qt.transparent)
 
     p = QPainter(pix)
-
     w, h = size.width(), size.height()
     x = (w - (fraction * w)) / 2
     y = (h - (fraction * h)) / 2

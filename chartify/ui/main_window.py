@@ -26,7 +26,6 @@ from esofile_reader.storage.pqt_storage import ParquetStorage
 from chartify.settings import Settings
 from chartify.ui.buttons import MenuButton
 from chartify.ui.dialogs import MulInputDialog, ConfirmationDialog
-from chartify.ui.icons import Pixmap, filled_circle_pixmap
 from chartify.ui.misc_widgets import DropFrame, TabWidget
 from chartify.ui.progress_widget import ProgressContainer
 from chartify.ui.simpleview import SimpleView
@@ -34,6 +33,7 @@ from chartify.ui.toolbar import Toolbar
 from chartify.ui.treeview import TreeView
 from chartify.ui.treeview_tools import ViewTools
 from chartify.utils.css_theme import parse_palette, CssTheme
+from chartify.utils.icons_utils import Pixmap, filled_circle_pixmap
 
 
 # noinspection PyPep8Naming,PyUnresolvedReferences
