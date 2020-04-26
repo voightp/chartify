@@ -42,7 +42,7 @@ class Pixmap(QPixmap):
         return tf
 
 
-def text_to_pixmap(text: str, font: QFont, color: QColor, size: QSize=None) -> QPixmap:
+def text_to_pixmap(text: str, font: QFont, color: QColor, size: QSize = None) -> QPixmap:
     """ Convert text to QPixmap of a given size. """
     if not size:
         fm = QFontMetrics(font)
