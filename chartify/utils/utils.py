@@ -1,6 +1,8 @@
 import os
 from collections import namedtuple
+from pathlib import Path
 from random import randint
+from typing import Sequence, List
 
 import numpy as np
 import pandas as pd
@@ -271,3 +273,13 @@ def get_top_level_widget(wgt):
     traverse(wgt)
 
     return top_level
+
+
+def filter_files(paths: List[str], extensions: Sequence[str] = (".eso",)):
+    """ Return a list of file paths with given extensions. """
+    filtered = []
+    for path in paths:
+        p = Path(path)
+        if p.suffix in extensions:
+            filtered.append(path)
+    return filtered
