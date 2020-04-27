@@ -1,37 +1,32 @@
 import json
 import re
 import traceback
-from collections import namedtuple
 from typing import Tuple, Dict, Union, Iterable
 
 from chartify.settings import Settings
 from chartify.utils.icons_utils import Pixmap
 
-Color = namedtuple("Color", "r, g, b")
+
+class InvalidRangeError(Exception):
+    """ Exception raised when input does not fin in given range. """
+    pass
 
 
 def parse_color(color: Union[str, Tuple[int, int, int]]) -> Tuple[int, int, int]:
     """ Get standard plain rgb tuple. """
     if isinstance(color, tuple) and len(color) == 3:
         rgb = color
-    elif color.startswith("rgb"):
-        srgb = re.sub("[rgb() ]", "", color)
-        rgb = tuple([int(i) for i in srgb.split(",")])
-    elif color.startswith("#") and len(color) == 7:
-        rgb = tuple([int(color[i: i + 2], 16) for i in range(1, 7, 2)])
+    elif isinstance(color, str):
+        if color.startswith("rgb") and not color.startswith("rgba"):
+            srgb = re.sub("[rgb() ]", "", color)
+            rgb = tuple([int(i) for i in srgb.split(",")])
+        elif color.startswith("#") and len(color) == 7:
+            rgb = tuple([int(color[i: i + 2], 16) for i in range(1, 7, 2)])
+        else:
+            raise TypeError(f"Cannot parse color {color}!")
     else:
         raise TypeError(f"Cannot parse color {color}!")
     return rgb
-
-
-def parse_palette(pth: str) -> Dict[str, "Palette"]:
-    """ Return a list of palette instances. """
-    palettes = {}
-    with open(pth) as f:
-        ps = json.load(f)
-        for name, p in ps.items():
-            palettes[name] = Palette(name, **p)
-    return palettes
 
 
 class Palette:
@@ -84,6 +79,18 @@ class Palette:
             dct[c] = rgb
         self.colors_dct = dct
 
+    @classmethod
+    def parse_palettes(
+            cls, pth: str, default_color: Tuple[int, int, int] = (255, 255, 255)
+    ) -> Dict[str, "Palette"]:
+        """ Extract palette dictionary from json file. """
+        palettes = {}
+        with open(pth) as f:
+            ps = json.load(f)
+            for name, p in ps.items():
+                palettes[name] = cls(name, default_color=default_color, **p)
+        return palettes
+
     def get_color(
             self, color_key: str, opacity: float = None, as_tuple: bool = False
     ) -> Union[Tuple[int, int, int], Tuple[int, int, int, float], str]:
@@ -92,6 +99,8 @@ class Palette:
             rgb = self.colors_dct[color_key]
             if opacity:
                 # add opacity to rgb request
+                if opacity < 0 or opacity > 1:
+                    raise InvalidRangeError("Opacity must be a float in range 0.0-1.0")
                 rgb = (*rgb, opacity)
             srgb = ",".join([str(i) for i in rgb])
             if as_tuple:
@@ -99,8 +108,8 @@ class Palette:
                 return rgb
             return f"rgb({srgb})" if len(rgb) == 3 else f"rgba({srgb})"
         except KeyError:
-            colors_str = ", ".join(self.COLORS)
-            print(
+            colors_str = ", ".join(self.colors_dct.keys())
+            raise KeyError(
                 f"Cannot get color for color key '{color_key}' is it's not "
                 f"available, use one of: '{colors_str}'."
             )

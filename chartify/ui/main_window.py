@@ -32,7 +32,7 @@ from chartify.ui.simpleview import SimpleView
 from chartify.ui.toolbar import Toolbar
 from chartify.ui.treeview import TreeView
 from chartify.ui.treeview_tools import ViewTools
-from chartify.utils.css_theme import parse_palette, CssTheme
+from chartify.utils.css_theme import Palette, CssTheme
 from chartify.utils.icons_utils import Pixmap, filled_circle_pixmap
 
 
@@ -125,7 +125,7 @@ class MainWindow(QMainWindow):
         self.status_bar.addWidget(self.progress_cont)
 
         # ~~~~ Palettes ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.palettes = parse_palette(Settings.PALETTE_PATH)
+        self.palettes = Palette.parse_palettes(Settings.PALETTE_PATH)
         Settings.PALETTE = self.palettes[Settings.PALETTE_NAME]
 
         # ~~~~ Scheme button ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
