@@ -3,6 +3,8 @@ import re
 import traceback
 from typing import Tuple, Dict, Union, Iterable
 
+from PySide2.QtCore import QTemporaryFile
+
 from chartify.settings import Settings
 from chartify.utils.icons_utils import Pixmap
 
@@ -151,42 +153,41 @@ class CssTheme:
         self._temp = []
 
     @staticmethod
-    def parse_line(
-            line: str, palette: Palette, as_tuple: bool = False
-    ) -> Union[Tuple[int, int, int], Tuple[int, int, int, float], str]:
-        """ Parse a line with color. """
+    def parse_line(line: str, palette: Palette) -> str:
+        """ Get a color string or tuple. """
         key = next(k for k in palette.COLORS if k in line)
         pattern = f"(.*){key}\s?#?(\d\d)?;?"
         prop, opacity = re.findall(pattern, line)[0]
         if opacity:
             opacity = round((int(opacity) / 100), 2)
-        rgb = palette.get_color(key, opacity, as_tuple=as_tuple)
-        return rgb if as_tuple else f"{prop}{rgb};\n"
+        rgb = palette.get_color(key, opacity)
+        return f"{prop}{rgb};\n"
 
-    def parse_url(self, line: str, palette: Palette) -> str:
+    @staticmethod
+    def parse_url(line: str, palette: Palette) -> Tuple[str, QTemporaryFile]:
         """ Parse a line with an url. """
-        pattern = "(.*)URL\((.*?)\)\s?#(.*);"
+        pattern = "(.*)URL\((.*?)\)\s?#(.*?)\s?#?(\d\d)?;"
         try:
             tup = re.findall(pattern, line)
-            prop, url, col = tup[0]
-            rgb = self.parse_line(col, palette, as_tuple=True)
-            if rgb:
-                # a temporary file is required to store repainted pixmap
-                p = Pixmap(str(Settings.ROOT) + url, *rgb)
-                tf = p.as_temp()
-                self._temp.append(tf)
-                line = f"{prop}url({tf.fileName()});\n"
+            prop, url, col, a = tup[0]
+            opacity = int(a) / 100 if a else None
+            rgb = palette.get_color(col, as_tuple=True, opacity=opacity)
+            # a temporary file is required to store repainted pixmap
+            p = Pixmap(str(Settings.ROOT) + url, *rgb)
+            tf = p.as_temp()
+            line = f"{prop}url({tf.fileName()});\n"
         except (IndexError, ValueError):
             # this is raised when there's no match or unexpected output
-            print(f"Failed to parse {line}.\n{traceback.format_exc()}")
-        return line
+            raise ValueError(f"Failed to parse {line}.\n{traceback.format_exc()}")
+        return line, tf
 
     def parse_css(self, source_css: Iterable[str], palette: Palette) -> str:
-        """ Parse given css files. """
+        """ Parse given css file. """
         css = ""
         for line in source_css:
             if "URL" in line:
-                line = self.parse_url(line, palette)
+                line, tf = self.parse_url(line, palette)
+                self._temp.append(tf)
             elif any(map(lambda x: x in line, palette.COLORS)):
                 line = self.parse_line(line, palette)
             css += line
