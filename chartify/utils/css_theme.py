@@ -14,6 +14,11 @@ class InvalidRangeError(Exception):
     pass
 
 
+class InvalidUrlLine(Exception):
+    """ Exception raised for unexpected URL line syntax. """
+    pass
+
+
 def parse_color(color: Union[str, Tuple[int, int, int]]) -> Tuple[int, int, int]:
     """ Get standard plain rgb tuple. """
     if isinstance(color, tuple) and len(color) == 3:
@@ -178,7 +183,7 @@ class CssTheme:
             line = f"{prop}url({tf.fileName()});\n"
         except (IndexError, ValueError):
             # this is raised when there's no match or unexpected output
-            raise ValueError(f"Failed to parse {line}.\n{traceback.format_exc()}")
+            raise InvalidUrlLine(f"Failed to parse {line}.\n{traceback.format_exc()}")
         return line, tf
 
     def parse_css(self, source_css: Iterable[str], palette: Palette) -> str:
