@@ -1,6 +1,7 @@
 import json
 import re
 import traceback
+from pathlib import Path
 from typing import Tuple, Dict, Union, Iterable
 
 from PySide2.QtCore import QTemporaryFile
@@ -34,6 +35,22 @@ def parse_color(color: Union[str, Tuple[int, int, int]]) -> Tuple[int, int, int]
     else:
         raise TypeError(f"Cannot parse color {color}!")
     return rgb
+
+
+def perc_to_float(perc: Union[str, int]) -> float:
+    """ Convert decimal percentage to float. """
+    if isinstance(perc, str):
+        perc = int(perc)
+    return round(int(perc) / 100, 2) if perc else None
+
+
+def string_rgb(rgb: Tuple[int, int, int], opacity: float = None) -> str:
+    """ Create rgb string. """
+    if opacity:
+        srgb = f"rgba({rgb[0]}, {rgb[1]}, {rgb[2]}, {opacity})"
+    else:
+        srgb = f"rgb({rgb[0]}, {rgb[1]}, {rgb[2]})"
+    return srgb
 
 
 class Palette:
@@ -108,12 +125,8 @@ class Palette:
                 # add opacity to rgb request
                 if opacity < 0 or opacity > 1:
                     raise InvalidRangeError("Opacity must be a float in range 0.0-1.0")
-                rgb = (*rgb, opacity)
-            srgb = ",".join([str(i) for i in rgb])
-            if as_tuple:
-                # this can be rgba
-                return rgb
-            return f"rgb({srgb})" if len(rgb) == 3 else f"rgba({srgb})"
+            return ((*rgb, opacity) if opacity else rgb) if as_tuple \
+                else string_rgb(rgb, opacity=opacity)
         except KeyError:
             colors_str = ", ".join(self.colors_dct.keys())
             raise KeyError(
@@ -158,30 +171,31 @@ class CssTheme:
         self._temp = []
 
     @staticmethod
-    def parse_line(line: str, palette: Palette) -> str:
+    def parse_line(line: str, color_key: str, rgb: Tuple[int, int, int]) -> str:
         """ Get a color string or tuple. """
-        key = next(k for k in palette.COLORS if k in line)
-        pattern = f"(.*){key}\s?#?(\d\d)?;?"
+        pattern = f"(.*){color_key}\s?#?(\d\d)?;?"
         prop, opacity = re.findall(pattern, line)[0]
-        if opacity:
-            opacity = round((int(opacity) / 100), 2)
-        rgb = palette.get_color(key, opacity)
-        return f"{prop}{rgb};\n"
+        srgb = string_rgb(rgb, opacity=perc_to_float(opacity) if opacity else None)
+        return f"{prop}{srgb};\n"
 
     @staticmethod
-    def parse_url(line: str, palette: Palette) -> Tuple[str, QTemporaryFile]:
+    def parse_url(
+            line: str, color_key: str, rgb: Tuple[int, int, int]
+    ) -> Tuple[str, QTemporaryFile]:
         """ Parse a line with an url. """
-        pattern = "(.*)URL\((.*?)\)\s?#(.*?)\s?#?(\d\d)?;"
+        pattern = f"(.*)URL\((.*?)\)\s?#{color_key}\s?#?(\d\d)?;"
         try:
             tup = re.findall(pattern, line)
-            prop, url, col, a = tup[0]
-            opacity = int(a) / 100 if a else None
-            rgb = palette.get_color(col, as_tuple=True, opacity=opacity)
+            prop, url, opacity = tup[0]
+            rgb = rgb if not opacity else (*rgb, perc_to_float(opacity) if opacity else None)
             # a temporary file is required to store repainted pixmap
-            p = Pixmap(str(Settings.ROOT) + url, *rgb)
+            path = Path(Settings.ROOT, Path(url))
+            if not path.exists():
+                raise FileNotFoundError(f"Cannot find url: '{path}'!")
+            p = Pixmap(str(path), *rgb)
             tf = p.as_temp()
             line = f"{prop}url({tf.fileName()});\n"
-        except (IndexError, ValueError):
+        except IndexError:
             # this is raised when there's no match or unexpected output
             raise InvalidUrlLine(f"Failed to parse {line}.\n{traceback.format_exc()}")
         return line, tf
@@ -190,11 +204,14 @@ class CssTheme:
         """ Parse given css file. """
         css = ""
         for line in source_css:
-            if "URL" in line:
-                line, tf = self.parse_url(line, palette)
-                self._temp.append(tf)
-            elif any(map(lambda x: x in line, palette.COLORS)):
-                line = self.parse_line(line, palette)
+            if any(map(lambda x: x in line, palette.COLORS)):
+                color_key = next(k for k in palette.COLORS if k in line)
+                rgb = palette.get_color(color_key, as_tuple=True)
+                if "URL" in line:
+                    line, tf = self.parse_url(line, color_key, rgb)
+                    self._temp.append(tf)
+                else:
+                    line = self.parse_line(line, color_key, rgb)
             css += line
         return css
 

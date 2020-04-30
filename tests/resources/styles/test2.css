@@ -1,0 +1,11 @@
+
+TitledButton::menu-indicator {
+    image: URL(./resources/icons/test.png) #PRIMARY_COLOR;
+    margin: 1px;
+}
+
+TitledButton:checked {
+    background-color: transparent;
+    border-color: PRIMARY_COLOR;
+    color: PRIMARY_TEXT_COLOR;
+}
