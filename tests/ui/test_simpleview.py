@@ -129,7 +129,7 @@ def test_on_double_clicked(qtbot, simple_view: SimpleView, hourly_df: pd.DataFra
 
 
 def test_on_double_clicked_second_column(
-    qtbot, simple_view: SimpleView, hourly_df: pd.DataFrame
+        qtbot, simple_view: SimpleView, hourly_df: pd.DataFrame
 ):
     def variable_data(index):
         test_data = VariableData("", "Boiler Gas Rate", "W", "W")
@@ -172,7 +172,7 @@ def test_on_pressed_right_mb(qtbot, simple_view: SimpleView, hourly_df: pd.DataF
     index = simple_view.model().index(1, 0)
     point = simple_view.visualRect(index).center()
     qtbot.mouseMove(simple_view.viewport(), pos=point)
-    with qtbot.assert_not_emitted(simple_view.pressed,):
+    with qtbot.assert_not_emitted(simple_view.pressed, ):
         qtbot.mousePress(simple_view.viewport(), Qt.RightButton, pos=point)
 
 
@@ -183,10 +183,12 @@ def test_is_tree_kwarg(simple_view: SimpleView, daily_df: pd.DataFrame):
 
 
 def test_filter_view(simple_view: SimpleView):
-    simple_view.filter_view(FilterTuple(key="block1:zonea", variable="temperature", units=""))
+    ft = FilterTuple(key="block1:zonea", variable="temperature", units="")
+    simple_view.filter_view(ft)
 
     assert simple_view.model().rowCount() == 5
     assert simple_view.model().sourceModel().rowCount() == 49
+    assert simple_view.model().filter_tuple == ft
 
     test_data = [
         VariableData("", "Site Outdoor Air Dewpoint Temperature", "C", "C"),
