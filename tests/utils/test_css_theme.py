@@ -43,6 +43,11 @@ def test_parse_color_rgb_string(color, expected):
     assert parse_color(color) == expected
 
 
+def test_parse_color_invalid_string():
+    with pytest.raises(TypeError):
+        parse_color("HEX123456")
+
+
 @pytest.mark.parametrize(
     "color,expected",
     [
