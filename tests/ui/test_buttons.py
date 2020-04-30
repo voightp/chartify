@@ -1,10 +1,26 @@
+from pathlib import Path
+
 import pytest
 from PySide2.QtCore import QPoint, Qt
 from PySide2.QtGui import QIcon
 from PySide2.QtWidgets import QAction, QMenu
 
 from chartify.ui.buttons import StatusButton, ClickButton, TitledButton, ToggleButton, \
-    CheckableButton
+    CheckableButton, MenuButton
+from chartify.utils.icon_painter import Pixmap
+from tests import ROOT
+
+
+@pytest.fixture(scope="module")
+def icon1():
+    path = Path(ROOT, "resources/icons/test.png")
+    return QIcon(Pixmap(path))
+
+
+@pytest.fixture(scope="module")
+def icon2():
+    path = Path(ROOT, "resources/icons/test.png")
+    return QIcon(Pixmap(path, r=100, g=100, b=100, a=0.7))
 
 
 class TestClickButton:
@@ -28,17 +44,13 @@ class TestClickButton:
         with qtbot.wait_signal(act.triggered):
             qtbot.mouseClick(button, Qt.LeftButton)
 
-    def test_icons(self, qtbot, button: ClickButton):
-        icon1 = QIcon()
-        icon2 = QIcon()
+    def test_icons(self, qtbot, button: ClickButton, icon1: QIcon, icon2: QIcon):
         button.set_icons(icon1, icon2)
 
         assert button.icons["enabled"] == icon1
         assert button.icons["disabled"] == icon2
 
-    def test_set_enabled(self, qtbot, button: ClickButton):
-        icon1 = QIcon()
-        icon2 = QIcon()
+    def test_set_enabled(self, qtbot, button: ClickButton, icon1: QIcon, icon2: QIcon):
         button.set_icons(icon1, icon2)
         button.setEnabled(False)
 
@@ -119,6 +131,10 @@ class TestToggleButton:
             button.slider.setValue(1)
         assert button.isChecked()
 
+    def test_setText(self, qtbot, button: ToggleButton):
+        button.setText("FOO")
+        assert button.label.text() == "FOO"
+
     def test_is_checked(self, button: ToggleButton):
         assert not button.isChecked()
 
@@ -161,6 +177,20 @@ class TestToggleButton:
         assert not button.isEnabled()
         assert button.slider.property("isChecked") == ""
         assert button.slider.property("isEnabled") is False
+
+
+class TestMenuButton:
+    @pytest.fixture
+    def button(self, qtbot):
+        button = MenuButton("TEST", None)
+        button.show()
+        qtbot.add_widget(button)
+        return button
+
+    def test_button_init(self, button: CheckableButton):
+        assert button.toolButtonStyle() == Qt.ToolButtonIconOnly
+        assert button.text() == "TEST"
+        assert button.popupMode() == MenuButton.InstantPopup
 
 
 class TestCheckableButton:

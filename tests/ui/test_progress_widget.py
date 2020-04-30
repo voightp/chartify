@@ -167,6 +167,23 @@ def test_update_progress(container: ProgressContainer):
     assert widget.file_btn.text == "File: C:/dummy/path/file-8.eso\nPhase: "
 
 
+def test_update_progress_change_position(container: ProgressContainer):
+    container.update_progress("1", 99)
+    file = container.files["1"]
+    widget = container.widgets[0]
+
+    assert container._get_visible_index(file) == 0
+    assert file.maximum == 100
+    assert file.value == 99
+    assert file.relative_value == 99 / 100 * 100
+
+    assert widget.file_ref == file
+    assert widget.label.text() == "file-1"
+    assert widget.progress_bar.value() == 99
+    assert widget.progress_bar.maximum() == 100
+    assert widget.file_btn.text == "File: C:/dummy/path/file-1.eso\nPhase: "
+
+
 def test_update_status_visible(container: ProgressContainer):
     test_status = "testing status!"
     container.set_status("8", test_status)
