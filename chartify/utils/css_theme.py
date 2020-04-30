@@ -7,7 +7,7 @@ from typing import Tuple, Dict, Union, Iterable
 from PySide2.QtCore import QTemporaryFile
 
 from chartify.settings import Settings
-from chartify.utils.icons_utils import Pixmap
+from chartify.utils.icon_painter import Pixmap
 
 
 class InvalidRangeError(Exception):

@@ -33,7 +33,7 @@ from chartify.ui.toolbar import Toolbar
 from chartify.ui.treeview import TreeView
 from chartify.ui.treeview_tools import ViewTools
 from chartify.utils.css_theme import Palette, CssTheme
-from chartify.utils.icons_utils import Pixmap, filled_circle_pixmap
+from chartify.utils.icon_painter import Pixmap, filled_circle_pixmap
 
 
 # noinspection PyPep8Naming,PyUnresolvedReferences

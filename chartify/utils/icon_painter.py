@@ -46,9 +46,9 @@ def text_to_pixmap(text: str, font: QFont, color: QColor, size: QSize = None) ->
     """ Convert text to QPixmap of a given size. """
     if not size:
         fm = QFontMetrics(font)
-        w, h = fm.width(text), fm.height()
+        w, h = fm.horizontalAdvance(text), fm.height()
     else:
-        w, h = size
+        w, h = size.width(), size.height()
     pix = QPixmap(w, h)
     pix.fill(Qt.transparent)
     p = QPainter(pix)
@@ -102,7 +102,7 @@ def filled_circle_pixmap(
 
 
 def combine_colors(
-        c1: tuple, c2: tuple, fraction: float, as_tuple=False
+        c1: Tuple[int, int, int], c2: Tuple[int, int, int], fraction: float, as_tuple=False
 ) -> Union[str, Tuple[int, int, int]]:
     """ Combine given colors. """
     # colors need to be passed as rgb tuple
