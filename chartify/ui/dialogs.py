@@ -1,6 +1,116 @@
+from typing import List, Any, Optional
+
 from PySide2.QtCore import Qt
 from PySide2.QtWidgets import QDialog, QVBoxLayout, QLabel, QWidget, QFormLayout, \
     QDialogButtonBox, QToolButton, QLineEdit, QTextEdit
+
+
+class TwoButtonBox(QDialogButtonBox):
+    """ Button box to hold 'Confirm' and 'Reject' buttons. """
+
+    def __init__(self, parent: QDialog):
+        super().__init__(parent)
+        self.ok_btn = QToolButton(self)
+        self.ok_btn.setObjectName("okButton")
+        self.reject_btn = QToolButton(self)
+        self.reject_btn.setObjectName("rejectButton")
+        self.addButton(self.reject_btn, QDialogButtonBox.RejectRole)
+        self.addButton(self.ok_btn, QDialogButtonBox.AcceptRole)
+
+
+class BaseTwoButtonDialog(QDialog):
+    """ Base dialog with custom adn reject function.
+
+    Content should be added into 'content_layout'. Dialog
+    always shows a title.
+
+    Attributes
+    ----------
+    parent : QWidget
+        A dialog parent widget.
+    title: str
+        Main text appearing on the dialog.
+    block_list : list
+        A check list used to check for disallowed input.
+
+    """
+
+    def __init__(self, parent, title: str, block_list: Optional[List[Any]] = None):
+        super().__init__(parent, Qt.FramelessWindowHint)
+        self.block_list = [] if not block_list else block_list
+        layout = QVBoxLayout(self)
+        layout.setSpacing(0)
+        layout.setContentsMargins(0, 0, 0, 0)
+
+        self.title = QLabel(self)
+        self.title.setText(title)
+        self.title.setObjectName("dialogTitle")
+        layout.addWidget(self.title)
+
+        self.content_widget = QWidget(self)
+        self.content_layout = QVBoxLayout(self.content_widget)
+        self.content_layout.setSpacing(0)
+        self.content_layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(self.content_widget)
+
+        self.button_box = TwoButtonBox(self)
+        self.button_box.accepted.connect(self.accept)
+        self.button_box.rejected.connect(self.reject)
+        layout.addWidget(self.button_box)
+
+    @property
+    def ok_btn(self):
+        return self.button_box.ok_btn
+
+    @property
+    def reject_btn(self):
+        return self.button_box.reject_btn
+
+    def verify_input(self):
+        """ Check if dialog data input is allowed. """
+        pass
+
+
+class RenameVariableDialog(BaseTwoButtonDialog):
+    """ Dialog to retrieve 'variable_name' input from user. """
+
+    def __init__(self, parent, title: str, variable_name: str):
+        super().__init__(parent, title)
+        form = QWidget(self)
+        self.form_layout = QFormLayout(form)
+        self.content_layout.addWidget(form)
+
+        self.variable_name_input = QLineEdit(self)
+        self.variable_name_input.setText(variable_name)
+        self.variable_name_input.setCursorPosition(0)
+        self.variable_name_input.textChanged.connect(self.verify_input)
+        self.form_layout.addRow("Variable", self.variable_name_input)
+
+    @property
+    def variable_name(self):
+        return self.variable_name_input.text().strip()
+
+    def verify_input(self):
+        self.ok_btn.setEnabled(bool(self.variable_name))
+
+
+class RenameKeyVariableDialog(RenameVariableDialog):
+    """ Dialog to retrieve 'variable_name' and 'key_name' inputs from user. """
+
+    def __init__(self, parent, title: str, variable_name: str, key_name: str):
+        super().__init__(parent, title, variable_name)
+        self.key_name_input = QLineEdit(self)
+        self.key_name_input.setText(key_name)
+        self.key_name_input.setCursorPosition(0)
+        self.key_name_input.textChanged.connect(self.verify_input)
+        self.form_layout.addRow("Key", self.key_name_input)
+
+    @property
+    def key_name(self):
+        return self.key_name_input.text().strip()
+
+    def verify_input(self):
+        self.ok_btn.setEnabled(bool(self.key_name) and bool(self.variable_name))
 
 
 class MulInputDialog(QDialog):
@@ -39,15 +149,7 @@ class MulInputDialog(QDialog):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(form)
 
-        box = QDialogButtonBox(self)
-        self.ok_btn = QToolButton(box)
-        self.ok_btn.setObjectName("okButton")
-
-        self.cancel_btn = QToolButton(box)
-        self.cancel_btn.setObjectName("cancelButton")
-
-        box.addButton(self.cancel_btn, QDialogButtonBox.RejectRole)
-        box.addButton(self.ok_btn, QDialogButtonBox.AcceptRole)
+        box = TwoButtonBox(self)
         box.accepted.connect(self.accept)
         box.rejected.connect(self.reject)
 
@@ -111,7 +213,7 @@ class ConfirmationDialog(QDialog):
 
         main_text = QLabel(self)
         main_text.setText(text)
-        main_text.setProperty("primary",True)
+        main_text.setProperty("primary", True)
         layout.addWidget(main_text)
 
         if inf_text:
@@ -127,15 +229,6 @@ class ConfirmationDialog(QDialog):
             layout.addWidget(area)
 
         box = QDialogButtonBox(self)
-
-        self.ok_btn = QToolButton(box)
-        self.ok_btn.setObjectName("okButton")
-
-        self.cancel_btn = QToolButton(box)
-        self.cancel_btn.setObjectName("cancelButton")
-
-        box.addButton(self.ok_btn, QDialogButtonBox.AcceptRole)
-        box.addButton(self.cancel_btn, QDialogButtonBox.RejectRole)
         box.accepted.connect(self.accept)
         box.rejected.connect(self.reject)
 

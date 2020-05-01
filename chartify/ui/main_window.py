@@ -25,7 +25,7 @@ from esofile_reader.storage.pqt_storage import ParquetStorage
 
 from chartify.settings import Settings
 from chartify.ui.buttons import MenuButton
-from chartify.ui.dialogs import MulInputDialog, ConfirmationDialog
+from chartify.ui.dialogs import MulInputDialog, ConfirmationDialog, RenameVariableDialog
 from chartify.ui.misc_widgets import DropFrame, TabWidget
 from chartify.ui.progress_widget import ProgressContainer
 from chartify.ui.simpleview import SimpleView
@@ -633,22 +633,11 @@ class MainWindow(QMainWindow):
 
     def rename_variable(self, var):
         """ Rename given variable. """
-        # retrieve variable name from ui
-        msg = "Rename variable: "
-        kwargs = {"variable name": var.variable, "key name": var.key}
-
-        dialog = MulInputDialog(self, msg, **kwargs)
-
-        if dialog.exec_() == 0:
-            return
-
-        var_nm = dialog.get_inputs_dct()["variable name"]
-        key_nm = dialog.get_inputs_dct()["key name"]
-
-        for v in self.all_views if Settings.ALL_FILES else [self.current_view]:
-            v.set_next_update_forced()
-
-        self.variableRenamed.emit(self.current_view.id_, var, var_nm, key_nm)
+        dialog = RenameVariableDialog(self, "Rename variable: ", var.variable, var.key)
+        if dialog.exec_() == 1:
+            self.variableRenamed.emit(
+                self.current_view.id_, var, dialog.variable_name, dialog.key_name
+            )
 
     def aggregate_variables(self, func):
         """ Aggregate variables using given function. """

@@ -195,6 +195,10 @@ class AppController:
             self, id_: int, variable: tuple, var_nm: str, key_nm: str
     ) -> None:
         """ Overwrite variable name. """
+        # make sure that all vies which could hae a variable renamed will be updated
+        for v in self.v.all_views if Settings.ALL_FILES else [self.v.current_view]:
+            v.next_update_forced = True
+
         variable = self._apply_async(id_, self.rename_var, var_nm, key_nm, variable)
         self.v.build_treeview(
             self.m.get_file(id_).get_header_df(Settings.INTERVAL),

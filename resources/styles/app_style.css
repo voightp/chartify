@@ -759,7 +759,7 @@ QDialog QLabel {
     font-weight: normal;
 }
 
-QDialog QLabel[primary=true] {
+QDialog QLabel#dialogTitle {
     padding: 10px 16px 10px 10px;
     margin: 0px 5px 5px 5px;
     border-bottom: 1px solid SECONDARY_COLOR;
@@ -779,7 +779,7 @@ QDialog QTextEdit {
     padding-bottom: 0px;
 }
 
-#okButton, #cancelButton {
+#okButton, #rejectButton {
     border: 0px solid transparent;
     background: transparent;
     width: 16px;
@@ -791,7 +791,7 @@ QDialogButtonBox #okButton {
     image: URL(./resources/icons/check.png) #PRIMARY_COLOR;
 }
 
-QDialogButtonBox #cancelButton {
+QDialogButtonBox #rejectButton {
     image: URL(./resources/icons/remove.png) #PRIMARY_COLOR;
     margin-right: 4px;
 }
@@ -801,7 +801,7 @@ QDialogButtonBox #okButton:hover {
     background: transparent;
 }
 
-QDialogButtonBox #cancelButton:hover {
+QDialogButtonBox #rejectButton:hover {
     image: URL(./resources/icons/remove.png) #ERROR_COLOR;
     background: transparent;
 }
