@@ -5,8 +5,8 @@ from PySide2.QtCore import Qt, QTimer
 from PySide2.QtGui import QIcon
 from PySide2.QtWidgets import QDialog, QDialogButtonBox
 
-from chartify.ui.dialogs import TwoButtonBox, BaseTwoButtonDialog, RenameVariableDialog, \
-    RenameKeyVariableDialog
+from chartify.ui.dialogs import TwoButtonBox, BaseTwoButtonDialog, SingleInputDialog, \
+    DoubleInputDialog
 from chartify.utils.icon_painter import Pixmap
 from tests import ROOT
 
@@ -37,12 +37,11 @@ class TestTwoButtonBox:
 class TestBaseTwoButtonDialog:
     @pytest.fixture
     def dialog(self, qtbot):
-        dialog = BaseTwoButtonDialog(None, "Test title", block_list=[1, 2, 3])
+        dialog = BaseTwoButtonDialog(None, "Test title")
         qtbot.add_widget(dialog)
         return dialog
 
     def test_dialog_init(self, dialog: BaseTwoButtonDialog):
-        assert dialog.block_list == [1, 2, 3]
         assert dialog.title.objectName() == "dialogTitle"
 
     def test_dialog_accept(self, qtbot, dialog: BaseTwoButtonDialog):
@@ -60,63 +59,94 @@ class TestBaseTwoButtonDialog:
         assert dialog.exec_() == 0
 
 
-class TestRenameVariableDialog:
+class TestSingleInputDialog:
     @pytest.fixture
     def dialog(self, qtbot):
-        dialog = RenameVariableDialog(None, "Test title", "Some variable")
+        dialog = SingleInputDialog(
+            None, "Test title", "Some variable", "Some variable text", ["a", "b", "c"]
+        )
         qtbot.add_widget(dialog)
         return dialog
 
-    def test_dialog_init(self, dialog: RenameVariableDialog):
-        assert dialog.variable_name == "Some variable"
+    def test_dialog_init(self, dialog: SingleInputDialog):
+        assert dialog.form_layout.itemAt(0).widget().text() == "Some variable"
+        assert dialog.input1_text == "Some variable text"
 
-    def test_valid_variable_input(self, qtbot, dialog: RenameVariableDialog):
-        with qtbot.wait_signal(dialog.variable_name_input.textChanged):
-            dialog.variable_name_input.clear()
-            qtbot.keyClicks(dialog.variable_name_input, "New variable")
-        assert dialog.variable_name_input.isEnabled()
-        assert dialog.variable_name == "New variable"
+    def test_valid_variable_input1(self, qtbot, dialog: SingleInputDialog):
+        with qtbot.wait_signal(dialog.input1.textChanged):
+            dialog.input1.clear()
+            qtbot.keyClicks(dialog.input1, "New variable")
+        assert dialog.ok_btn.isEnabled()
+        assert dialog.input1_text == "New variable"
 
-    def test_invalid_variable_input(self, qtbot, dialog: RenameVariableDialog):
-        with qtbot.wait_signal(dialog.variable_name_input.textChanged):
-            dialog.variable_name_input.clear()
-            qtbot.keyClicks(dialog.variable_name_input, " ")
+    def test_invalid_variable_input1(self, qtbot, dialog: SingleInputDialog):
+        with qtbot.wait_signal(dialog.input1.textChanged):
+            dialog.input1.clear()
+            qtbot.keyClicks(dialog.input1, " ")
         assert not dialog.ok_btn.isEnabled()
-        assert dialog.variable_name == ""
+        assert dialog.input1_text == ""
+
+    def test_blocker(self, qtbot, dialog: SingleInputDialog):
+        with qtbot.wait_signal(dialog.input1.textChanged):
+            dialog.input1.clear()
+            qtbot.keyClicks(dialog.input1, "a")
+        assert not dialog.ok_btn.isEnabled()
+        assert dialog.input1_text == "a"
 
 
-class TestRenameKeyVariableDialog:
+class TestDoubleInputDialog:
     @pytest.fixture
     def dialog(self, qtbot):
-        dialog = RenameKeyVariableDialog(None, "Test title", "Some variable", "Some key")
+        dialog = DoubleInputDialog(
+            None,
+            title="Test title",
+            input1_name="Some variable",
+            input1_text="Some variable text",
+            input2_name="Some key",
+            input2_text="Some key text",
+            input2_blocker=["a", "b", "c"]
+        )
         qtbot.add_widget(dialog)
         return dialog
 
-    def test_dialog_init(self, dialog: RenameKeyVariableDialog):
-        assert dialog.variable_name == "Some variable"
-        assert dialog.key_name == "Some key"
+    def test_dialog_init(self, dialog: SingleInputDialog):
+        assert dialog.form_layout.itemAt(0).widget().text() == "Some variable"
+        assert dialog.input1_text == "Some variable text"
+        assert dialog.form_layout.itemAt(2).widget().text() == "Some key"
+        assert dialog.input2_text == "Some key text"
 
-    def test_valid_variable_input(self, qtbot, dialog: RenameKeyVariableDialog):
-        with qtbot.wait_signal(dialog.variable_name_input.textChanged):
-            dialog.variable_name_input.clear()
-            dialog.key_name_input.clear()
-            qtbot.keyClicks(dialog.variable_name_input, "New variable")
-            qtbot.keyClicks(dialog.key_name_input, "New key")
-        assert dialog.variable_name_input.isEnabled()
-        assert dialog.variable_name == "New variable"
-        assert dialog.key_name == "New key"
+    def test_valid_input2(self, qtbot, dialog: SingleInputDialog):
+        with qtbot.wait_signal(dialog.input2.textChanged):
+            dialog.input2.clear()
+            qtbot.keyClicks(dialog.input2, "New variable")
+        assert dialog.ok_btn.isEnabled()
+        assert dialog.input2_text == "New variable"
 
-    def test_invalid_key_input(self, qtbot, dialog: RenameKeyVariableDialog):
-        with qtbot.wait_signal(dialog.key_name_input.textChanged):
-            dialog.key_name_input.clear()
-            qtbot.keyClicks(dialog.key_name_input, " ")
+    def test_invalid_input2(self, qtbot, dialog: SingleInputDialog):
+        with qtbot.wait_signal(dialog.input2.textChanged):
+            dialog.input2.clear()
+            qtbot.keyClicks(dialog.input2, " ")
         assert not dialog.ok_btn.isEnabled()
-        assert dialog.key_name == ""
-        assert dialog.variable_name == "Some variable"
+        assert dialog.input2_text == ""
 
-    def test_invalid_variable_input(self, qtbot, dialog: RenameKeyVariableDialog):
-        with qtbot.wait_signal(dialog.variable_name_input.textChanged):
-            dialog.variable_name_input.clear()
-            qtbot.keyClicks(dialog.variable_name_input, " ")
+    def test_blocker(self, qtbot, dialog: SingleInputDialog):
+        with qtbot.wait_signal(dialog.input2.textChanged):
+            dialog.input2.clear()
+            qtbot.keyClicks(dialog.input2, "a")
         assert not dialog.ok_btn.isEnabled()
-        assert dialog.variable_name == ""
+        assert dialog.input2_text == "a"
+
+    def test_invalid_input1(self, qtbot, dialog: SingleInputDialog):
+        with qtbot.wait_signal(dialog.input1.textChanged):
+            dialog.input1.clear()
+            qtbot.keyClicks(dialog.input1, " ")
+        assert not dialog.ok_btn.isEnabled()
+        assert dialog.input1_text == ""
+
+    def test_invalid_input1_and_input2(self, qtbot, dialog: SingleInputDialog):
+        with qtbot.wait_signal(dialog.input1.textChanged):
+            dialog.input1.clear()
+            qtbot.keyClicks(dialog.input1, " ")
+            dialog.input2.clear()
+            qtbot.keyClicks(dialog.input1, " ")
+        assert not dialog.ok_btn.isEnabled()
