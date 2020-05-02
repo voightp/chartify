@@ -25,7 +25,7 @@ from esofile_reader.storage.pqt_storage import ParquetStorage
 
 from chartify.settings import Settings
 from chartify.ui.buttons import MenuButton
-from chartify.ui.dialogs import MulInputDialog, ConfirmationDialog, SingleInputDialog
+from chartify.ui.dialogs import ConfirmationDialog, SingleInputDialog, DoubleInputDialog
 from chartify.ui.misc_widgets import DropFrame, TabWidget
 from chartify.ui.progress_widget import ProgressContainer
 from chartify.ui.simpleview import SimpleView
@@ -137,7 +137,8 @@ class MainWindow(QMainWindow):
             c1 = QColor(*colors.get_color("SECONDARY_COLOR", as_tuple=True))
             c2 = QColor(*colors.get_color("BACKGROUND_COLOR", as_tuple=True))
             act.setIcon(
-                filled_circle_pixmap(QSize(60, 60), c1, c2=c2, border_color=QColor(255, 255, 255))
+                filled_circle_pixmap(
+                    QSize(60, 60), c1, c2=c2, border_color=QColor(255, 255, 255))
             )
             actions.append(act)
             if name == Settings.PALETTE_NAME:
@@ -249,7 +250,7 @@ class MainWindow(QMainWindow):
 
         # ~~~~ Tree view appearance ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.view_settings = {
-            "simpleview": {"widths": {"fixed": 70}, "header": ("variable", "units"),},
+            "simpleview": {"widths": {"fixed": 70}, "header": ("variable", "units"), },
             "treeview": {
                 "widths": {"interactive": 200, "fixed": 70},
                 "header": ("variable", "key", "units"),
@@ -590,21 +591,21 @@ class MainWindow(QMainWindow):
         view = self.tab_wgt.widget(tab_index)
         orig_name = self.tab_wgt.tabText(tab_index)
 
-        check_list = self.tab_wgt.get_all_child_names()[:]
-        check_list.remove(orig_name)
+        names = self.tab_wgt.get_all_child_names()[:]
+        names.remove(orig_name)
 
-        d = MulInputDialog(
-            self, "Enter a new file name.", check_list=check_list, name=orig_name
+        dialog = SingleInputDialog(
+            self,
+            title="Enter a new file name.",
+            input1_name="Name",
+            input1_text=orig_name,
+            input1_blocker=names
         )
-        res = d.exec_()
-
-        if res == 0:
-            return
-
-        name = d.get_input("name")
-
-        self.tab_wgt.setTabText(tab_index, name)
-        self.fileRenamed.emit(view.id_, name)
+        res = dialog.exec_()
+        if res == 1:
+            name = dialog.input1_text
+            self.tab_wgt.setTabText(tab_index, name)
+            self.fileRenamed.emit(view.id_, name)
 
     def remove_variables(self):
         """ Remove selected variables. """
@@ -620,23 +621,26 @@ class MainWindow(QMainWindow):
         text = f"Delete following variables from {files}: "
 
         inf_text = "\n".join([" | ".join(var[1:3]) for var in variables])
-
         dialog = ConfirmationDialog(self, text, det_text=inf_text)
 
-        if dialog.exec_() == 0:
-            return
-
-        for v in self.all_views if all_ else [self.current_view]:
-            v.set_next_update_forced()
-
-        self.variablesRemoved.emit(self.current_view.id_, variables)
+        if dialog.exec_() == 1:
+            for v in self.all_views if all_ else [self.current_view]:
+                v.set_next_update_forced()
+            self.variablesRemoved.emit(self.current_view.id_, variables)
 
     def rename_variable(self, var):
         """ Rename given variable. """
-        dialog = SingleInputDialog(self, "Rename variable: ", var.variable, var.key)
+        dialog = DoubleInputDialog(
+            self,
+            title="Rename variable:",
+            input1_name="Variable name",
+            input1_text=var.variable,
+            input2_name="Key name",
+            input2_text=var.key,
+        )
         if dialog.exec_() == 1:
             self.variableRenamed.emit(
-                self.current_view.id_, var, dialog.input_text, dialog.key_name
+                self.current_view.id_, var, dialog.input1_text, dialog.input2_text
             )
 
     def aggregate_variables(self, func):
@@ -646,32 +650,36 @@ class MainWindow(QMainWindow):
         if not variables:
             return
 
-        var_nm = "Custom Variable"
-        key_nm = "Custom Key"
+        variable_name = "Custom Variable"
+        key_name = "Custom Key"
 
+        # let variable name be the same as all names are identical
         if all(map(lambda x: x.variable == variables[0].variable, variables)):
-            var_nm = variables[0].variable
-
+            variable_name = variables[0].variable
+        # let key name be the same as all names are identical
         if all(map(lambda x: x.key == variables[0].key, variables)):
-            key_nm = variables[0].key
+            key_name = variables[0].key
 
-        # retrieve custom inputs from a user
-        msg = "Enter details of the new variable: "
-        kwargs = {"variable name": var_nm, "key name": key_nm}
-
-        dialog = MulInputDialog(self, msg, **kwargs)
+        dialog = DoubleInputDialog(
+            self,
+            title="Enter details of the new variable:",
+            input1_name="Variable name",
+            input1_text=variable_name,
+            input2_name="Key name",
+            input2_text=key_name,
+        )
         res = dialog.exec()
 
-        if res == 0:
-            return
+        if res == 1:
+            variable_name = dialog.input1_text
+            key_name = dialog.input2_text
 
-        var_nm = dialog.get_inputs_dct()["variable name"]
-        key_nm = dialog.get_inputs_dct()["key name"]
+            for v in self.all_views if Settings.ALL_FILES else [self.current_view]:
+                v.set_next_update_forced()
 
-        for v in self.all_views if Settings.ALL_FILES else [self.current_view]:
-            v.set_next_update_forced()
-
-        self.variablesAggregated.emit(self.current_view.id_, variables, var_nm, key_nm, func)
+            self.variablesAggregated.emit(
+                self.current_view.id_, variables, variable_name, key_name, func
+            )
 
     def connect_ui_signals(self):
         """ Create actions which depend on user actions """
