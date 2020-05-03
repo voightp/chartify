@@ -237,7 +237,7 @@ class SimpleView(QTreeView):
 
     selectionCleared = Signal()
     selectionPopulated = Signal(list)
-    itemDoubleClicked = Signal(list)
+    itemDoubleClicked = Signal(int, VariableData)
     viewSettingsChanged = Signal(str, dict)
 
     def __init__(self, id_: int, model_cls=SimpleModel, proxymodel_cls=SimpleFilterModel):
@@ -465,13 +465,9 @@ class SimpleView(QTreeView):
         if source_item.column() > 0:
             index = index.siblingAtColumn(0)
 
-        # deselect all base variables
-        self.deselect_all_variables()
-
-        dt = proxy_model.data_at_index(index)
-        if dt:
-            self.select_variables([dt])
-            self.itemDoubleClicked.emit(dt)
+        variable_data = proxy_model.data_at_index(index)
+        if variable_data:
+            self.itemDoubleClicked.emit(self.id_, variable_data)
 
     def on_pressed(self) -> None:
         """ Handle pressing the view item or items. """

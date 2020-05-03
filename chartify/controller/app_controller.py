@@ -4,13 +4,13 @@ from typing import List, Callable, Union, Any
 
 from PySide2.QtCore import QThreadPool
 from esofile_reader.storage.storage_files import ParquetFile
-from esofile_reader.utils.mini_classes import ResultsFile
+from esofile_reader.utils.mini_classes import ResultsFile, Variable
 from profilehooks import profile
 
 from chartify.settings import Settings
 from chartify.utils.process_utils import create_pool, kill_child_processes, load_file
 from chartify.utils.threads import EsoFileWatcher, IterWorker, Monitor
-from chartify.utils.utils import get_str_identifier
+from chartify.utils.utils import get_str_identifier, VariableData
 
 
 class AppController:
@@ -81,15 +81,15 @@ class AppController:
     def connect_view_signals(self) -> None:
         """ Connect view signals. """
         self.v.paletteUpdated.connect(self.wvc.refresh_layout)
-        self.v.viewUpdateRequested.connect(self.handle_view_update)
-        self.v.fileProcessingRequested.connect(self.handle_file_processing)
-        self.v.fileRenamed.connect(self.handle_file_rename)
-        self.v.variableRenamed.connect(self.handle_rename_variable)
-        self.v.variablesRemoved.connect(self.handle_remove_variables)
-        self.v.variablesAggregated.connect(self.handle_aggregate_variables)
-        self.v.tabClosed.connect(self.handle_close_tab)
-        self.v.appClosedRequested.connect(self.tear_down)
+        self.v.viewUpdateRequested.connect(self.on_view_update_requested)
         self.v.selectionChanged.connect(self.handle_selection_change)
+        self.v.fileProcessingRequested.connect(self.on_file_processing_requested)
+        self.v.fileRenameRequested.connect(self.on_file_rename_requested)
+        self.v.variableRenameRequested.connect(self.on_variable_rename_requested)
+        self.v.variableRemoveRequested.connect(self.handle_remove_variables)
+        self.v.variableAggregateRequested.connect(self.handle_aggregate_variables)
+        self.v.fileRemoveRequested.connect(self.handle_close_tab)
+        self.v.appCloseRequested.connect(self.tear_down)
         self.v.close_all_act.triggered.connect(lambda x: x)
         self.v.save_act.triggered.connect(self.on_save)
         self.v.save_as_act.triggered.connect(self.on_save_as)
@@ -122,10 +122,9 @@ class AppController:
             self.m.storage.save_as(path.parent, path.stem)
 
     @profile
-    def handle_view_update(self, id_: int) -> None:
+    def on_view_update_requested(self, id_: int) -> None:
         """ Update content of a newly selected tab. """
         file = self.m.get_file(id_)
-
         # update interface to enable only available interval buttons
         # and rate to energy button when applicable
         self.v.toolbar.update_intervals_state(file.available_intervals)
@@ -134,7 +133,7 @@ class AppController:
             file.get_header_df(Settings.INTERVAL), selected=self.m.selected_variable_data
         )
 
-    def handle_file_processing(self, paths: List[str]) -> None:
+    def on_file_processing_requested(self, paths: List[str]) -> None:
         """ Load new files. """
         workdir = str(self.m.storage.workdir)
         for path in paths:
@@ -171,9 +170,13 @@ class AppController:
     def _apply_async(self, id_: int, func: Callable, *args, **kwargs) -> Any:
         """ A wrapper to apply functions to current views. """
         file = self.m.get_file(id_)
-
         # apply function on the current file
         val = func(file, *args, **kwargs)
+
+        # make that appropriate views will be updated
+        views = self.v.all_views if Settings.ALL_FILES else [self.v.current_view]
+        for view in views:
+            view.next_update_forced = True
 
         # apply function to all other widgets asynchronously
         if Settings.ALL_FILES:
@@ -184,46 +187,22 @@ class AppController:
         return val
 
     @staticmethod
-    def rename_var(file: ResultsFile, var_nm: str, key_nm: str, variable: tuple) -> tuple:
+    def update_variable_name(
+            file: ResultsFile, variable_name: str, key_name: str, variable: Variable
+    ) -> Variable:
         """ Rename given 'Variable'. """
-        res = file.rename_variable(variable, var_nm, key_nm)
-        if res:
-            var_id, var = res
-            return var
-
-    def handle_rename_variable(
-            self, id_: int, variable: tuple, var_nm: str, key_nm: str
-    ) -> None:
-        """ Overwrite variable name. """
-        # make sure that all vies which could hae a variable renamed will be updated
-        for v in self.v.all_views if Settings.ALL_FILES else [self.v.current_view]:
-            v.next_update_forced = True
-
-        variable = self._apply_async(id_, self.rename_var, var_nm, key_nm, variable)
-        self.v.build_treeview(
-            self.m.get_file(id_).get_header_df(Settings.INTERVAL),
-            selected=[variable],
-            scroll_to=variable,
-        )
-
-    def handle_file_rename(self, id_: int, name: str) -> None:
-        """ Update file name. """
-        self.m.rename_file(id_, name)
+        _, var = file.rename_variable(variable, variable_name, key_name)
+        return var
 
     @staticmethod
-    def dump_vars(file: ResultsFile, variables: List[tuple]) -> None:
+    def delete_variables(file: ResultsFile, variables: List[Variable]) -> None:
         """ Hide or remove selected variables. """
         file.remove_outputs(variables)
 
-    def handle_remove_variables(self, id_: int, variables: List[tuple]) -> None:
-        """ Remove variables from a file or all files. """
-        self._apply_async(id_, self.dump_vars, variables)
-        self.v.build_treeview(self.m.get_file(id_).get_header_df(Settings.INTERVAL))
-
     @staticmethod
-    def aggr_vars(
+    def aggregate_variables(
             file: ResultsFile,
-            variables: List[tuple],
+            variables: List[Variable],
             var_name: str,
             key_name: str,
             func: Union[str, Callable],
@@ -236,6 +215,39 @@ class AppController:
             var_id, var = res
             return var
 
+    def on_variable_rename_requested(self, id_: int, variable_data: VariableData) -> None:
+        """ Overwrite variable name. """
+        old_variable_name = variable_data.variable
+        old_key_name = variable_data.key
+        res = self.v.confirm_rename_variable(old_variable_name, old_key_name)
+        if res:
+            new_variable_name, new_key_name = res
+            if new_variable_name != old_variable_name or new_key_name != old_key_name:
+                var = self.m.selected_variables[0]
+                new_variable = self._apply_async(
+                    id_, self.update_variable_name, new_variable_name, new_key_name, var
+                )
+                new_variable_data = VariableData(
+                    key=new_variable.key,
+                    variable=new_variable.variable,
+                    units=variable_data.units,
+                    proxyunits=variable_data.proxyunits
+                )
+                self.v.build_treeview(
+                    self.m.get_file(id_).get_header_df(Settings.INTERVAL),
+                    selected=[new_variable_data],
+                    scroll_to=new_variable_data,
+                )
+
+    def on_file_rename_requested(self, id_: int, name: str) -> None:
+        """ Update file name. """
+        self.m.rename_file(id_, name)
+
+    def handle_remove_variables(self, id_: int, variables: List[tuple]) -> None:
+        """ Remove variables from a file or all files. """
+        self._apply_async(id_, self.delete_variables, variables)
+        self.v.build_treeview(self.m.get_file(id_).get_header_df(Settings.INTERVAL))
+
     def handle_aggregate_variables(
             self,
             id_: int,
@@ -245,7 +257,8 @@ class AppController:
             func: Union[str, Callable],
     ) -> None:
         """ Create a new variable using given aggregation function. """
-        variable = self._apply_async(id_, self.aggr_vars, variables, var_nm, key_nm, func)
+        variable = self._apply_async(id_, self.aggregate_variables, variables, var_nm, key_nm,
+                                     func)
         self.v.build_treeview(
             self.m.get_file(id_).get_header_df(Settings.INTERVAL),
             selected=[variable],

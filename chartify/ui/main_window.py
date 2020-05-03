@@ -2,6 +2,7 @@ import contextlib
 import ctypes
 from functools import partial
 from pathlib import Path
+from typing import Union
 
 from PySide2.QtCore import QSize, Qt, QCoreApplication, Signal
 from PySide2.QtGui import QIcon, QKeySequence, QColor
@@ -34,6 +35,7 @@ from chartify.ui.treeview import TreeView
 from chartify.ui.treeview_tools import ViewTools
 from chartify.utils.css_theme import Palette, CssTheme
 from chartify.utils.icon_painter import Pixmap, filled_circle_pixmap
+from chartify.utils.utils import VariableData
 
 
 # noinspection PyPep8Naming,PyUnresolvedReferences
@@ -44,16 +46,16 @@ class MainWindow(QMainWindow):
     QCoreApplication.setOrganizationDomain("chartify.foo")
     QCoreApplication.setApplicationName("chartify")
 
-    viewUpdateRequested = Signal(int)
     paletteUpdated = Signal()
-    fileProcessingRequested = Signal(list)
-    fileRenamed = Signal(int, str)
+    viewUpdateRequested = Signal(int)
     selectionChanged = Signal(list)
-    variableRenamed = Signal(int, tuple, str, str)
-    variablesRemoved = Signal(int, list)
-    variablesAggregated = Signal(int, list, str, str, str)
-    tabClosed = Signal(int)
-    appClosedRequested = Signal()
+    fileProcessingRequested = Signal(list)
+    fileRenameRequested = Signal(int, str)
+    variableRenameRequested = Signal(int, VariableData)
+    variableRemoveRequested = Signal(int, list)
+    variableAggregateRequested = Signal(int, list, str, str, str)
+    fileRemoveRequested = Signal(int)
+    appCloseRequested = Signal()
 
     _CLOSE_FLAG = False
 
@@ -262,7 +264,7 @@ class MainWindow(QMainWindow):
         self.connect_ui_signals()
 
     @property
-    def current_view(self) -> TreeView:
+    def current_view(self) -> Union[SimpleView, TreeView]:
         """ Currently selected outputs file. """
         return self.tab_wgt.currentWidget()
 
@@ -275,7 +277,7 @@ class MainWindow(QMainWindow):
         """ Shutdown all the background stuff. """
         # it's needed to terminate threads in controller
         # and close app programmatically
-        self.appClosedRequested.emit()
+        self.appCloseRequested.emit()
 
         if self._CLOSE_FLAG:
             event.accept()
@@ -408,7 +410,7 @@ class MainWindow(QMainWindow):
         view.selectionCleared.connect(self.on_selection_cleared)
         view.selectionPopulated.connect(self.on_selection_populated)
         view.viewSettingsChanged.connect(self.on_view_settings_changed)
-        view.itemDoubleClicked.connect(self.rename_variable)
+        view.itemDoubleClicked.connect(self.variableRenameRequested.emit)
 
         # add the new view into tab widget
         self.tab_wgt.add_tab(view, name)
@@ -458,7 +460,7 @@ class MainWindow(QMainWindow):
             self.current_view.select_variables(selected)
 
         if scroll_to:
-            self.current_view.scroll_to(scroll_to, self.view_settings["header"][0])
+            self.current_view.scroll_to(scroll_to, view_settings["header"][0])
 
     def on_selection_populated(self, variables):
         """ Store current selection in main app. """
@@ -480,11 +482,9 @@ class MainWindow(QMainWindow):
     def on_selection_cleared(self):
         """ Handle behaviour when no variables are selected. """
         self.remove_variables_act.setEnabled(False)
-
         self.toolbar.sum_btn.setEnabled(False)
         self.toolbar.mean_btn.setEnabled(False)
         self.toolbar.remove_btn.setEnabled(False)
-
         self.selectionChanged.emit([])
 
     def filter_treeview(self, filter_tup):
@@ -514,7 +514,7 @@ class MainWindow(QMainWindow):
             self.toolbar.all_files_btn.setEnabled(False)
             self.close_all_act.setEnabled(False)
 
-        self.tabClosed.emit(id_)
+        self.fileRemoveRequested.emit(id_)
 
     def on_tab_changed(self, index):
         """ Update view when tabChanged event is fired. """
@@ -605,7 +605,7 @@ class MainWindow(QMainWindow):
         if res == 1:
             name = dialog.input1_text
             self.tab_wgt.setTabText(tab_index, name)
-            self.fileRenamed.emit(view.id_, name)
+            self.fileRenameRequested.emit(view.id_, name)
 
     def remove_variables(self):
         """ Remove selected variables. """
@@ -626,22 +626,20 @@ class MainWindow(QMainWindow):
         if dialog.exec_() == 1:
             for v in self.all_views if all_ else [self.current_view]:
                 v.set_next_update_forced()
-            self.variablesRemoved.emit(self.current_view.id_, variables)
+            self.variableRemoveRequested.emit(self.current_view.id_, variables)
 
-    def rename_variable(self, var):
+    def confirm_rename_variable(self, variable_name: str, key_name: str):
         """ Rename given variable. """
         dialog = DoubleInputDialog(
             self,
             title="Rename variable:",
             input1_name="Variable name",
-            input1_text=var.variable,
+            input1_text=variable_name,
             input2_name="Key name",
-            input2_text=var.key,
+            input2_text=key_name,
         )
         if dialog.exec_() == 1:
-            self.variableRenamed.emit(
-                self.current_view.id_, var, dialog.input1_text, dialog.input2_text
-            )
+            return dialog.input1_text, dialog.input2_text
 
     def aggregate_variables(self, func):
         """ Aggregate variables using given function. """
@@ -677,7 +675,7 @@ class MainWindow(QMainWindow):
             for v in self.all_views if Settings.ALL_FILES else [self.current_view]:
                 v.set_next_update_forced()
 
-            self.variablesAggregated.emit(
+            self.variableAggregateRequested.emit(
                 self.current_view.id_, variables, variable_name, key_name, func
             )
 

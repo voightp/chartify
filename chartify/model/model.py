@@ -34,6 +34,20 @@ class AppModel(QObject):
         # ~~~~ Webview Database ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.wv_database = {"trace_data": [], "traces": [], "components": [], "items": {}}
 
+    @property
+    def selected_variables(self) -> List[Variable]:
+        variables = []
+        for variable_data in self.selected_variable_data:
+            variables.append(
+                Variable(
+                    interval=Settings.INTERVAL,
+                    key=variable_data.key,
+                    variable=variable_data.variable,
+                    units=variable_data.units
+                )
+            )
+        return variables
+
     def get_file(self, id_: int) -> ParquetFile:
         """ Get 'DatabaseFile for the given id. """
         return self.storage.files[id_]
