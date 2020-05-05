@@ -229,7 +229,7 @@ class AppController:
                 )
                 new_variable_data = VariableData(
                     key=new_variable.key,
-                    variable=new_variable.variable,
+                    type=new_variable.type,
                     units=variable_data.units,
                     proxyunits=variable_data.proxyunits
                 )

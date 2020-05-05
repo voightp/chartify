@@ -92,7 +92,7 @@ def test_on_view_resized_stretch(qtbot, simple_view: SimpleView, hourly_df: pd.D
 
 def test_on_section_moved(qtbot, simple_view: SimpleView, hourly_df: pd.DataFrame):
     def test_header(cls, dct):
-        return cls == "simpleview" and dct["header"] == ("units", "variable")
+        return cls == "simpleview" and dct["header"] == ("units", "type")
 
     with qtbot.wait_signal(simple_view.viewSettingsChanged, check_params_cb=test_header):
         simple_view.header().moveSection(0, 1)
@@ -183,7 +183,7 @@ def test_is_tree_kwarg(simple_view: SimpleView, daily_df: pd.DataFrame):
 
 
 def test_filter_view(simple_view: SimpleView):
-    ft = FilterTuple(key="block1:zonea", variable="temperature", units="")
+    ft = FilterTuple(key="block1:zonea", type="temperature", units="")
     simple_view.filter_view(ft)
 
     assert simple_view.model().rowCount() == 5
@@ -205,14 +205,14 @@ def test_filter_view(simple_view: SimpleView):
 
 
 def test_get_visual_names(simple_view: SimpleView):
-    assert simple_view.get_visual_names() == ("variable", "units")
+    assert simple_view.get_visual_names() == ("type", "units")
 
-    simple_view.reshuffle_columns(("units", "variable"))
-    assert simple_view.get_visual_names() == ("units", "variable")
+    simple_view.reshuffle_columns(("units", "type"))
+    assert simple_view.get_visual_names() == ("units", "type")
 
 
 def test_get_visual_ixs(simple_view: SimpleView):
-    assert simple_view.get_visual_indexes() == {"variable": 0, "units": 1}
+    assert simple_view.get_visual_indexes() == {"type": 0, "units": 1}
 
 
 def test_build_view_kwargs_rate_to_energy(simple_view: SimpleView, daily_df: pd.DataFrame):
@@ -257,7 +257,7 @@ def test_build_view_kwargs_power_units(simple_view: SimpleView, daily_df: pd.Dat
 
 
 def test_update_view_appearance(simple_view: SimpleView, daily_df: pd.DataFrame):
-    header = ("units", "variable")
+    header = ("units", "type")
     simple_view.populate_view(
         daily_df, "daily", header=header,
     )
@@ -268,7 +268,7 @@ def test_update_view_appearance(simple_view: SimpleView, daily_df: pd.DataFrame)
     assert simple_view.header().sectionSize(0) == 50
     assert simple_view.header().sectionSize(1) == 350
 
-    assert simple_view.get_visual_names() == ("units", "variable")
+    assert simple_view.get_visual_names() == ("units", "type")
 
 
 def test_update_view_appearance_default(simple_view: SimpleView, daily_df: pd.DataFrame):
@@ -277,13 +277,13 @@ def test_update_view_appearance_default(simple_view: SimpleView, daily_df: pd.Da
     assert simple_view.header().sectionSize(0) == 330
     assert simple_view.header().sectionSize(1) == 70
 
-    assert simple_view.get_visual_names() == ("variable", "units")
+    assert simple_view.get_visual_names() == ("type", "units")
 
 
 def test_scroll_to(qtbot, simple_view: SimpleView, hourly_df: pd.DataFrame):
     v = VariableData("", "Zone Infiltration Air Change Rate", "ach", "ach")
     with qtbot.wait_signal(simple_view.verticalScrollBar().valueChanged):
-        simple_view.scroll_to(v, "variable")
+        simple_view.scroll_to(v, "type")
 
     assert simple_view.verticalScrollBar().value() == 27
 

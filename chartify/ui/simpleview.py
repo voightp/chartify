@@ -48,10 +48,10 @@ class SimpleModel(QStandardItemModel):
     ) -> None:
         """ Append row to the given parent. """
         # assign status tip for all items in row
-        variable = row[indexes["variable"]]
+        type_ = row[indexes["type"]]
         proxy_units = row[indexes["units"]]
         source_units = row[indexes["source units"]]
-        status_tip = f"{variable} | {proxy_units}"
+        status_tip = f"{type_} | {proxy_units}"
 
         # show all the info for each item in row
         for item in item_row:
@@ -59,7 +59,7 @@ class SimpleModel(QStandardItemModel):
 
         # first item holds the variable data used for search
         item_row[0].setData(
-            VariableData(key="", variable=variable, units=source_units, proxyunits=proxy_units),
+            VariableData(key="", type=type_, units=source_units, proxyunits=proxy_units),
             role=Qt.UserRole,
         )
 
@@ -74,7 +74,7 @@ class SimpleModel(QStandardItemModel):
         """  Create a model and set up its appearance. """
         columns = variables_df.columns.tolist()
         indexes = {
-            "variable": columns.index("variable"),
+            "type": columns.index("type"),
             "units": columns.index("units"),
             "source units": columns.index("source units"),
         }
@@ -87,7 +87,7 @@ class SimpleFilterModel(QSortFilterProxyModel):
 
     def __init__(self):
         super().__init__()
-        self._filter_tuple = FilterTuple(key="", variable="", units="")
+        self._filter_tuple = FilterTuple(key="", type="", units="")
 
     @property
     def filter_tuple(self) -> FilterTuple:
@@ -111,7 +111,7 @@ class SimpleFilterModel(QSortFilterProxyModel):
         """ Return logical positions of header labels. """
         names = self.get_logical_names()
         return {
-            "variable": names.index("variable"),
+            "type": names.index("type"),
             "units": names.index("units"),
         }
 
@@ -168,12 +168,12 @@ class SimpleFilterModel(QSortFilterProxyModel):
     def find_match(self, variables: List[VariableData], key: str) -> QItemSelection:
         """ Check if output variables are available in a new model. """
         selection = QItemSelection()
-        test_variables = [var.variable for var in variables]
+        test_variables = [var.type for var in variables]
         num_rows = self.rowCount()
         for i in range(num_rows):
             p_ix = self.index(i, 0)
             var = self.data_at_index(p_ix)
-            if var.variable in test_variables:
+            if var.type in test_variables:
                 selection.append(QItemSelectionRange(p_ix))
 
         return selection
@@ -332,7 +332,7 @@ class SimpleView(QTreeView):
         return {k: self.header().visualIndex(i) for k, i in log_ixs.items()}
 
     def update_view_appearance(
-            self, header: tuple = ("variable", "units"), widths: Dict[str, int] = None, **kwargs
+            self, header: tuple = ("type", "units"), widths: Dict[str, int] = None, **kwargs
     ) -> None:
         """ Update the model appearance to be consistent with last view. """
         # it's required to adjust columns order to match the last applied order
@@ -387,7 +387,7 @@ class SimpleView(QTreeView):
         """ Define resizing behaviour. """
         # units column width is always fixed
         fixed = self.model().get_logical_index("units")
-        stretch = self.model().get_logical_index("variable")
+        stretch = self.model().get_logical_index("type")
         self.header().setSectionResizeMode(fixed, QHeaderView.Fixed)
         self.header().setSectionResizeMode(stretch, QHeaderView.Stretch)
         self.header().setStretchLastSection(False)
@@ -403,7 +403,7 @@ class SimpleView(QTreeView):
             units_system: str = "SI",
             energy_units: str = "J",
             power_units: str = "W",
-            header: tuple = ("variable", "units"),
+            header: tuple = ("type", "units"),
             **kwargs,
     ) -> None:
         """ Set the model and define behaviour of the tree view. """

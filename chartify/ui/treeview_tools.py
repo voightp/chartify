@@ -105,7 +105,7 @@ class ViewTools(QFrame):
         """ Get current filter string. """
         return FilterTuple(
             key=self.key_line_edit.text(),
-            variable=self.variable_line_edit.text(),
+            type=self.variable_line_edit.text(),
             units=self.units_line_edit.text(),
         )
 

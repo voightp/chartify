@@ -38,10 +38,10 @@ class TreeModel(SimpleModel):
         """ Append row to the given parent. """
         # assign status tip for all items in row
         key = row[indexes["key"]]
-        variable = row[indexes["variable"]]
+        type_ = row[indexes["type"]]
         proxy_units = row[indexes["units"]]
         source_units = row[indexes["source units"]]
-        status_tip = f"{key} | {variable} | {proxy_units}"
+        status_tip = f"{key} | {type_} | {proxy_units}"
 
         # show all the info for each item in row
         for item in item_row:
@@ -50,7 +50,7 @@ class TreeModel(SimpleModel):
         # first item holds the variable data used for search
         item_row[0].setData(
             VariableData(
-                key=key, variable=variable, units=source_units, proxyunits=proxy_units
+                key=key, type=type_, units=source_units, proxyunits=proxy_units
             ),
             role=Qt.UserRole,
         )
@@ -84,7 +84,7 @@ class TreeModel(SimpleModel):
         columns = variables_df.columns.tolist()
         indexes = {
             "key": columns.index("key"),
-            "variable": columns.index("variable"),
+            "type": columns.index("type"),
             "units": columns.index("units"),
             "source units": columns.index("source units"),
         }
@@ -107,7 +107,7 @@ class TreeFilterModel(SimpleFilterModel):
         names = self.get_logical_names()
         return {
             "key": names.index("key"),
-            "variable": names.index("variable"),
+            "type": names.index("type"),
             "units": names.index("units"),
         }
 
@@ -115,11 +115,11 @@ class TreeFilterModel(SimpleFilterModel):
         """ Check if output variables are available in a new model. """
 
         def check_var():
-            v = (var.key, var.variable)
+            v = (var.key, var.type)
             return v in test_variables
 
         selection = QItemSelection()
-        test_variables = [(var.key, var.variable) for var in variables]
+        test_variables = [(var.key, var.type) for var in variables]
 
         # create a list which holds parent parts of currently
         # selected items, if the part of variable does not match,
@@ -215,11 +215,11 @@ class TreeView(SimpleView):
 
         # key and variable sections can be either Stretch or Interactive
         # Interactive section can be resized programmatically
-        if vis_ixs["key"] > vis_ixs["variable"]:
+        if vis_ixs["key"] > vis_ixs["type"]:
             stretch = log_ixs["key"]
-            interactive = log_ixs["variable"]
+            interactive = log_ixs["type"]
         else:
-            stretch = log_ixs["variable"]
+            stretch = log_ixs["type"]
             interactive = log_ixs["key"]
 
         self.header().setSectionResizeMode(stretch, QHeaderView.Stretch)
@@ -230,7 +230,7 @@ class TreeView(SimpleView):
 
     def update_view_appearance(
         self,
-        header: tuple = ("variable", "key", "units"),
+        header: tuple = ("type", "key", "units"),
         widths: Dict[str, int] = None,
         expanded: Set[str] = None,
         **kwargs,
@@ -251,7 +251,7 @@ class TreeView(SimpleView):
         units_system: str = "SI",
         energy_units: str = "J",
         power_units: str = "W",
-        header: Tuple[str, str, str] = ("variable", "key", "units"),
+        header: Tuple[str, str, str] = ("type", "key", "units"),
     ) -> None:
         """ Set the model and define behaviour of the tree view. """
         self.is_tree = is_tree

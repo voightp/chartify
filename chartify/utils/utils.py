@@ -10,8 +10,8 @@ from PySide2.QtCore import QObject
 from esofile_reader.constants import AVERAGED_UNITS
 from esofile_reader.conversion_tables import rate_table, energy_table, si_to_ip
 
-VariableData = namedtuple("VariableData", "key variable units proxyunits")
-FilterTuple = namedtuple("FilterTuple", "key variable units")
+VariableData = namedtuple("VariableData", "key type units proxyunits")
+FilterTuple = namedtuple("FilterTuple", "key type units")
 
 
 def install_fonts(pth, database):

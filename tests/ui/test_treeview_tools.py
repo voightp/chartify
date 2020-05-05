@@ -60,7 +60,7 @@ def test_tree_requested(qtbot, view_tools):
 
 
 def test_get_filter_tup(qtbot, view_tools):
-    test_filter = FilterTuple(key="foo", variable="bar", units="baz")
+    test_filter = FilterTuple(key="foo", type="bar", units="baz")
     signals = [view_tools.timer.timeout, view_tools.textFiltered]
     callbacks = [None, lambda x: x == test_filter]
     with qtbot.wait_signals(signals=signals, check_params_cbs=callbacks):

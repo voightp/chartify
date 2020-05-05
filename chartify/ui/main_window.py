@@ -252,10 +252,10 @@ class MainWindow(QMainWindow):
 
         # ~~~~ Tree view appearance ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.view_settings = {
-            "simpleview": {"widths": {"fixed": 70}, "header": ("variable", "units"), },
+            "simpleview": {"widths": {"fixed": 70}, "header": ("type", "units"), },
             "treeview": {
                 "widths": {"interactive": 200, "fixed": 70},
-                "header": ("variable", "key", "units"),
+                "header": ("type", "key", "units"),
                 "expanded": set(),
             },
         }
