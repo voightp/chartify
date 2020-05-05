@@ -11,8 +11,8 @@ import psutil
 from esofile_reader import EsoFile, TotalsFile
 from esofile_reader.base_file import IncompleteFile, BlankLineError, InvalidLineSyntax
 from esofile_reader.data.pqt_data import ParquetFrame
+from esofile_reader.mini_classes import ResultsFile
 from esofile_reader.storage.storage_files import ParquetFile
-from esofile_reader.utils.mini_classes import ResultsFile
 
 from chartify.utils.progress_monitor import ProgressMonitor
 

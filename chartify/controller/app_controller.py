@@ -3,8 +3,8 @@ from multiprocessing import Manager
 from typing import List, Callable, Union, Any
 
 from PySide2.QtCore import QThreadPool
+from esofile_reader.mini_classes import ResultsFile, Variable
 from esofile_reader.storage.storage_files import ParquetFile
-from esofile_reader.utils.mini_classes import ResultsFile, Variable
 from profilehooks import profile
 
 from chartify.settings import Settings

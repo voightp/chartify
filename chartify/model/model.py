@@ -4,9 +4,9 @@ import pandas as pd
 from PySide2.QtCore import QObject
 from esofile_reader import Variable
 from esofile_reader import get_results
+from esofile_reader.mini_classes import ResultsFile
 from esofile_reader.storage.pqt_storage import ParquetStorage
 from esofile_reader.storage.storage_files import ParquetFile
-from esofile_reader.utils.mini_classes import ResultsFile
 
 from chartify.charts.chart import Chart
 from chartify.charts.trace import Trace1D, Trace2D, TraceData
