@@ -5,7 +5,6 @@ from typing import List, Callable, Union, Any
 from PySide2.QtCore import QThreadPool
 from esofile_reader.mini_classes import ResultsFile, Variable
 from esofile_reader.storage.storage_files import ParquetFile
-from profilehooks import profile
 
 from chartify.settings import Settings
 from chartify.utils.process_utils import create_pool, kill_child_processes, load_file
@@ -82,7 +81,7 @@ class AppController:
         """ Connect view signals. """
         self.v.paletteUpdated.connect(self.wvc.refresh_layout)
         self.v.viewUpdateRequested.connect(self.on_view_update_requested)
-        self.v.selectionChanged.connect(self.handle_selection_change)
+        self.v.selectionChanged.connect(self.on_selection_change)
         self.v.fileProcessingRequested.connect(self.on_file_processing_requested)
         self.v.fileRenameRequested.connect(self.on_file_rename_requested)
         self.v.variableRenameRequested.connect(self.on_variable_rename_requested)
@@ -94,13 +93,6 @@ class AppController:
         self.v.save_act.triggered.connect(self.on_save)
         self.v.save_as_act.triggered.connect(self.on_save_as)
 
-    def handle_selection_change(self, variable_data: List[tuple]) -> None:
-        """ Handle selection update. """
-        out_str = [" | ".join(var) for var in variable_data]
-        if out_str:
-            print("Selected Variables:\n\t{}".format("\n\t".join(out_str)))
-        self.m.selected_variable_data = variable_data
-
     def connect_model_signals(self) -> None:
         """ Create monitor signals. """
         self.monitor.file_added.connect(self.v.progress_cont.add_file)
@@ -109,6 +101,13 @@ class AppController:
         self.monitor.pending.connect(self.v.progress_cont.set_pending)
         self.monitor.failed.connect(self.v.progress_cont.set_failed)
         self.monitor.status_changed.connect(self.v.progress_cont.set_status)
+
+    def on_selection_change(self, variable_data: List[tuple]) -> None:
+        """ Handle selection update. """
+        out_str = [" | ".join(var) for var in variable_data]
+        if out_str:
+            print("Selected Variables:\n\t{}".format("\n\t".join(out_str)))
+        self.m.selected_variable_data = variable_data
 
     def on_save(self):
         if not self.m.storage.path:
@@ -121,7 +120,6 @@ class AppController:
         if path:
             self.m.storage.save_as(path.parent, path.stem)
 
-    @profile
     def on_view_update_requested(self, id_: int) -> None:
         """ Update content of a newly selected tab. """
         file = self.m.get_file(id_)
@@ -217,7 +215,7 @@ class AppController:
 
     def on_variable_rename_requested(self, id_: int, variable_data: VariableData) -> None:
         """ Overwrite variable name. """
-        old_variable_name = variable_data.variable
+        old_variable_name = variable_data.type
         old_key_name = variable_data.key
         res = self.v.confirm_rename_variable(old_variable_name, old_key_name)
         if res:
@@ -239,9 +237,13 @@ class AppController:
                     scroll_to=new_variable_data,
                 )
 
-    def on_file_rename_requested(self, id_: int, name: str) -> None:
+    def on_file_rename_requested(self, id_: int) -> None:
         """ Update file name. """
-        self.m.rename_file(id_, name)
+        name = self.m.get_file_name(id_)
+        other_names = self.m.get_other_file_names()
+        new_name = self.m.confirm_rename_file(name, other_names)
+        if new_name:
+            self.m.rename_file(id_, name)
 
     def handle_remove_variables(self, id_: int, variables: List[tuple]) -> None:
         """ Remove variables from a file or all files. """

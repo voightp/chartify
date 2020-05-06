@@ -54,12 +54,19 @@ class AppModel(QObject):
 
     def get_other_files(self) -> List[ParquetFile]:
         """ Get all the other files than currently selected. """
-        current_file = self.get_file(Settings.CURRENT_FILE_ID)
         other_files = []
-        for id_, file in self.storage.files.items():
-            if id_ != Settings.CURRENT_FILE_ID and file.type_ == current_file.type_:
+        for file in self.get_all_files():
+            if file.id_ != Settings.CURRENT_FILE_ID:
                 other_files.append(file)
         return other_files
+
+    def get_all_files(self) -> List[ParquetFile]:
+        """ Get all files of currently used type. """
+        # TODO apply some filtering based on file type
+        files = []
+        for id_, file in self.storage.files.items():
+            files.append(file)
+        return files
 
     def store_file(self, file: ResultsFile) -> int:
         """ Store file in database. """
@@ -68,9 +75,18 @@ class AppModel(QObject):
         except BrokenPipeError:
             print("Application has been closed - catching broken pipe!")
 
+    def get_file_name(self, id_: int) -> str:
+        """ Get file name of given file. """
+        file = self.get_file(id_)
+        return file.file_name
+
+    def get_other_file_names(self) -> List[str]:
+        """ Get all used file names. """
+        return [file.file_name for file in self.get_other_files()]
+
     def get_all_file_names(self) -> List[str]:
         """ Get all used file names. """
-        return self.storage.get_all_file_names()
+        return [file.file_name for file in self.get_all_files()]
 
     def delete_file(self, id_: int) -> None:
         """ Delete file from the database. """
@@ -81,10 +97,7 @@ class AppModel(QObject):
 
     def rename_file(self, id_: int, name: str):
         """ Rename given file. """
-        try:
-            self.storage.files[id_].rename(name)
-        except KeyError:
-            print(f"Cannot rename file: '{id_}'," f"\nFile was not found in database.")
+        self.storage.files[id_].rename(name)
 
     def get_results(self, **kwargs) -> pd.DataFrame:
         """ Get output values for given variables. """
@@ -95,7 +108,7 @@ class AppModel(QObject):
 
         # transform variable data to variable (variable data holds extra proxy units)
         variables = [
-            Variable(Settings.INTERVAL, v.key, v.variable, v.units)
+            Variable(Settings.INTERVAL, v.key, v.type, v.units)
             for v in self.selected_variable_data
         ]
 

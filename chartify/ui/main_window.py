@@ -2,7 +2,7 @@ import contextlib
 import ctypes
 from functools import partial
 from pathlib import Path
-from typing import Union
+from typing import Union, Optional, Tuple, List
 
 from PySide2.QtCore import QSize, Qt, QCoreApplication, Signal
 from PySide2.QtGui import QIcon, QKeySequence, QColor
@@ -50,7 +50,7 @@ class MainWindow(QMainWindow):
     viewUpdateRequested = Signal(int)
     selectionChanged = Signal(list)
     fileProcessingRequested = Signal(list)
-    fileRenameRequested = Signal(int, str)
+    fileRenameRequested = Signal(int)
     variableRenameRequested = Signal(int, VariableData)
     variableRemoveRequested = Signal(int, list)
     variableAggregateRequested = Signal(int, list, str, str, str)
@@ -586,26 +586,25 @@ class MainWindow(QMainWindow):
             Settings.LOAD_PATH = str(Path(file_paths[0]).parent)
             self.fileProcessingRequested.emit(file_paths)
 
-    def rename_file(self, tab_index):
-        """ Rename file on a tab identified by the given index. """
+    def on_tab_bar_double_clicked(self, tab_index: int):
         view = self.tab_wgt.widget(tab_index)
-        orig_name = self.tab_wgt.tabText(tab_index)
+        self.fileRenameRequested.emit(tab_index, view.id_)
 
-        names = self.tab_wgt.get_all_child_names()[:]
-        names.remove(orig_name)
-
+    def confirm_rename_file(self, name: str, other_names: List[str]) -> Optional[str]:
+        """ Rename file on a tab identified by the given index. """
         dialog = SingleInputDialog(
             self,
             title="Enter a new file name.",
             input1_name="Name",
-            input1_text=orig_name,
-            input1_blocker=names
+            input1_text=name,
+            input1_blocker=other_names
         )
         res = dialog.exec_()
         if res == 1:
             name = dialog.input1_text
-            self.tab_wgt.setTabText(tab_index, name)
-            self.fileRenameRequested.emit(view.id_, name)
+            index = self.tab_wgt.currentIndex()
+            self.tab_wgt.setTabText(index, name)
+            return name
 
     def remove_variables(self):
         """ Remove selected variables. """
@@ -628,7 +627,9 @@ class MainWindow(QMainWindow):
                 v.set_next_update_forced()
             self.variableRemoveRequested.emit(self.current_view.id_, variables)
 
-    def confirm_rename_variable(self, variable_name: str, key_name: str):
+    def confirm_rename_variable(
+            self, variable_name: str, key_name: str
+    ) -> Optional[Tuple[str, str]]:
         """ Rename given variable. """
         dialog = DoubleInputDialog(
             self,
@@ -703,7 +704,7 @@ class MainWindow(QMainWindow):
         # ~~~~ Tab Signals ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.tab_wgt.tabClosed.connect(self.on_tab_closed)
         self.tab_wgt.currentChanged.connect(self.on_tab_changed)
-        self.tab_wgt.tabBarDoubleClicked.connect(self.rename_file)
+        self.tab_wgt.tabBarDoubleClicked.connect(self.on_tab_bar_double_clicked)
         self.tab_wgt.drop_btn.clicked.connect(self.load_files_from_fs)
 
         # ~~~~ Toolbar Signals ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
