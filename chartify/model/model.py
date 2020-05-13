@@ -77,8 +77,7 @@ class AppModel(QObject):
 
     def get_file_name(self, id_: int) -> str:
         """ Get file name of given file. """
-        file = self.get_file(id_)
-        return file.file_name
+        return self.get_file(id_).file_name
 
     def get_other_file_names(self) -> List[str]:
         """ Get all used file names. """
@@ -90,10 +89,7 @@ class AppModel(QObject):
 
     def delete_file(self, id_: int) -> None:
         """ Delete file from the database. """
-        try:
-            self.storage.delete_file(id_)
-        except KeyError:
-            print(f"Cannot delete file: id '{id_}'," f"\nFile was not found in the database.")
+        self.storage.delete_file(id_)
 
     def rename_file(self, id_: int, name: str):
         """ Rename given file. """
@@ -165,7 +161,6 @@ class AppModel(QObject):
         for trace in self.wv_database["traces"]:
             if trace.item_id == item_id:
                 traces.append(trace)
-
         return traces
 
     def fetch_traces_data(self, item_id: str) -> List[TraceData]:
@@ -174,7 +169,6 @@ class AppModel(QObject):
         for trace_dt in self.wv_database["trace_data"]:
             if trace_dt.item_id == item_id:
                 trace_data.append(trace_data)
-
         return trace_data
 
     def fetch_all_item_ids(self) -> List[str]:
