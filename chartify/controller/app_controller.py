@@ -171,7 +171,7 @@ class AppController:
         # apply function on the current file
         val = func(file, *args, **kwargs)
 
-        # make that appropriate views will be updated
+        # make sure that appropriate views will be updated
         views = self.v.all_views if Settings.ALL_FILES else [self.v.current_view]
         for view in views:
             view.next_update_forced = True
