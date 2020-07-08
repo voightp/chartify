@@ -1,27 +1,44 @@
-    [build-system]
-    requires = ["setuptools>=42", "wheel", "setuptools_scm[toml]>=3.4"]
+[tool.poetry]
+name = "chartify"
+version = "0.1.1"
+description = ""
+authors = ["voightp <vojtechpanek@seznam.cz>"]
+license = "Proprietary"
 
-    [tool.setuptools_scm]
-    write_to = "chartify/version.py"
+[tool.poetry.dependencies]
+python = "3.8"
+PySide2 = "^5.15.0"
+esofile-reader = {path = "../esofile-reader/dist/esofile_reader-0.1.1-cp38-cp38-win_amd64.whl"}
 
-    [tool.black]
-    line-length = 96
+[tool.poetry.dev-dependencies]
+black = "^19.10b0"
+coverage = "^5.1"
+pytest = "^5.4.3"
+cython = "^0.29.20"
+pre-commit = "^2.6.0"
+flake8 = "^3.8.3"
 
-    include = '\.pyi?$'
-    exclude = '''
-    /(
-        \.git
-      | \.venv
-      | _build
-      | buck-out
-      | build
-      | dist
-      | \.github
-      | \.idea
-      | \.htmlcov
+[tool.poetry.extras]
 
-      # The following are specific to Black, you probably don't want those.
-      | blib2to3
+
+[tool.black]
+line-length = 96
+
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.git
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+  | \.github
+  | \.idea
+  | \.htmlcov
+
+   # The following are specific to Black, you probably don't want those.
+   | blib2to3
     )/
     '''
 
