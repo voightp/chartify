@@ -161,11 +161,11 @@ def remove_recursively(dct, ref_dct):
 
 
 def create_proxy_units_column(
-        source_units: pd.Series,
-        rate_to_energy: bool,
-        units_system: str,
-        energy_units: str,
-        power_units: str,
+    source_units: pd.Series,
+    rate_to_energy: bool,
+    units_system: str,
+    energy_units: str,
+    power_units: str,
 ) -> pd.Series:
     # always replace whitespace with dash
     proxy_units = pd.Series(np.empty(source_units.size))
@@ -263,7 +263,7 @@ def get_top_level_widget(wgt):
     top_level = None
 
     def traverse(wgt):
-        parent = (wgt.parent())
+        parent = wgt.parent()
         if parent:
             traverse(parent)
         else:

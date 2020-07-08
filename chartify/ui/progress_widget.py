@@ -52,14 +52,16 @@ class ProgressFile:
         self._widget = None
 
     def __repr__(self):
-        return f"Class: '{self.__class__.__name__}'" \
-               f"id: '{self.id_}'" \
-               f"label : '{self.label}'" \
-               f"file_path : '{self.file_path}'" \
-               f"maximum : '{self.maximum}'" \
-               f"value : '{self.value}'" \
-               f"failed : '{self.failed}'" \
-               f"status : '{self.status}'"
+        return (
+            f"Class: '{self.__class__.__name__}'"
+            f"id: '{self.id_}'"
+            f"label : '{self.label}'"
+            f"file_path : '{self.file_path}'"
+            f"maximum : '{self.maximum}'"
+            f"value : '{self.value}'"
+            f"failed : '{self.failed}'"
+            f"status : '{self.status}'"
+        )
 
     @property
     def maximum(self):
@@ -132,6 +134,7 @@ class ProgressFile:
 
 class SummaryWidget(QFrame):
     """ A special type of widget to report remaining number of jobs."""
+
     WIDTH = 160
 
     def __init__(self, parent):
@@ -234,8 +237,9 @@ class ProgressWidget(QFrame):
 
     def update_status(self) -> None:
         """ Update button tooltip. """
-        self.file_btn.status_label = f"File: {self.file_ref.file_path}" \
-                                     f"\nPhase: {self.file_ref.status}"
+        self.file_btn.status_label = (
+            f"File: {self.file_ref.file_path}" f"\nPhase: {self.file_ref.status}"
+        )
 
     def update_label(self) -> None:
         """ Update widget label. """
@@ -354,7 +358,7 @@ class ProgressContainer(QWidget):
 
     def _update_bar(self) -> None:
         """ Update progress widget order on the status bar. """
-        displayed = self.sorted_files[0:self.MAX_VISIBLE_JOBS]
+        displayed = self.sorted_files[0 : self.MAX_VISIBLE_JOBS]
         for f, w in zip_longest(displayed, self.widgets):
             if not f:
                 w.file_ref = None
@@ -362,7 +366,7 @@ class ProgressContainer(QWidget):
                 w.file_ref = f
 
         # remove widget reference for previously visible files
-        hidden = self.sorted_files[self.MAX_VISIBLE_JOBS:]
+        hidden = self.sorted_files[self.MAX_VISIBLE_JOBS :]
         for f in hidden:
             if f.widget:
                 f.widget = None

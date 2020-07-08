@@ -218,8 +218,10 @@ def test_set_failed(container: ProgressContainer):
     assert widget.label.text() == "file-8"
     assert widget.progress_bar.value() == 999
     assert widget.progress_bar.maximum() == 999
-    assert widget.file_btn.text == f"File: C:/dummy/path/file-8.eso" \
-                                   f"\nPhase: Failed for some evil reason!"
+    assert (
+        widget.file_btn.text == "File: C:/dummy/path/file-8.eso"
+        "\nPhase: Failed for some evil reason!"
+    )
     assert widget.property("failed")
 
 
@@ -236,8 +238,7 @@ def test_set_pending(container: ProgressContainer):
     assert widget.label.text() == "file-8"
     assert widget.progress_bar.value() == 0
     assert widget.progress_bar.maximum() == 0
-    assert widget.file_btn.text == f"File: C:/dummy/path/file-8.eso" \
-                                   f"\nPhase: pending!"
+    assert widget.file_btn.text == "File: C:/dummy/path/file-8.eso\nPhase: pending!"
 
 
 def test_remove_file(container: ProgressContainer):

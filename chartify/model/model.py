@@ -43,7 +43,7 @@ class AppModel(QObject):
                     interval=Settings.INTERVAL,
                     key=variable_data.key,
                     type=variable_data.type,
-                    units=variable_data.units
+                    units=variable_data.units,
                 )
             )
         return variables

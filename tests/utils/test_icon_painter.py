@@ -3,8 +3,12 @@ from pathlib import Path
 from PySide2.QtCore import QSize, Qt
 from PySide2.QtGui import QColor, QFont
 
-from chartify.utils.icon_painter import Pixmap, text_to_pixmap, filled_circle_pixmap, \
-    combine_colors
+from chartify.utils.icon_painter import (
+    Pixmap,
+    text_to_pixmap,
+    filled_circle_pixmap,
+    combine_colors,
+)
 from tests import ROOT
 
 
@@ -55,7 +59,7 @@ def test_filled_circle_pixmap_border(qtbot):
         QSize(100, 100),
         QColor(100, 100, 100),
         border_color=QColor(200, 200, 200),
-        border_width=5
+        border_width=5,
     )
     img = p.toImage()
     assert img.pixelColor(16, 50) == QColor(200, 200, 200)

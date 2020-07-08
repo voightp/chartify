@@ -16,6 +16,7 @@ from chartify.utils.utils import refresh_css, filter_files
 
 class TabWidget(QTabWidget):
     """ Tab widget which displays information button when empty. """
+
     tabClosed = Signal(TreeView)
 
     def __init__(self, parent):

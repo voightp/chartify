@@ -440,9 +440,7 @@ def test_update_view_appearance_default(tree_view: TreeView, daily_df: pd.DataFr
 
 
 def test_build_view_reversed_header(tree_view: TreeView, daily_df: pd.DataFrame):
-    tree_view.populate_view(
-        daily_df, "daily", is_tree=True, header=("units", "key", "type")
-    )
+    tree_view.populate_view(daily_df, "daily", is_tree=True, header=("units", "key", "type"))
     tree_view.update_view_appearance(("units", "key", "type"))
 
     assert tree_view.get_visual_names() == ("units", "key", "type")

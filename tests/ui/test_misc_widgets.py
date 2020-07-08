@@ -7,7 +7,6 @@ from chartify.ui.misc_widgets import TabWidget, DropFrame
 
 
 class TestTabWidget:
-
     @pytest.fixture()
     def tab_widget(self, qtbot):
         tab_widget = TabWidget(None)
@@ -67,7 +66,6 @@ class TestTabWidget:
 
 
 class TestDropFrame:
-
     @pytest.fixture(autouse=True)
     def drop_frame(self, qtbot):
         drop_frame = DropFrame(None)
@@ -84,11 +82,7 @@ class TestDropFrame:
         mime.setUrls(["C:/dummy/path.eso"])
         mime.setText("HELLO FROM CHARTIFY")
         event = QDragEnterEvent(
-            drop_frame.pos(),
-            Qt.CopyAction,
-            mime,
-            Qt.LeftButton,
-            Qt.NoModifier
+            drop_frame.pos(), Qt.CopyAction, mime, Qt.LeftButton, Qt.NoModifier
         )
         QCoreApplication.sendEvent(drop_frame, event)
         assert drop_frame.property("drag-accept")
@@ -98,11 +92,7 @@ class TestDropFrame:
         mime.setUrls(["C:/dummy/path.invalid"])
         mime.setText("HELLO FROM CHARTIFY")
         event = QDragEnterEvent(
-            drop_frame.pos(),
-            Qt.CopyAction,
-            mime,
-            Qt.LeftButton,
-            Qt.NoModifier
+            drop_frame.pos(), Qt.CopyAction, mime, Qt.LeftButton, Qt.NoModifier
         )
         QCoreApplication.sendEvent(drop_frame, event)
         assert not drop_frame.property("drag-accept")
@@ -112,11 +102,7 @@ class TestDropFrame:
         mime.setUrls(["C:/dummy/path.eso"])
         mime.setText("HELLO FROM CHARTIFY")
         event = QDragEnterEvent(
-            drop_frame.pos(),
-            Qt.CopyAction,
-            mime,
-            Qt.LeftButton,
-            Qt.NoModifier
+            drop_frame.pos(), Qt.CopyAction, mime, Qt.LeftButton, Qt.NoModifier
         )
         QCoreApplication.sendEvent(drop_frame, event)
         assert drop_frame.property("drag-accept")
@@ -131,20 +117,12 @@ class TestDropFrame:
         mime.setText("HELLO FROM CHARTIFY")
 
         drag_event = QDragEnterEvent(
-            drop_frame.pos(),
-            Qt.CopyAction,
-            mime,
-            Qt.LeftButton,
-            Qt.NoModifier
+            drop_frame.pos(), Qt.CopyAction, mime, Qt.LeftButton, Qt.NoModifier
         )
         QCoreApplication.sendEvent(drop_frame, drag_event)
 
         drop_event = QDropEvent(
-            drop_frame.pos(),
-            Qt.CopyAction,
-            mime,
-            Qt.LeftButton,
-            Qt.NoModifier
+            drop_frame.pos(), Qt.CopyAction, mime, Qt.LeftButton, Qt.NoModifier
         )
 
         def cb(a):

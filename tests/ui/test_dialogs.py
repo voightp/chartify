@@ -5,8 +5,12 @@ from PySide2.QtCore import Qt, QTimer
 from PySide2.QtGui import QIcon
 from PySide2.QtWidgets import QDialog, QDialogButtonBox
 
-from chartify.ui.dialogs import TwoButtonBox, BaseTwoButtonDialog, SingleInputDialog, \
-    DoubleInputDialog
+from chartify.ui.dialogs import (
+    TwoButtonBox,
+    BaseTwoButtonDialog,
+    SingleInputDialog,
+    DoubleInputDialog,
+)
 from chartify.utils.icon_painter import Pixmap
 from tests import ROOT
 
@@ -104,7 +108,7 @@ class TestDoubleInputDialog:
             input1_text="Some variable text",
             input2_name="Some key",
             input2_text="Some key text",
-            input2_blocker=["a", "b", "c"]
+            input2_blocker=["a", "b", "c"],
         )
         qtbot.add_widget(dialog)
         return dialog

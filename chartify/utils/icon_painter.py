@@ -13,8 +13,9 @@ class Pixmap(QPixmap):
 
     """
 
-    def __init__(self, path: Union[str, Path], r: int = 0, g: int = 0, b: int = 0,
-                 a: float = 1):
+    def __init__(
+        self, path: Union[str, Path], r: int = 0, g: int = 0, b: int = 0, a: float = 1
+    ):
         super().__init__(path if isinstance(path, str) else str(path))
         if not (r == 0 and g == 0 and b == 0 and a == 1):
             self.repaint(r, g, b, a)
@@ -60,12 +61,12 @@ def text_to_pixmap(text: str, font: QFont, color: QColor, size: QSize = None) ->
 
 
 def filled_circle_pixmap(
-        size: QSize,
-        c1: QColor,
-        c2: QColor = None,
-        border_color: QColor = None,
-        border_width: int = 1,
-        fraction: float = 0.7
+    size: QSize,
+    c1: QColor,
+    c2: QColor = None,
+    border_color: QColor = None,
+    border_width: int = 1,
+    fraction: float = 0.7,
 ) -> QPixmap:
     """ Draw a pixmap with one or two colors filled circle. """
     pix = QPixmap(size)
@@ -102,7 +103,7 @@ def filled_circle_pixmap(
 
 
 def combine_colors(
-        c1: Tuple[int, int, int], c2: Tuple[int, int, int], fraction: float, as_tuple=False
+    c1: Tuple[int, int, int], c2: Tuple[int, int, int], fraction: float, as_tuple=False
 ) -> Union[str, Tuple[int, int, int]]:
     """ Combine given colors. """
     # colors need to be passed as rgb tuple

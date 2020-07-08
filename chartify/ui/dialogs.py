@@ -1,8 +1,17 @@
 from typing import List
 
 from PySide2.QtCore import Qt
-from PySide2.QtWidgets import QDialog, QVBoxLayout, QLabel, QWidget, QFormLayout, \
-    QDialogButtonBox, QToolButton, QLineEdit, QTextEdit
+from PySide2.QtWidgets import (
+    QDialog,
+    QVBoxLayout,
+    QLabel,
+    QWidget,
+    QFormLayout,
+    QDialogButtonBox,
+    QToolButton,
+    QLineEdit,
+    QTextEdit,
+)
 
 
 class TwoButtonBox(QDialogButtonBox):
@@ -68,12 +77,12 @@ class SingleInputDialog(BaseTwoButtonDialog):
     """ Dialog to retrieve a single text input from user. """
 
     def __init__(
-            self,
-            parent,
-            title: str,
-            input1_name: str,
-            input1_text: str,
-            input1_blocker: List[str] = None
+        self,
+        parent,
+        title: str,
+        input1_name: str,
+        input1_text: str,
+        input1_blocker: List[str] = None,
     ):
         super().__init__(parent, title)
         form = QWidget(self)
@@ -101,15 +110,15 @@ class DoubleInputDialog(SingleInputDialog):
     """ Dialog to retrieve two text inputs from user. """
 
     def __init__(
-            self,
-            parent,
-            title: str,
-            input1_name: str,
-            input1_text: str,
-            input2_name: str,
-            input2_text: str,
-            input1_blocker: List[str] = None,
-            input2_blocker: List[str] = None
+        self,
+        parent,
+        title: str,
+        input1_name: str,
+        input1_text: str,
+        input2_name: str,
+        input2_text: str,
+        input1_blocker: List[str] = None,
+        input2_blocker: List[str] = None,
     ):
         super().__init__(parent, title, input1_name, input1_text, input1_blocker)
         self.input2_blocker = input2_blocker if input2_blocker else []

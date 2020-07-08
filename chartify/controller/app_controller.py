@@ -186,7 +186,7 @@ class AppController:
 
     @staticmethod
     def update_variable_name(
-            file: ResultsFile, variable_name: str, key_name: str, variable: Variable
+        file: ResultsFile, variable_name: str, key_name: str, variable: Variable
     ) -> Variable:
         """ Rename given 'Variable'. """
         _, var = file.rename_variable(variable, variable_name, key_name)
@@ -199,11 +199,11 @@ class AppController:
 
     @staticmethod
     def aggregate_variables(
-            file: ResultsFile,
-            variables: List[Variable],
-            var_name: str,
-            key_name: str,
-            func: Union[str, Callable],
+        file: ResultsFile,
+        variables: List[Variable],
+        var_name: str,
+        key_name: str,
+        func: Union[str, Callable],
     ) -> tuple:
         """ Add a new aggregated variable to the file. """
         res = file.aggregate_variables(
@@ -229,7 +229,7 @@ class AppController:
                     key=new_variable.key,
                     type=new_variable.type,
                     units=variable_data.units,
-                    proxyunits=variable_data.proxyunits
+                    proxyunits=variable_data.proxyunits,
                 )
                 self.v.build_treeview(
                     self.m.get_file(id_).get_header_df(Settings.INTERVAL),
@@ -251,16 +251,17 @@ class AppController:
         self.v.build_treeview(self.m.get_file(id_).get_header_df(Settings.INTERVAL))
 
     def handle_aggregate_variables(
-            self,
-            id_: int,
-            variables: List[tuple],
-            var_nm: str,
-            key_nm: str,
-            func: Union[str, Callable],
+        self,
+        id_: int,
+        variables: List[tuple],
+        var_nm: str,
+        key_nm: str,
+        func: Union[str, Callable],
     ) -> None:
         """ Create a new variable using given aggregation function. """
-        variable = self._apply_async(id_, self.aggregate_variables, variables, var_nm, key_nm,
-                                     func)
+        variable = self._apply_async(
+            id_, self.aggregate_variables, variables, var_nm, key_nm, func
+        )
         self.v.build_treeview(
             self.m.get_file(id_).get_header_df(Settings.INTERVAL),
             selected=[variable],

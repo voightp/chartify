@@ -140,7 +140,8 @@ class MainWindow(QMainWindow):
             c2 = QColor(*colors.get_color("BACKGROUND_COLOR", as_tuple=True))
             act.setIcon(
                 filled_circle_pixmap(
-                    QSize(60, 60), c1, c2=c2, border_color=QColor(255, 255, 255))
+                    QSize(60, 60), c1, c2=c2, border_color=QColor(255, 255, 255)
+                )
             )
             actions.append(act)
             if name == Settings.PALETTE_NAME:
@@ -252,7 +253,7 @@ class MainWindow(QMainWindow):
 
         # ~~~~ Tree view appearance ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.view_settings = {
-            "simpleview": {"widths": {"fixed": 70}, "header": ("type", "units"), },
+            "simpleview": {"widths": {"fixed": 70}, "header": ("type", "units"),},
             "treeview": {
                 "widths": {"interactive": 200, "fixed": 70},
                 "header": ("type", "key", "units"),
@@ -597,7 +598,7 @@ class MainWindow(QMainWindow):
             title="Enter a new file name.",
             input1_name="Name",
             input1_text=name,
-            input1_blocker=other_names
+            input1_blocker=other_names,
         )
         res = dialog.exec_()
         if res == 1:
@@ -628,7 +629,7 @@ class MainWindow(QMainWindow):
             self.variableRemoveRequested.emit(self.current_view.id_, variables)
 
     def confirm_rename_variable(
-            self, variable_name: str, key_name: str
+        self, variable_name: str, key_name: str
     ) -> Optional[Tuple[str, str]]:
         """ Rename given variable. """
         dialog = DoubleInputDialog(

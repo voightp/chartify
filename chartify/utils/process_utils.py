@@ -44,8 +44,11 @@ def kill_child_processes(parent_pid):
 
 
 def store_file(
-        results_file: ResultsFile, workdir: str, monitor: ProgressMonitor, ids: List[int],
-        lock: Lock
+    results_file: ResultsFile,
+    workdir: str,
+    monitor: ProgressMonitor,
+    ids: List[int],
+    lock: Lock,
 ) -> Tuple[int, ParquetFile]:
     """ Store results file as 'ParquetFile'. """
     n_steps = 0
@@ -80,7 +83,7 @@ def store_file(
 
 
 def load_file(
-        path: str, workdir: str, progress_queue, file_queue, ids: List[int], lock: Lock
+    path: str, workdir: str, progress_queue, file_queue, ids: List[int], lock: Lock
 ) -> None:
     """ Process and store eso file. """
     monitor_id = str(uuid.uuid1())
@@ -104,7 +107,7 @@ def load_file(
                     workdir=workdir,
                     monitor=monitor,
                     ids=ids,
-                    lock=lock
+                    lock=lock,
                 )
                 file_queue.put(file)
             file_queue.put(monitor_id)

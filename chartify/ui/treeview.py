@@ -49,9 +49,7 @@ class TreeModel(SimpleModel):
 
         # first item holds the variable data used for search
         item_row[0].setData(
-            VariableData(
-                key=key, type=type_, units=source_units, proxyunits=proxy_units
-            ),
+            VariableData(key=key, type=type_, units=source_units, proxyunits=proxy_units),
             role=Qt.UserRole,
         )
 

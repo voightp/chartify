@@ -12,11 +12,13 @@ from chartify.utils.icon_painter import Pixmap
 
 class InvalidRangeError(Exception):
     """ Exception raised when input does not fin in given range. """
+
     pass
 
 
 class InvalidUrlLine(Exception):
     """ Exception raised for unexpected URL line syntax. """
+
     pass
 
 
@@ -29,7 +31,7 @@ def parse_color(color: Union[str, Tuple[int, int, int]]) -> Tuple[int, int, int]
             srgb = re.sub("[rgb() ]", "", color)
             rgb = tuple([int(i) for i in srgb.split(",")])
         elif color.startswith("#") and len(color) == 7:
-            rgb = tuple([int(color[i: i + 2], 16) for i in range(1, 7, 2)])
+            rgb = tuple([int(color[i : i + 2], 16) for i in range(1, 7, 2)])
         else:
             raise TypeError(f"Cannot parse color {color}!")
     else:
@@ -86,10 +88,10 @@ class Palette:
     ]
 
     def __init__(
-            self,
-            name: str,
-            default_color: Tuple[int, int, int] = (255, 255, 255),
-            **kwargs: Union[str, Tuple[int, int, int]]
+        self,
+        name: str,
+        default_color: Tuple[int, int, int] = (255, 255, 255),
+        **kwargs: Union[str, Tuple[int, int, int]],
     ):
         self.name = name
         dct = {}
@@ -105,7 +107,7 @@ class Palette:
 
     @classmethod
     def parse_palettes(
-            cls, pth: str, default_color: Tuple[int, int, int] = (255, 255, 255)
+        cls, pth: str, default_color: Tuple[int, int, int] = (255, 255, 255)
     ) -> Dict[str, "Palette"]:
         """ Extract palette dictionary from json file. """
         palettes = {}
@@ -116,7 +118,7 @@ class Palette:
         return palettes
 
     def get_color(
-            self, color_key: str, opacity: float = None, as_tuple: bool = False
+        self, color_key: str, opacity: float = None, as_tuple: bool = False
     ) -> Union[Tuple[int, int, int], Tuple[int, int, int, float], str]:
         """ Get specified color as string. """
         try:
@@ -125,8 +127,11 @@ class Palette:
                 # add opacity to rgb request
                 if opacity < 0 or opacity > 1:
                     raise InvalidRangeError("Opacity must be a float in range 0.0-1.0")
-            return ((*rgb, opacity) if opacity else rgb) if as_tuple \
+            return (
+                ((*rgb, opacity) if opacity else rgb)
+                if as_tuple
                 else string_rgb(rgb, opacity=opacity)
+            )
         except KeyError:
             colors_str = ", ".join(self.colors_dct.keys())
             raise KeyError(
@@ -135,7 +140,7 @@ class Palette:
             )
 
     def get_all_colors(
-            self, as_tuple: bool = False
+        self, as_tuple: bool = False
     ) -> Dict[str, Union[Tuple[int, int, int], str]]:
         """ Get all colors key, color dict (color as string). """
         dct = {}
@@ -180,7 +185,7 @@ class CssTheme:
 
     @staticmethod
     def parse_url(
-            line: str, color_key: str, rgb: Tuple[int, int, int]
+        line: str, color_key: str, rgb: Tuple[int, int, int]
     ) -> Tuple[str, QTemporaryFile]:
         """ Parse a line with an url. """
         pattern = f"(.*)URL\((.*?)\)\s?#{color_key}\s?#?(\d\d)?;"

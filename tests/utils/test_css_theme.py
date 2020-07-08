@@ -5,8 +5,15 @@ from unittest.mock import patch
 
 import pytest
 
-from chartify.utils.css_theme import parse_color, Palette, CssTheme, InvalidRangeError, \
-    perc_to_float, string_rgb, InvalidUrlLine
+from chartify.utils.css_theme import (
+    parse_color,
+    Palette,
+    CssTheme,
+    InvalidRangeError,
+    perc_to_float,
+    string_rgb,
+    InvalidUrlLine,
+)
 from tests import ROOT
 
 
@@ -25,7 +32,7 @@ def test_perc_to_float():
     [
         ((100, 100, 100), None, "rgb(100, 100, 100)"),
         ((100, 100, 100), 0.7, "rgba(100, 100, 100, 0.7)"),
-    ]
+    ],
 )
 def test_string_rgb(rgb, opacity, expected):
     assert string_rgb(rgb, opacity) == expected
@@ -36,8 +43,8 @@ def test_string_rgb(rgb, opacity, expected):
     [
         ("rgb(100,100,100)", (100, 100, 100)),
         ("rgb(100, 100, 100)", (100, 100, 100)),
-        ("rgb( 100, 100 , 100 )", (100, 100, 100))
-    ]
+        ("rgb( 100, 100 , 100 )", (100, 100, 100)),
+    ],
 )
 def test_parse_color_rgb_string(color, expected):
     assert parse_color(color) == expected
@@ -50,11 +57,7 @@ def test_parse_color_invalid_string():
 
 @pytest.mark.parametrize(
     "color,expected",
-    [
-        ("#646464", (100, 100, 100)),
-        ("#656667", (101, 102, 103)),
-        ("#000000", (0, 0, 0))
-    ]
+    [("#646464", (100, 100, 100)), ("#656667", (101, 102, 103)), ("#000000", (0, 0, 0))],
 )
 def test_parse_color_hex_string(color, expected):
     assert parse_color(color) == expected
@@ -69,7 +72,7 @@ def test_parse_color_hex_string(color, expected):
         (True,),
         (0,),
         ("rgba(100,100,100,0.2)",),
-    ]
+    ],
 )
 def test_parse_color_invalid(color):
     with pytest.raises(TypeError):
@@ -90,12 +93,11 @@ def palette():
         "test palette",
         default_color=(100, 100, 100),
         PRIMARY_COLOR=(255, 255, 255),
-        PRIMARY_TEXT_COLOR=(0, 0, 0)
+        PRIMARY_TEXT_COLOR=(0, 0, 0),
     )
 
 
 class TestPalette:
-
     def test_palette_init(self, palette: Palette):
         assert palette.name == "test palette"
         assert palette.colors_dct == {
@@ -122,9 +124,9 @@ class TestPalette:
                         "dark": {
                             "PRIMARY_COLOR": "rgb(180,180,180)",
                             "PRIMARY_TEXT_COLOR": "rgb(180,180,180)",
-                        }
+                        },
                     },
-                    f
+                    f,
                 )
             palettes = Palette.parse_palettes(str(p), default_color=(100, 100, 100))
 
@@ -198,18 +200,18 @@ class TestCssTheme:
         "line,color_key,rgb,expected",
         [
             (
-                    "  border: 1px solid PRIMARY_COLOR;",
-                    "PRIMARY_COLOR",
-                    (255, 255, 255)
-                    , "  border: 1px solid rgb(255, 255, 255);\n"
+                "  border: 1px solid PRIMARY_COLOR;",
+                "PRIMARY_COLOR",
+                (255, 255, 255),
+                "  border: 1px solid rgb(255, 255, 255);\n",
             ),
             (
-                    "  color: SECONDARY_COLOR #70;",
-                    "SECONDARY_COLOR",
-                    (100, 100, 100),
-                    "  color: rgba(100, 100, 100, 0.7);\n"
+                "  color: SECONDARY_COLOR #70;",
+                "SECONDARY_COLOR",
+                (100, 100, 100),
+                "  color: rgba(100, 100, 100, 0.7);\n",
             ),
-        ]
+        ],
     )
     def test_parse_line(self, line: str, color_key: str, rgb: tuple, expected: str):
         css = CssTheme()
@@ -219,26 +221,26 @@ class TestCssTheme:
         "line,color_key,rgb",
         [
             (
-                    "  image: URL(./resources/icons/test.png) #PRIMARY_COLOR;",
-                    "PRIMARY_COLOR",
-                    (255, 255, 255),
+                "  image: URL(./resources/icons/test.png) #PRIMARY_COLOR;",
+                "PRIMARY_COLOR",
+                (255, 255, 255),
             ),
             (
-                    "  image: URL(./resources/icons/test.png) #PRIMARY_COLOR#70;",
-                    "PRIMARY_COLOR",
-                    (255, 255, 255),
+                "  image: URL(./resources/icons/test.png) #PRIMARY_COLOR#70;",
+                "PRIMARY_COLOR",
+                (255, 255, 255),
             ),
-        ]
+        ],
     )
     def test_parse_url(self, line: str, color_key: str, rgb: tuple, qtbot):
-        with  patch("chartify.utils.css_theme.Settings") as mock_settings:
+        with patch("chartify.utils.css_theme.Settings") as mock_settings:
             mock_settings.ROOT = ROOT
             css = CssTheme()
             line, tf = css.parse_url(line, color_key, rgb)
             assert line == f"  image: url({tf.fileName()});\n"
 
     def test_parse_url_index_error(self):
-        with  patch("chartify.utils.css_theme.Settings") as mock_settings:
+        with patch("chartify.utils.css_theme.Settings") as mock_settings:
             mock_settings.ROOT = ROOT
             css = CssTheme()
             line = "URL #WRONGCOLOR"
@@ -246,7 +248,7 @@ class TestCssTheme:
                 _ = css.parse_url(line, "PRIMARY_COLOR", (0, 0, 0))
 
     def test_parse_url_invalid_path(self):
-        with  patch("chartify.utils.css_theme.Settings") as mock_settings:
+        with patch("chartify.utils.css_theme.Settings") as mock_settings:
             mock_settings.ROOT = ROOT
             css = CssTheme()
             line = "image: URL(./invalid/test.png) #PRIMARY_COLOR#70;"
@@ -271,12 +273,14 @@ TitledButton:checked {
     color: PRIMARY_TEXT_COLOR;
 }"""
         sio = io.StringIO(s)
-        with  patch("chartify.utils.css_theme.Settings") as mock_settings:
+        with patch("chartify.utils.css_theme.Settings") as mock_settings:
             mock_settings.ROOT = ROOT
             css = CssTheme()
             parsed = css.parse_css(sio.readlines(), palette)
             temp_icon = css._temp[0].fileName()
-            assert parsed == f"""
+            assert (
+                parsed
+                == f"""
 TitledButton {{
     font-size: 13px;
     image: url(./resources/icons/test.png);
@@ -292,17 +296,20 @@ TitledButton:checked {{
     border-color: rgb(255, 255, 255);
     color: rgb(0, 0, 0);
 }}"""
+            )
 
     def test_populate_content(self, palette: Palette, qtbot):
-        with  patch("chartify.utils.css_theme.Settings") as mock_settings:
+        with patch("chartify.utils.css_theme.Settings") as mock_settings:
             mock_settings.ROOT = ROOT
             css = CssTheme(
                 Path(ROOT).joinpath("./resources/styles/test1.css"),
-                Path(ROOT).joinpath("./resources/styles/test2.css")
+                Path(ROOT).joinpath("./resources/styles/test2.css"),
             )
             css.populate_content(palette)
             temp_icon = css._temp[0].fileName()
-            assert css.content == f"""
+            assert (
+                css.content
+                == f"""
 TitledButton {{
     font-size: 13px;
     image: url(./resources/icons/test.png);
@@ -318,3 +325,4 @@ TitledButton:checked {{
     border-color: rgb(255, 255, 255);
     color: rgb(0, 0, 0);
 }}"""
+            )

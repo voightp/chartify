@@ -10,7 +10,7 @@ from PySide2.QtWidgets import (
     QFrame,
     QSlider,
     QDialog,
-    QAction
+    QAction,
 )
 
 from chartify.utils.utils import refresh_css
@@ -227,7 +227,7 @@ class CheckableButton(QToolButton):
         self.setIcon(self.icons[key][enabled])
 
     def set_icons(
-            self, icon1: QIcon, icon1_disabled: QIcon, icon2: QIcon, icon2_disabled: QIcon
+        self, icon1: QIcon, icon1_disabled: QIcon, icon2: QIcon, icon2_disabled: QIcon
     ) -> None:
         """ Assign button icons. """
         self.icons["primary"]["enabled"] = icon1
