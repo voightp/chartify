@@ -1,5 +1,5 @@
 from PySide2.QtCore import QThread, Signal, QRunnable
-from esofile_reader.storage.storage_files import ParquetFile
+from esofile_reader.storages.pqt_storage import ParquetFile
 
 
 # noinspection PyUnresolvedReferences

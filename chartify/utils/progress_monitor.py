@@ -1,4 +1,4 @@
-from esofile_reader.processor.monitor import DefaultMonitor
+from esofile_reader.processing.monitor import DefaultMonitor
 
 
 class ProgressMonitor(DefaultMonitor):

@@ -89,7 +89,7 @@ class DropFrame(QFrame):
     def dropEvent(self, event: QDropEvent) -> None:
         """ Handle file drops. """
         mime = event.mimeData()
-        files = filter_files([url.toString() for url in mime.urls()])
+        files = filter_files([url.toLocalFile() for url in mime.urls()])
         if files:
             # invoke load files
             self.fileDropped.emit(files)

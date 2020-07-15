@@ -5,8 +5,8 @@ from PySide2.QtCore import QObject
 from esofile_reader import Variable
 from esofile_reader import get_results
 from esofile_reader.mini_classes import ResultsFile
-from esofile_reader.storage.pqt_storage import ParquetStorage
-from esofile_reader.storage.storage_files import ParquetFile
+from esofile_reader.storages.pqt_storage import ParquetFile
+from esofile_reader.storages.pqt_storage import ParquetStorage
 
 from chartify.charts.chart import Chart
 from chartify.charts.trace import Trace1D, Trace2D, TraceData
@@ -40,7 +40,7 @@ class AppModel(QObject):
         for variable_data in self.selected_variable_data:
             variables.append(
                 Variable(
-                    interval=Settings.INTERVAL,
+                    table=Settings.TABLE_NAME,
                     key=variable_data.key,
                     type=variable_data.type,
                     units=variable_data.units,
@@ -104,7 +104,7 @@ class AppModel(QObject):
 
         # transform variable data to variable (variable data holds extra proxy units)
         variables = [
-            Variable(Settings.INTERVAL, v.key, v.type, v.units)
+            Variable(Settings.TABLE_NAME, v.key, v.type, v.units)
             for v in self.selected_variable_data
         ]
 
@@ -113,7 +113,7 @@ class AppModel(QObject):
             "rate_units": Settings.POWER_UNITS,
             "energy_units": Settings.ENERGY_UNITS,
             "add_file_name": "column",
-            "rate_to_energy_dct": {Settings.INTERVAL: Settings.RATE_TO_ENERGY},
+            "rate_to_energy_dct": {Settings.TABLE_NAME: Settings.RATE_TO_ENERGY},
             **kwargs,
         }
 

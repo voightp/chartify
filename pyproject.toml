@@ -8,7 +8,9 @@ license = "Proprietary"
 [tool.poetry.dependencies]
 python = "3.8"
 PySide2 = "^5.15.0"
-esofile-reader = {path = "../esofile-reader/dist/esofile_reader-0.1.1-cp38-cp38-win_amd64.whl"}
+esofile-reader = {path = "../esofile-reader/dist/esofile_reader-0.2.0-cp38-cp38-win_amd64.whl"}
+psutil = "^5.7.0"
+loky = "^2.8.0"
 
 [tool.poetry.dev-dependencies]
 black = "^19.10b0"
@@ -17,6 +19,7 @@ pytest = "^5.4.3"
 cython = "^0.29.20"
 pre-commit = "^2.6.0"
 flake8 = "^3.8.3"
+semver = "^2.10.2"
 
 [tool.poetry.extras]
 

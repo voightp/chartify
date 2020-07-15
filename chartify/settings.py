@@ -35,7 +35,7 @@ class Settings:
     SAVE_PATH = None
     PALETTE_NAME = None
 
-    INTERVAL = None
+    TABLE_NAME = None
     ALL_FILES = None
     TOTALS = None
     TREE_VIEW = None
@@ -49,7 +49,7 @@ class Settings:
     def as_str(cls):
         return (
             "Current Settings:"
-            f"\n\tInterval: '{cls.INTERVAL}'"
+            f"\n\tTable: '{cls.TABLE_NAME}'"
             f"\n\tEnergy units: '{cls.ENERGY_UNITS}'"
             f"\n\tPower units: '{cls.POWER_UNITS}'"
             f"\n\tUnits system: '{cls.UNITS_SYSTEM}'"
@@ -70,7 +70,7 @@ class Settings:
         cls.SAVE_PATH = s.value("MainWindow/savePath", "")
         cls.PALETTE_NAME = s.value("MainWindow/scheme", "default")
 
-        cls.INTERVAL = s.value("MainWindow/interval", None)
+        cls.TABLE_NAME = s.value("MainWindow/tableName", None)
         cls.ALL_FILES = bool(s.value("MainWindow/allFiles", 0))
         cls.TOTALS = bool(s.value("MainWindow/totals", 0))
         cls.TREE_VIEW = bool(s.value("MainWindow/treeView", 0))
@@ -89,6 +89,7 @@ class Settings:
         s.setValue("Units/unitsSystem", cls.UNITS_SYSTEM)
         s.setValue("Units/customUnits", int(cls.CUSTOM_UNITS))
         s.setValue("Units/rateToEnergy", int(cls.RATE_TO_ENERGY))
+        s.setValue("MainWindow/tableName", cls.TABLE_NAME)
         s.setValue("MainWindow/allFiles", int(cls.ALL_FILES))
         s.setValue("MainWindow/treeView", int(cls.TREE_VIEW))
         s.setValue("MainWindow/scheme", cls.PALETTE_NAME)

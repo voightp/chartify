@@ -21,8 +21,8 @@ from PySide2.QtWidgets import (
     QStatusBar,
     QMenu,
 )
-from esofile_reader.convertor import rate_and_energy_units
-from esofile_reader.storage.pqt_storage import ParquetStorage
+from esofile_reader.convertor import is_rate_or_energy
+from esofile_reader.storages.pqt_storage import ParquetStorage
 
 from chartify.settings import Settings
 from chartify.ui.buttons import MenuButton
@@ -48,6 +48,7 @@ class MainWindow(QMainWindow):
 
     paletteUpdated = Signal()
     viewUpdateRequested = Signal(int)
+    tabChanged = Signal(int)
     selectionChanged = Signal(list)
     fileProcessingRequested = Signal(list)
     fileRenameRequested = Signal(int)
@@ -253,7 +254,7 @@ class MainWindow(QMainWindow):
 
         # ~~~~ Tree view appearance ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.view_settings = {
-            "simpleview": {"widths": {"fixed": 70}, "header": ("type", "units"),},
+            "simpleview": {"widths": {"fixed": 70}, "header": ("key", "units"),},
             "treeview": {
                 "widths": {"interactive": 200, "fixed": 70},
                 "header": ("type", "key", "units"),
@@ -279,7 +280,6 @@ class MainWindow(QMainWindow):
         # it's needed to terminate threads in controller
         # and close app programmatically
         self.appCloseRequested.emit()
-
         if self._CLOSE_FLAG:
             event.accept()
         else:
@@ -429,7 +429,7 @@ class MainWindow(QMainWindow):
         """ Create a new view when any of related settings change """
         conditions = (
             Settings.TREE_VIEW != self.current_view.is_tree,
-            Settings.INTERVAL != self.current_view.interval,
+            Settings.TABLE_NAME != self.current_view.interval,
             Settings.RATE_TO_ENERGY != self.current_view.rate_to_energy,
             Settings.ENERGY_UNITS != self.current_view.energy_units,
             Settings.POWER_UNITS != self.current_view.power_units,
@@ -438,7 +438,7 @@ class MainWindow(QMainWindow):
         if self.current_view and (any(conditions) or self.current_view.next_update_forced):
             self.current_view.populate_view(
                 variables_df=variables_df,
-                interval=Settings.INTERVAL,
+                interval=Settings.TABLE_NAME,
                 is_tree=Settings.TREE_VIEW,
                 rate_to_energy=Settings.RATE_TO_ENERGY,
                 units_system=Settings.UNITS_SYSTEM,
@@ -471,7 +471,9 @@ class MainWindow(QMainWindow):
         # check if variables can be aggregated
         if len(variables) > 1:
             units = [var.units for var in variables]
-            if len(set(units)) == 1 or rate_and_energy_units(units):
+            if len(set(units)) == 1 or (
+                is_rate_or_energy(units) and self.toolbar.rate_energy_btn.isEnabled()
+            ):
                 self.toolbar.sum_btn.setEnabled(True)
                 self.toolbar.mean_btn.setEnabled(True)
         else:
@@ -517,7 +519,7 @@ class MainWindow(QMainWindow):
 
         self.fileRemoveRequested.emit(id_)
 
-    def on_tab_changed(self, index):
+    def on_current_tab_changed(self, index: int) -> None:
         """ Update view when tabChanged event is fired. """
         if index == -1:
             # there aren't any widgets available
@@ -525,7 +527,7 @@ class MainWindow(QMainWindow):
             self.toolbar.set_initial_layout()
             Settings.CURRENT_FILE_ID = None
         else:
-            self.viewUpdateRequested.emit(self.current_view.id_)
+            self.tabChanged.emit(self.current_view.id_)
             Settings.CURRENT_FILE_ID = self.current_view.id_
 
     def on_view_settings_changed(self, view_type: str, new_settings: dict):
@@ -704,7 +706,7 @@ class MainWindow(QMainWindow):
 
         # ~~~~ Tab Signals ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.tab_wgt.tabClosed.connect(self.on_tab_closed)
-        self.tab_wgt.currentChanged.connect(self.on_tab_changed)
+        self.tab_wgt.currentChanged.connect(self.on_current_tab_changed)
         self.tab_wgt.tabBarDoubleClicked.connect(self.on_tab_bar_double_clicked)
         self.tab_wgt.drop_btn.clicked.connect(self.load_files_from_fs)
 

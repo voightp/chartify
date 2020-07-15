@@ -14,6 +14,7 @@ from PySide2.QtCore import (
 )
 from PySide2.QtGui import QStandardItemModel, QStandardItem, QDrag, QPixmap
 from PySide2.QtWidgets import QTreeView, QAbstractItemView, QHeaderView
+from esofile_reader.constants import *
 
 from chartify.utils.utils import (
     FilterTuple,
@@ -21,6 +22,8 @@ from chartify.utils.utils import (
     create_proxy_units_column,
     SignalBlocker,
 )
+
+SOURCE_UNITS = "source units"
 
 
 class SimpleModel(QStandardItemModel):
@@ -41,17 +44,17 @@ class SimpleModel(QStandardItemModel):
 
     @staticmethod
     def _append_row(
-            parent: QStandardItem,
-            row: Sequence[str],
-            item_row: List[QStandardItem],
-            indexes: Dict[str, int],
+        parent: QStandardItem,
+        row: Sequence[str],
+        item_row: List[QStandardItem],
+        indexes: Dict[str, int],
     ) -> None:
         """ Append row to the given parent. """
         # assign status tip for all items in row
-        type_ = row[indexes["type"]]
-        proxy_units = row[indexes["units"]]
-        source_units = row[indexes["source units"]]
-        status_tip = f"{type_} | {proxy_units}"
+        key = row[indexes[KEY_LEVEL]]
+        proxy_units = row[indexes[UNITS_LEVEL]]
+        source_units = row[indexes[SOURCE_UNITS]]
+        status_tip = f"{key} | {proxy_units}"
 
         # show all the info for each item in row
         for item in item_row:
@@ -59,10 +62,9 @@ class SimpleModel(QStandardItemModel):
 
         # first item holds the variable data used for search
         item_row[0].setData(
-            VariableData(key="", type=type_, units=source_units, proxyunits=proxy_units),
+            VariableData(key=key, type=None, units=source_units, proxyunits=proxy_units),
             role=Qt.UserRole,
         )
-
         parent.appendRow(item_row)
 
     def append_plain_rows(self, variables_df: pd.DataFrame, indexes: Dict[str, int]) -> None:
@@ -74,9 +76,9 @@ class SimpleModel(QStandardItemModel):
         """  Create a model and set up its appearance. """
         columns = variables_df.columns.tolist()
         indexes = {
-            "type": columns.index("type"),
-            "units": columns.index("units"),
-            "source units": columns.index("source units"),
+            KEY_LEVEL: columns.index(KEY_LEVEL),
+            UNITS_LEVEL: columns.index(UNITS_LEVEL),
+            SOURCE_UNITS: columns.index(SOURCE_UNITS),
         }
         # create plain table when tree structure not requested
         self.append_plain_rows(variables_df, indexes)
@@ -111,8 +113,8 @@ class SimpleFilterModel(QSortFilterProxyModel):
         """ Return logical positions of header labels. """
         names = self.get_logical_names()
         return {
-            "type": names.index("type"),
-            "units": names.index("units"),
+            KEY_LEVEL: names.index(KEY_LEVEL),
+            UNITS_LEVEL: names.index(UNITS_LEVEL),
         }
 
     def data_at_index(self, index: QModelIndex) -> VariableData:
@@ -331,25 +333,6 @@ class SimpleView(QTreeView):
         log_ixs = self.model().get_logical_indexes()
         return {k: self.header().visualIndex(i) for k, i in log_ixs.items()}
 
-    def update_view_appearance(
-            self, header: tuple = ("type", "units"), widths: Dict[str, int] = None, **kwargs
-    ) -> None:
-        """ Update the model appearance to be consistent with last view. """
-        # it's required to adjust columns order to match the last applied order
-        if not widths:
-            widths = {"fixed": 70}
-
-        self.reshuffle_columns(header)
-
-        # resize sections
-        self.resize_header(widths)
-
-        # update vertical order
-        self.update_sort_order()
-
-        # update slider position
-        self.update_scrollbar_position()
-
     def reshuffle_columns(self, order: tuple):
         """ Reset column positions to match last visual appearance. """
         for i, nm in enumerate(order):
@@ -386,8 +369,8 @@ class SimpleView(QTreeView):
     def resize_header(self, widths) -> None:
         """ Define resizing behaviour. """
         # units column width is always fixed
-        fixed = self.model().get_logical_index("units")
-        stretch = self.model().get_logical_index("type")
+        fixed = self.model().get_logical_index(UNITS_LEVEL)
+        stretch = self.model().get_logical_index(KEY_LEVEL)
         self.header().setSectionResizeMode(fixed, QHeaderView.Fixed)
         self.header().setSectionResizeMode(stretch, QHeaderView.Stretch)
         self.header().setStretchLastSection(False)
@@ -395,16 +378,28 @@ class SimpleView(QTreeView):
         # resize sections programmatically
         self.header().resizeSection(fixed, widths["fixed"])
 
+    def update_view_appearance(
+        self, header: tuple = (KEY_LEVEL, UNITS_LEVEL), widths: Dict[str, int] = None, **kwargs
+    ) -> None:
+        """ Update the model appearance to be consistent with last view. """
+        # it's required to adjust columns order to match the last applied order
+        if not widths:
+            widths = {"fixed": 70}
+        self.reshuffle_columns(header)
+        self.resize_header(widths)
+        self.update_sort_order()
+        self.update_scrollbar_position()
+
     def populate_view(
-            self,
-            variables_df: pd.DataFrame,
-            interval: str,
-            rate_to_energy: bool = False,
-            units_system: str = "SI",
-            energy_units: str = "J",
-            power_units: str = "W",
-            header: tuple = ("type", "units"),
-            **kwargs,
+        self,
+        variables_df: pd.DataFrame,
+        interval: str,
+        rate_to_energy: bool = False,
+        units_system: str = "SI",
+        energy_units: str = "J",
+        power_units: str = "W",
+        header: tuple = (KEY_LEVEL, UNITS_LEVEL),
+        **kwargs,
     ) -> None:
         """ Set the model and define behaviour of the tree view. """
         # store current setup as instance attributes
@@ -425,12 +420,12 @@ class SimpleView(QTreeView):
             model.setHorizontalHeaderLabels(header)
 
             # id and interval data are not required
-            variables_df.drop(["id", "interval"], axis=1, inplace=True)
+            variables_df.drop([ID_LEVEL, TABLE_LEVEL], axis=1, inplace=True)
 
             # add proxy units - these will be visible on ui
-            variables_df["source units"] = variables_df["units"]
-            variables_df["units"] = create_proxy_units_column(
-                source_units=variables_df["source units"],
+            variables_df[SOURCE_UNITS] = variables_df[UNITS_LEVEL]
+            variables_df[UNITS_LEVEL] = create_proxy_units_column(
+                source_units=variables_df[SOURCE_UNITS],
                 rate_to_energy=rate_to_energy,
                 units_system=units_system,
                 energy_units=energy_units,
@@ -438,7 +433,7 @@ class SimpleView(QTreeView):
             )
 
             # update columns order based on current view
-            view_order = header + ("source units",)
+            view_order = header + (SOURCE_UNITS,)
             variables_df = variables_df[list(view_order)]
 
             # feed the data

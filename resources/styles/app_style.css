@@ -101,7 +101,7 @@ QGroupBox::title {
     top: -14px;
 }
 
-QGroupBox#intervalsGroup {
+QGroupBox#tablesGroup {
     min-height: 150px;
 }
 

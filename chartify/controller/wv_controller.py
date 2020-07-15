@@ -186,7 +186,7 @@ class WVController(QObject):
     @Slot(str)
     def onItemRemoved(self, item_id: str) -> None:
         """ Remove component from app model. """
-        print(f"PY removeItem", item_id)
+        print(f"PY removeItem {item_id}.")
         component = self.m.fetch_component(item_id)
         self.m.wv_database["components"].remove(component)
         try:
@@ -197,7 +197,7 @@ class WVController(QObject):
 
     @Slot(str, QJsonValue, QJsonValue)
     def onChartLayoutChanged(
-            self, item_id: str, layout: QJsonValue, geometry: QJsonValue
+        self, item_id: str, layout: QJsonValue, geometry: QJsonValue
     ) -> None:
         """ Handle chart resize interaction. """
         chart = self.m.fetch_component(item_id)

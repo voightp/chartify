@@ -4,8 +4,9 @@ import pandas as pd
 from PySide2.QtCore import QItemSelection, QItemSelectionRange, Signal, QModelIndex, Qt
 from PySide2.QtGui import QStandardItem
 from PySide2.QtWidgets import QHeaderView
+from esofile_reader.constants import *
 
-from chartify.ui.simpleview import SimpleView, SimpleFilterModel, SimpleModel
+from chartify.ui.simpleview import SimpleView, SimpleFilterModel, SimpleModel, SOURCE_UNITS
 from chartify.utils.utils import FilterTuple, VariableData
 
 
@@ -37,10 +38,10 @@ class TreeModel(SimpleModel):
     ) -> None:
         """ Append row to the given parent. """
         # assign status tip for all items in row
-        key = row[indexes["key"]]
-        type_ = row[indexes["type"]]
-        proxy_units = row[indexes["units"]]
-        source_units = row[indexes["source units"]]
+        key = row[indexes[KEY_LEVEL]]
+        type_ = row[indexes[TYPE_LEVEL]]
+        proxy_units = row[indexes[UNITS_LEVEL]]
+        source_units = row[indexes[SOURCE_UNITS]]
         status_tip = f"{key} | {type_} | {proxy_units}"
 
         # show all the info for each item in row
@@ -81,12 +82,11 @@ class TreeModel(SimpleModel):
         """  Create a model and set up its appearance. """
         columns = variables_df.columns.tolist()
         indexes = {
-            "key": columns.index("key"),
-            "type": columns.index("type"),
-            "units": columns.index("units"),
-            "source units": columns.index("source units"),
+            KEY_LEVEL: columns.index(KEY_LEVEL),
+            TYPE_LEVEL: columns.index(TYPE_LEVEL),
+            UNITS_LEVEL: columns.index(UNITS_LEVEL),
+            SOURCE_UNITS: columns.index(SOURCE_UNITS),
         }
-
         if not is_tree:
             # create plain table when tree structure not requested
             self.append_plain_rows(variables_df, indexes)
@@ -104,9 +104,9 @@ class TreeFilterModel(SimpleFilterModel):
         """ Return logical positions of header labels. """
         names = self.get_logical_names()
         return {
-            "key": names.index("key"),
-            "type": names.index("type"),
-            "units": names.index("units"),
+            KEY_LEVEL: names.index(KEY_LEVEL),
+            TYPE_LEVEL: names.index(TYPE_LEVEL),
+            UNITS_LEVEL: names.index(UNITS_LEVEL),
         }
 
     def find_match(self, variables: List[VariableData], key: str) -> QItemSelection:
@@ -207,18 +207,18 @@ class TreeView(SimpleView):
         vis_ixs = self.get_visual_indexes()
 
         # units column width is always fixed
-        fixed = log_ixs["units"]
+        fixed = log_ixs[UNITS_LEVEL]
         self.header().setSectionResizeMode(fixed, QHeaderView.Fixed)
         self.header().setStretchLastSection(False)
 
         # key and variable sections can be either Stretch or Interactive
         # Interactive section can be resized programmatically
-        if vis_ixs["key"] > vis_ixs["type"]:
-            stretch = log_ixs["key"]
-            interactive = log_ixs["type"]
+        if vis_ixs[KEY_LEVEL] > vis_ixs[TYPE_LEVEL]:
+            stretch = log_ixs[KEY_LEVEL]
+            interactive = log_ixs[TYPE_LEVEL]
         else:
-            stretch = log_ixs["type"]
-            interactive = log_ixs["key"]
+            stretch = log_ixs[TYPE_LEVEL]
+            interactive = log_ixs[KEY_LEVEL]
 
         self.header().setSectionResizeMode(stretch, QHeaderView.Stretch)
         self.header().setSectionResizeMode(interactive, QHeaderView.Interactive)
@@ -228,7 +228,7 @@ class TreeView(SimpleView):
 
     def update_view_appearance(
         self,
-        header: tuple = ("type", "key", "units"),
+        header: tuple = (TYPE_LEVEL, KEY_LEVEL, UNITS_LEVEL),
         widths: Dict[str, int] = None,
         expanded: Set[str] = None,
         **kwargs,
@@ -249,7 +249,7 @@ class TreeView(SimpleView):
         units_system: str = "SI",
         energy_units: str = "J",
         power_units: str = "W",
-        header: Tuple[str, str, str] = ("type", "key", "units"),
+        header: Tuple[str, str, str] = (TYPE_LEVEL, KEY_LEVEL, UNITS_LEVEL),
     ) -> None:
         """ Set the model and define behaviour of the tree view. """
         self.is_tree = is_tree

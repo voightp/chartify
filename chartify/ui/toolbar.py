@@ -40,13 +40,13 @@ class Toolbar(QFrame):
         self.layout.setSpacing(0)
         self.layout.setAlignment(Qt.AlignTop)
 
-        # ~~~~ Intervals group ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.interval_btns = {}
-        self.intervals_group = QGroupBox("Intervals", self)
-        self.intervals_group.setObjectName("intervalsGroup")
-        self.set_up_interval_btns()
+        # ~~~~ Tables group ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.table_buttons = {}
+        self.table_group = QGroupBox("Tables", self)
+        self.table_group.setObjectName("tablesGroup")
+        self.set_up_table_buttons()
 
-        self.layout.addWidget(self.intervals_group)
+        self.layout.addWidget(self.table_group)
 
         # ~~~~ Outputs group ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.outputs_group = QGroupBox("Outputs", self)
@@ -62,7 +62,7 @@ class Toolbar(QFrame):
         self.all_files_btn.setChecked(Settings.ALL_FILES)
         self.all_files_btn.setEnabled(False)
 
-        self.set_up_outputs_btns()
+        self.set_up_outputs_buttons()
         self.layout.addWidget(self.outputs_group)
 
         # ~~~~ Tools group ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -88,10 +88,10 @@ class Toolbar(QFrame):
         self.units_group = QFrame(self)
         self.units_group.setObjectName("unitsGroup")
 
-        self.energy_btn = None
-        self.power_btn = None
-        self.units_system_button = None
-        self.rate_energy_btn = None
+        self.energy_btn = TitledButton("energy", self.units_group)
+        self.power_btn = TitledButton("power", self.units_group)
+        self.units_system_button = TitledButton("system", self.units_group)
+        self.rate_energy_btn = QToolButton(self.units_group)
         self.set_up_units()
 
         self.layout.addWidget(self.units_group)
@@ -99,17 +99,17 @@ class Toolbar(QFrame):
         self.connect_actions()
 
     @property
-    def units_btns(self):
+    def units_buttons(self):
         """ A shorthand to get all units buttons."""
         return [self.energy_btn, self.power_btn, self.units_system_button, self.rate_energy_btn]
 
     @property
-    def tools_btns(self):
+    def tools_buttons(self):
         """ A shorthand to get all tools buttons."""
         return [self.sum_btn, self.mean_btn, self.remove_btn]
 
     @property
-    def outputs_btns(self):
+    def outputs_buttons(self):
         """ A shorthand to get all outputs buttons. """
         return [self.totals_btn, self.all_files_btn]
 
@@ -147,47 +147,43 @@ class Toolbar(QFrame):
         """ Check if results from all eso files are requested. """
         return self.totals_btn.isChecked()
 
-    def populate_outputs_group(self):
-        """ Populate outputs buttons. """
-        self.populate_group(self.outputs_group, self.outputs_btns)
-
     def populate_intervals_group(self, hide_disabled=True):
         """ Populate interval buttons based on a current state. """
-        btns = self.interval_btns.values()
-        self.populate_group(self.intervals_group, btns, hide_disabled=hide_disabled)
+        buttons = self.table_buttons.values()
+        self.populate_group(self.table_group, buttons, hide_disabled=hide_disabled)
 
     def populate_tools_group(self):
         """ Populate tools group layout. """
-        self.populate_group(self.tools_group, self.tools_btns)
+        self.populate_group(self.tools_group, self.tools_buttons)
 
     def populate_units_group(self):
         """ Populate units group layout. """
-        self.populate_group(self.units_group, self.units_btns)
+        self.populate_group(self.units_group, self.units_buttons)
 
-    def set_up_outputs_btns(self):
+    def set_up_outputs_buttons(self):
         """ Create interval buttons and a parent container. """
-        outputs_btns_layout = QGridLayout(self.outputs_group)
-        outputs_btns_layout.setSpacing(0)
-        outputs_btns_layout.setContentsMargins(0, 0, 0, 0)
-        outputs_btns_layout.setAlignment(Qt.AlignTop)
+        outputs_buttons_layout = QGridLayout(self.outputs_group)
+        outputs_buttons_layout.setSpacing(0)
+        outputs_buttons_layout.setContentsMargins(0, 0, 0, 0)
+        outputs_buttons_layout.setAlignment(Qt.AlignTop)
 
-        self.populate_outputs_group()
+        self.populate_group(self.outputs_group, self.outputs_buttons)
 
-    def set_up_interval_btns(self):
+    def set_up_table_buttons(self):
         """ Create interval buttons and a parent container. """
-        interval_btns_layout = QGridLayout(self.intervals_group)
-        interval_btns_layout.setSpacing(0)
-        interval_btns_layout.setContentsMargins(0, 0, 0, 0)
-        interval_btns_layout.setAlignment(Qt.AlignTop)
+        table_buttons_layout = QGridLayout(self.table_group)
+        table_buttons_layout.setSpacing(0)
+        table_buttons_layout.setContentsMargins(0, 0, 0, 0)
+        table_buttons_layout.setAlignment(Qt.AlignTop)
 
-        # ~~~~ Interval buttons set up~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # ~~~~ Table buttons set up~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         for ivl in [TS, H, D, M, A, RP]:
-            btn = QToolButton(self.intervals_group)
+            btn = QToolButton(self.table_group)
             btn.setText(ivl)
             btn.setCheckable(True)
             btn.setAutoExclusive(True)
             btn.setEnabled(False)
-            self.interval_btns[ivl] = btn
+            self.table_buttons[ivl] = btn
 
         self.populate_intervals_group(hide_disabled=False)
 
@@ -220,7 +216,6 @@ class Toolbar(QFrame):
         energy_menu.setWindowFlags(QMenu().windowFlags() | Qt.NoDropShadowWindowHint)
         energy_menu.addActions(acts)
 
-        self.energy_btn = TitledButton("energy", self.units_group)
         self.energy_btn.setMenu(energy_menu)
         self.energy_btn.setDefaultAction(def_act)
 
@@ -232,7 +227,6 @@ class Toolbar(QFrame):
         power_menu.setWindowFlags(QMenu().windowFlags() | Qt.NoDropShadowWindowHint)
         power_menu.addActions(acts)
 
-        self.power_btn = TitledButton("power", self.units_group)
         self.power_btn.setMenu(power_menu)
         self.power_btn.setDefaultAction(def_act)
 
@@ -243,7 +237,6 @@ class Toolbar(QFrame):
         units_system_menu.setWindowFlags(QMenu().windowFlags() | Qt.NoDropShadowWindowHint)
         units_system_menu.addActions(acts)
 
-        self.units_system_button = TitledButton("system", self.units_group)
         self.units_system_button.setMenu(units_system_menu)
         self.units_system_button.setDefaultAction(def_act)
 
@@ -251,7 +244,6 @@ class Toolbar(QFrame):
         self.filter_energy_power_units(Settings.UNITS_SYSTEM)
 
         # ~~~~ Rate to energy set up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.rate_energy_btn = QToolButton(self.units_group)
         self.rate_energy_btn.setCheckable(True)
         self.rate_energy_btn.setObjectName("rateToEnergyBtn")
         self.rate_energy_btn.setText("rate to\n energy")
@@ -284,10 +276,10 @@ class Toolbar(QFrame):
 
         self.populate_tools_group()
 
-    def get_selected_interval(self):
-        """ Get currently selected interval. """
+    def get_selected_table(self):
+        """ Get currently selected table. """
         try:
-            return next(k for k, btn in self.interval_btns.items() if btn.isChecked())
+            return next(k for k, btn in self.table_buttons.items() if btn.isChecked())
         except StopIteration:
             pass
 
@@ -297,25 +289,24 @@ class Toolbar(QFrame):
         self.totals_btn.setEnabled(False)
         self.rate_energy_btn.setEnabled(True)
 
-        for btn in self.interval_btns.values():
+        for btn in self.table_buttons.values():
             btn.setHidden(False)
             btn.setChecked(False)
             btn.setEnabled(False)
 
         self.populate_intervals_group(hide_disabled=False)
 
-    def update_rate_to_energy_state(self, interval):
+    def update_rate_to_energy(self, can_convert: bool):
         """ Enable or disable rate to energy button. """
-        # rate to energy should be enabled only for daily+ intervals
         if self.custom_units_toggle.isChecked():
-            self.rate_energy_btn.setEnabled(interval not in [TS, H])
+            self.rate_energy_btn.setEnabled(can_convert)
         else:
             self.rate_energy_btn.setEnabled(False)
 
-    def update_intervals_state(self, available_intervals):
+    def update_table_names(self, table_names) -> None:
         """ Deactivate interval buttons if not applicable. """
-        for key, btn in self.interval_btns.items():
-            if key in available_intervals:
+        for key, btn in self.table_buttons.items():
+            if key in table_names:
                 btn.setEnabled(True)
             else:
                 # interval is not applicable for current eso file
@@ -325,27 +316,27 @@ class Toolbar(QFrame):
         # when there isn't any previously selected interval, or the interval
         # is not applicable for current file the first available button will
         # be selected
-        interval = self.get_selected_interval()
-        if not interval or interval not in available_intervals:
+        table_name = self.get_selected_table()
+        if not table_name or table_name not in table_names:
             # select a first enabled interval
-            k, btn = next((k, btn) for k, btn in self.interval_btns.items() if btn.isEnabled())
+            k, btn = next((k, btn) for k, btn in self.table_buttons.items() if btn.isEnabled())
 
             # store the newly selected interval
             # settingsUpdated signal is deliberately NOT triggered
             btn.setChecked(True)
-            Settings.INTERVAL = k
+            Settings.TABLE_NAME = k
 
         # display only enabled interval buttons
         self.populate_intervals_group(hide_disabled=True)
 
-    def store_temp_units(self):
+    def store_temp_units(self) -> None:
         """ Store intermediate units settings. """
         self.temp_settings["energy_units"] = self.energy_btn.data()
         self.temp_settings["power_units"] = self.power_btn.data()
         self.temp_settings["units_system"] = self.units_system_button.data()
         self.temp_settings["rate_to_energy"] = self.rate_energy_btn.isChecked()
 
-    def restore_temp_units(self):
+    def restore_temp_units(self) -> None:
         """ Restore units settings. """
         ene = self.temp_settings["energy_units"]
         pw = self.temp_settings["power_units"]
@@ -362,7 +353,7 @@ class Toolbar(QFrame):
         self.units_system_button.update_state_internally(us)
         self.rate_energy_btn.setChecked(checked)
 
-    def set_default_units(self):
+    def set_default_units(self) -> None:
         """ Reset units to E+ default. """
         self.energy_btn.update_state_internally("J")
         self.power_btn.update_state_internally("W")
@@ -380,21 +371,20 @@ class Toolbar(QFrame):
         self.rate_energy_btn.setEnabled(False)
         self.rate_energy_btn.setChecked(False)
 
-    def custom_units_toggled(self, state):
+    def custom_units_toggled(self, state: int) -> None:
         """ Update units settings when custom units toggled. """
         enabled = state == 1
-
         if not enabled:
             self.store_temp_units()
             self.set_default_units()
         else:
             self.restore_temp_units()
-            for btn in self.units_btns[:3]:
+            for btn in self.units_buttons[:3]:
                 btn.setEnabled(enabled)
 
         Settings.CUSTOM_UNITS = enabled
 
-        self.update_rate_to_energy_state(Settings.INTERVAL)
+        self.update_rate_to_energy(Settings.TABLE_NAME)
         self.settingsUpdated.emit()
 
     def filter_energy_power_units(self, units_system):
@@ -452,18 +442,18 @@ class Toolbar(QFrame):
         Settings.RATE_TO_ENERGY = state
         self.settingsUpdated.emit()
 
-    def interval_changed(self):
+    def table_changed(self):
         """ Request view update when interval changes. """
-        interval = self.get_selected_interval()
-        Settings.INTERVAL = interval
-        self.update_rate_to_energy_state(interval)
+        interval = self.get_selected_table()
+        Settings.TABLE_NAME = interval
+        self.update_rate_to_energy(interval)
         self.settingsUpdated.emit()
 
     def connect_actions(self):
         """ Connect toolbar actions. """
         # ~~~~ Interval buttons Signals ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        for btn in self.interval_btns.values():
-            btn.clicked.connect(self.interval_changed)
+        for btn in self.table_buttons.values():
+            btn.clicked.connect(self.table_changed)
 
         # ~~~~ Totals Signal ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.totals_btn.toggled.connect(self.totals_toggled)

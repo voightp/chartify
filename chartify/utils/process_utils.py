@@ -8,11 +8,10 @@ from typing import Tuple, List
 
 import loky
 import psutil
-from esofile_reader import EsoFile, TotalsFile
+from esofile_reader import ResultsFile
 from esofile_reader.base_file import IncompleteFile, BlankLineError, InvalidLineSyntax
-from esofile_reader.data.pqt_data import ParquetFrame
-from esofile_reader.mini_classes import ResultsFile
-from esofile_reader.storage.storage_files import ParquetFile
+from esofile_reader.storages.pqt_storage import ParquetFile
+from esofile_reader.tables.pqt_tables import ParquetFrame
 
 from chartify.utils.progress_monitor import ProgressMonitor
 
@@ -52,7 +51,7 @@ def store_file(
 ) -> Tuple[int, ParquetFile]:
     """ Store results file as 'ParquetFile'. """
     n_steps = 0
-    for tbl in results_file.data.tables.values():
+    for tbl in results_file.tables.values():
         n = int(math.ceil(tbl.shape[1] / ParquetFrame.CHUNK_SIZE))
         n_steps += n
 
@@ -65,24 +64,13 @@ def store_file(
             id_ += 1
         ids.append(id_)
 
-    file = ParquetFile(
-        id_=id_,
-        file_path=results_file.file_path,
-        file_name=results_file.file_name,
-        data=results_file.data,
-        file_created=results_file.file_created,
-        search_tree=results_file.search_tree,
-        type_=results_file.__class__.__name__,
-        pardir=workdir,
-        monitor=monitor,
-    )
-
+    file = ParquetFile.from_results_file(id_, results_file, pardir=workdir, monitor=monitor)
     monitor.storing_finished()
 
     return id_, file
 
 
-def load_file(
+def load_eso_file(
     path: str, workdir: str, progress_queue, file_queue, ids: List[int], lock: Lock
 ) -> None:
     """ Process and store eso file. """
@@ -92,8 +80,8 @@ def load_file(
         with contextlib.suppress(IncompleteFile, BlankLineError, InvalidLineSyntax):
             # monitor.failed is called in processing function so suppressed
             # functions do not need to be dealt with explicitly
-            files = EsoFile.process_multi_env_file(path, monitor=monitor)
-            for f in files:
+            files = ResultsFile.from_eso_file(path, monitor=monitor)
+            for f in files if isinstance(files, list) else [files]:
                 id_, file = store_file(
                     results_file=f, workdir=workdir, monitor=monitor, ids=ids, lock=lock
                 )
@@ -101,7 +89,7 @@ def load_file(
 
                 # generate and store totals file
                 monitor.totals_started()
-                totals_file = TotalsFile(f)
+                totals_file = ResultsFile.from_totals(f)
                 id_, file = store_file(
                     results_file=totals_file,
                     workdir=workdir,

@@ -4,10 +4,10 @@ from typing import List, Callable, Union, Any
 
 from PySide2.QtCore import QThreadPool
 from esofile_reader.mini_classes import ResultsFile, Variable
-from esofile_reader.storage.storage_files import ParquetFile
+from esofile_reader.storages.pqt_storage import ParquetFile
 
 from chartify.settings import Settings
-from chartify.utils.process_utils import create_pool, kill_child_processes, load_file
+from chartify.utils.process_utils import create_pool, kill_child_processes, load_eso_file
 from chartify.utils.threads import EsoFileWatcher, IterWorker, Monitor
 from chartify.utils.utils import get_str_identifier, VariableData
 
@@ -81,6 +81,7 @@ class AppController:
         """ Connect view signals. """
         self.v.paletteUpdated.connect(self.wvc.refresh_layout)
         self.v.viewUpdateRequested.connect(self.on_view_update_requested)
+        self.v.tabChanged.connect(self.on_tab_changed)
         self.v.selectionChanged.connect(self.on_selection_change)
         self.v.fileProcessingRequested.connect(self.on_file_processing_requested)
         self.v.fileRenameRequested.connect(self.on_file_rename_requested)
@@ -120,15 +121,27 @@ class AppController:
         if path:
             self.m.storage.save_as(path.parent, path.stem)
 
-    def on_view_update_requested(self, id_: int) -> None:
+    def on_tab_changed(self, id_: int) -> None:
         """ Update content of a newly selected tab. """
         file = self.m.get_file(id_)
         # update interface to enable only available interval buttons
         # and rate to energy button when applicable
-        self.v.toolbar.update_intervals_state(file.available_intervals)
-        self.v.toolbar.update_rate_to_energy_state(Settings.INTERVAL)
+        self.v.toolbar.update_table_names(file.table_names)
+        self.v.toolbar.update_rate_to_energy(
+            file.can_convert_rate_to_energy(Settings.TABLE_NAME)
+        )
         self.v.build_treeview(
-            file.get_header_df(Settings.INTERVAL), selected=self.m.selected_variable_data
+            file.get_header_df(Settings.TABLE_NAME), selected=self.m.selected_variable_data
+        )
+
+    def on_view_update_requested(self, id_: int) -> None:
+        """ Update content of a newly selected tab. """
+        file = self.m.get_file(id_)
+        self.v.toolbar.update_rate_to_energy(
+            file.can_convert_rate_to_energy(Settings.TABLE_NAME)
+        )
+        self.v.build_treeview(
+            file.get_header_df(Settings.TABLE_NAME), selected=self.m.selected_variable_data
         )
 
     def on_file_processing_requested(self, paths: List[str]) -> None:
@@ -136,7 +149,7 @@ class AppController:
         workdir = str(self.m.storage.workdir)
         for path in paths:
             self.pool.submit(
-                load_file,
+                load_eso_file,
                 path,
                 workdir,
                 self.progress_queue,
@@ -160,7 +173,7 @@ class AppController:
         self.m.storage.files[file.id_] = file
 
         # number of columns can be either 2 or 3
-        simpleview = file.type_ in []
+        simpleview = file.file_type in []
 
         # add new tab into tab widget
         self.v.add_new_tab(file.id_, name, simpleview=simpleview)
@@ -232,7 +245,7 @@ class AppController:
                     proxyunits=variable_data.proxyunits,
                 )
                 self.v.build_treeview(
-                    self.m.get_file(id_).get_header_df(Settings.INTERVAL),
+                    self.m.get_file(id_).get_header_df(Settings.TABLE_NAME),
                     selected=[new_variable_data],
                     scroll_to=new_variable_data,
                 )
@@ -248,7 +261,7 @@ class AppController:
     def handle_remove_variables(self, id_: int, variables: List[tuple]) -> None:
         """ Remove variables from a file or all files. """
         self._apply_async(id_, self.delete_variables, variables)
-        self.v.build_treeview(self.m.get_file(id_).get_header_df(Settings.INTERVAL))
+        self.v.build_treeview(self.m.get_file(id_).get_header_df(Settings.TABLE_NAME))
 
     def handle_aggregate_variables(
         self,
@@ -263,7 +276,7 @@ class AppController:
             id_, self.aggregate_variables, variables, var_nm, key_nm, func
         )
         self.v.build_treeview(
-            self.m.get_file(id_).get_header_df(Settings.INTERVAL),
+            self.m.get_file(id_).get_header_df(Settings.TABLE_NAME),
             selected=[variable],
             scroll_to=variable,
         )
