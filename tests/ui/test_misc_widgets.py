@@ -1,9 +1,12 @@
+from pathlib import Path
+
 import pytest
 from PySide2.QtCore import QCoreApplication, Qt, QMimeData
 from PySide2.QtGui import QDragEnterEvent, QDragLeaveEvent, QDropEvent
 from PySide2.QtWidgets import QWidget
 
 from chartify.ui.misc_widgets import TabWidget, DropFrame
+from tests import ROOT
 
 
 class TestTabWidget:
@@ -112,8 +115,10 @@ class TestDropFrame:
         assert drop_frame.property("drag-accept") == ""
 
     def test_dropEvent(self, qtbot, drop_frame: DropFrame):
+        paths = [str(Path(ROOT, "eso_files", "simple_view.xlsx"))]
+        urls = ["file:" + p for p in paths]
         mime = QMimeData()
-        mime.setUrls(["C:/dummy/path.eso"])
+        mime.setUrls(urls)
         mime.setText("HELLO FROM CHARTIFY")
 
         drag_event = QDragEnterEvent(
@@ -126,7 +131,7 @@ class TestDropFrame:
         )
 
         def cb(a):
-            return a == ["c:/dummy/path.eso"]
+            return a == paths
 
         with qtbot.wait_signal(drop_frame.fileDropped, check_params_cb=cb):
             QCoreApplication.sendEvent(drop_frame, drop_event)

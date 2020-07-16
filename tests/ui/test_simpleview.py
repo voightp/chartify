@@ -4,7 +4,7 @@ import pandas as pd
 import pytest
 from PySide2.QtCore import Qt
 from PySide2.QtWidgets import QHeaderView, QSizePolicy
-from esofile_reader import EsoFile
+from esofile_reader import ResultsFile
 
 from chartify.ui.simpleview import SimpleView
 from chartify.utils.utils import FilterTuple, VariableData
@@ -14,18 +14,20 @@ WIDTH = 402
 
 
 @pytest.fixture(scope="module")
-def eso_file():
-    return EsoFile(Path(ROOT, "eso_files", "eplusout1.eso")).generate_totals()
+def results_file():
+    rf = ResultsFile.from_excel(Path(ROOT, "eso_files", "simple_view.xlsx"))
+    return rf
 
 
 @pytest.fixture
-def hourly_df(eso_file):
-    return eso_file.get_header_df("hourly")
+def hourly_df(results_file):
+    hourly_df = results_file.get_header_df("hourly")
+    return hourly_df
 
 
 @pytest.fixture
-def daily_df(eso_file):
-    return eso_file.get_header_df("daily")
+def daily_df(results_file):
+    return results_file.get_header_df("daily")
 
 
 @pytest.fixture
@@ -92,7 +94,7 @@ def test_on_view_resized_stretch(qtbot, simple_view: SimpleView, hourly_df: pd.D
 
 def test_on_section_moved(qtbot, simple_view: SimpleView, hourly_df: pd.DataFrame):
     def test_header(cls, dct):
-        return cls == "simpleview" and dct["header"] == ("units", "type")
+        return cls == "simpleview" and dct["header"] == ("units", "key")
 
     with qtbot.wait_signal(simple_view.viewSettingsChanged, check_params_cb=test_header):
         simple_view.header().moveSection(0, 1)
@@ -113,7 +115,7 @@ def test_update_scrollbar_position(simple_view: SimpleView, daily_df: pd.DataFra
 
 def test_on_double_clicked(qtbot, simple_view: SimpleView, hourly_df: pd.DataFrame):
     def variable_data(index):
-        test_data = VariableData("", "Boiler Gas Rate", "W", "W")
+        test_data = VariableData("Boiler Gas Rate", None, "W", "W")
         data = simple_view.model().data_at_index(index)
         return test_data == data
 
@@ -132,7 +134,7 @@ def test_on_double_clicked_second_column(
     qtbot, simple_view: SimpleView, hourly_df: pd.DataFrame
 ):
     def variable_data(index):
-        test_data = VariableData("", "Boiler Gas Rate", "W", "W")
+        test_data = VariableData("Boiler Gas Rate", None, "W", "W")
         data = simple_view.model().data_at_index(index.siblingAtColumn(0))
         return test_data == data
 
@@ -148,7 +150,7 @@ def test_on_double_clicked_second_column(
 
 
 def test_on_pressed(qtbot, simple_view: SimpleView, hourly_df: pd.DataFrame):
-    test_data = VariableData("", "Boiler Gas Rate", "W", "W")
+    test_data = VariableData("Boiler Gas Rate", None, "W", "W")
 
     def variable_data1(index):
         data = simple_view.model().data_at_index(index)
@@ -182,8 +184,8 @@ def test_is_tree_kwarg(simple_view: SimpleView, daily_df: pd.DataFrame):
     assert not simple_view.is_tree
 
 
-def test_filter_view(simple_view: SimpleView):
-    ft = FilterTuple(key="block1:zonea", type="temperature", units="")
+def test_filter_view(qtbot, simple_view: SimpleView):
+    ft = FilterTuple(key="temperature", type=None, units="")
     simple_view.filter_view(ft)
 
     assert simple_view.model().rowCount() == 5
@@ -191,11 +193,11 @@ def test_filter_view(simple_view: SimpleView):
     assert simple_view.model().filter_tuple == ft
 
     test_data = [
-        VariableData("", "Site Outdoor Air Dewpoint Temperature", "C", "C"),
-        VariableData("", "Site Outdoor Air Drybulb Temperature", "C", "C"),
-        VariableData("", "Zone Mean Air Temperature", "C", "C"),
-        VariableData("", "Zone Mean Radiant Temperature", "C", "C"),
-        VariableData("", "Zone Operative Temperature", "C", "C"),
+        VariableData("Site Outdoor Air Dewpoint Temperature", None, "C", "C"),
+        VariableData("Site Outdoor Air Drybulb Temperature", None, "C", "C"),
+        VariableData("Zone Mean Air Temperature", None, "C", "C"),
+        VariableData("Zone Mean Radiant Temperature", None, "C", "C"),
+        VariableData("Zone Operative Temperature", None, "C", "C"),
     ]
 
     for i, test_var in enumerate(test_data):
@@ -205,21 +207,21 @@ def test_filter_view(simple_view: SimpleView):
 
 
 def test_get_visual_names(simple_view: SimpleView):
-    assert simple_view.get_visual_names() == ("type", "units")
+    assert simple_view.get_visual_names() == ("key", "units")
 
-    simple_view.reshuffle_columns(("units", "type"))
-    assert simple_view.get_visual_names() == ("units", "type")
+    simple_view.reshuffle_columns(("units", "key"))
+    assert simple_view.get_visual_names() == ("units", "key")
 
 
 def test_get_visual_ixs(simple_view: SimpleView):
-    assert simple_view.get_visual_indexes() == {"type": 0, "units": 1}
+    assert simple_view.get_visual_indexes() == {"key": 0, "units": 1}
 
 
 def test_build_view_kwargs_rate_to_energy(simple_view: SimpleView, daily_df: pd.DataFrame):
     simple_view.populate_view(daily_df, "daily", is_tree=True, rate_to_energy=True)
     simple_view.update_view_appearance()
     proxy_model = simple_view.model()
-    test_data = VariableData("", "Boiler Gas Rate", "W", "J")
+    test_data = VariableData("Boiler Gas Rate", None, "W", "J")
     assert proxy_model.data_at_index(proxy_model.index(1, 0)) == test_data
     assert proxy_model.data(proxy_model.index(1, 1)) == "J"
 
@@ -228,7 +230,7 @@ def test_build_view_kwargs_units_system(simple_view: SimpleView, daily_df: pd.Da
     simple_view.populate_view(daily_df, "daily", is_tree=True, units_system="IP")
     simple_view.update_view_appearance()
     proxy_model = simple_view.model()
-    test_data = VariableData("", "Site Outdoor Air Dewpoint Temperature", "C", "F")
+    test_data = VariableData("Site Outdoor Air Dewpoint Temperature", None, "C", "F")
 
     assert proxy_model.data_at_index(proxy_model.index(22, 0)) == test_data
     assert proxy_model.data(proxy_model.index(22, 1)) == "F"
@@ -240,7 +242,7 @@ def test_build_view_kwargs_energy_units(simple_view: SimpleView, daily_df: pd.Da
     )
     simple_view.update_view_appearance()
     proxy_model = simple_view.model()
-    test_data = VariableData("", "Boiler Gas Rate", "W", "MWh")
+    test_data = VariableData("Boiler Gas Rate", None, "W", "MWh")
 
     assert proxy_model.data_at_index(proxy_model.index(1, 0)) == test_data
     assert proxy_model.data(proxy_model.index(1, 1)) == "MWh"
@@ -250,14 +252,14 @@ def test_build_view_kwargs_power_units(simple_view: SimpleView, daily_df: pd.Dat
     simple_view.populate_view(daily_df, "daily", is_tree=True, power_units="MW")
     simple_view.update_view_appearance()
     proxy_model = simple_view.model()
-    test_data = VariableData("", "Boiler Gas Rate", "W", "MW")
+    test_data = VariableData("Boiler Gas Rate", None, "W", "MW")
 
     assert proxy_model.data_at_index(proxy_model.index(1, 0)) == test_data
     assert proxy_model.data(proxy_model.index(1, 1)) == "MW"
 
 
 def test_update_view_appearance(simple_view: SimpleView, daily_df: pd.DataFrame):
-    header = ("units", "type")
+    header = ("units", "key")
     simple_view.populate_view(
         daily_df, "daily", header=header,
     )
@@ -268,7 +270,7 @@ def test_update_view_appearance(simple_view: SimpleView, daily_df: pd.DataFrame)
     assert simple_view.header().sectionSize(0) == 50
     assert simple_view.header().sectionSize(1) == 350
 
-    assert simple_view.get_visual_names() == ("units", "type")
+    assert simple_view.get_visual_names() == ("units", "key")
 
 
 def test_update_view_appearance_default(simple_view: SimpleView, daily_df: pd.DataFrame):
@@ -277,21 +279,21 @@ def test_update_view_appearance_default(simple_view: SimpleView, daily_df: pd.Da
     assert simple_view.header().sectionSize(0) == 330
     assert simple_view.header().sectionSize(1) == 70
 
-    assert simple_view.get_visual_names() == ("type", "units")
+    assert simple_view.get_visual_names() == ("key", "units")
 
 
 def test_scroll_to(qtbot, simple_view: SimpleView, hourly_df: pd.DataFrame):
-    v = VariableData("", "Zone Infiltration Air Change Rate", "ach", "ach")
+    v = VariableData("Zone Infiltration Air Change Rate", None, "ach", "ach")
     with qtbot.wait_signal(simple_view.verticalScrollBar().valueChanged):
-        simple_view.scroll_to(v, "type")
+        simple_view.scroll_to(v, "key")
 
     assert simple_view.verticalScrollBar().value() == 27
 
 
 def test_deselect_variables(qtbot, simple_view: SimpleView, daily_df: pd.DataFrame):
     selected = [
-        VariableData("", "Boiler Ancillary Electric Power", "W", "kW"),
-        VariableData("", "Boiler Gas Rate", "W", "kW"),
+        VariableData("Boiler Ancillary Electric Power", None, "W", "kW"),
+        VariableData("Boiler Gas Rate", None, "W", "kW"),
     ]
     simple_view.populate_view(
         daily_df, "daily", power_units="kW",
@@ -314,8 +316,8 @@ def test_select_variables(qtbot, simple_view: SimpleView):
         return data == selected
 
     selected = [
-        VariableData("", "Boiler Ancillary Electric Power", "W", "W"),
-        VariableData("", "Boiler Gas Rate", "W", "W"),
+        VariableData("Boiler Ancillary Electric Power", None, "W", "W"),
+        VariableData("Boiler Gas Rate", None, "W", "W"),
     ]
 
     with qtbot.wait_signal(simple_view.selectionPopulated, check_params_cb=variable_data):
@@ -328,8 +330,7 @@ def test_select_variables(qtbot, simple_view: SimpleView):
 
 
 def test_select_variables_invalid(qtbot, simple_view: SimpleView):
-    selected = [VariableData("", "FOO", "W", "W"), VariableData("", "BAR", "W", "W")]
-
+    selected = [VariableData("FOO", None, "W", "W"), VariableData("BAR", None, "W", "W")]
     with qtbot.wait_signal(simple_view.selectionCleared):
         simple_view.select_variables(selected)
 
