@@ -115,7 +115,7 @@ description = ""
 name = "esofile-reader"
 optional = false
 python-versions = ">=3.6.8,<4.0.0"
-version = "0.1.1"
+version = "0.2.0"
 
 [package.dependencies]
 numpy = ">=1.19.0,<2.0.0"
@@ -129,7 +129,7 @@ storage = ["sqlalchemy (>=1.3.18,<2.0.0)"]
 [package.source]
 reference = ""
 type = "file"
-url = "../esofile-reader/dist/esofile_reader-0.1.1-cp38-cp38-win_amd64.whl"
+url = "../esofile-reader/dist/esofile_reader-0.2.0-cp38-cp38-win_amd64.whl"
 
 [[package]]
 category = "main"
@@ -385,6 +385,21 @@ checkqa-mypy = ["mypy (v0.761)"]
 testing = ["argcomplete", "hypothesis (>=3.56)", "mock", "nose", "requests", "xmlschema"]
 
 [[package]]
+category = "dev"
+description = "pytest support for PyQt and PySide applications"
+name = "pytest-qt"
+optional = false
+python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
+version = "3.3.0"
+
+[package.dependencies]
+pytest = ">=3.0.0"
+
+[package.extras]
+dev = ["pre-commit", "tox"]
+doc = ["sphinx", "sphinx-rtd-theme"]
+
+[[package]]
 category = "main"
 description = "Extensions to the standard Python datetime module"
 name = "python-dateutil"
@@ -486,7 +501,7 @@ python-versions = "*"
 version = "0.2.5"
 
 [metadata]
-content-hash = "56a5c72c9db7a2f22ffcaebac93961270c35423961d50d80a707bf07abb8acbc"
+content-hash = "131764f784e2413f391932ce63ab4049465fd92ef83032368ae6d81b3bc54fb6"
 python-versions = "3.8"
 
 [metadata.files]
@@ -598,7 +613,7 @@ distlib = [
     {file = "distlib-0.3.1.zip", hash = "sha256:edf6116872c863e1aa9d5bb7cb5e05a022c519a4594dc703843343a9ddd9bff1"},
 ]
 esofile-reader = [
-    {file = "esofile_reader-0.1.1-cp38-cp38-win_amd64.whl", hash = "sha256:2707161437f92a1a0b539d673c14cb4d6ec625c18396406595fc8bb16bd66fe1"},
+    {file = "esofile_reader-0.2.0-cp38-cp38-win_amd64.whl", hash = "sha256:ea5b07e86f25306ab9edf9caa170899cc379b6c2ac5bb111ce576d40148b96b7"},
 ]
 et-xmlfile = [
     {file = "et_xmlfile-1.0.1.tar.gz", hash = "sha256:614d9722d572f6246302c4491846d2c393c199cfa4edc9af593437691683335b"},
@@ -764,6 +779,10 @@ pyside2 = [
 pytest = [
     {file = "pytest-5.4.3-py3-none-any.whl", hash = "sha256:5c0db86b698e8f170ba4582a492248919255fcd4c79b1ee64ace34301fb589a1"},
     {file = "pytest-5.4.3.tar.gz", hash = "sha256:7979331bfcba207414f5e1263b5a0f8f521d0f457318836a7355531ed1a4c7d8"},
+]
+pytest-qt = [
+    {file = "pytest-qt-3.3.0.tar.gz", hash = "sha256:714b0bf86c5313413f2d300ac613515db3a1aef595051ab8ba2ffe619dbe8925"},
+    {file = "pytest_qt-3.3.0-py2.py3-none-any.whl", hash = "sha256:5f8928288f50489d83f5d38caf2d7d9fcd6e7cf769947902caa4661dc7c851e3"},
 ]
 python-dateutil = [
     {file = "python-dateutil-2.8.1.tar.gz", hash = "sha256:73ebfe9dbf22e832286dafa60473e4cd239f8592f699aa5adaf10050e6e1823c"},
