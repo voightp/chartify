@@ -170,12 +170,12 @@ class SimpleFilterModel(QSortFilterProxyModel):
     def find_match(self, variables: List[VariableData], key: str) -> QItemSelection:
         """ Check if output variables are available in a new model. """
         selection = QItemSelection()
-        test_variables = [var.type for var in variables]
+        test_variables = [var.key for var in variables]
         num_rows = self.rowCount()
         for i in range(num_rows):
             p_ix = self.index(i, 0)
             var = self.data_at_index(p_ix)
-            if var.type in test_variables:
+            if var.key in test_variables:
                 selection.append(QItemSelectionRange(p_ix))
 
         return selection

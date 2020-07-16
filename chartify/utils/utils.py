@@ -67,7 +67,7 @@ def get_str_identifier(base_name, check_list, delimiter=" ", start_i=None, brack
         return f"{base_name}{delimiter}{si}"
 
     i = start_i if start_i else 0
-    new_name = add_num() if start_i else base_name
+    new_name = base_name
 
     # add unique number if the file name is not unique
     while new_name in check_list:
@@ -275,7 +275,7 @@ def get_top_level_widget(wgt):
     return top_level
 
 
-def filter_files(paths: List[str], extensions: Sequence[str] = (".eso",)):
+def filter_files(paths: List[str], extensions: Sequence[str] = (".eso", ".xlsx")):
     """ Return a list of file paths with given extensions. """
     filtered = []
     for path in paths:
