@@ -39,6 +39,7 @@ class Settings:
     ALL_FILES = None
     TOTALS = None
     TREE_VIEW = None
+    TREE_NODE = None
 
     SIZE = None
     POSITION = None
@@ -74,6 +75,7 @@ class Settings:
         cls.ALL_FILES = bool(s.value("MainWindow/allFiles", 0))
         cls.TOTALS = bool(s.value("MainWindow/totals", 0))
         cls.TREE_VIEW = bool(s.value("MainWindow/treeView", 0))
+        cls.TREE_NODE = s.value("MainWindow/treeNode", None)
 
         cls.SIZE = QSettings().value("MainWindow/size", QSize(800, 600))
         cls.POSITION = QSettings().value("MainWindow/pos", QPoint(50, 50))
@@ -99,3 +101,4 @@ class Settings:
         s.setValue("MainWindow/pos", cls.POSITION)
         s.setValue("MainWindow/mirrored", int(cls.MIRRORED))
         s.setValue("MainWindow/split", cls.SPLIT)
+        s.setValue("MainWindow/treeNode", cls.TREE_NODE)

@@ -20,7 +20,7 @@ class ViewTools(QFrame):
 
     """
 
-    structureChanged = Signal()
+    treeButtonChecked = Signal(bool)
     textFiltered = Signal(tuple)
     expandRequested = Signal()
     collapseRequested = Signal()
@@ -109,16 +109,14 @@ class ViewTools(QFrame):
             units=self.units_line_edit.text(),
         )
 
-    def tree_btn_toggled(self, checked):
+    def tree_btn_toggled(self, checked: bool):
         """ Update view when view type is changed. """
         self.tree_view_btn.setProperty("checked", checked)
-
         # collapse and expand all buttons are not relevant for plain view
         self.collapse_all_btn.setEnabled(checked)
         self.expand_all_btn.setEnabled(checked)
         # store current state in settings
-        Settings.TREE_VIEW = checked
-        self.structureChanged.emit()
+        self.treeButtonChecked.emit(checked)
 
     def on_text_edited(self):
         """ Delay firing a text edited event. """

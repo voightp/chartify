@@ -2,7 +2,7 @@ import contextlib
 import ctypes
 from functools import partial
 from pathlib import Path
-from typing import Union, Optional, Tuple, List
+from typing import Optional, Tuple, List
 
 from PySide2.QtCore import QSize, Qt, QCoreApplication, Signal
 from PySide2.QtGui import QIcon, QKeySequence, QColor
@@ -21,7 +21,10 @@ from PySide2.QtWidgets import (
     QStatusBar,
     QMenu,
 )
+from esofile_reader.base_file import VariableType
+from esofile_reader.constants import *
 from esofile_reader.convertor import is_rate_or_energy
+from esofile_reader.mini_classes import Variable
 from esofile_reader.storages.pqt_storage import ParquetStorage
 
 from chartify.settings import Settings
@@ -29,9 +32,8 @@ from chartify.ui.buttons import MenuButton
 from chartify.ui.dialogs import ConfirmationDialog, SingleInputDialog, DoubleInputDialog
 from chartify.ui.misc_widgets import DropFrame, TabWidget
 from chartify.ui.progress_widget import ProgressContainer
-from chartify.ui.simpleview import SimpleView
 from chartify.ui.toolbar import Toolbar
-from chartify.ui.treeview import TreeView
+from chartify.ui.treeview import TreeView, SOURCE_UNITS
 from chartify.ui.treeview_tools import ViewTools
 from chartify.utils.css_theme import Palette, CssTheme
 from chartify.utils.icon_painter import Pixmap, filled_circle_pixmap
@@ -47,14 +49,16 @@ class MainWindow(QMainWindow):
     QCoreApplication.setApplicationName("chartify")
 
     paletteUpdated = Signal()
-    viewUpdateRequested = Signal(int)
+    unitsUpdated = Signal(str, str, str, bool)
     tabChanged = Signal(int)
+    treeNodeUpdated = Signal(str)
+    viewModelUpdateRequested = Signal()
     selectionChanged = Signal(list)
     fileProcessingRequested = Signal(list)
     fileRenameRequested = Signal(int)
     variableRenameRequested = Signal(int, VariableData)
-    variableRemoveRequested = Signal(int, list)
-    variableAggregateRequested = Signal(int, list, str, str, str)
+    variableRemoveRequested = Signal()
+    aggregationRequested = Signal(str)
     fileRemoveRequested = Signal(int)
     appCloseRequested = Signal()
 
@@ -136,7 +140,7 @@ class MainWindow(QMainWindow):
         def_act = None
         for name, colors in self.palettes.items():
             act = QAction(name, self)
-            act.triggered.connect(partial(self.on_scheme_changed, name))
+            act.triggered.connect(partial(self.on_color_scheme_changed, name))
             c1 = QColor(*colors.get_color("SECONDARY_COLOR", as_tuple=True))
             c2 = QColor(*colors.get_color("BACKGROUND_COLOR", as_tuple=True))
             act.setIcon(
@@ -177,29 +181,20 @@ class MainWindow(QMainWindow):
         # ~~~~ Actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.load_file_act = QAction("Load file | files", self)
         self.load_file_act.setShortcut(QKeySequence("Ctrl+L"))
-
         self.close_all_act = QAction("Close all", self)
-
         self.remove_variables_act = QAction("Delete", self)
-
-        self.sum_variables_act = QAction("Sum", self)
-        self.sum_variables_act.setShortcut(QKeySequence("Ctrl+T"))
-
-        self.avg_variables_act = QAction("Mean", self)
-        self.avg_variables_act.setShortcut(QKeySequence("Ctrl+M"))
-
+        self.sum_act = QAction("Sum", self)
+        self.sum_act.setShortcut(QKeySequence("Ctrl+T"))
+        self.avg_act = QAction("Mean", self)
+        self.avg_act.setShortcut(QKeySequence("Ctrl+M"))
         self.collapse_all_act = QAction("Collapse All", self)
         self.collapse_all_act.setShortcut(QKeySequence("Ctrl+Shift+E"))
-
         self.expand_all_act = QAction("Expand All", self)
         self.expand_all_act.setShortcut(QKeySequence("Ctrl+E"))
-
         self.tree_act = QAction("Tree", self)
         self.tree_act.setShortcut(QKeySequence("Ctrl+T"))
-
         self.save_act = QAction("Save", self)
         self.save_act.setShortcut(QKeySequence("Ctrl+S"))
-
         self.save_as_act = QAction("Save as", self)
         self.save_as_act.setShortcut(QKeySequence("Ctrl+Shift+S"))
 
@@ -207,8 +202,8 @@ class MainWindow(QMainWindow):
         self.addActions(
             [
                 self.remove_variables_act,
-                self.sum_variables_act,
-                self.avg_variables_act,
+                self.sum_act,
+                self.avg_act,
                 self.collapse_all_act,
                 self.expand_all_act,
                 self.tree_act,
@@ -254,10 +249,17 @@ class MainWindow(QMainWindow):
 
         # ~~~~ Tree view appearance ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.view_settings = {
-            "simpleview": {"widths": {"fixed": 70}, "header": ("key", "units"),},
-            "treeview": {
+            TreeView.SIMPLE: {
+                "widths": {"fixed": 70},
+                "header": (KEY_LEVEL, UNITS_LEVEL, SOURCE_UNITS),
+            },
+            TreeView.TABLE: {
                 "widths": {"interactive": 200, "fixed": 70},
-                "header": ("type", "key", "units"),
+                "header": (TYPE_LEVEL, KEY_LEVEL, UNITS_LEVEL, SOURCE_UNITS),
+            },
+            TreeView.TREE: {
+                "widths": {"interactive": 200, "fixed": 70},
+                "header": (TYPE_LEVEL, KEY_LEVEL, UNITS_LEVEL, SOURCE_UNITS),
                 "expanded": set(),
             },
         }
@@ -266,7 +268,7 @@ class MainWindow(QMainWindow):
         self.connect_ui_signals()
 
     @property
-    def current_view(self) -> Union[SimpleView, TreeView]:
+    def current_view(self) -> TreeView:
         """ Currently selected outputs file. """
         return self.tab_wgt.currentWidget()
 
@@ -292,7 +294,7 @@ class MainWindow(QMainWindow):
                 self.current_view.deselect_all_variables()
         elif event.key() == Qt.Key_Delete:
             if self.hasFocus():
-                self.remove_variables()
+                self.variableRemoveRequested.emit()
 
     def load_icons(self):
         """ Load application icons. """
@@ -388,29 +390,15 @@ class MainWindow(QMainWindow):
         Settings.MIRRORED = not Settings.MIRRORED
         Settings.SPLIT = self.central_splitter.sizes()
 
-    def on_scheme_changed(self, name):
-        """ Update the application palette. """
-        if name != Settings.PALETTE_NAME:
-            Settings.PALETTE = self.palettes[name]
-            Settings.PALETTE_NAME = name
-            self.load_css()
-            self.load_icons()
-            self.paletteUpdated.emit()
-
-    def add_new_tab(self, id_, name, simpleview=False):
+    def add_new_tab(self, id_: int, name: str, models: Dict[int, ViewModel]):
         """ Add file on the UI. """
         # create an empty 'View' widget - the data will be
         # automatically populated on 'onTabChanged' signal
-        if simpleview:
-            view = SimpleView(id_)
-        else:
-            view = TreeView(id_)
-            view.treeNodeChanged.connect(self.on_settings_changed)
-
-        # connect shared signals
+        view = TreeView(id_, models)
         view.selectionCleared.connect(self.on_selection_cleared)
         view.selectionPopulated.connect(self.on_selection_populated)
-        view.viewSettingsChanged.connect(self.on_view_settings_changed)
+        view.viewAppearanceChanged.connect(self.on_view_settings_changed)
+        view.treeNodeChangeRequested.connect(self.treeNodeUpdated.emit)
         view.itemDoubleClicked.connect(self.variableRenameRequested.emit)
 
         # add the new view into tab widget
@@ -425,43 +413,81 @@ class MainWindow(QMainWindow):
         if not self.tab_wgt.is_empty():
             self.toolbar.totals_btn.setEnabled(True)
 
-    def build_treeview(self, variables_df, selected=None, scroll_to=None):
-        """ Create a new view when any of related settings change """
-        conditions = (
-            Settings.TREE_VIEW != self.current_view.is_tree,
-            Settings.TABLE_NAME != self.current_view.interval,
-            Settings.RATE_TO_ENERGY != self.current_view.rate_to_energy,
-            Settings.ENERGY_UNITS != self.current_view.energy_units,
-            Settings.POWER_UNITS != self.current_view.power_units,
-        )
-        view_settings = self.view_settings[self.current_view.class_type]
-        if self.current_view and (any(conditions) or self.current_view.next_update_forced):
-            self.current_view.populate_view(
-                variables_df=variables_df,
-                interval=Settings.TABLE_NAME,
-                is_tree=Settings.TREE_VIEW,
-                rate_to_energy=Settings.RATE_TO_ENERGY,
-                units_system=Settings.UNITS_SYSTEM,
-                energy_units=Settings.ENERGY_UNITS,
-                power_units=Settings.POWER_UNITS,
-                header=view_settings["header"],
-            )
-        # update visual appearance of the view to be consistent
-        # with previously displayed View
-        self.current_view.update_view_appearance(**view_settings)
+    def filter_treeview(self, filter_tuple):
+        """ Filter current view. """
+        if not self.tab_wgt.is_empty():
+            self.current_view.filter_view(filter_tuple)
 
+    def expand_all(self):
+        """ Expand all tree view items. """
+        if self.current_view:
+            self.current_view.expandAll()
+
+    def collapse_all(self):
+        """ Collapse all tree view items. """
+        if self.current_view:
+            self.current_view.collapseAll()
+
+    def save_storage_to_fs(self) -> Path:
+        path, _ = QFileDialog.getSaveFileName(
+            parent=self,
+            caption="Save project",
+            filter=f"CFS (*{ParquetStorage.EXT})",
+            dir=Settings.SAVE_PATH,
+        )
+        if path:
+            return Path(path)
+
+    def load_files_from_fs(self):
+        """ Select eso files from explorer and start processing. """
+        file_paths, _ = QFileDialog.getOpenFileNames(
+            parent=self,
+            caption="Load Project / Eso File",
+            filter="FILES (*.csv *.xlsx *.eso *.cfs)",
+            dir=Settings.LOAD_PATH,
+        )
+        if file_paths:
+            Settings.LOAD_PATH = str(Path(file_paths[0]).parent)
+            self.fileProcessingRequested.emit(file_paths)
+
+    def update_view_model(
+        self,
+        header_df: pd.DataFrame,
+        selected: Optional[List[VariableData]] = None,
+        scroll_to: Optional[VariableData] = None,
+    ):
+        """ Update current view model structure and appearance. """
+        self.current_view.update_model(
+            header_df=header_df,
+            tree_node=Settings.TREE_NODE,
+            energy_units=Settings.ENERGY_UNITS,
+            power_units=Settings.POWER_UNITS,
+            units_system=Settings.UNITS_SYSTEM,
+            rate_to_energy=Settings.RATE_TO_ENERGY,
+        )
+        # update visual appearance of the view to be consistent with a previous one
+        self.current_view.update_view_model_appearance(
+            **self.view_settings[self.current_view.view_type]
+        )
         filter_tup = self.view_tools_wgt.get_filter_tuple()
         if any(filter_tup) or filter_tup != self.current_view.model().filter_tuple:
             self.current_view.filter_view(filter_tup)
 
-        # clear selections to avoid having visually
-        # selected items from previous selection
+        # clear selections to avoid having selected items from previous selection
         self.current_view.deselect_all_variables()
         if selected:
             self.current_view.select_variables(selected)
-
         if scroll_to:
-            self.current_view.scroll_to(scroll_to, view_settings["header"][0])
+            self.current_view.scroll_to(scroll_to)
+
+    def on_color_scheme_changed(self, name):
+        """ Update the application palette. """
+        if name != Settings.PALETTE_NAME:
+            Settings.PALETTE = self.palettes[name]
+            Settings.PALETTE_NAME = name
+            self.load_css()
+            self.load_icons()
+            self.paletteUpdated.emit()
 
     def on_selection_populated(self, variables):
         """ Store current selection in main app. """
@@ -472,7 +498,8 @@ class MainWindow(QMainWindow):
         if len(variables) > 1:
             units = [var.units for var in variables]
             if len(set(units)) == 1 or (
-                is_rate_or_energy(units) and self.toolbar.rate_energy_btn.isEnabled()
+                is_rate_or_energy(units)
+                and self.current_view.current_model.allow_rate_to_energy
             ):
                 self.toolbar.sum_btn.setEnabled(True)
                 self.toolbar.mean_btn.setEnabled(True)
@@ -490,45 +517,99 @@ class MainWindow(QMainWindow):
         self.toolbar.remove_btn.setEnabled(False)
         self.selectionChanged.emit([])
 
-    def filter_treeview(self, filter_tup):
-        """ Filter current view. """
-        if not self.tab_wgt.is_empty():
-            self.current_view.filter_view(filter_tup)
+    def confirm_rename_file(self, name: str, other_names: List[str]) -> Optional[str]:
+        """ Rename file on a tab identified by the given index. """
+        dialog = SingleInputDialog(
+            self,
+            title="Enter a new file name.",
+            input1_name="Name",
+            input1_text=name,
+            input1_blocker=other_names,
+        )
+        res = dialog.exec_()
+        if res == 1:
+            name = dialog.input1_text
+            index = self.tab_wgt.currentIndex()
+            self.tab_wgt.setTabText(index, name)
+            return name
 
-    def expand_all(self):
-        """ Expand all tree view items. """
-        if self.current_view:
-            self.current_view.expandAll()
+    def confirm_remove_variables(
+        self, variables: List[Variable], all_files: bool, file_name: str
+    ) -> bool:
+        """ Remove selected variables. """
+        files = "all files" if all_files else f"file '{file_name}'"
+        text = f"Delete following variables from {files}: "
+        # ignore table from full variable name
+        inf_text = "\n".join([" | ".join(var[1:]) for var in variables])
+        dialog = ConfirmationDialog(self, text, det_text=inf_text)
+        return dialog.exec_() == 1
 
-    def collapse_all(self):
-        """ Collapse all tree view items. """
-        if self.current_view:
-            self.current_view.collapseAll()
-
-    def on_tab_closed(self, wgt):
-        """ Delete current eso file. """
-        id_ = wgt.id_
-        wgt.deleteLater()
-
-        if self.tab_wgt.is_empty():
-            self.toolbar.totals_btn.setEnabled(False)
-
-        if self.tab_wgt.count() <= 1:
-            self.toolbar.all_files_btn.setEnabled(False)
-            self.close_all_act.setEnabled(False)
-
-        self.fileRemoveRequested.emit(id_)
-
-    def on_current_tab_changed(self, index: int) -> None:
-        """ Update view when tabChanged event is fired. """
-        if index == -1:
-            # there aren't any widgets available
-            self.remove_variables_act.setEnabled(False)
-            self.toolbar.set_initial_layout()
-            Settings.CURRENT_FILE_ID = None
+    def confirm_rename_variable(
+        self, key: str, type_: Optional[str]
+    ) -> Optional[Tuple[str, Optional[str]]]:
+        """ Rename given variable. """
+        if type_ is None:
+            dialog = SingleInputDialog(
+                self, title="Rename variable:", input1_name="Key", input1_text=key,
+            )
+            if dialog.exec_() == 1:
+                return dialog.input1_text, None
         else:
-            self.tabChanged.emit(self.current_view.id_)
-            Settings.CURRENT_FILE_ID = self.current_view.id_
+            dialog = DoubleInputDialog(
+                self,
+                title="Rename variable:",
+                input1_name="Key",
+                input1_text=key,
+                input2_name="Type",
+                input2_text=type_,
+            )
+            if dialog.exec_() == 1:
+                return dialog.input1_text, dialog.input2_text
+
+    def confirm_aggregate_variables(
+        self, variables: List[VariableType], func_name: str
+    ) -> Optional[Tuple[str, Optional[str]]]:
+        """ Aggregate variables using given function. """
+        type_ = "Custom Type" if isinstance(variables[0], Variable) else None
+        key = f"Custom Key - {func_name}"
+
+        # let key name be the same as all names are identical
+        if all(map(lambda x: x.key == variables[0].key, variables)):
+            key = variables[0].key
+
+        if type_ is None:
+            dialog = SingleInputDialog(
+                self,
+                title="Enter details of the new variable:",
+                input1_name="Key",
+                input1_text=key,
+            )
+            if dialog.exec() == 1:
+                return dialog.input1_text, None
+        else:
+            if all(map(lambda x: x.type == variables[0].type, variables)):
+                # let type be the same as all names are identical
+                type_ = variables[0].type
+            dialog = DoubleInputDialog(
+                self,
+                title="Enter details of the new variable:",
+                input1_name="Key",
+                input1_text=key,
+                input2_name="Type",
+                input2_text=type_,
+            )
+            if dialog.exec() == 1:
+                return dialog.input1_text, dialog.input2_text
+
+    def confirm_delete_file(self, name: str):
+        """ Confirm delete file. . """
+        text = f"Delete file {name}: "
+        dialog = ConfirmationDialog(self, text)
+        return dialog.exec_() == 1
+
+    def on_tab_bar_double_clicked(self, tab_index: int):
+        id_ = self.tab_wgt.widget(tab_index).id_
+        self.fileRenameRequested.emit(id_)
 
     def on_view_settings_changed(self, view_type: str, new_settings: dict):
         """ Update current ui view settings. """
@@ -556,132 +637,84 @@ class MainWindow(QMainWindow):
         for key, value in new_settings.items():
             switch[key]()
 
-    def on_settings_changed(self):
-        """ Update view when settings change. """
-        if self.current_view:
-            self.viewUpdateRequested.emit(self.current_view.id_)
-
-    def on_splitter_moved(self, pos, _):
+    def on_splitter_moved(self):
         """ Store current splitter position. """
         Settings.SPLIT = self.central_splitter.sizes()
 
-    def save_storage_to_fs(self) -> Path:
-        path, _ = QFileDialog.getSaveFileName(
-            parent=self,
-            caption="Save project",
-            filter=f"CFS (*{ParquetStorage.EXT})",
-            dir=Settings.SAVE_PATH,
+    def on_tree_button_checked(self, checked: bool):
+        """ Update view structure for a current view. """
+        Settings.TREE_VIEW = checked
+        if checked:
+            name = self.current_view.get_visual_names()[0]
+            Settings.TREE_NODE = name
+        else:
+            Settings.TREE_NODE = None
+        self.viewModelUpdateRequested.emit()
+
+    def on_units_changed(
+        self, energy: str, power: str, units_system: str, rate_to_energy: bool
+    ):
+        """ Update current view on units change. """
+        # custom units may have been previously disabled
+        self.toolbar.update_rate_to_energy(self.current_view.current_model.allow_rate_to_energy)
+        Settings.ENERGY_UNITS = energy
+        Settings.POWER_UNITS = power
+        Settings.UNITS_SYSTEM = units_system
+        Settings.RATE_TO_ENERGY = rate_to_energy
+        self.current_view.update_model(
+            rate_to_energy=rate_to_energy,
+            units_system=units_system,
+            energy_units=energy_units,
+            power_units=power_units,
         )
-        if path:
-            Settings.SAVE_PATH = str(Path(path).parent)
-            return Path(path)
 
-    def load_files_from_fs(self):
-        """ Select eso files from explorer and start processing. """
-        file_paths, _ = QFileDialog.getOpenFileNames(
-            parent=self,
-            caption="Load Project / Eso File",
-            filter="FILES (*.csv *.xlsx *.eso *.cfs)",
-            dir=Settings.LOAD_PATH,
-        )
-        if file_paths:
-            # store last path for future
-            Settings.LOAD_PATH = str(Path(file_paths[0]).parent)
-            self.fileProcessingRequested.emit(file_paths)
+    def update_buttons_state(self, allow_tree: bool, allow_rate_to_energy: bool):
+        """ Update toolbar buttons state. """
+        self.view_tools_wgt.tree_view_btn.setEnabled(allow_tree)
+        self.view_tools_wgt.expand_all_btn.setEnabled(allow_tree)
+        self.view_tools_wgt.collapse_all_btn.setEnabled(allow_tree)
+        self.toolbar.update_rate_to_energy(allow_rate_to_energy)
 
-    def on_tab_bar_double_clicked(self, tab_index: int):
-        view = self.tab_wgt.widget(tab_index)
-        self.fileRenameRequested.emit(tab_index, view.id_)
-
-    def confirm_rename_file(self, name: str, other_names: List[str]) -> Optional[str]:
-        """ Rename file on a tab identified by the given index. """
-        dialog = SingleInputDialog(
-            self,
-            title="Enter a new file name.",
-            input1_name="Name",
-            input1_text=name,
-            input1_blocker=other_names,
-        )
-        res = dialog.exec_()
-        if res == 1:
-            name = dialog.input1_text
-            index = self.tab_wgt.currentIndex()
-            self.tab_wgt.setTabText(index, name)
-            return name
-
-    def remove_variables(self):
-        """ Remove selected variables. """
-        variables = self.current_view.get_selected_variables()
-
-        if not variables:
-            return
-
-        all_ = self.toolbar.all_files_requested()
-        nm = self.tab_wgt.tabText(self.tab_wgt.currentIndex())
-
-        files = "all files" if all_ else f"file '{nm}'"
-        text = f"Delete following variables from {files}: "
-
-        inf_text = "\n".join([" | ".join(var[1:3]) for var in variables])
-        dialog = ConfirmationDialog(self, text, det_text=inf_text)
-
-        if dialog.exec_() == 1:
-            for v in self.all_views if all_ else [self.current_view]:
-                v.set_next_update_forced()
-            self.variableRemoveRequested.emit(self.current_view.id_, variables)
-
-    def confirm_rename_variable(
-        self, variable_name: str, key_name: str
-    ) -> Optional[Tuple[str, str]]:
-        """ Rename given variable. """
-        dialog = DoubleInputDialog(
-            self,
-            title="Rename variable:",
-            input1_name="Variable name",
-            input1_text=variable_name,
-            input2_name="Key name",
-            input2_text=key_name,
-        )
-        if dialog.exec_() == 1:
-            return dialog.input1_text, dialog.input2_text
-
-    def aggregate_variables(self, func):
-        """ Aggregate variables using given function. """
-        variables = self.current_view.get_selected_variables()
-
-        if not variables:
-            return
-
-        variable_name = "Custom Variable"
-        key_name = "Custom Key"
-
-        # let variable name be the same as all names are identical
-        if all(map(lambda x: x.variable == variables[0].variable, variables)):
-            variable_name = variables[0].variable
-        # let key name be the same as all names are identical
-        if all(map(lambda x: x.key == variables[0].key, variables)):
-            key_name = variables[0].key
-
-        dialog = DoubleInputDialog(
-            self,
-            title="Enter details of the new variable:",
-            input1_name="Variable name",
-            input1_text=variable_name,
-            input2_name="Key name",
-            input2_text=key_name,
-        )
-        res = dialog.exec()
-
-        if res == 1:
-            variable_name = dialog.input1_text
-            key_name = dialog.input2_text
-
-            for v in self.all_views if Settings.ALL_FILES else [self.current_view]:
-                v.set_next_update_forced()
-
-            self.variableAggregateRequested.emit(
-                self.current_view.id_, variables, variable_name, key_name, func
+    def on_table_change_requested(self, table_name: str):
+        """ Handle request to change current model. """
+        Settings.TABLE_NAME = table_name
+        new_model = self.current_view.models[table_name]
+        self.update_buttons_state(not new_model.is_simple, new_model.allow_rate_to_energy)
+        # simple view does not need to be updated when changing tables
+        if new_model.is_simple or Settings.TREE_NODE == new_model.tree_node:
+            self.current_view.set_model(
+                table_name,
+                energy_units=Settings.ENERGY_UNITS,
+                power_units=Settings.POWER_UNITS,
+                units_system=Settings.UNITS_SYSTEM,
+                rate_to_energy=Settings.RATE_TO_ENERGY,
             )
+        else:
+            # tree node has been changed on a non simple view
+            self.viewModelUpdateRequested.emit()
+
+    def on_tab_removed(self):
+        """ Update the interface when number of tabs changes. """
+        if self.tab_wgt.is_empty():
+            self.toolbar.set_initial_layout()
+        if self.tab_wgt.count() <= 1:
+            self.toolbar.all_files_btn.setEnabled(False)
+            self.close_all_act.setEnabled(False)
+
+    def on_current_tab_changed(self, index: int) -> None:
+        """ Update view when tabChanged event is fired. """
+        if index == -1:
+            Settings.CURRENT_FILE_ID = None
+            # there aren't any widgets available
+            self.remove_variables_act.setEnabled(False)
+            self.toolbar.set_initial_layout()
+        else:
+            Settings.CURRENT_FILE_ID = self.current_view.id_
+            if Settings.TABLE_NAME in self.current_view.models.keys():
+                # table change signal handles full view update
+                self.on_table_change_requested(Settings.TABLE_NAME)
+            else:
+                self.on_table_change_requested(previously_selected)
 
     def connect_ui_signals(self):
         """ Create actions which depend on user actions """
@@ -694,24 +727,26 @@ class MainWindow(QMainWindow):
         self.tree_act.triggered.connect(self.view_tools_wgt.tree_view_btn.toggle)
         self.collapse_all_act.triggered.connect(self.collapse_all)
         self.expand_all_act.triggered.connect(self.expand_all)
-        self.remove_variables_act.triggered.connect(self.remove_variables)
-        self.sum_variables_act.triggered.connect(partial(self.aggregate_variables, "sum"))
-        self.avg_variables_act.triggered.connect(partial(self.aggregate_variables, "mean"))
+        self.remove_variables_act.triggered.connect(self.variableRemoveRequested.emit)
+        self.sum_act.triggered.connect(partial(self.aggregationRequested.emit, "sum"))
+        self.avg_act.triggered.connect(partial(self.aggregationRequested.emit, "mean"))
 
         # ~~~~ View Signals ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.view_tools_wgt.textFiltered.connect(self.filter_treeview)
         self.view_tools_wgt.expandRequested.connect(self.expand_all)
         self.view_tools_wgt.collapseRequested.connect(self.collapse_all)
-        self.view_tools_wgt.structureChanged.connect(self.on_settings_changed)
+        self.view_tools_wgt.treeButtonChecked.connect(self.on_tree_button_checked)
 
         # ~~~~ Tab Signals ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.tab_wgt.tabClosed.connect(self.on_tab_closed)
+        self.tab_wgt.tabCloseRequested.connect(self.fileRemoveRequested.emit)
+        self.tab_wgt.tabRemoved.connect(self.on_tab_removed)
         self.tab_wgt.currentChanged.connect(self.on_current_tab_changed)
         self.tab_wgt.tabBarDoubleClicked.connect(self.on_tab_bar_double_clicked)
         self.tab_wgt.drop_btn.clicked.connect(self.load_files_from_fs)
 
         # ~~~~ Toolbar Signals ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.toolbar.settingsUpdated.connect(self.on_settings_changed)
-        self.toolbar.sum_btn.connect_action(self.sum_variables_act)
-        self.toolbar.mean_btn.connect_action(self.avg_variables_act)
+        self.toolbar.sum_btn.connect_action(self.sum_act)
+        self.toolbar.mean_btn.connect_action(self.avg_act)
         self.toolbar.remove_btn.connect_action(self.remove_variables_act)
+        self.toolbar.unitsChanged.triggered.connect(self.on_units_changed)
+        self.toolbar.tableChangeRequested.triggered.connect(self.on_table_change_requested)

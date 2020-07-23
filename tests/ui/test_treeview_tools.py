@@ -86,7 +86,7 @@ def test_toggle_tree_button(qtbot, view_tools):
             return checked
 
         callbacks = [test_tree_btn_toggled, None]
-        signals = [view_tools.tree_view_btn.toggled, view_tools.structureChanged]
+        signals = [view_tools.tree_view_btn.toggled, view_tools.structureChangeRequested]
         with qtbot.wait_signals(signals=signals, check_params_cbs=callbacks):
             qtbot.mouseClick(view_tools.tree_view_btn, Qt.LeftButton)
 

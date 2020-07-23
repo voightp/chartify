@@ -2,7 +2,7 @@ from typing import List, Union
 
 import pandas as pd
 from PySide2.QtCore import QObject
-from esofile_reader import Variable
+from esofile_reader import Variable, SimpleVariable
 from esofile_reader import get_results
 from esofile_reader.mini_classes import ResultsFile
 from esofile_reader.storages.pqt_storage import ParquetFile
@@ -45,8 +45,20 @@ class AppModel(QObject):
                     type=variable_data.type,
                     units=variable_data.units,
                 )
+                if variable_data.type is not None
+                else SimpleVariable(
+                    table=Settings.TABLE_NAME, key=variable_data.key, units=variable_data.units,
+                )
             )
         return variables
+
+    @property
+    def current_file(self) -> ResultsFile:
+        return self.get_file(Settings.CURRENT_FILE_ID)
+
+    @property
+    def current_table(self) -> ResultsFile:
+        return self.current_file.get_header_df(Settings.TABLE_NAME)
 
     def get_file(self, id_: int) -> ParquetFile:
         """ Get 'DatabaseFile for the given id. """

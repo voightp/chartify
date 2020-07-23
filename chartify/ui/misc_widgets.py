@@ -32,7 +32,7 @@ class TabWidget(QTabWidget):
         self.drop_btn.setText("Choose a file or drag it here!")
         layout.addWidget(self.drop_btn)
 
-        self.tabCloseRequested.connect(self.close_tab)
+        self.tabRemoved.connect(self.tab_removed)
 
     def is_empty(self) -> bool:
         """ Check if there's at least one loaded file. """
@@ -49,12 +49,9 @@ class TabWidget(QTabWidget):
             self.drop_btn.setVisible(False)
         self.addTab(wgt, title)
 
-    def close_tab(self, index: int) -> None:
-        wgt = self.widget(index)
-        self.removeTab(index)
+    def tab_removed(self) -> None:
         if self.is_empty():
             self.drop_btn.setVisible(True)
-        self.tabClosed.emit(wgt)
 
 
 class DropFrame(QFrame):
