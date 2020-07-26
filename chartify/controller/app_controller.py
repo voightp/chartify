@@ -69,8 +69,6 @@ class AppController:
 
     def tear_down(self) -> None:
         """ Clean up application resources. """
-        Settings.SIZE = self.v.size()
-        Settings.POSITION = self.v.pos()
         Settings.write_reg_settings()
 
         self.watcher.terminate()
@@ -123,7 +121,6 @@ class AppController:
     def on_save_as(self):
         path = self.v.save_storage_to_fs()
         if path:
-            Settings.SAVE_PATH = str(path.parent)
             self.m.storage.save_as(path.parent, path.stem)
 
     def on_view_model_update_requested(self) -> None:

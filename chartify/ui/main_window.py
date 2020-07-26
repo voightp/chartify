@@ -2,8 +2,9 @@ import contextlib
 import ctypes
 from functools import partial
 from pathlib import Path
-from typing import Optional, Tuple, List
+from typing import Optional, Tuple, List, Dict
 
+import pandas as pd
 from PySide2.QtCore import QSize, Qt, QCoreApplication, Signal
 from PySide2.QtGui import QIcon, QKeySequence, QColor
 from PySide2.QtWebEngineWidgets import QWebEngineView
@@ -33,8 +34,7 @@ from chartify.ui.dialogs import ConfirmationDialog, SingleInputDialog, DoubleInp
 from chartify.ui.misc_widgets import DropFrame, TabWidget
 from chartify.ui.progress_widget import ProgressContainer
 from chartify.ui.toolbar import Toolbar
-from chartify.ui.treeview import TreeView, SOURCE_UNITS
-from chartify.ui.treeview_tools import ViewTools
+from chartify.ui.treeview import TreeView, ViewModel, SOURCE_UNITS
 from chartify.utils.css_theme import Palette, CssTheme
 from chartify.utils.icon_painter import Pixmap, filled_circle_pixmap
 from chartify.utils.utils import VariableData
@@ -65,7 +65,7 @@ class MainWindow(QMainWindow):
     _CLOSE_FLAG = False
 
     def __init__(self):
-        super(MainWindow, self).__init__()
+        super().__init__()
         # ~~~~ Main Window setup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.setWindowTitle("chartify")
         self.setFocusPolicy(Qt.StrongFocus)
@@ -104,8 +104,68 @@ class MainWindow(QMainWindow):
         self.view_layout.addWidget(self.tab_wgt)
 
         # ~~~~ Left hand Tab Tools  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.view_tools_wgt = ViewTools(self.view_wgt)
-        self.view_layout.addWidget(self.view_tools_wgt)
+        self.view_tools = QFrame(self.view_wgt)
+        self.setObjectName("viewTools")
+        view_tools_layout = QHBoxLayout(self.view_tools)
+        view_tools_layout.setSpacing(6)
+        view_tools_layout.setContentsMargins(0, 0, 0, 0)
+
+        btn_widget = QWidget(self.view_tools)
+        btn_layout = QHBoxLayout(btn_widget)
+        btn_layout.setSpacing(0)
+        btn_layout.setContentsMargins(0, 0, 0, 0)
+
+        # ~~~~ Set up view buttons  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.tree_view_btn = QToolButton(self.view_tools)
+        self.tree_view_btn.setObjectName("treeButton")
+        self.tree_view_btn.setCheckable(True)
+        self.tree_view_btn.setChecked(Settings.TREE_VIEW)
+
+        self.collapse_all_btn = QToolButton(self.view_tools)
+        self.collapse_all_btn.setObjectName("collapseButton")
+        self.collapse_all_btn.setEnabled(Settings.TREE_VIEW)
+
+        self.expand_all_btn = QToolButton(self.view_tools)
+        self.expand_all_btn.setObjectName("expandButton")
+        self.expand_all_btn.setEnabled(Settings.TREE_VIEW)
+
+        self.filter_icon = QLabel(self.view_tools)
+        self.filter_icon.setObjectName("filterIcon")
+
+        btn_layout.addWidget(self.view_tools.expand_all_btn)
+        btn_layout.addWidget(self.view_tools.collapse_all_btn)
+        btn_layout.addWidget(self.view_tools.tree_view_btn)
+
+        # ~~~~ Line edit ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.variable_line_edit = QLineEdit(self.view_tools)
+        self.variable_line_edit.setPlaceholderText("type...")
+        self.variable_line_edit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.variable_line_edit.setFixedWidth(100)
+
+        self.key_line_edit = QLineEdit(self.view_tools)
+        self.key_line_edit.setPlaceholderText("key...")
+        self.key_line_edit.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self.key_line_edit.setFixedWidth(100)
+
+        self.units_line_edit = QLineEdit(self.view_tools)
+        self.units_line_edit.setPlaceholderText("units...")
+        self.units_line_edit.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self.units_line_edit.setFixedWidth(50)
+
+        spacer = QSpacerItem(1, 1, QSizePolicy.Expanding, QSizePolicy.Minimum)
+
+        view_tools_layout.addWidget(self.view_tools.filter_icon)
+        view_tools_layout.addWidget(self.view_tools.variable_line_edit)
+        view_tools_layout.addWidget(self.view_tools.key_line_edit)
+        view_tools_layout.addWidget(self.view_tools.units_line_edit)
+        view_tools_layout.addItem(spacer)
+        view_tools_layout.addWidget(btn_widget)
+        self.view_layout.addWidget(self.view_tools)
+
+        # ~~~~ Timer ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # Timer to delay firing of the 'text_edited' event
+        self.timer = QTimer()
+        self.timer.setSingleShot(True)
 
         # ~~~~ Right hand area ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.right_main_wgt = QWidget(self.central_splitter)
@@ -283,6 +343,8 @@ class MainWindow(QMainWindow):
         # and close app programmatically
         self.appCloseRequested.emit()
         if self._CLOSE_FLAG:
+            Settings.SIZE = self.v.size()
+            Settings.POSITION = self.v.pos()
             event.accept()
         else:
             event.ignore()
@@ -413,11 +475,6 @@ class MainWindow(QMainWindow):
         if not self.tab_wgt.is_empty():
             self.toolbar.totals_btn.setEnabled(True)
 
-    def filter_treeview(self, filter_tuple):
-        """ Filter current view. """
-        if not self.tab_wgt.is_empty():
-            self.current_view.filter_view(filter_tuple)
-
     def expand_all(self):
         """ Expand all tree view items. """
         if self.current_view:
@@ -436,7 +493,9 @@ class MainWindow(QMainWindow):
             dir=Settings.SAVE_PATH,
         )
         if path:
-            return Path(path)
+            path = Path(path)
+            Settings.SAVE_PATH = str(path.parent)
+            return path
 
     def load_files_from_fs(self):
         """ Select eso files from explorer and start processing. """
@@ -469,7 +528,7 @@ class MainWindow(QMainWindow):
         self.current_view.update_view_model_appearance(
             **self.view_settings[self.current_view.view_type]
         )
-        filter_tup = self.view_tools_wgt.get_filter_tuple()
+        filter_tup = self.view_tools.get_filter_tuple()
         if any(filter_tup) or filter_tup != self.current_view.model().filter_tuple:
             self.current_view.filter_view(filter_tup)
 
@@ -641,16 +700,6 @@ class MainWindow(QMainWindow):
         """ Store current splitter position. """
         Settings.SPLIT = self.central_splitter.sizes()
 
-    def on_tree_button_checked(self, checked: bool):
-        """ Update view structure for a current view. """
-        Settings.TREE_VIEW = checked
-        if checked:
-            name = self.current_view.get_visual_names()[0]
-            Settings.TREE_NODE = name
-        else:
-            Settings.TREE_NODE = None
-        self.viewModelUpdateRequested.emit()
-
     def on_units_changed(
         self, energy: str, power: str, units_system: str, rate_to_energy: bool
     ):
@@ -670,9 +719,9 @@ class MainWindow(QMainWindow):
 
     def update_buttons_state(self, allow_tree: bool, allow_rate_to_energy: bool):
         """ Update toolbar buttons state. """
-        self.view_tools_wgt.tree_view_btn.setEnabled(allow_tree)
-        self.view_tools_wgt.expand_all_btn.setEnabled(allow_tree)
-        self.view_tools_wgt.collapse_all_btn.setEnabled(allow_tree)
+        self.view_tools.tree_view_btn.setEnabled(allow_tree)
+        self.view_tools.expand_all_btn.setEnabled(allow_tree)
+        self.view_tools.collapse_all_btn.setEnabled(allow_tree)
         self.toolbar.update_rate_to_energy(allow_rate_to_energy)
 
     def on_table_change_requested(self, table_name: str):
@@ -693,7 +742,7 @@ class MainWindow(QMainWindow):
             # tree node has been changed on a non simple view
             self.viewModelUpdateRequested.emit()
 
-    def on_tab_removed(self):
+    def on_tab_closed(self):
         """ Update the interface when number of tabs changes. """
         if self.tab_wgt.is_empty():
             self.toolbar.set_initial_layout()
@@ -716,6 +765,34 @@ class MainWindow(QMainWindow):
             else:
                 self.on_table_change_requested(previously_selected)
 
+    def on_tree_btn_toggled(self, checked: bool):
+        """ Update view when view type is changed. """
+        Settings.TREE_VIEW = checked
+        self.tree_view_btn.setProperty("checked", checked)
+        if checked:
+            name = self.current_view.get_visual_names()[0]
+            Settings.TREE_NODE = name
+        else:
+            Settings.TREE_NODE = None
+        self.collapse_all_btn.setEnabled(checked)
+        self.expand_all_btn.setEnabled(checked)
+        self.viewModelUpdateRequested.emit()
+
+    def on_text_edited(self):
+        """ Delay firing a text edited event. """
+        self.timer.start(200)
+
+    def on_filter_timeout(self):
+        """ Apply a filter when the filter text is edited. """
+        if not self.tab_wgt.is_empty():
+            self.current_view.filter_view(
+                FilterTuple(
+                    key=self.key_line_edit.text(),
+                    type=self.variable_line_edit.text(),
+                    units=self.units_line_edit.text(),
+                )
+            )
+
     def connect_ui_signals(self):
         """ Create actions which depend on user actions """
         # ~~~~ Widget Signals ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -724,22 +801,16 @@ class MainWindow(QMainWindow):
 
         # ~~~~ Actions Signals ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.load_file_act.triggered.connect(self.load_files_from_fs)
-        self.tree_act.triggered.connect(self.view_tools_wgt.tree_view_btn.toggle)
+        self.tree_act.triggered.connect(self.view_tools.tree_view_btn.toggle)
         self.collapse_all_act.triggered.connect(self.collapse_all)
         self.expand_all_act.triggered.connect(self.expand_all)
         self.remove_variables_act.triggered.connect(self.variableRemoveRequested.emit)
         self.sum_act.triggered.connect(partial(self.aggregationRequested.emit, "sum"))
         self.avg_act.triggered.connect(partial(self.aggregationRequested.emit, "mean"))
 
-        # ~~~~ View Signals ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.view_tools_wgt.textFiltered.connect(self.filter_treeview)
-        self.view_tools_wgt.expandRequested.connect(self.expand_all)
-        self.view_tools_wgt.collapseRequested.connect(self.collapse_all)
-        self.view_tools_wgt.treeButtonChecked.connect(self.on_tree_button_checked)
-
         # ~~~~ Tab Signals ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.tab_wgt.tabCloseRequested.connect(self.fileRemoveRequested.emit)
-        self.tab_wgt.tabRemoved.connect(self.on_tab_removed)
+        self.tab_wgt.tabClosed.connect(self.on_tab_closed)
         self.tab_wgt.currentChanged.connect(self.on_current_tab_changed)
         self.tab_wgt.tabBarDoubleClicked.connect(self.on_tab_bar_double_clicked)
         self.tab_wgt.drop_btn.clicked.connect(self.load_files_from_fs)
@@ -750,3 +821,12 @@ class MainWindow(QMainWindow):
         self.toolbar.remove_btn.connect_action(self.remove_variables_act)
         self.toolbar.unitsChanged.triggered.connect(self.on_units_changed)
         self.toolbar.tableChangeRequested.triggered.connect(self.on_table_change_requested)
+
+        # ~~~~ Filter actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.variable_line_edit.textEdited.connect(self.on_text_edited)
+        self.key_line_edit.textEdited.connect(self.on_text_edited)
+        self.units_line_edit.textEdited.connect(self.on_text_edited)
+        self.tree_view_btn.toggled.connect(self.on_tree_btn_toggledon_)
+        self.timer.timeout.connect(self.on_filter_timeout)
+        self.expand_all_btn.clicked.connect(self.expand_all_act.trigger)
+        self.collapse_all_btn.clicked.connect(self.collapse_all_act.trigger)

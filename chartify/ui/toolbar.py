@@ -155,7 +155,6 @@ class Toolbar(QFrame):
                 act.setCheckable(True)
                 act.setData(text)
                 acts.append(act)
-
             def_act = next(act for act in acts if act.data() == default)
             def_act.setChecked(True)
             return acts, def_act
