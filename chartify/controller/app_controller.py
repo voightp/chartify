@@ -94,7 +94,7 @@ class AppController:
         self.v.close_all_act.triggered.connect(lambda x: x)
         self.v.save_act.triggered.connect(self.on_save)
         self.v.save_as_act.triggered.connect(self.on_save_as)
-        self.v.viewModelUpdateRequested.triggered.connect(self.on_view_model_update_requested)
+        self.v.viewModelUpdateRequested.connect(self.on_view_model_update_requested)
 
     def connect_model_signals(self) -> None:
         """ Create monitor signals. """
@@ -145,7 +145,7 @@ class AppController:
         """ Remove progress widget from ui. """
         self.v.progress_cont.remove_file(monitor_id)
 
-    def on_file_loaded(self, file: ParquetFile, models: Dict[int, ViewModel]) -> None:
+    def on_file_loaded(self, file: ParquetFile, models: Dict[str, ViewModel]) -> None:
         """ Add results file into 'tab' widget. """
         # make sure that file name is unique
         names = self.m.get_all_file_names()

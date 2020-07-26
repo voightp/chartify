@@ -92,7 +92,7 @@ class EsoFileWatcher(QThread):
                     is_simple = file.is_header_simple(table_name)
                     allow_rate_to_energy = file.can_convert_rate_to_energy(table_name)
                     models[table_name] = ViewModel(
-                        df, table_name, is_simple, allow_rate_to_energy
+                        table_name, df, is_simple, allow_rate_to_energy
                     )
                 self.file_loaded.emit(file, models)
 

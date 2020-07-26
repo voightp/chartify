@@ -61,6 +61,7 @@ class Settings:
         "CSS_PATH",
         "ICONS_PATH",
         "ICON_SMALL_SIZE",
+        "SETTINGS_PATH",
     ]
 
     @classmethod
@@ -79,9 +80,14 @@ class Settings:
     def load_settings_from_json(cls, path: Optional[str] = None):
         """ Load application settings from JSON file. """
         if not path:
-            path = cls.SETTINGS_PATH
+            if cls.SETTINGS_PATH.exists():
+                path = cls.SETTINGS_PATH
+            else:
+                path = Path(cls.ROOT, "resources", "default.json")
         with open(path, "r") as f:
-            return json.load(f)
+            settings = json.load(f)
+            for k, v in settings.items():
+                setattr(cls, k, v)
 
     @classmethod
     def save_settings_to_json(cls, path: Optional[str] = None):

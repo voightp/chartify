@@ -73,7 +73,7 @@ class ViewModel(QStandardItemModel):
         self.units_system = "SI"
         self.energy_units = "J"
         self.power_units = "W"
-        self.populate(header_df)
+        self.populate_model(header_df)
 
     def _append_row(
         self,
@@ -401,6 +401,7 @@ class TreeView(QTreeView):
         self.pressed.connect(self.on_pressed)
         self.doubleClicked.connect(self.on_double_clicked)
 
+        self.header().setStretchLastSection(False)
         self.header().setFirstSectionMovable(True)
         self.header().sectionMoved.connect(self.on_section_moved)
         self.header().sortIndicatorChanged.connect(self.on_sort_order_changed)
@@ -411,11 +412,11 @@ class TreeView(QTreeView):
         self.header().sectionResized.connect(self.on_view_resized)
 
     @property
-    def current_model(self):
+    def current_model(self) -> ViewModel:
         return self.proxy_model.sourceModel()
 
     @property
-    def proxy_model(self):
+    def proxy_model(self) -> FilterModel:
         return self.model()
 
     @property
@@ -586,7 +587,7 @@ class TreeView(QTreeView):
         tree_node: Optional[str] = None,
     ) -> None:
         """ Set tree viw model. """
-        if header_df:
+        if header_df is not None:
             self.current_model.populate_model(
                 header_df,
                 tree_node=tree_node,
@@ -727,17 +728,16 @@ class TreeView(QTreeView):
 
     def on_pressed(self) -> None:
         """ Handle pressing the view item or items. """
-        proxy_model = self.proxy_model
         proxy_rows = self.selectionModel().selectedRows()
-        rows = proxy_model.map_to_source_lst(proxy_rows)
+        rows = self.proxy_model.map_to_source_lst(proxy_rows)
 
         if proxy_rows:
             # handle a case in which expanded parent node is clicked
             # note that desired behaviour is to select all the children
             # unless any of the children is included in the multi selection
             for index in proxy_rows:
-                source_item = proxy_model.item_at_index(index)
-                source_index = proxy_model.mapToSource(index)
+                source_item = self.proxy_model.item_at_index(index)
+                source_index = self.proxy_model.mapToSource(index)
 
                 if source_item.hasChildren():
                     # select all the children if the item is expanded
@@ -753,7 +753,7 @@ class TreeView(QTreeView):
             # needs to be called again to get updated selection
             proxy_rows = self.selectionModel().selectedRows()
 
-            variables_data = [proxy_model.data_at_index(index) for index in proxy_rows]
+            variables_data = [self.proxy_model.data_at_index(index) for index in proxy_rows]
 
             if variables_data:
                 self.selectionPopulated.emit(variables_data)
@@ -762,14 +762,12 @@ class TreeView(QTreeView):
 
     def on_collapsed(self, index: QModelIndex) -> None:
         """ Deselect the row when node collapses."""
-        proxy_model = self.proxy_model
-        if proxy_model.hasChildren(index):
-            name = proxy_model.data(index)
+        if self.proxy_model.hasChildren(index):
+            name = self.proxy_model.data(index)
             self.viewAppearanceChanged.emit(self.view_type, {"collapsed": name})
 
     def on_expanded(self, index: QModelIndex) -> None:
         """ Deselect the row when node is expanded. """
-        proxy_model = self.proxy_model
-        if proxy_model.hasChildren(index):
-            name = proxy_model.data(index)
+        if self.proxy_model.hasChildren(index):
+            name = self.proxy_model.data(index)
             self.viewAppearanceChanged.emit(self.view_type, {"expanded": name})

@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Optional, Tuple, List, Dict
 
 import pandas as pd
-from PySide2.QtCore import QSize, Qt, QCoreApplication, Signal
+from PySide2.QtCore import QSize, Qt, QCoreApplication, Signal, QPoint, QTimer
 from PySide2.QtGui import QIcon, QKeySequence, QColor
 from PySide2.QtWebEngineWidgets import QWebEngineView
 from PySide2.QtWidgets import (
@@ -21,6 +21,9 @@ from PySide2.QtWidgets import (
     QMainWindow,
     QStatusBar,
     QMenu,
+    QLabel,
+    QLineEdit,
+    QSpacerItem,
 )
 from esofile_reader.base_file import VariableType
 from esofile_reader.constants import *
@@ -69,8 +72,8 @@ class MainWindow(QMainWindow):
         # ~~~~ Main Window setup ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.setWindowTitle("chartify")
         self.setFocusPolicy(Qt.StrongFocus)
-        self.resize(Settings.SIZE)
-        self.move(Settings.POSITION)
+        self.resize(QSize(*Settings.SIZE))
+        self.move(QPoint(*Settings.POSITION))
 
         # ~~~~ Main Window widgets ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.central_wgt = QWidget(self)
@@ -132,9 +135,9 @@ class MainWindow(QMainWindow):
         self.filter_icon = QLabel(self.view_tools)
         self.filter_icon.setObjectName("filterIcon")
 
-        btn_layout.addWidget(self.view_tools.expand_all_btn)
-        btn_layout.addWidget(self.view_tools.collapse_all_btn)
-        btn_layout.addWidget(self.view_tools.tree_view_btn)
+        btn_layout.addWidget(self.expand_all_btn)
+        btn_layout.addWidget(self.collapse_all_btn)
+        btn_layout.addWidget(self.tree_view_btn)
 
         # ~~~~ Line edit ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.variable_line_edit = QLineEdit(self.view_tools)
@@ -154,10 +157,10 @@ class MainWindow(QMainWindow):
 
         spacer = QSpacerItem(1, 1, QSizePolicy.Expanding, QSizePolicy.Minimum)
 
-        view_tools_layout.addWidget(self.view_tools.filter_icon)
-        view_tools_layout.addWidget(self.view_tools.variable_line_edit)
-        view_tools_layout.addWidget(self.view_tools.key_line_edit)
-        view_tools_layout.addWidget(self.view_tools.units_line_edit)
+        view_tools_layout.addWidget(self.filter_icon)
+        view_tools_layout.addWidget(self.variable_line_edit)
+        view_tools_layout.addWidget(self.key_line_edit)
+        view_tools_layout.addWidget(self.units_line_edit)
         view_tools_layout.addItem(spacer)
         view_tools_layout.addWidget(btn_widget)
         self.view_layout.addWidget(self.view_tools)
@@ -343,8 +346,8 @@ class MainWindow(QMainWindow):
         # and close app programmatically
         self.appCloseRequested.emit()
         if self._CLOSE_FLAG:
-            Settings.SIZE = self.v.size()
-            Settings.POSITION = self.v.pos()
+            Settings.SIZE = (self.width(), self.height())
+            Settings.POSITION = (self.x(), self.y())
             event.accept()
         else:
             event.ignore()
@@ -528,7 +531,7 @@ class MainWindow(QMainWindow):
         self.current_view.update_view_model_appearance(
             **self.view_settings[self.current_view.view_type]
         )
-        filter_tup = self.view_tools.get_filter_tuple()
+        filter_tup = self.get_filter_tuple()
         if any(filter_tup) or filter_tup != self.current_view.model().filter_tuple:
             self.current_view.filter_view(filter_tup)
 
@@ -719,9 +722,9 @@ class MainWindow(QMainWindow):
 
     def update_buttons_state(self, allow_tree: bool, allow_rate_to_energy: bool):
         """ Update toolbar buttons state. """
-        self.view_tools.tree_view_btn.setEnabled(allow_tree)
-        self.view_tools.expand_all_btn.setEnabled(allow_tree)
-        self.view_tools.collapse_all_btn.setEnabled(allow_tree)
+        self.tree_view_btn.setEnabled(allow_tree)
+        self.expand_all_btn.setEnabled(allow_tree)
+        self.collapse_all_btn.setEnabled(allow_tree)
         self.toolbar.update_rate_to_energy(allow_rate_to_energy)
 
     def on_table_change_requested(self, table_name: str):
@@ -738,6 +741,9 @@ class MainWindow(QMainWindow):
                 units_system=Settings.UNITS_SYSTEM,
                 rate_to_energy=Settings.RATE_TO_ENERGY,
             )
+            self.current_view.update_view_model_appearance(
+                **self.view_settings[self.current_view.view_type]
+            )
         else:
             # tree node has been changed on a non simple view
             self.viewModelUpdateRequested.emit()
@@ -750,7 +756,7 @@ class MainWindow(QMainWindow):
             self.toolbar.all_files_btn.setEnabled(False)
             self.close_all_act.setEnabled(False)
 
-    def on_current_tab_changed(self, index: int) -> None:
+    def on_tab_changed(self, index: int) -> None:
         """ Update view when tabChanged event is fired. """
         if index == -1:
             Settings.CURRENT_FILE_ID = None
@@ -763,7 +769,12 @@ class MainWindow(QMainWindow):
                 # table change signal handles full view update
                 self.on_table_change_requested(Settings.TABLE_NAME)
             else:
-                self.on_table_change_requested(previously_selected)
+                if self.current_view.current_model is None:
+                    # fresh view, source model has not been set yet
+                    table_name = list(self.current_view.models.keys())[0]
+                else:
+                    table_name = self.current_view.current_model.name
+                self.on_table_change_requested(table_name)
 
     def on_tree_btn_toggled(self, checked: bool):
         """ Update view when view type is changed. """
@@ -801,7 +812,7 @@ class MainWindow(QMainWindow):
 
         # ~~~~ Actions Signals ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.load_file_act.triggered.connect(self.load_files_from_fs)
-        self.tree_act.triggered.connect(self.view_tools.tree_view_btn.toggle)
+        self.tree_act.triggered.connect(self.tree_view_btn.toggle)
         self.collapse_all_act.triggered.connect(self.collapse_all)
         self.expand_all_act.triggered.connect(self.expand_all)
         self.remove_variables_act.triggered.connect(self.variableRemoveRequested.emit)
@@ -811,7 +822,7 @@ class MainWindow(QMainWindow):
         # ~~~~ Tab Signals ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.tab_wgt.tabCloseRequested.connect(self.fileRemoveRequested.emit)
         self.tab_wgt.tabClosed.connect(self.on_tab_closed)
-        self.tab_wgt.currentChanged.connect(self.on_current_tab_changed)
+        self.tab_wgt.currentChanged.connect(self.on_tab_changed)
         self.tab_wgt.tabBarDoubleClicked.connect(self.on_tab_bar_double_clicked)
         self.tab_wgt.drop_btn.clicked.connect(self.load_files_from_fs)
 
@@ -819,14 +830,14 @@ class MainWindow(QMainWindow):
         self.toolbar.sum_btn.connect_action(self.sum_act)
         self.toolbar.mean_btn.connect_action(self.avg_act)
         self.toolbar.remove_btn.connect_action(self.remove_variables_act)
-        self.toolbar.unitsChanged.triggered.connect(self.on_units_changed)
-        self.toolbar.tableChangeRequested.triggered.connect(self.on_table_change_requested)
+        self.toolbar.unitsChanged.connect(self.on_units_changed)
+        self.toolbar.tableChangeRequested.connect(self.on_table_change_requested)
 
         # ~~~~ Filter actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.variable_line_edit.textEdited.connect(self.on_text_edited)
         self.key_line_edit.textEdited.connect(self.on_text_edited)
         self.units_line_edit.textEdited.connect(self.on_text_edited)
-        self.tree_view_btn.toggled.connect(self.on_tree_btn_toggledon_)
+        self.tree_view_btn.toggled.connect(self.on_tree_btn_toggled)
         self.timer.timeout.connect(self.on_filter_timeout)
         self.expand_all_btn.clicked.connect(self.expand_all_act.trigger)
         self.collapse_all_btn.clicked.connect(self.collapse_all_act.trigger)

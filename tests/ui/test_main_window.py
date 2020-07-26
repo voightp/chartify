@@ -4,6 +4,7 @@ import pytest
 from PySide2.QtCore import QMargins, Qt, QSize, QPoint
 from PySide2.QtWidgets import QSizePolicy
 
+from chartify.settings import Settings
 from chartify.ui.main_window import MainWindow
 from chartify.utils.utils import FilterTuple
 
@@ -22,18 +23,22 @@ def mocked_main_window(toolbar_mock, main_mock):
 
 
 @pytest.fixture
-def main_window(qtbot):
-    main_window = mocked_main_window()
+def main_window(qtbot, tmp_path):
+    Settings.load_settings_from_json()
+    Settings.SETTINGS_PATH = tmp_path
+    main_window = MainWindow()
     main_window.show()
     qtbot.add_widget(main_window)
     return main_window
 
 
-def test_init_main_window(main_window):
-    assert main_window.windowTitle("chartify")
+def test_init_main_window(qtbot, main_window):
+    assert main_window.windowTitle() == "chartify"
     assert main_window.focusPolicy() == Qt.StrongFocus
+    breakpoint()
+    print(Settings.as_str())
     assert main_window.size() == QSize(800, 600)
-    assert main_window.pos() == QPoint(150, 100)
+    assert main_window.pos() == QPoint(100, 100)
 
     assert main_window.centralWidget() == main_window.central_wgt
     assert main_window.central_layout.itemAt(0).widget() == main_window.central_splitter
