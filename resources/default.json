@@ -1,0 +1,22 @@
+{
+  "ALL_FILES": false,
+  "CURRENT_FILE_ID": null,
+  "CUSTOM_UNITS": true,
+  "ENERGY_UNITS": "kWh",
+  "IP_ENERGY_UNITS": [ "Btu", "kBtu", "MBtu" ],
+  "IP_POWER_UNITS": [ "Btu/h", "kBtu/h", "MBtu/h", "W" ],
+  "LOAD_PATH": "",
+  "MIRRORED": false,
+  "PALETTE_NAME": "default",
+  "POSITION": [ 50, 50 ],
+  "POWER_UNITS": "kW",
+  "RATE_TO_ENERGY": false,
+  "SAVE_PATH": "",
+  "SIZE": [ 800, 600 ],
+  "SI_ENERGY_UNITS": [ "Wh", "kWh", "MWh", "J", "MJ", "GJ" ],
+  "SI_POWER_UNITS": [ "W", "kW", "MW" ],
+  "SPLIT": [ 524, 400 ],
+  "TOTALS": false,
+  "TREE_VIEW": true,
+  "UNITS_SYSTEM": "SI"
+}

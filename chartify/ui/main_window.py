@@ -452,7 +452,7 @@ class MainWindow(QMainWindow):
         Settings.MIRRORED = not Settings.MIRRORED
         Settings.SPLIT = self.central_splitter.sizes()
 
-    def add_new_tab(self, id_: int, name: str, models: Dict[int, ViewModel]):
+    def add_new_tab(self, id_: int, name: str, models: Dict[str, ViewModel]):
         """ Add file on the UI. """
         # create an empty 'View' widget - the data will be
         # automatically populated on 'onTabChanged' signal

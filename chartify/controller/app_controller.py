@@ -69,7 +69,7 @@ class AppController:
 
     def tear_down(self) -> None:
         """ Clean up application resources. """
-        Settings.write_reg_settings()
+        Settings.save_settings_to_json()
 
         self.watcher.terminate()
         self.monitor.terminate()
