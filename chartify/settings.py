@@ -25,6 +25,8 @@ class Settings:
     SI_POWER_UNITS = ["W", "kW", "MW"]
 
     ICON_SMALL_SIZE = QSize(20, 20)
+    ICON_MEDIUM_SIZE = QSize(40, 40)
+    ICON_LARGE_SIZE = QSize(60, 60)
 
     PALETTE = None
 
@@ -61,6 +63,8 @@ class Settings:
         "CSS_PATH",
         "ICONS_PATH",
         "ICON_SMALL_SIZE",
+        "ICON_MEDIUM_SIZE",
+        "ICON_LARGE_SIZE",
         "SETTINGS_PATH",
     ]
 

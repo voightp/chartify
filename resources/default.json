@@ -11,10 +11,10 @@
   "POWER_UNITS": "kW",
   "RATE_TO_ENERGY": false,
   "SAVE_PATH": "",
-  "SIZE": [ 800, 600 ],
+  "SIZE": [ 1200, 800 ],
   "SI_ENERGY_UNITS": [ "Wh", "kWh", "MWh", "J", "MJ", "GJ" ],
   "SI_POWER_UNITS": [ "W", "kW", "MW" ],
-  "SPLIT": [ 524, 400 ],
+  "SPLIT": [ 540, 654 ],
   "TOTALS": false,
   "TREE_VIEW": true,
   "UNITS_SYSTEM": "SI"

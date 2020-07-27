@@ -69,7 +69,8 @@ class AppController:
 
     def tear_down(self) -> None:
         """ Clean up application resources. """
-        Settings.save_settings_to_json()
+        # TODO enable once main window polished
+        # Settings.save_settings_to_json()
 
         self.watcher.terminate()
         self.monitor.terminate()

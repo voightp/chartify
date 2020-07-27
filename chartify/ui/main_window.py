@@ -140,10 +140,10 @@ class MainWindow(QMainWindow):
         btn_layout.addWidget(self.tree_view_btn)
 
         # ~~~~ Line edit ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.variable_line_edit = QLineEdit(self.view_tools)
-        self.variable_line_edit.setPlaceholderText("type...")
-        self.variable_line_edit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        self.variable_line_edit.setFixedWidth(100)
+        self.type_line_edit = QLineEdit(self.view_tools)
+        self.type_line_edit.setPlaceholderText("type...")
+        self.type_line_edit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.type_line_edit.setFixedWidth(100)
 
         self.key_line_edit = QLineEdit(self.view_tools)
         self.key_line_edit.setPlaceholderText("key...")
@@ -158,7 +158,7 @@ class MainWindow(QMainWindow):
         spacer = QSpacerItem(1, 1, QSizePolicy.Expanding, QSizePolicy.Minimum)
 
         view_tools_layout.addWidget(self.filter_icon)
-        view_tools_layout.addWidget(self.variable_line_edit)
+        view_tools_layout.addWidget(self.type_line_edit)
         view_tools_layout.addWidget(self.key_line_edit)
         view_tools_layout.addWidget(self.units_line_edit)
         view_tools_layout.addItem(spacer)
@@ -208,7 +208,7 @@ class MainWindow(QMainWindow):
             c2 = QColor(*colors.get_color("BACKGROUND_COLOR", as_tuple=True))
             act.setIcon(
                 filled_circle_pixmap(
-                    QSize(60, 60), c1, c2=c2, border_color=QColor(255, 255, 255)
+                    Settings.ICON_LARGE_SIZE, c1, c2=c2, border_color=QColor(255, 255, 255)
                 )
             )
             actions.append(act)
@@ -278,13 +278,15 @@ class MainWindow(QMainWindow):
         self.remove_variables_act.setEnabled(False)
 
         self.load_file_btn = MenuButton("Load file | files", self)
+        self.load_file_btn.setObjectName("fileButton")
         self.load_file_btn.setIconSize(Settings.ICON_SMALL_SIZE)
         menu = QMenu(self)
         menu.setWindowFlags(menu.windowFlags() | Qt.NoDropShadowWindowHint)
         menu.addActions([self.load_file_act, self.close_all_act])
         self.load_file_btn.setMenu(menu)
 
-        self.save_btn = MenuButton("Tools", self)
+        self.save_btn = MenuButton("Save", self)
+        self.save_btn.setObjectName("saveButton")
         self.save_btn.setIconSize(Settings.ICON_SMALL_SIZE)
         menu = QMenu(self)
         menu.setWindowFlags(menu.windowFlags() | Qt.NoDropShadowWindowHint)
@@ -292,11 +294,12 @@ class MainWindow(QMainWindow):
         self.save_btn.setMenu(menu)
 
         self.about_btn = MenuButton("About", self)
-        self.about_btn.setIconSize(Settings.ICON_SMALL_SIZE)
-
-        self.load_file_btn.setObjectName("fileButton")
-        self.save_btn.setObjectName("saveButton")
         self.about_btn.setObjectName("aboutButton")
+        self.about_btn.setIconSize(Settings.ICON_SMALL_SIZE)
+        menu = QMenu(self)
+        menu.setWindowFlags(menu.windowFlags() | Qt.NoDropShadowWindowHint)
+        menu.addActions([])
+        self.about_btn.setMenu(menu)
 
         self.mini_menu_layout.addWidget(self.load_file_btn)
         self.mini_menu_layout.addWidget(self.save_btn)
@@ -306,9 +309,8 @@ class MainWindow(QMainWindow):
         self.set_up_base_ui()
 
         # ~~~~ Set up app appearance ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.css = ""
+        self.css = self.load_css()
         self.load_icons()
-        self.load_css()
 
         # ~~~~ Tree view appearance ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.view_settings = {
@@ -436,17 +438,17 @@ class MainWindow(QMainWindow):
         self.main_chart_layout.setContentsMargins(0, 0, 0, 0)
         self.main_chart_widget.setMinimumWidth(600)
 
-        # split values are stored as strings in registry
-        self.central_splitter.setSizes([int(s) for s in Settings.SPLIT])
+        self.central_splitter.setSizes(Settings.SPLIT)
 
-    def load_css(self) -> None:
+    def load_css(self) -> CssTheme:
         """ Update application appearance. """
-        self.css = CssTheme(Settings.CSS_PATH)
-        self.css.populate_content(Settings.PALETTE)
+        css = CssTheme(Settings.CSS_PATH)
+        css.populate_content(Settings.PALETTE)
 
         # css needs to be cleared to repaint the window properly
         self.setStyleSheet("")
-        self.setStyleSheet(self.css.content)
+        self.setStyleSheet(css.content)
+        return css
 
     def mirror_layout(self):
         """ Mirror the layout. """
@@ -547,7 +549,7 @@ class MainWindow(QMainWindow):
         if name != Settings.PALETTE_NAME:
             Settings.PALETTE = self.palettes[name]
             Settings.PALETTE_NAME = name
-            self.load_css()
+            self.css = self.load_css()
             self.load_icons()
             self.paletteUpdated.emit()
 
@@ -765,6 +767,8 @@ class MainWindow(QMainWindow):
             self.toolbar.set_initial_layout()
         else:
             Settings.CURRENT_FILE_ID = self.current_view.id_
+            # TODO update toolbar, generilze methods to update
+            self.toolbar.update_table_buttons()
             if Settings.TABLE_NAME in self.current_view.models.keys():
                 # table change signal handles full view update
                 self.on_table_change_requested(Settings.TABLE_NAME)
@@ -799,7 +803,7 @@ class MainWindow(QMainWindow):
             self.current_view.filter_view(
                 FilterTuple(
                     key=self.key_line_edit.text(),
-                    type=self.variable_line_edit.text(),
+                    type=self.type_line_edit.text(),
                     units=self.units_line_edit.text(),
                 )
             )
@@ -834,7 +838,7 @@ class MainWindow(QMainWindow):
         self.toolbar.tableChangeRequested.connect(self.on_table_change_requested)
 
         # ~~~~ Filter actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.variable_line_edit.textEdited.connect(self.on_text_edited)
+        self.type_line_edit.textEdited.connect(self.on_text_edited)
         self.key_line_edit.textEdited.connect(self.on_text_edited)
         self.units_line_edit.textEdited.connect(self.on_text_edited)
         self.tree_view_btn.toggled.connect(self.on_tree_btn_toggled)
