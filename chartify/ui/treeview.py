@@ -687,10 +687,8 @@ class TreeView(QTreeView):
         """ Select all children of the parent row. """
         first_ix = source_index.child(0, 0)
         last_ix = source_index.child((source_item.rowCount() - 1), 0)
-
         selection = QItemSelection(first_ix, last_ix)
         proxy_selection = self.proxy_model.mapSelectionFromSource(selection)
-
         self._select_items(proxy_selection)
 
     def deselect_all_variables(self) -> None:
@@ -702,13 +700,10 @@ class TreeView(QTreeView):
         """ Select rows with containing given variable data. """
         # Find matching items and select items on a new model
         proxy_selection = self.proxy_model.find_match(variables)
-
         # select items in view
         self._select_items(proxy_selection)
-
         proxy_rows = proxy_selection.indexes()
         variables_data = [self.proxy_model.data_at_index(index) for index in proxy_rows]
-
         if variables_data:
             self.selectionPopulated.emit(variables_data)
         else:
@@ -730,7 +725,6 @@ class TreeView(QTreeView):
         """ Handle pressing the view item or items. """
         proxy_rows = self.selectionModel().selectedRows()
         rows = self.proxy_model.map_to_source_lst(proxy_rows)
-
         if proxy_rows:
             # handle a case in which expanded parent node is clicked
             # note that desired behaviour is to select all the children
@@ -738,23 +732,18 @@ class TreeView(QTreeView):
             for index in proxy_rows:
                 source_item = self.proxy_model.item_at_index(index)
                 source_index = self.proxy_model.mapToSource(index)
-
                 if source_item.hasChildren():
                     # select all the children if the item is expanded
                     # and none of the children has been already selected
                     cond = any(map(lambda x: x.parent() == source_index, rows))
                     if self.isExpanded(index) and not cond:
                         self._select_children(source_item, source_index)
-
                     # deselect all the parent nodes as these should not be
                     # included in output variable data
                     self._deselect_item(index)
-
             # needs to be called again to get updated selection
             proxy_rows = self.selectionModel().selectedRows()
-
             variables_data = [self.proxy_model.data_at_index(index) for index in proxy_rows]
-
             if variables_data:
                 self.selectionPopulated.emit(variables_data)
             else:

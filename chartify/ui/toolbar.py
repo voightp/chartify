@@ -120,7 +120,6 @@ class Toolbar(QFrame):
         """ Populate given group with given widgets. """
         # remove all children of the interface
         self.clear_group(group)
-
         if hide_disabled:
             enabled = []
             for wgt in widgets:
@@ -130,10 +129,8 @@ class Toolbar(QFrame):
                     wgt.show()
                     enabled.append(wgt)
             widgets = enabled
-
         n_rows = (len(widgets) if len(widgets) % 2 == 0 else len(widgets) + 1) // n_cols
         ixs = [(x, y) for x in range(n_rows) for y in range(n_cols)]
-
         for btn, ix in zip(widgets, ixs):
             group.layout().addWidget(btn, *ix)
 
@@ -226,12 +223,12 @@ class Toolbar(QFrame):
 
     def update_table_buttons(self, table_names: List[str], selected: str):
         """ Populate table group with current table names. """
+        self.table_buttons.clear()
         for table in table_names:
             btn = QToolButton(self.table_group)
             btn.setText(table)
             btn.setCheckable(True)
             btn.setAutoExclusive(True)
-            btn.setEnabled(False)
             btn.clicked.connect(self.table_changed)
             if table == selected:
                 btn.setChecked(True)

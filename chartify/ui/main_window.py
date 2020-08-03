@@ -56,6 +56,7 @@ class MainWindow(QMainWindow):
     tabChanged = Signal(int)
     treeNodeUpdated = Signal(str)
     viewModelUpdateRequested = Signal()
+    fileChanged = Signal()
     selectionChanged = Signal(list)
     fileProcessingRequested = Signal(list)
     fileRenameRequested = Signal(int)
@@ -78,6 +79,8 @@ class MainWindow(QMainWindow):
         # ~~~~ Main Window widgets ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.central_wgt = QWidget(self)
         self.central_layout = QHBoxLayout(self.central_wgt)
+        self.central_layout.setSpacing(0)
+        self.central_layout.setContentsMargins(0, 0, 0, 0)
         self.setCentralWidget(self.central_wgt)
         self.central_splitter = QSplitter(self.central_wgt)
         self.central_splitter.setOrientation(Qt.Horizontal)
@@ -87,6 +90,12 @@ class MainWindow(QMainWindow):
         self.left_main_wgt = DropFrame(self.central_splitter)
         self.left_main_wgt.setObjectName("leftMainWgt")
         self.left_main_layout = QHBoxLayout(self.left_main_wgt)
+        left_side_policy = QSizePolicy()
+        left_side_policy.setHorizontalPolicy(QSizePolicy.Minimum)
+        left_side_policy.setHorizontalStretch(0)
+        self.left_main_wgt.setSizePolicy(left_side_policy)
+        self.left_main_layout.setSpacing(2)
+        self.left_main_layout.setContentsMargins(0, 0, 0, 0)
         self.central_splitter.addWidget(self.left_main_wgt)
 
         # ~~~~ Left hand Tools Widget ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -97,6 +106,8 @@ class MainWindow(QMainWindow):
         self.view_wgt = QFrame(self.left_main_wgt)
         self.view_wgt.setObjectName("viewWidget")
         self.view_layout = QVBoxLayout(self.view_wgt)
+        self.view_layout.setContentsMargins(0, 0, 0, 0)
+        self.view_layout.setSpacing(0)
         if Settings.MIRRORED:
             self.left_main_layout.insertWidget(0, self.view_wgt)
         else:
@@ -104,6 +115,7 @@ class MainWindow(QMainWindow):
 
         # ~~~~ Left hand Tab widget  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.tab_wgt = TabWidget(self.view_wgt)
+        self.tab_wgt.setMinimumWidth(400)
         self.view_layout.addWidget(self.tab_wgt)
 
         # ~~~~ Left hand Tab Tools  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -172,7 +184,13 @@ class MainWindow(QMainWindow):
 
         # ~~~~ Right hand area ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.right_main_wgt = QWidget(self.central_splitter)
+        right_side_policy = QSizePolicy()
+        right_side_policy.setHorizontalPolicy(QSizePolicy.Expanding)
+        right_side_policy.setHorizontalStretch(1)
+        self.right_main_wgt.setSizePolicy(right_side_policy)
         self.right_main_layout = QHBoxLayout(self.right_main_wgt)
+        self.right_main_layout.setSpacing(0)
+        self.right_main_layout.setContentsMargins(0, 0, 0, 0)
         if Settings.MIRRORED:
             self.central_splitter.insertWidget(0, self.right_main_wgt)
         else:
@@ -181,6 +199,8 @@ class MainWindow(QMainWindow):
         # ~~~~ Right hand Chart Area ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.main_chart_widget = QFrame(self.right_main_wgt)
         self.main_chart_layout = QHBoxLayout(self.main_chart_widget)
+        self.main_chart_layout.setContentsMargins(0, 0, 0, 0)
+        self.main_chart_widget.setMinimumWidth(600)
         self.right_main_layout.addWidget(self.main_chart_widget)
 
         self.web_view = QWebEngineView(self)
@@ -305,12 +325,10 @@ class MainWindow(QMainWindow):
         self.mini_menu_layout.addWidget(self.save_btn)
         self.mini_menu_layout.addWidget(self.about_btn)
 
-        # ~~~~ Set up main widgets and layouts ~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.set_up_base_ui()
-
         # ~~~~ Set up app appearance ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.css = self.load_css()
         self.load_icons()
+        self.central_splitter.setSizes(Settings.SPLIT)
 
         # ~~~~ Tree view appearance ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.view_settings = {
@@ -409,37 +427,6 @@ class MainWindow(QMainWindow):
             Pixmap(Path(r, "remove.png"), *c1), Pixmap(Path(r, "remove.png"), *c1, a=0.5)
         )
 
-    def set_up_base_ui(self):
-        """ Set up appearance of main widgets. """
-        self.central_layout.setSpacing(0)
-        self.central_layout.setContentsMargins(0, 0, 0, 0)
-
-        # ~~~~ Main left side ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        left_side_policy = QSizePolicy()
-        left_side_policy.setHorizontalPolicy(QSizePolicy.Minimum)
-        left_side_policy.setHorizontalStretch(0)
-        self.left_main_wgt.setSizePolicy(left_side_policy)
-        self.left_main_layout.setSpacing(2)
-        self.left_main_layout.setContentsMargins(0, 0, 0, 0)
-
-        self.tab_wgt.setMinimumWidth(400)
-
-        self.view_layout.setContentsMargins(0, 0, 0, 0)
-        self.view_layout.setSpacing(0)
-
-        # ~~~~ Main right side ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        right_side_policy = QSizePolicy()
-        right_side_policy.setHorizontalPolicy(QSizePolicy.Expanding)
-        right_side_policy.setHorizontalStretch(1)
-        self.right_main_wgt.setSizePolicy(right_side_policy)
-        self.right_main_layout.setSpacing(0)
-        self.right_main_layout.setContentsMargins(0, 0, 0, 0)
-
-        self.main_chart_layout.setContentsMargins(0, 0, 0, 0)
-        self.main_chart_widget.setMinimumWidth(600)
-
-        self.central_splitter.setSizes(Settings.SPLIT)
-
     def load_css(self) -> CssTheme:
         """ Update application appearance. """
         css = CssTheme(Settings.CSS_PATH)
@@ -482,12 +469,12 @@ class MainWindow(QMainWindow):
 
     def expand_all(self):
         """ Expand all tree view items. """
-        if self.current_view:
+        if not self.tab_wgt.is_empty():
             self.current_view.expandAll()
 
     def collapse_all(self):
         """ Collapse all tree view items. """
-        if self.current_view:
+        if not self.tab_wgt.is_empty():
             self.current_view.collapseAll()
 
     def save_storage_to_fs(self) -> Path:
@@ -514,6 +501,14 @@ class MainWindow(QMainWindow):
             Settings.LOAD_PATH = str(Path(file_paths[0]).parent)
             self.fileProcessingRequested.emit(file_paths)
 
+    def get_filter_tuple(self):
+        """ Retrieve filter inputs from ui. """
+        return FilterTuple(
+            key=self.key_line_edit.text(),
+            type=self.type_line_edit.text(),
+            units=self.units_line_edit.text(),
+        )
+
     def update_view_model(
         self,
         header_df: pd.DataFrame,
@@ -533,9 +528,9 @@ class MainWindow(QMainWindow):
         self.current_view.update_view_model_appearance(
             **self.view_settings[self.current_view.view_type]
         )
-        filter_tup = self.get_filter_tuple()
-        if any(filter_tup) or filter_tup != self.current_view.model().filter_tuple:
-            self.current_view.filter_view(filter_tup)
+        filter_tuple = self.get_filter_tuple()
+        if any(filter_tuple) and filter_tuple != self.current_view.model().filter_tuple:
+            self.current_view.filter_view(filter_tuple)
 
         # clear selections to avoid having selected items from previous selection
         self.current_view.deselect_all_variables()
@@ -709,8 +704,6 @@ class MainWindow(QMainWindow):
         self, energy: str, power: str, units_system: str, rate_to_energy: bool
     ):
         """ Update current view on units change. """
-        # custom units may have been previously disabled
-        self.toolbar.update_rate_to_energy(self.current_view.current_model.allow_rate_to_energy)
         Settings.ENERGY_UNITS = energy
         Settings.POWER_UNITS = power
         Settings.UNITS_SYSTEM = units_system
@@ -721,6 +714,8 @@ class MainWindow(QMainWindow):
             energy_units=energy_units,
             power_units=power_units,
         )
+        # custom units may have been previously disabled
+        self.toolbar.update_rate_to_energy(self.current_view.current_model.allow_rate_to_energy)
 
     def update_buttons_state(self, allow_tree: bool, allow_rate_to_energy: bool):
         """ Update toolbar buttons state. """
@@ -767,18 +762,7 @@ class MainWindow(QMainWindow):
             self.toolbar.set_initial_layout()
         else:
             Settings.CURRENT_FILE_ID = self.current_view.id_
-            # TODO update toolbar, generilze methods to update
-            self.toolbar.update_table_buttons()
-            if Settings.TABLE_NAME in self.current_view.models.keys():
-                # table change signal handles full view update
-                self.on_table_change_requested(Settings.TABLE_NAME)
-            else:
-                if self.current_view.current_model is None:
-                    # fresh view, source model has not been set yet
-                    table_name = list(self.current_view.models.keys())[0]
-                else:
-                    table_name = self.current_view.current_model.name
-                self.on_table_change_requested(table_name)
+            self.fileChanged.emit()
 
     def on_tree_btn_toggled(self, checked: bool):
         """ Update view when view type is changed. """
@@ -800,13 +784,8 @@ class MainWindow(QMainWindow):
     def on_filter_timeout(self):
         """ Apply a filter when the filter text is edited. """
         if not self.tab_wgt.is_empty():
-            self.current_view.filter_view(
-                FilterTuple(
-                    key=self.key_line_edit.text(),
-                    type=self.type_line_edit.text(),
-                    units=self.units_line_edit.text(),
-                )
-            )
+            filter_tuple = self.get_filter_tuple()
+            self.current_view.filter_view(filter_tuple)
 
     def connect_ui_signals(self):
         """ Create actions which depend on user actions """

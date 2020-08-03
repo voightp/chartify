@@ -85,6 +85,7 @@ class AppController:
         """ Connect view signals. """
         self.v.paletteUpdated.connect(self.wvc.refresh_layout)
         self.v.selectionChanged.connect(self.on_selection_change)
+        self.v.fileChanged.connect(self.on_file_changed)
         self.v.fileProcessingRequested.connect(self.on_file_processing_requested)
         self.v.fileRenameRequested.connect(self.on_file_rename_requested)
         self.v.variableRenameRequested.connect(self.on_variable_rename_requested)
@@ -124,6 +125,19 @@ class AppController:
         if path:
             self.m.storage.save_as(path.parent, path.stem)
 
+    def on_file_changed(self):
+        table_names = self.m.current_file.table_names
+        if Settings.TABLE_NAME in table_names:
+            table_name = Settings.TABLE_NAME
+        else:
+            if self.v.current_view.current_model is None:
+                # fresh view, source model has not been set yet
+                table_name = table_names[0]
+            else:
+                table_name = self.v.current_view.current_model.name
+        self.v.toolbar.update_table_buttons(table_names=table_names, selected=table_name)
+        self.v.on_table_change_requested(table_name)
+
     def on_view_model_update_requested(self) -> None:
         """ Update content of a newly selected tab. """
         self.v.update_view_model(self.m.current_table)
@@ -159,7 +173,7 @@ class AppController:
         # add new tab into tab widget
         self.v.add_new_tab(file.id_, name, models)
 
-    def _apply_async(self, id_: int, func: Callable, *args, **kwargs) -> Any:
+    def apply_async(self, id_: int, func: Callable, *args, **kwargs) -> Any:
         """ A wrapper to apply functions to current views. """
         file = self.m.get_file(id_)
         # apply function on the current file
@@ -217,7 +231,7 @@ class AppController:
             new_key, new_type = res
             if (new_type != old_type and new_type is not None) or new_key != old_key:
                 var = self.m.selected_variables[0]
-                new_variable = self._apply_async(
+                new_variable = self.apply_async(
                     Settings.CURRENT_FILE_ID, self._update_variable_name, new_type, new_key, var
                 )
                 new_variable_data = VariableData(
@@ -239,7 +253,7 @@ class AppController:
             variables, Settings.ALL_FILES, self.m.current_file.file_name
         )
         if res:
-            self._apply_async(Settings.CURRENT_FILE_ID, self._delete_variables, variables)
+            self.apply_async(Settings.CURRENT_FILE_ID, self._delete_variables, variables)
             self.v.update_view_model(self.m.current_table)
 
     def on_file_rename_requested(self, id_: int) -> None:
@@ -258,7 +272,7 @@ class AppController:
             res = self.v.confirm_aggregate_variables(variables, func_name)
             if res:
                 new_key, new_type = res
-                new_variable = self._apply_async(
+                new_variable = self.apply_async(
                     Settings.CURRENT_FILE_ID,
                     self._aggregate_variables,
                     variables,
