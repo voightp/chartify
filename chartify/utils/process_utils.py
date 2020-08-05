@@ -82,22 +82,27 @@ def load_eso_file(
             # functions do not need to be dealt with explicitly
             files = ResultsFile.from_eso_file(path, monitor=monitor)
             for f in files if isinstance(files, list) else [files]:
-                id_, file = store_file(
+                id1, file1 = store_file(
                     results_file=f, workdir=workdir, monitor=monitor, ids=ids, lock=lock
                 )
-                file_queue.put(file)
-
                 # generate and store totals file
                 monitor.totals_started()
                 totals_file = ResultsFile.from_totals(f)
-                id_, file = store_file(
-                    results_file=totals_file,
-                    workdir=workdir,
-                    monitor=monitor,
-                    ids=ids,
-                    lock=lock,
-                )
-                file_queue.put(file)
+                if totals_file:
+                    id2, file2 = store_file(
+                        results_file=totals_file,
+                        workdir=workdir,
+                        monitor=monitor,
+                        ids=ids,
+                        lock=lock,
+                    )
+                    # assign new buddy attribute to link totals with original file
+                    file2.buddy = file1
+                    file1.buddy = file2
+                else:
+                    file1.buddy = None
+
+                file_queue.put((file1, file2))
             file_queue.put(monitor_id)
             monitor.done()
 

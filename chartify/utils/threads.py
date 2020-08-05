@@ -80,21 +80,23 @@ class EsoFileWatcher(QThread):
 
     def run(self):
         while True:
-            file = self.file_queue.get()
-            if isinstance(file, str):
+            files = self.file_queue.get()
+            if isinstance(files, str):
                 # passed monitor id, send close request
-                self.all_loaded.emit(file)
+                self.all_loaded.emit(files)
             else:
-                # create ModelViews outside main loop
-                models = {}
-                for table_name in file.table_names:
-                    df = file.get_header_df(table_name)
-                    is_simple = file.is_header_simple(table_name)
-                    allow_rate_to_energy = file.can_convert_rate_to_energy(table_name)
-                    models[table_name] = ViewModel(
-                        table_name, df, is_simple, allow_rate_to_energy
-                    )
-                self.file_loaded.emit(file, models)
+                # create ModelViews outside main application loop
+                # totals file may be 'None' so it needs to be skipped
+                for file in list(filter(None, files)):
+                    models = {}
+                    for table_name in file.table_names:
+                        header_df = file.get_header_df(table_name)
+                        is_simple = file.is_header_simple(table_name)
+                        allow_rate_to_energy = file.can_convert_rate_to_energy(table_name)
+                        models[table_name] = ViewModel(
+                            table_name, header_df, is_simple, allow_rate_to_energy
+                        )
+                    self.file_loaded.emit(file, models)
 
 
 class IterWorker(QRunnable):

@@ -20,23 +20,23 @@ def eso_file():
 
 @pytest.fixture
 def hourly_df(eso_file):
-    return eso_file.get_header_df("hourly")
+    return eso_file.get_header_df("hourly").copy()
 
 
 @pytest.fixture
 def daily_df(eso_file):
-    return eso_file.get_header_df("daily")
+    return eso_file.get_header_df("daily").copy()
 
 
 @pytest.fixture
 def tree_view(qtbot, hourly_df):
-    model = ViewModel(header_df=hourly_df, is_simple=False,)
+    model = ViewModel("hourly", is_simple=False, allow_rate_to_energy=False)
     tree_view = TreeView(0, {"hourly": model})
     tree_view.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
     tree_view.setFixedWidth(WIDTH)
     tree_view.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-    tree_view.set_model(header_df=hourly_df.copy(), interval="hourly", is_tree=True)
-    tree_view.update_view_model_appearance()
+    tree_view.update_model("hourly", header_df=hourly_df, tree_node="type")
+    tree_view.update_view_appearance()
     tree_view.show()
     qtbot.addWidget(tree_view)
     return tree_view
@@ -66,7 +66,6 @@ def test_build_tree_view(qtbot, tree_view: TreeView, hourly_df: pd.DataFrame):
     assert tree_view.model().rowCount() == 49
     assert tree_view.model().sourceModel().rowCount() == 49
 
-    assert tree_view.interval == "hourly"
     assert tree_view.is_tree
     assert not tree_view.rate_to_energy
     assert tree_view.units_system == "SI"
@@ -101,7 +100,7 @@ def test_initial_view_appearance(tree_view: TreeView, hourly_df: pd.DataFrame):
 
 
 def test_build_plain_view(qtbot, tree_view: TreeView, hourly_df: pd.DataFrame):
-    tree_view.set_model(header_df=hourly_df, interval="hourly", is_tree=False)
+    tree_view.update_model("hourly", header_df=hourly_df, tree_node=None)
 
     assert tree_view.model().rowCount() == 77
     assert tree_view.model().sourceModel().rowCount() == 77
@@ -115,7 +114,7 @@ def test_build_plain_view(qtbot, tree_view: TreeView, hourly_df: pd.DataFrame):
 
 
 def test_first_column_not_spanned(tree_view: TreeView, hourly_df: pd.DataFrame):
-    tree_view.set_model(header_df=hourly_df, interval="hourly", is_tree=False)
+    tree_view.update_model("hourly", header_df=hourly_df, tree_node=None)
     proxy_model = tree_view.model()
     for i in range(proxy_model.rowCount()):
         index = proxy_model.index(i, 0)
@@ -127,7 +126,7 @@ def test_first_column_not_spanned(tree_view: TreeView, hourly_df: pd.DataFrame):
 
 
 def test_resize_header(tree_view: TreeView, hourly_df: pd.DataFrame):
-    tree_view.set_model(header_df=hourly_df, interval="hourly", is_tree=False)
+    tree_view.update_model("hourly", header_df=hourly_df, tree_node=None)
     tree_view.resize_header({"interactive": 250, "fixed": 100})
 
     assert tree_view.header().sectionSize(0) == 250
@@ -180,7 +179,7 @@ def test_on_section_moved_plain_view(qtbot, tree_view: TreeView, hourly_df: pd.D
     def test_header(cls, dct):
         return cls == "treeview" and dct["header"] == ("key", "units", "type")
 
-    tree_view.set_model(header_df=hourly_df, interval="hourly", is_tree=False)
+    tree_view.update_model("hourly", header_df=hourly_df, tree_node=None)
     with qtbot.wait_signal(tree_view.viewAppearanceChanged, check_params_cb=test_header):
         tree_view.header().moveSection(0, 2)
 
@@ -329,9 +328,7 @@ def test_on_expanded(qtbot, tree_view: TreeView, eso_file: EsoFile):
 
 
 def test_filter_view(tree_view: TreeView, daily_df: pd.DataFrame):
-    tree_view.set_model(
-        header_df=daily_df, interval="daily", is_tree=True,
-    )
+    tree_view.update_model("daily", header_df=daily_df, tree_node=None)
     tree_view.filter_view(FilterTuple(key="block1:zonea", type="temperature", units=""))
 
     assert tree_view.model().rowCount() == 3
@@ -373,8 +370,8 @@ def test_get_visual_ixs(tree_view: TreeView):
 
 
 def test_build_view_kwargs_rate_to_energy(qtbot, tree_view: TreeView, daily_df: pd.DataFrame):
-    tree_view.set_model(daily_df, "daily", is_tree=True, rate_to_energy=True)
-    tree_view.update_view_model_appearance()
+    tree_view.update_model(daily_df, "daily", is_tree=True, rate_to_energy=True)
+    tree_view.update_view_appearance()
     proxy_model = tree_view.model()
     test_data = VariableData("BOILER", "Boiler Gas Rate", "W", "J")
     assert proxy_model.data_at_index(proxy_model.index(1, 0)) == test_data
@@ -382,7 +379,7 @@ def test_build_view_kwargs_rate_to_energy(qtbot, tree_view: TreeView, daily_df: 
 
 
 def test_build_view_kwargs_units_system(tree_view: TreeView, daily_df: pd.DataFrame):
-    tree_view.set_model(daily_df, "daily", is_tree=True, units_system="IP")
+    tree_view.update_model(daily_df, "daily", is_tree=True, units_system="IP")
     proxy_model = tree_view.model()
     test_data = VariableData("Environment", "Site Outdoor Air Dewpoint Temperature", "C", "F")
 
@@ -391,7 +388,7 @@ def test_build_view_kwargs_units_system(tree_view: TreeView, daily_df: pd.DataFr
 
 
 def test_build_view_kwargs_energy_units(tree_view: TreeView, daily_df: pd.DataFrame):
-    tree_view.set_model(
+    tree_view.update_model(
         daily_df, "daily", is_tree=True, rate_to_energy=True, energy_units="MWh"
     )
     proxy_model = tree_view.model()
@@ -402,7 +399,7 @@ def test_build_view_kwargs_energy_units(tree_view: TreeView, daily_df: pd.DataFr
 
 
 def test_build_view_kwargs_power_units(tree_view: TreeView, daily_df: pd.DataFrame):
-    tree_view.set_model(daily_df, "daily", is_tree=True, power_units="MW")
+    tree_view.update_model(daily_df, "daily", is_tree=True, power_units="MW")
     proxy_model = tree_view.model()
     test_data = VariableData("BOILER", "Boiler Gas Rate", "W", "MW")
 
@@ -412,13 +409,13 @@ def test_build_view_kwargs_power_units(tree_view: TreeView, daily_df: pd.DataFra
 
 def test_update_view_model_appearance(tree_view: TreeView, daily_df: pd.DataFrame):
     header = ("type", "units", "key")
-    tree_view.set_model(
+    tree_view.update_model(
         daily_df, "daily", is_tree=True, header=header,
     )
 
     widths = {"interactive": 150, "fixed": 50}
     expanded = {"Fan Electric Power", "Heating Coil Heating Rate"}
-    tree_view.update_view_model_appearance(header, widths, expanded)
+    tree_view.update_view_appearance(header, widths, expanded)
 
     assert tree_view.header().sectionSize(0) == 150
     assert tree_view.header().sectionSize(1) == 50
@@ -431,7 +428,7 @@ def test_update_view_model_appearance(tree_view: TreeView, daily_df: pd.DataFram
 
 
 def test_update_view_model_appearance_default(tree_view: TreeView, daily_df: pd.DataFrame):
-    tree_view.update_view_model_appearance()
+    tree_view.update_view_appearance()
 
     assert tree_view.header().sectionSize(0) == 200
     assert tree_view.header().sectionSize(1) == 130
@@ -441,8 +438,8 @@ def test_update_view_model_appearance_default(tree_view: TreeView, daily_df: pd.
 
 
 def test_build_view_reversed_header(tree_view: TreeView, daily_df: pd.DataFrame):
-    tree_view.set_model(daily_df, "daily", is_tree=True, header=("units", "key", "type"))
-    tree_view.update_view_model_appearance(("units", "key", "type"))
+    tree_view.update_model(daily_df, "daily", is_tree=True, header=("units", "key", "type"))
+    tree_view.update_view_appearance(("units", "key", "type"))
 
     assert tree_view.get_visual_names() == ("units", "key", "type")
 
@@ -460,7 +457,7 @@ def test_deselect_variables(qtbot, tree_view: TreeView, daily_df: pd.DataFrame):
         VariableData("BOILER", "Boiler Ancillary Electric Power", "W", "kW"),
         VariableData("BOILER", "Boiler Gas Rate", "W", "kW"),
     ]
-    tree_view.set_model(
+    tree_view.update_model(
         daily_df, "daily", is_tree=True, power_units="kW",
     )
     tree_view.select_variables(selected)

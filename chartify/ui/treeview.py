@@ -16,8 +16,9 @@ from PySide2.QtGui import QStandardItem, QStandardItemModel, QDrag, QPixmap
 from PySide2.QtWidgets import QTreeView, QAbstractItemView, QHeaderView
 from esofile_reader.constants import *
 
-from chartify.utils.utils import FilterTuple, VariableData
 from chartify.utils.utils import (
+    FilterTuple,
+    VariableData,
     create_proxy_units_column,
     SignalBlocker,
 )
@@ -60,7 +61,7 @@ class ViewModel(QStandardItemModel):
     def __init__(
         self,
         name: str,
-        header_df: pd.DataFrame,
+        headed_df: pd.DataFrame,
         is_simple: bool = False,
         allow_rate_to_energy: bool = False,
     ):
@@ -73,7 +74,23 @@ class ViewModel(QStandardItemModel):
         self.units_system = "SI"
         self.energy_units = "J"
         self.power_units = "W"
-        self.populate_model(header_df)
+        self.populate_model(header_df=headed_df)
+
+    def count_rows(self) -> int:
+        """ Calculate total number of rows (including child rows). """
+        count = self.rowCount()
+        if not self.is_simple:
+            for i in range(self.rowCount()):
+                item = self.item(i, 0)
+                if item.hasChildren():
+                    count += item.rowCount()
+        return count
+
+    def is_similar(self, other_model: "ViewModel", rows_diff: float = 0.05):
+        """ Check if number of variables and structure matches the other model. """
+        count = self.count_rows()
+        diff = (count - other_model.count_rows()) / count
+        return self.is_simple == other_model.is_simple and abs(diff) <= rows_diff
 
     def _append_row(
         self,
@@ -162,7 +179,7 @@ class ViewModel(QStandardItemModel):
         if self.tree_node:
             # tree column needs to be first
             new_columns = header_df.columns.tolist()
-            new_columns.insert(0, new_columns.pop(tree_node))
+            new_columns.insert(0, new_columns.pop(new_columns.index(tree_node)))
             header_df = header_df.loc[:, new_columns]
 
         columns = header_df.columns.tolist()
@@ -329,8 +346,6 @@ class TreeView(QTreeView):
         Available view models.
     next_update_forced : bool
         Automatically schedules next full view rebuild.
-    is_tree : bool
-        Specifies if current view has a tree structure.
     scrollbar_position : int
         Last scrollbar position.
     indicator : tuple
@@ -406,7 +421,6 @@ class TreeView(QTreeView):
         self.header().sectionMoved.connect(self.on_section_moved)
         self.header().sortIndicatorChanged.connect(self.on_sort_order_changed)
 
-        self.setRootIsDecorated(True)
         self.expanded.connect(self.on_expanded)
         self.collapsed.connect(self.on_collapsed)
         self.header().sectionResized.connect(self.on_view_resized)
@@ -433,6 +447,13 @@ class TreeView(QTreeView):
     @property
     def is_tree(self) -> bool:
         return bool(self.current_model.tree_node)
+
+    @property
+    def allow_rate_to_energy(self) -> bool:
+        if self.current_model:
+            return self.current_model.allow_rate_to_energy
+        else:
+            return True
 
     def mousePressEvent(self, event: QEvent) -> None:
         """ Handle mouse events. """
@@ -483,8 +504,8 @@ class TreeView(QTreeView):
 
     def reshuffle_columns(self, order: tuple):
         """ Reset column positions to match last visual appearance. """
+        vis_names = self.get_visual_names()
         for i, nm in enumerate(order):
-            vis_names = self.get_visual_names()
             j = vis_names.index(nm)
             if i != j:
                 self.header().moveSection(j, i)
@@ -561,9 +582,9 @@ class TreeView(QTreeView):
             # resize sections programmatically
             self.header().resizeSection(interactive, widths["interactive"])
 
-    def update_view_model_appearance(
+    def update_view_appearance(
         self,
-        header: tuple = (TYPE_LEVEL, KEY_LEVEL, UNITS_LEVEL),
+        header: tuple = (TYPE_LEVEL, KEY_LEVEL, UNITS_LEVEL, SOURCE_UNITS),
         widths: Dict[str, int] = None,
         expanded: Set[str] = None,
     ) -> None:
@@ -574,53 +595,32 @@ class TreeView(QTreeView):
             self.expand_items(expanded)
         self.reshuffle_columns(header)
         self.resize_header(widths)
+        # TODO handle sort order and scrollbar
         self.update_sort_order()
         self.update_scrollbar_position()
+        # make sure that parent column spans full width
+        # and root is decorated for tree like structure
+        if self.current_model.tree_node is None:
+            self.setRootIsDecorated(False)
+        else:
+            self.setFirstTreeColumnSpanned()
+            self.setRootIsDecorated(True)
 
     def update_model(
         self,
+        table_name: Optional[str] = None,
         rate_to_energy: bool = False,
         units_system: str = "SI",
         energy_units: str = "J",
         power_units: str = "W",
         header_df: Optional[pd.DataFrame] = None,
         tree_node: Optional[str] = None,
-    ) -> None:
-        """ Set tree viw model. """
+    ) -> ViewModel:
+        """ Update tree viw model. """
+        # apply changes on current model when table is not specified
+        model = self.models[table_name] if table_name else self.current_model
         if header_df is not None:
-            self.current_model.populate_model(
-                header_df,
-                tree_node=tree_node,
-                rate_to_energy=rate_to_energy,
-                units_system=units_system,
-                energy_units=energy_units,
-                power_units=power_units,
-            )
-        else:
-            self.current_model.update_units(
-                rate_to_energy=rate_to_energy,
-                units_system=units_system,
-                energy_units=energy_units,
-                power_units=power_units,
-            )
-
-        # make sure that parent column spans full width
-        if tree_node is not None:
-            self.setFirstTreeColumnSpanned()
-
-    def set_model(
-        self,
-        table: str,
-        rate_to_energy: bool = False,
-        units_system: str = "SI",
-        energy_units: str = "J",
-        power_units: str = "W",
-        header_df: Optional[pd.DataFrame] = None,
-        tree_node: Optional[str] = None,
-    ) -> None:
-        """ Set tree viw model. """
-        model = self.models[table]
-        if header_df:
+            # full update is required when new header has been passed
             model.populate_model(
                 header_df,
                 tree_node=tree_node,
@@ -636,13 +636,11 @@ class TreeView(QTreeView):
                 energy_units=energy_units,
                 power_units=power_units,
             )
-
-        with SignalBlocker(self.verticalScrollBar()):
-            self.proxy_model.setSourceModel(model)
-
-        # make sure that parent column spans full width
-        if tree_node is not None:
-            self.setFirstTreeColumnSpanned()
+        if table_name:
+            # source model needs to be only updated when new table is set
+            with SignalBlocker(self.verticalScrollBar()):
+                self.proxy_model.setSourceModel(model)
+        return model
 
     def on_sort_order_changed(self, log_ix: int, order: Qt.SortOrder) -> None:
         """ Store current sorting order. """

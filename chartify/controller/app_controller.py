@@ -85,7 +85,6 @@ class AppController:
         """ Connect view signals. """
         self.v.paletteUpdated.connect(self.wvc.refresh_layout)
         self.v.selectionChanged.connect(self.on_selection_change)
-        self.v.fileChanged.connect(self.on_file_changed)
         self.v.fileProcessingRequested.connect(self.on_file_processing_requested)
         self.v.fileRenameRequested.connect(self.on_file_rename_requested)
         self.v.variableRenameRequested.connect(self.on_variable_rename_requested)
@@ -97,6 +96,7 @@ class AppController:
         self.v.save_act.triggered.connect(self.on_save)
         self.v.save_as_act.triggered.connect(self.on_save_as)
         self.v.viewModelUpdateRequested.connect(self.on_view_model_update_requested)
+        self.v.viewModelChangeRequested.connect(self.on_view_model_change_requested)
 
     def connect_model_signals(self) -> None:
         """ Create monitor signals. """
@@ -125,21 +125,12 @@ class AppController:
         if path:
             self.m.storage.save_as(path.parent, path.stem)
 
-    def on_file_changed(self):
-        table_names = self.m.current_file.table_names
-        if Settings.TABLE_NAME in table_names:
-            table_name = Settings.TABLE_NAME
-        else:
-            if self.v.current_view.current_model is None:
-                # fresh view, source model has not been set yet
-                table_name = table_names[0]
-            else:
-                table_name = self.v.current_view.current_model.name
-        self.v.toolbar.update_table_buttons(table_names=table_names, selected=table_name)
-        self.v.on_table_change_requested(table_name)
+    def on_view_model_change_requested(self) -> None:
+        """ Set new model for current view. """
+        self.v.set_view_model(Settings.TABLE_NAME)
 
     def on_view_model_update_requested(self) -> None:
-        """ Update content of a newly selected tab. """
+        """ Update current model for current view. """
         self.v.update_view_model(self.m.current_table)
 
     def on_file_processing_requested(self, paths: List[str]) -> None:

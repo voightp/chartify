@@ -40,7 +40,7 @@ from chartify.ui.toolbar import Toolbar
 from chartify.ui.treeview import TreeView, ViewModel, SOURCE_UNITS
 from chartify.utils.css_theme import Palette, CssTheme
 from chartify.utils.icon_painter import Pixmap, filled_circle_pixmap
-from chartify.utils.utils import VariableData
+from chartify.utils.utils import VariableData, FilterTuple
 
 
 # noinspection PyPep8Naming,PyUnresolvedReferences
@@ -55,9 +55,9 @@ class MainWindow(QMainWindow):
     unitsUpdated = Signal(str, str, str, bool)
     tabChanged = Signal(int)
     treeNodeUpdated = Signal(str)
-    viewModelUpdateRequested = Signal()
-    fileChanged = Signal()
     selectionChanged = Signal(list)
+    viewModelUpdateRequested = Signal()
+    viewModelChangeRequested = Signal()
     fileProcessingRequested = Signal(list)
     fileRenameRequested = Signal(int)
     variableRenameRequested = Signal(int, VariableData)
@@ -349,6 +349,8 @@ class MainWindow(QMainWindow):
 
         # ~~~~ Connect main ui user actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.connect_ui_signals()
+        self.connect_tab_widget_signals()
+        self.connect_view_tools_signals()
 
     @property
     def current_view(self) -> TreeView:
@@ -422,7 +424,6 @@ class MainWindow(QMainWindow):
         self.toolbar.mean_btn.set_icons(
             Pixmap(Path(r, "mean.png"), *c1), Pixmap(Path(r, "mean.png"), *c1, a=0.5)
         )
-
         self.toolbar.remove_btn.set_icons(
             Pixmap(Path(r, "remove.png"), *c1), Pixmap(Path(r, "remove.png"), *c1, a=0.5)
         )
@@ -431,7 +432,6 @@ class MainWindow(QMainWindow):
         """ Update application appearance. """
         css = CssTheme(Settings.CSS_PATH)
         css.populate_content(Settings.PALETTE)
-
         # css needs to be cleared to repaint the window properly
         self.setStyleSheet("")
         self.setStyleSheet(css.content)
@@ -501,44 +501,6 @@ class MainWindow(QMainWindow):
             Settings.LOAD_PATH = str(Path(file_paths[0]).parent)
             self.fileProcessingRequested.emit(file_paths)
 
-    def get_filter_tuple(self):
-        """ Retrieve filter inputs from ui. """
-        return FilterTuple(
-            key=self.key_line_edit.text(),
-            type=self.type_line_edit.text(),
-            units=self.units_line_edit.text(),
-        )
-
-    def update_view_model(
-        self,
-        header_df: pd.DataFrame,
-        selected: Optional[List[VariableData]] = None,
-        scroll_to: Optional[VariableData] = None,
-    ):
-        """ Update current view model structure and appearance. """
-        self.current_view.update_model(
-            header_df=header_df,
-            tree_node=Settings.TREE_NODE,
-            energy_units=Settings.ENERGY_UNITS,
-            power_units=Settings.POWER_UNITS,
-            units_system=Settings.UNITS_SYSTEM,
-            rate_to_energy=Settings.RATE_TO_ENERGY,
-        )
-        # update visual appearance of the view to be consistent with a previous one
-        self.current_view.update_view_model_appearance(
-            **self.view_settings[self.current_view.view_type]
-        )
-        filter_tuple = self.get_filter_tuple()
-        if any(filter_tuple) and filter_tuple != self.current_view.model().filter_tuple:
-            self.current_view.filter_view(filter_tuple)
-
-        # clear selections to avoid having selected items from previous selection
-        self.current_view.deselect_all_variables()
-        if selected:
-            self.current_view.select_variables(selected)
-        if scroll_to:
-            self.current_view.scroll_to(scroll_to)
-
     def on_color_scheme_changed(self, name):
         """ Update the application palette. """
         if name != Settings.PALETTE_NAME:
@@ -557,8 +519,7 @@ class MainWindow(QMainWindow):
         if len(variables) > 1:
             units = [var.units for var in variables]
             if len(set(units)) == 1 or (
-                is_rate_or_energy(units)
-                and self.current_view.current_model.allow_rate_to_energy
+                is_rate_or_energy(units) and self.current_model.allow_rate_to_energy
             ):
                 self.toolbar.sum_btn.setEnabled(True)
                 self.toolbar.mean_btn.setEnabled(True)
@@ -575,6 +536,280 @@ class MainWindow(QMainWindow):
         self.toolbar.mean_btn.setEnabled(False)
         self.toolbar.remove_btn.setEnabled(False)
         self.selectionChanged.emit([])
+
+    def on_view_settings_changed(self, view_type: str, new_settings: dict):
+        """ Update current ui view settings. """
+        settings = self.view_settings[view_type]
+
+        def on_expanded():
+            settings["expanded"].add(value)
+
+        def on_collapsed():
+            with contextlib.suppress(KeyError):
+                settings["expanded"].remove(value)
+
+        def on_interactive():
+            settings["widths"]["interactive"] = value
+
+        def on_header():
+            settings["header"] = value
+
+        switch = {
+            "expanded": on_expanded,
+            "collapsed": on_collapsed,
+            "interactive": on_interactive,
+            "header": on_header,
+        }
+        for key, value in new_settings.items():
+            switch[key]()
+
+    def on_splitter_moved(self):
+        """ Store current splitter position. """
+        Settings.SPLIT = self.central_splitter.sizes()
+
+    def connect_ui_signals(self):
+        """ Create actions which depend on user actions """
+        # ~~~~ Widget Signals ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.left_main_wgt.fileDropped.connect(self.fileProcessingRequested.emit)
+        self.central_splitter.splitterMoved.connect(self.on_splitter_moved)
+
+        # ~~~~ Actions Signals ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.load_file_act.triggered.connect(self.load_files_from_fs)
+        self.tree_act.triggered.connect(self.tree_view_btn.toggle)
+        self.collapse_all_act.triggered.connect(self.collapse_all)
+        self.expand_all_act.triggered.connect(self.expand_all)
+        self.remove_variables_act.triggered.connect(self.variableRemoveRequested.emit)
+        self.sum_act.triggered.connect(partial(self.aggregationRequested.emit, "sum"))
+        self.avg_act.triggered.connect(partial(self.aggregationRequested.emit, "mean"))
+
+    def get_filter_tuple(self):
+        """ Retrieve filter inputs from ui. """
+        return FilterTuple(
+            key=self.key_line_edit.text(),
+            type=self.type_line_edit.text(),
+            units=self.units_line_edit.text(),
+        )
+
+    def update_view_visual(
+        self,
+        selected: Optional[List[VariableData]] = None,
+        scroll_to: Optional[VariableData] = None,
+    ):
+        # update visual appearance of the view to be consistent with a previous one
+        self.current_view.update_view_appearance(
+            **self.view_settings[self.current_view.view_type]
+        )
+        filter_tuple = self.get_filter_tuple()
+        if any(filter_tuple) and filter_tuple != self.current_view.model().filter_tuple:
+            self.current_view.filter_view(filter_tuple)
+
+        # clear selections to avoid having selected items from previous selection
+        self.current_view.deselect_all_variables()
+        if selected:
+            self.current_view.select_variables(selected)
+        # scroll to takes precedence over scrollbar position
+        if scroll_to:
+            self.current_view.scroll_to(selected[0])
+
+    def update_view_model(
+        self,
+        header_df: pd.DataFrame,
+        selected: Optional[List[VariableData]] = None,
+        scroll_to: Optional[VariableData] = None,
+    ):
+        """ Update model data of the current view. """
+        self.current_view.update_model(
+            header_df=header_df,
+            tree_node=Settings.TREE_NODE,
+            energy_units=Settings.ENERGY_UNITS,
+            power_units=Settings.POWER_UNITS,
+            units_system=Settings.UNITS_SYSTEM,
+            rate_to_energy=Settings.RATE_TO_ENERGY,
+        )
+        self.update_view_visual(selected, scroll_to=scroll_to)
+
+    def set_view_model(self, table_name: str, selected: Optional[List[VariableData]] = None):
+        """ Set new model for the current view. """
+        original_model = self.current_view.current_model
+        new_model = self.current_view.update_model(
+            table_name=table_name,
+            energy_units=Settings.ENERGY_UNITS,
+            power_units=Settings.POWER_UNITS,
+            units_system=Settings.UNITS_SYSTEM,
+            rate_to_energy=Settings.RATE_TO_ENERGY,
+        )
+        if (
+            not selected
+            and original_model is not None
+            and new_model.is_similar(original_model, rows_diff=0.05)
+        ):
+            pass
+        self.update_view_visual(selected)
+
+    def on_table_change_requested(self, table_name: str):
+        """ Change table on a current model. """
+        Settings.TABLE_NAME = table_name
+        new_model = self.current_view.models[table_name]
+        if new_model.is_simple or Settings.TREE_NODE == new_model.tree_node:
+            # simple view does not need to be updated when changing tables
+            self.viewModelChangeRequested.emit()
+        else:
+            # tree node has been changed on a non simple view
+            self.viewModelUpdateRequested.emit()
+        # slots are on a same thread so following is called synchronously
+        # enable or disable applicable buttons
+        allow_tree = not new_model.is_simple
+        self.tree_view_btn.setEnabled(allow_tree)
+        self.expand_all_btn.setEnabled(allow_tree)
+        self.collapse_all_btn.setEnabled(allow_tree)
+        self.toolbar.update_rate_to_energy(new_model.allow_rate_to_energy)
+
+    def on_tab_changed(self, index: int) -> None:
+        """ Update view when tabChanged event is fired. """
+        if index == -1:
+            Settings.CURRENT_FILE_ID = None
+            # there aren't any widgets available
+            self.remove_variables_act.setEnabled(False)
+            self.toolbar.set_initial_layout()
+        else:
+            Settings.CURRENT_FILE_ID = self.current_view.id_
+            table_names = list(self.current_view.models.keys())
+            if Settings.TABLE_NAME in table_names:
+                table_name = Settings.TABLE_NAME
+            else:
+                if self.current_view.current_model is None:
+                    # fresh view, source model has not been set yet
+                    table_name = table_names[0]
+                else:
+                    table_name = self.current_view.current_model.name
+            self.toolbar.update_table_buttons(table_names=table_names, selected=table_name)
+            self.on_table_change_requested(table_name)
+
+    def on_tab_bar_double_clicked(self, tab_index: int):
+        id_ = self.tab_wgt.widget(tab_index).id_
+        self.fileRenameRequested.emit(id_)
+
+    def on_tab_closed(self):
+        """ Update the interface when number of tabs changes. """
+        if self.tab_wgt.is_empty():
+            self.toolbar.set_initial_layout()
+        if self.tab_wgt.count() <= 1:
+            self.toolbar.all_files_btn.setEnabled(False)
+            self.close_all_act.setEnabled(False)
+
+    def connect_tab_widget_signals(self):
+        # ~~~~ Tab Signals ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.tab_wgt.tabCloseRequested.connect(self.fileRemoveRequested.emit)
+        self.tab_wgt.currentChanged.connect(self.on_tab_changed)
+        self.tab_wgt.tabBarDoubleClicked.connect(self.on_tab_bar_double_clicked)
+        self.tab_wgt.tabClosed.connect(self.on_tab_closed)
+        self.tab_wgt.drop_btn.clicked.connect(self.load_files_from_fs)
+
+    def on_totals_checked(self, checked: bool):
+        """ Request view update when totals requested. """
+        # TODO handle totals
+        Settings.TOTALS = checked
+
+    def on_all_files_checked(self, checked: bool):
+        """ Request view update when totals requested. """
+        # settings does not need to be updated as
+        # this does not have an impact on the UI
+        Settings.ALL_FILES = checked
+
+    def on_units_changed(self):
+        """ Update current view on units change. """
+        self.current_view.update_model(
+            energy_units=Settings.ENERGY_UNITS,
+            power_units=Settings.POWER_UNITS,
+            units_system=Settings.UNITS_SYSTEM,
+            rate_to_energy=Settings.RATE_TO_ENERGY,
+        )
+
+    def on_rate_energy_btn_clicked(self, checked: bool):
+        Settings.RATE_TO_ENERGY = checked
+        self.on_units_changed()
+
+    def on_custom_units_toggled(
+        self, energy_units: str, power_units: str, units_system: str, rate_to_energy: bool
+    ):
+        Settings.ENERGY_UNITS = energy_units
+        Settings.POWER_UNITS = power_units
+        Settings.UNITS_SYSTEM = units_system
+        # model could have been changed prior to custom units toggle
+        # so rate to energy conversion may not be applicable
+        if self.current_view.allow_rate_to_energy:
+            self.toolbar.rate_energy_btn.setEnabled(True)
+        else:
+            self.toolbar.rate_energy_btn.setEnabled(False)
+            rate_to_energy = False
+        Settings.RATE_TO_ENERGY = rate_to_energy
+        self.on_units_changed()
+
+    def on_energy_units_changed(self, act: QAction):
+        changed = self.energy_btn.update_state(act)
+        if changed:
+            Settings.ENERGY_UNITS = act.data()
+            self.on_units_changed()
+
+    def on_power_units_changed(self, act: QAction):
+        changed = self.power_btn.update_state(act)
+        if changed:
+            Settings.POWER_UNITS = act.data()
+            self.on_units_changed()
+
+    def on_units_system_changed(self, act: QAction):
+        changed = self.units_system_button.update_state(act)
+        if changed:
+            Settings.UNITS_SYSTEM = act.data()
+            self.toolbar.filter_energy_power_units(act.data())
+            self.on_units_changed()
+
+    def connect_toolbar_signals(self):
+        # ~~~~ Toolbar Signals ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.toolbar.sum_btn.connect_action(self.sum_act)
+        self.toolbar.mean_btn.connect_action(self.avg_act)
+        self.toolbar.remove_btn.connect_action(self.remove_variables_act)
+        self.toolbar.totals_btn.toggled.connect(self.on_totals_checked)
+        self.toolbar.all_files_btn.toggled.connect(self.on_all_files_checked)
+        self.toolbar.tableChangeRequested.connect(self.on_table_change_requested)
+        self.toolbar.customUnitsToggled.connect(self.on_custom_units_toggled)
+        self.toolbar.rate_energy_btn.clicked.connect(self.on_rate_energy_btn_clicked)
+        self.toolbar.energy_btn.menu().triggered.connect(self.on_energy_units_changed)
+        self.toolbar.power_btn.menu().triggered.connect(self.on_power_units_changed)
+        self.toolbar.units_system_button.menu().triggered.connect(self.on_units_system_changed)
+
+    def on_tree_btn_toggled(self, checked: bool):
+        """ Update view when view type is changed. """
+        Settings.TREE_VIEW = checked
+        self.tree_view_btn.setProperty("checked", checked)
+        if checked:
+            name = self.current_view.get_visual_names()[0]
+            Settings.TREE_NODE = name
+        else:
+            Settings.TREE_NODE = None
+        self.collapse_all_btn.setEnabled(checked)
+        self.expand_all_btn.setEnabled(checked)
+        self.viewModelUpdateRequested.emit()
+
+    def on_text_edited(self):
+        """ Delay firing a text edited event. """
+        self.timer.start(200)
+
+    def on_filter_timeout(self):
+        """ Apply a filter when the filter text is edited. """
+        if not self.tab_wgt.is_empty():
+            filter_tuple = self.get_filter_tuple()
+            self.current_view.filter_view(filter_tuple)
+
+    def connect_view_tools_signals(self):
+        # ~~~~ Filter actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.type_line_edit.textEdited.connect(self.on_text_edited)
+        self.key_line_edit.textEdited.connect(self.on_text_edited)
+        self.units_line_edit.textEdited.connect(self.on_text_edited)
+        self.tree_view_btn.toggled.connect(self.on_tree_btn_toggled)
+        self.timer.timeout.connect(self.on_filter_timeout)
+        self.expand_all_btn.clicked.connect(self.expand_all_act.trigger)
+        self.collapse_all_btn.clicked.connect(self.collapse_all_act.trigger)
 
     def confirm_rename_file(self, name: str, other_names: List[str]) -> Optional[str]:
         """ Rename file on a tab identified by the given index. """
@@ -665,162 +900,3 @@ class MainWindow(QMainWindow):
         text = f"Delete file {name}: "
         dialog = ConfirmationDialog(self, text)
         return dialog.exec_() == 1
-
-    def on_tab_bar_double_clicked(self, tab_index: int):
-        id_ = self.tab_wgt.widget(tab_index).id_
-        self.fileRenameRequested.emit(id_)
-
-    def on_view_settings_changed(self, view_type: str, new_settings: dict):
-        """ Update current ui view settings. """
-        settings = self.view_settings[view_type]
-
-        def on_expanded():
-            settings["expanded"].add(value)
-
-        def on_collapsed():
-            with contextlib.suppress(KeyError):
-                settings["expanded"].remove(value)
-
-        def on_interactive():
-            settings["widths"]["interactive"] = value
-
-        def on_header():
-            settings["header"] = value
-
-        switch = {
-            "expanded": on_expanded,
-            "collapsed": on_collapsed,
-            "interactive": on_interactive,
-            "header": on_header,
-        }
-        for key, value in new_settings.items():
-            switch[key]()
-
-    def on_splitter_moved(self):
-        """ Store current splitter position. """
-        Settings.SPLIT = self.central_splitter.sizes()
-
-    def on_units_changed(
-        self, energy: str, power: str, units_system: str, rate_to_energy: bool
-    ):
-        """ Update current view on units change. """
-        Settings.ENERGY_UNITS = energy
-        Settings.POWER_UNITS = power
-        Settings.UNITS_SYSTEM = units_system
-        Settings.RATE_TO_ENERGY = rate_to_energy
-        self.current_view.update_model(
-            rate_to_energy=rate_to_energy,
-            units_system=units_system,
-            energy_units=energy_units,
-            power_units=power_units,
-        )
-        # custom units may have been previously disabled
-        self.toolbar.update_rate_to_energy(self.current_view.current_model.allow_rate_to_energy)
-
-    def update_buttons_state(self, allow_tree: bool, allow_rate_to_energy: bool):
-        """ Update toolbar buttons state. """
-        self.tree_view_btn.setEnabled(allow_tree)
-        self.expand_all_btn.setEnabled(allow_tree)
-        self.collapse_all_btn.setEnabled(allow_tree)
-        self.toolbar.update_rate_to_energy(allow_rate_to_energy)
-
-    def on_table_change_requested(self, table_name: str):
-        """ Handle request to change current model. """
-        Settings.TABLE_NAME = table_name
-        new_model = self.current_view.models[table_name]
-        self.update_buttons_state(not new_model.is_simple, new_model.allow_rate_to_energy)
-        # simple view does not need to be updated when changing tables
-        if new_model.is_simple or Settings.TREE_NODE == new_model.tree_node:
-            self.current_view.set_model(
-                table_name,
-                energy_units=Settings.ENERGY_UNITS,
-                power_units=Settings.POWER_UNITS,
-                units_system=Settings.UNITS_SYSTEM,
-                rate_to_energy=Settings.RATE_TO_ENERGY,
-            )
-            self.current_view.update_view_model_appearance(
-                **self.view_settings[self.current_view.view_type]
-            )
-        else:
-            # tree node has been changed on a non simple view
-            self.viewModelUpdateRequested.emit()
-
-    def on_tab_closed(self):
-        """ Update the interface when number of tabs changes. """
-        if self.tab_wgt.is_empty():
-            self.toolbar.set_initial_layout()
-        if self.tab_wgt.count() <= 1:
-            self.toolbar.all_files_btn.setEnabled(False)
-            self.close_all_act.setEnabled(False)
-
-    def on_tab_changed(self, index: int) -> None:
-        """ Update view when tabChanged event is fired. """
-        if index == -1:
-            Settings.CURRENT_FILE_ID = None
-            # there aren't any widgets available
-            self.remove_variables_act.setEnabled(False)
-            self.toolbar.set_initial_layout()
-        else:
-            Settings.CURRENT_FILE_ID = self.current_view.id_
-            self.fileChanged.emit()
-
-    def on_tree_btn_toggled(self, checked: bool):
-        """ Update view when view type is changed. """
-        Settings.TREE_VIEW = checked
-        self.tree_view_btn.setProperty("checked", checked)
-        if checked:
-            name = self.current_view.get_visual_names()[0]
-            Settings.TREE_NODE = name
-        else:
-            Settings.TREE_NODE = None
-        self.collapse_all_btn.setEnabled(checked)
-        self.expand_all_btn.setEnabled(checked)
-        self.viewModelUpdateRequested.emit()
-
-    def on_text_edited(self):
-        """ Delay firing a text edited event. """
-        self.timer.start(200)
-
-    def on_filter_timeout(self):
-        """ Apply a filter when the filter text is edited. """
-        if not self.tab_wgt.is_empty():
-            filter_tuple = self.get_filter_tuple()
-            self.current_view.filter_view(filter_tuple)
-
-    def connect_ui_signals(self):
-        """ Create actions which depend on user actions """
-        # ~~~~ Widget Signals ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.left_main_wgt.fileDropped.connect(self.fileProcessingRequested.emit)
-        self.central_splitter.splitterMoved.connect(self.on_splitter_moved)
-
-        # ~~~~ Actions Signals ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.load_file_act.triggered.connect(self.load_files_from_fs)
-        self.tree_act.triggered.connect(self.tree_view_btn.toggle)
-        self.collapse_all_act.triggered.connect(self.collapse_all)
-        self.expand_all_act.triggered.connect(self.expand_all)
-        self.remove_variables_act.triggered.connect(self.variableRemoveRequested.emit)
-        self.sum_act.triggered.connect(partial(self.aggregationRequested.emit, "sum"))
-        self.avg_act.triggered.connect(partial(self.aggregationRequested.emit, "mean"))
-
-        # ~~~~ Tab Signals ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.tab_wgt.tabCloseRequested.connect(self.fileRemoveRequested.emit)
-        self.tab_wgt.tabClosed.connect(self.on_tab_closed)
-        self.tab_wgt.currentChanged.connect(self.on_tab_changed)
-        self.tab_wgt.tabBarDoubleClicked.connect(self.on_tab_bar_double_clicked)
-        self.tab_wgt.drop_btn.clicked.connect(self.load_files_from_fs)
-
-        # ~~~~ Toolbar Signals ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.toolbar.sum_btn.connect_action(self.sum_act)
-        self.toolbar.mean_btn.connect_action(self.avg_act)
-        self.toolbar.remove_btn.connect_action(self.remove_variables_act)
-        self.toolbar.unitsChanged.connect(self.on_units_changed)
-        self.toolbar.tableChangeRequested.connect(self.on_table_change_requested)
-
-        # ~~~~ Filter actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.type_line_edit.textEdited.connect(self.on_text_edited)
-        self.key_line_edit.textEdited.connect(self.on_text_edited)
-        self.units_line_edit.textEdited.connect(self.on_text_edited)
-        self.tree_view_btn.toggled.connect(self.on_tree_btn_toggled)
-        self.timer.timeout.connect(self.on_filter_timeout)
-        self.expand_all_btn.clicked.connect(self.expand_all_act.trigger)
-        self.collapse_all_btn.clicked.connect(self.collapse_all_act.trigger)

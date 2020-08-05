@@ -22,8 +22,8 @@ class Toolbar(QFrame):
 
     """
 
-    unitsChanged = Signal(str, str, str, bool)
     tableChangeRequested = Signal(str)
+    customUnitsToggled = Signal(str, str, str, bool)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -96,6 +96,8 @@ class Toolbar(QFrame):
         self.custom_units_toggle = ToggleButton(self)
         self.custom_units_toggle.setText("Custom Units")
         self.custom_units_toggle.setChecked(Settings.CUSTOM_UNITS)
+        self.custom_units_toggle.stateChanged.connect(self.custom_units_toggled)
+
         self.layout.addWidget(self.custom_units_toggle)
         self.units_group = QFrame(self)
         self.units_group.setObjectName("unitsGroup")
@@ -105,8 +107,6 @@ class Toolbar(QFrame):
         self.rate_energy_btn = QToolButton(self.units_group)
         self.set_up_units()
         self.layout.addWidget(self.units_group)
-
-        self.connect_actions()
 
     @staticmethod
     def clear_group(group):
@@ -229,58 +229,43 @@ class Toolbar(QFrame):
             btn.setText(table)
             btn.setCheckable(True)
             btn.setAutoExclusive(True)
-            btn.clicked.connect(self.table_changed)
+            btn.clicked.connect(self.on_table_button_clicked)
             if table == selected:
                 btn.setChecked(True)
             self.table_buttons.append(btn)
         self.populate_group(self.table_group, self.table_buttons)
 
-    def units_changed(self):
-        """ Notify main app that units settings have changed. """
-        self.unitsChanged.emit(
-            self.energy_btn.data(),
-            self.power_btn.data(),
-            self.units_system_button.data(),
-            self.rate_energy_btn.isChecked(),
-        )
-
-    def set_default_units(self) -> None:
-        """ Reset units to E+ default. """
-        self.energy_btn.update_state_internally("J")
-        self.power_btn.update_state_internally("W")
-        self.units_system_button.update_state_internally("SI")
-        self.energy_btn.setEnabled(False)
-        self.power_btn.setEnabled(False)
-        self.units_system_button.setEnabled(False)
-        self.rate_energy_btn.setEnabled(False)
-        self.rate_energy_btn.setChecked(False)
-        self.units_changed()
-
     def custom_units_toggled(self, state: int) -> None:
         """ Update units settings when custom units toggled. """
         enabled = state == 1
         if not enabled:
+            # set default EnergyPlus units
+            energy = "J"
+            power = "W"
+            units_system = "SI"
+            rate_to_energy = False
+            # store original settings
             self.temp_settings["energy_units"] = self.energy_btn.data()
             self.temp_settings["power_units"] = self.power_btn.data()
             self.temp_settings["units_system"] = self.units_system_button.data()
             self.temp_settings["rate_to_energy"] = self.rate_energy_btn.isChecked()
-            self.set_default_units()
         else:
             energy = self.temp_settings["energy_units"]
             power = self.temp_settings["power_units"]
             units_system = self.temp_settings["units_system"]
-            checked = self.temp_settings["rate_to_energy"]
+            rate_to_energy = self.temp_settings["rate_to_energy"]
 
-            self.energy_btn.update_state_internally(energy)
-            self.power_btn.update_state_internally(power)
-            self.units_system_button.update_state_internally(units_system)
-            self.rate_energy_btn.setChecked(checked)
+        self.energy_btn.setEnabled(enabled)
+        self.power_btn.setEnabled(enabled)
+        self.units_system_button.setEnabled(enabled)
+        self.rate_energy_btn.setEnabled(enabled)
 
-            self.energy_btn.setEnabled(enabled)
-            self.power_btn.setEnabled(enabled)
-            self.units_system_button.setEnabled(enabled)
+        self.energy_btn.update_state_internally(energy)
+        self.power_btn.update_state_internally(power)
+        self.units_system_button.update_state_internally(units_system)
+        self.rate_energy_btn.setChecked(rate_to_energy)
 
-        self.units_changed()
+        self.customUnitsToggled.emit(energy, power, units_system, rate_to_energy)
 
     def filter_energy_power_units(self, units_system: str):
         """ Handle displaying allowed units for given units system. """
@@ -294,52 +279,7 @@ class Toolbar(QFrame):
         self.energy_btn.filter_visible_actions(en_acts)
         self.power_btn.filter_visible_actions(pw_acts)
 
-    def units_system_changed(self, act):
-        """ Request view update when energy units are changed. """
-        changed = self.units_system_button.update_state(act)
-        if changed:
-            self.filter_energy_power_units(act.data())
-            self.units_changed()
-
-    def power_units_changed(self, act):
-        """ Request view update when energy units are changed. """
-        changed = self.power_btn.update_state(act)
-        if changed:
-            self.units_changed()
-
-    def energy_units_changed(self, act):
-        """ Request view update when energy units are changed. """
-        changed = self.energy_btn.update_state(act)
-        if changed:
-            self.units_changed()
-
-    def totals_toggled(self, state):
-        """ Request view update when totals requested. """
-        # TODO handle totals
-        Settings.TOTALS = state
-
-    def all_files_toggled(self, state):
-        """ Request view update when totals requested. """
-        # settings does not need to be updated as
-        # this does not have an impact on the UI
-        Settings.ALL_FILES = state
-
-    def table_changed(self):
+    def on_table_button_clicked(self):
         """ Request view update when interval changes. """
         table_name = next(btn.text() for btn in self.table_buttons if btn.isChecked())
         self.tableChangeRequested.emit(table_name)
-
-    def connect_actions(self):
-        """ Connect toolbar actions. """
-        # ~~~~ Totals Signal ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.totals_btn.toggled.connect(self.totals_toggled)
-
-        # ~~~~ All Files Signal ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.all_files_btn.toggled.connect(self.all_files_toggled)
-
-        # ~~~~ Units Signals ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.rate_energy_btn.clicked.connect(self.unitsChanged.emit)
-        self.custom_units_toggle.stateChanged.connect(self.custom_units_toggled)
-        self.energy_btn.menu().triggered.connect(self.energy_units_changed)
-        self.power_btn.menu().triggered.connect(self.power_units_changed)
-        self.units_system_button.menu().triggered.connect(self.units_system_changed)
