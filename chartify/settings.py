@@ -44,7 +44,6 @@ class Settings:
     TABLE_NAME = None
     ALL_FILES = None
     TOTALS = None
-    TREE_VIEW = None
     TREE_NODE = None
 
     SIZE = None
@@ -52,12 +51,14 @@ class Settings:
     MIRRORED = None
     SPLIT = None
 
+    SIMPLE = None
+    TREE = None
+
     _EXCLUDE = [
         "_EXCLUDE",
         "ROOT",
         "PALETTE",
         "TABLE_NAME",
-        "TREE_NODE",
         "URL",
         "PALETTE_PATH",
         "CSS_PATH",
