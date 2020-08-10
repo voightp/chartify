@@ -93,19 +93,31 @@ class Toolbar(QFrame):
         self.layout.addWidget(self.tools_group)
 
         # ~~~~ Units group ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.custom_units_toggle = ToggleButton(self)
-        self.custom_units_toggle.setText("Custom Units")
+        self.units_group = QGroupBox("Units", self)
+        self.units_group.setObjectName("unitsGroup")
+        self.custom_units_toggle = ToggleButton(self.units_group)
+        self.custom_units_toggle.setText("Custom")
         self.custom_units_toggle.setChecked(Settings.CUSTOM_UNITS)
         self.custom_units_toggle.stateChanged.connect(self.custom_units_toggled)
-
-        self.layout.addWidget(self.custom_units_toggle)
-        self.units_group = QFrame(self)
-        self.units_group.setObjectName("unitsGroup")
+        self.source_units_toggle = ToggleButton(self.units_group)
+        self.source_units_toggle.setText("Source")
+        self.source_units_toggle.setChecked(Settings.SHOW_SOURCE_UNITS)
+        # self.source_units_toggle.stateChanged.connect(self.custom_units_toggled)
         self.energy_btn = TitledButton("energy", self.units_group)
         self.power_btn = TitledButton("power", self.units_group)
         self.units_system_button = TitledButton("system", self.units_group)
         self.rate_energy_btn = QToolButton(self.units_group)
+        self.rate_energy_btn.setCheckable(True)
+        self.rate_energy_btn.setObjectName("rateToEnergyBtn")
+        self.rate_energy_btn.setText("rate to\n energy")
+        self.rate_energy_btn.setChecked(Settings.RATE_TO_ENERGY)
         self.set_up_units()
+        self.populate_group(
+            self.units_group,
+            [self.energy_btn, self.power_btn, self.units_system_button, self.rate_energy_btn],
+        )
+        self.units_group.layout().addWidget(self.custom_units_toggle, 2, 0, 1, 2)
+        self.units_group.layout().addWidget(self.source_units_toggle, 3, 0, 1, 2)
         self.layout.addWidget(self.units_group)
 
     @staticmethod
@@ -197,16 +209,6 @@ class Toolbar(QFrame):
         # show only relevant units
         self.filter_energy_power_units(Settings.UNITS_SYSTEM)
 
-        # ~~~~ Rate to energy set up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.rate_energy_btn.setCheckable(True)
-        self.rate_energy_btn.setObjectName("rateToEnergyBtn")
-        self.rate_energy_btn.setText("rate to\n energy")
-        self.rate_energy_btn.setChecked(Settings.RATE_TO_ENERGY)
-        self.populate_group(
-            self.units_group,
-            [self.energy_btn, self.power_btn, self.units_system_button, self.rate_energy_btn],
-        )
-
     def set_initial_layout(self):
         """ Define an app layout when there isn't any file loaded. """
         self.all_files_btn.setEnabled(False)
@@ -255,15 +257,15 @@ class Toolbar(QFrame):
             units_system = self.temp_settings["units_system"]
             rate_to_energy = self.temp_settings["rate_to_energy"]
 
-        self.energy_btn.setEnabled(enabled)
-        self.power_btn.setEnabled(enabled)
-        self.units_system_button.setEnabled(enabled)
-        self.rate_energy_btn.setEnabled(enabled)
-
         self.energy_btn.update_state_internally(energy)
         self.power_btn.update_state_internally(power)
         self.units_system_button.update_state_internally(units_system)
         self.rate_energy_btn.setChecked(rate_to_energy)
+
+        self.energy_btn.setEnabled(enabled)
+        self.power_btn.setEnabled(enabled)
+        self.units_system_button.setEnabled(enabled)
+        self.rate_energy_btn.setEnabled(enabled)
 
         self.customUnitsToggled.emit(energy, power, units_system, rate_to_energy)
 

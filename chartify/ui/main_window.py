@@ -675,18 +675,9 @@ class MainWindow(QMainWindow):
         # this does not have an impact on the UI
         Settings.ALL_FILES = checked
 
-    def on_units_changed(self):
-        """ Update current view on units change. """
-        self.current_view.update_model(
-            energy_units=Settings.ENERGY_UNITS,
-            power_units=Settings.POWER_UNITS,
-            units_system=Settings.UNITS_SYSTEM,
-            rate_to_energy=Settings.RATE_TO_ENERGY,
-        )
-
     def on_rate_energy_btn_clicked(self, checked: bool):
         Settings.RATE_TO_ENERGY = checked
-        self.on_units_changed()
+        self.updateUnitsRequested.emit()
 
     def on_custom_units_toggled(
         self, energy_units: str, power_units: str, units_system: str, rate_to_energy: bool
@@ -696,32 +687,32 @@ class MainWindow(QMainWindow):
         Settings.UNITS_SYSTEM = units_system
         # model could have been changed prior to custom units toggle
         # so rate to energy conversion may not be applicable
-        if self.current_view.allow_rate_to_energy:
-            self.toolbar.rate_energy_btn.setEnabled(True)
+        if self.tab_wgt.is_empty() or self.current_view.allow_rate_to_energy:
+            self.toolbar.update_rate_to_energy(True)
         else:
             self.toolbar.rate_energy_btn.setEnabled(False)
             rate_to_energy = False
         Settings.RATE_TO_ENERGY = rate_to_energy
-        self.on_units_changed()
+        self.updateUnitsRequested.emit()
 
     def on_energy_units_changed(self, act: QAction):
-        changed = self.energy_btn.update_state(act)
+        changed = self.toolbar.energy_btn.update_state(act)
         if changed:
             Settings.ENERGY_UNITS = act.data()
-            self.on_units_changed()
+            self.updateUnitsRequested.emit()
 
     def on_power_units_changed(self, act: QAction):
-        changed = self.power_btn.update_state(act)
+        changed = self.toolbar.power_btn.update_state(act)
         if changed:
             Settings.POWER_UNITS = act.data()
-            self.on_units_changed()
+            self.updateUnitsRequested.emit()
 
     def on_units_system_changed(self, act: QAction):
-        changed = self.units_system_button.update_state(act)
+        changed = self.toolbar.units_system_button.update_state(act)
         if changed:
             Settings.UNITS_SYSTEM = act.data()
             self.toolbar.filter_energy_power_units(act.data())
-            self.on_units_changed()
+            self.updateUnitsRequested.emit()
 
     def connect_toolbar_signals(self):
         # ~~~~ Toolbar Signals ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

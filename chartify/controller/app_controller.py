@@ -128,7 +128,8 @@ class AppController:
             self.m.storage.save_as(path.parent, path.stem)
 
     def on_update_units_requested(self):
-        self.v.current_view.update_units(**Settings.units_dict())
+        if not self.v.tab_wgt.is_empty():
+            self.v.current_view.update_units(**Settings.units_dict())
 
     def update_view_model(
         self,
