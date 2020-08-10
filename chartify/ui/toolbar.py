@@ -209,13 +209,6 @@ class Toolbar(QFrame):
         # show only relevant units
         self.filter_energy_power_units(Settings.UNITS_SYSTEM)
 
-    def set_initial_layout(self):
-        """ Define an app layout when there isn't any file loaded. """
-        self.all_files_btn.setEnabled(False)
-        self.totals_btn.setEnabled(False)
-        self.rate_energy_btn.setEnabled(True)
-        self.clear_group(self.table_group)
-
     def update_rate_to_energy(self, can_convert: bool):
         """ Enable or disable rate to energy button. """
         if self.custom_units_toggle.isChecked():

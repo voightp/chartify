@@ -624,8 +624,12 @@ class MainWindow(QMainWindow):
             # there aren't any widgets available
             Settings.CURRENT_FILE_ID = None
             Settings.TABLE_NAME = None
+            # update toolbar buttons availability
             self.remove_variables_act.setEnabled(False)
-            self.toolbar.set_initial_layout()
+            self.toolbar.all_files_btn.setEnabled(False)
+            self.toolbar.totals_btn.setEnabled(False)
+            self.toolbar.rate_energy_btn.setEnabled(True)
+            self.toolbar.clear_group(self.table_group)
         else:
             Settings.CURRENT_FILE_ID = self.current_view.id_
             # model keys represent available table names
@@ -650,8 +654,6 @@ class MainWindow(QMainWindow):
 
     def on_tab_closed(self):
         """ Update the interface when number of tabs changes. """
-        if self.tab_wgt.is_empty():
-            self.toolbar.set_initial_layout()
         if self.tab_wgt.count() <= 1:
             self.toolbar.all_files_btn.setEnabled(False)
             self.close_all_act.setEnabled(False)
