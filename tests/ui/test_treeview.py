@@ -36,7 +36,7 @@ def tree_view(qtbot, hourly_df):
     tree_view.setFixedWidth(WIDTH)
     tree_view.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
     tree_view.update_model("hourly", header_df=hourly_df, tree_node="type")
-    tree_view.update_view_appearance()
+    tree_view.update_appearance()
     tree_view.show()
     qtbot.addWidget(tree_view)
     return tree_view
@@ -137,7 +137,7 @@ def test_resize_header(tree_view: TreeView, hourly_df: pd.DataFrame):
 def test_on_tree_node_changed_build_tree(qtbot, tree_view: TreeView, hourly_df: pd.DataFrame):
     assert tree_view.get_visual_names() == ("type", "key", "units")
 
-    with qtbot.wait_signal(tree_view.treeNodeChangeRequested, timeout=1000):
+    with qtbot.wait_signal(tree_view.treeNodeChanged, timeout=1000):
         tree_view.header().moveSection(2, 0)
         assert tree_view.get_visual_names() == ("units", "type", "key")
         assert tree_view.header().sortIndicatorOrder() == Qt.AscendingOrder
@@ -148,7 +148,7 @@ def test_on_tree_node_changed_dont_build_tree(
 ):
     assert tree_view.get_visual_names() == ("type", "key", "units")
 
-    with qtbot.assertNotEmitted(tree_view.treeNodeChangeRequested):
+    with qtbot.assertNotEmitted(tree_view.treeNodeChanged):
         tree_view.header().moveSection(2, 1)
 
 
@@ -169,7 +169,7 @@ def test_on_section_moved_rebuild(qtbot, tree_view: TreeView, hourly_df: pd.Data
     def test_header(cls, dct):
         return cls == "treeview" and dct["header"] == ("key", "units", "type")
 
-    signals = [(tree_view.viewAppearanceChanged, "0"), (tree_view.treeNodeChangeRequested, "1")]
+    signals = [(tree_view.viewAppearanceChanged, "0"), (tree_view.treeNodeChanged, "1")]
     callbacks = [test_header, None]
     with qtbot.wait_signals(signals=signals, check_params_cbs=callbacks):
         tree_view.header().moveSection(0, 2)
@@ -361,7 +361,7 @@ def test_filter_view(tree_view: TreeView, daily_df: pd.DataFrame):
 def test_get_visual_names(tree_view: TreeView):
     assert tree_view.get_visual_names() == ("type", "key", "units")
 
-    tree_view.reshuffle_columns(("units", "type", "key"))
+    tree_view.reorder_columns(("units", "type", "key"))
     assert tree_view.get_visual_names() == ("units", "type", "key")
 
 
@@ -371,7 +371,7 @@ def test_get_visual_ixs(tree_view: TreeView):
 
 def test_build_view_kwargs_rate_to_energy(qtbot, tree_view: TreeView, daily_df: pd.DataFrame):
     tree_view.update_model(daily_df, "daily", is_tree=True, rate_to_energy=True)
-    tree_view.update_view_appearance()
+    tree_view.update_appearance()
     proxy_model = tree_view.model()
     test_data = VariableData("BOILER", "Boiler Gas Rate", "W", "J")
     assert proxy_model.data_at_index(proxy_model.index(1, 0)) == test_data
@@ -415,7 +415,7 @@ def test_update_view_model_appearance(tree_view: TreeView, daily_df: pd.DataFram
 
     widths = {"interactive": 150, "fixed": 50}
     expanded = {"Fan Electric Power", "Heating Coil Heating Rate"}
-    tree_view.update_view_appearance(header, widths, expanded)
+    tree_view.update_appearance(header, widths, expanded)
 
     assert tree_view.header().sectionSize(0) == 150
     assert tree_view.header().sectionSize(1) == 50
@@ -428,7 +428,7 @@ def test_update_view_model_appearance(tree_view: TreeView, daily_df: pd.DataFram
 
 
 def test_update_view_model_appearance_default(tree_view: TreeView, daily_df: pd.DataFrame):
-    tree_view.update_view_appearance()
+    tree_view.update_appearance()
 
     assert tree_view.header().sectionSize(0) == 200
     assert tree_view.header().sectionSize(1) == 130
@@ -439,7 +439,7 @@ def test_update_view_model_appearance_default(tree_view: TreeView, daily_df: pd.
 
 def test_build_view_reversed_header(tree_view: TreeView, daily_df: pd.DataFrame):
     tree_view.update_model(daily_df, "daily", is_tree=True, header=("units", "key", "type"))
-    tree_view.update_view_appearance(("units", "key", "type"))
+    tree_view.update_appearance(("units", "key", "type"))
 
     assert tree_view.get_visual_names() == ("units", "key", "type")
 

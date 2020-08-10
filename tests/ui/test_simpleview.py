@@ -37,7 +37,7 @@ def simple_view(qtbot, hourly_df):
     simple_view.setFixedWidth(WIDTH)
     simple_view.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
     simple_view.update_model(header_df=hourly_df.copy(), interval="hourly", is_tree=True)
-    simple_view.update_view_appearance()
+    simple_view.update_appearance()
     simple_view.show()
     qtbot.addWidget(simple_view)
     return simple_view
@@ -87,7 +87,7 @@ def test_initial_view_appearance(qtbot, simple_view: TreeView, hourly_df: pd.Dat
 
 
 def test_on_view_resized_stretch(qtbot, simple_view: TreeView, hourly_df: pd.DataFrame):
-    simple_view.update_view_appearance()
+    simple_view.update_appearance()
     with qtbot.assertNotEmitted(simple_view.viewAppearanceChanged):
         simple_view.header().resizeSection(1, 125)
 
@@ -207,7 +207,7 @@ def test_filter_view(qtbot, simple_view: TreeView):
 def test_get_visual_names(simple_view: TreeView):
     assert simple_view.get_visual_names() == ("key", "units")
 
-    simple_view.reshuffle_columns(("units", "key"))
+    simple_view.reorder_columns(("units", "key"))
     assert simple_view.get_visual_names() == ("units", "key")
 
 
@@ -217,7 +217,7 @@ def test_get_visual_ixs(simple_view: TreeView):
 
 def test_build_view_kwargs_rate_to_energy(simple_view: TreeView, daily_df: pd.DataFrame):
     simple_view.update_model(daily_df, "daily", is_tree=True, rate_to_energy=True)
-    simple_view.update_view_appearance()
+    simple_view.update_appearance()
     proxy_model = simple_view.model()
     test_data = VariableData("Boiler Gas Rate", None, "W", "J")
     assert proxy_model.data_at_index(proxy_model.index(1, 0)) == test_data
@@ -226,7 +226,7 @@ def test_build_view_kwargs_rate_to_energy(simple_view: TreeView, daily_df: pd.Da
 
 def test_build_view_kwargs_units_system(simple_view: TreeView, daily_df: pd.DataFrame):
     simple_view.update_model(daily_df, "daily", is_tree=True, units_system="IP")
-    simple_view.update_view_appearance()
+    simple_view.update_appearance()
     proxy_model = simple_view.model()
     test_data = VariableData("Site Outdoor Air Dewpoint Temperature", None, "C", "F")
 
@@ -238,7 +238,7 @@ def test_build_view_kwargs_energy_units(simple_view: TreeView, daily_df: pd.Data
     simple_view.update_model(
         daily_df, "daily", is_tree=True, rate_to_energy=True, energy_units="MWh"
     )
-    simple_view.update_view_appearance()
+    simple_view.update_appearance()
     proxy_model = simple_view.model()
     test_data = VariableData("Boiler Gas Rate", None, "W", "MWh")
 
@@ -248,7 +248,7 @@ def test_build_view_kwargs_energy_units(simple_view: TreeView, daily_df: pd.Data
 
 def test_build_view_kwargs_power_units(simple_view: TreeView, daily_df: pd.DataFrame):
     simple_view.update_model(daily_df, "daily", is_tree=True, power_units="MW")
-    simple_view.update_view_appearance()
+    simple_view.update_appearance()
     proxy_model = simple_view.model()
     test_data = VariableData("Boiler Gas Rate", None, "W", "MW")
 
@@ -263,7 +263,7 @@ def test_update_view_model_appearance(simple_view: TreeView, daily_df: pd.DataFr
     )
 
     widths = {"fixed": 50}
-    simple_view.update_view_appearance(header=header, widths=widths)
+    simple_view.update_appearance(header=header, widths=widths)
 
     assert simple_view.header().sectionSize(0) == 50
     assert simple_view.header().sectionSize(1) == 350
@@ -272,7 +272,7 @@ def test_update_view_model_appearance(simple_view: TreeView, daily_df: pd.DataFr
 
 
 def test_update_view_model_appearance_default(simple_view: TreeView, daily_df: pd.DataFrame):
-    simple_view.update_view_appearance()
+    simple_view.update_appearance()
 
     assert simple_view.header().sectionSize(0) == 330
     assert simple_view.header().sectionSize(1) == 70
@@ -296,7 +296,7 @@ def test_deselect_variables(qtbot, simple_view: TreeView, daily_df: pd.DataFrame
     simple_view.update_model(
         daily_df, "daily", power_units="kW",
     )
-    simple_view.update_view_appearance()
+    simple_view.update_appearance()
     simple_view.select_variables(selected)
     proxy_rows = simple_view.selectionModel().selectedRows()
     variables_data = [simple_view.model().data_at_index(index) for index in proxy_rows]

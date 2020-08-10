@@ -1,6 +1,6 @@
 import os
 from multiprocessing import Manager
-from typing import List, Callable, Union, Any, Dict
+from typing import List, Callable, Union, Any, Dict, Optional
 
 from PySide2.QtCore import QThreadPool
 from esofile_reader.base_file import VariableType
@@ -95,8 +95,10 @@ class AppController:
         self.v.close_all_act.triggered.connect(lambda x: x)
         self.v.save_act.triggered.connect(self.on_save)
         self.v.save_as_act.triggered.connect(self.on_save_as)
-        self.v.viewModelUpdateRequested.connect(self.on_view_model_update_requested)
-        self.v.viewModelChangeRequested.connect(self.on_view_model_change_requested)
+        self.v.setUpdateModelRequested.connect(self.on_set_update_requested)
+        self.v.updateUnitsRequested.connect(self.on_update_units_requested)
+        self.v.updateModelRequested.connect(self.on_update_model_requested)
+        self.v.setModelRequested.connect(self.on_set_model_requested)
 
     def connect_model_signals(self) -> None:
         """ Create monitor signals. """
@@ -124,6 +126,47 @@ class AppController:
         path = self.v.save_storage_to_fs()
         if path:
             self.m.storage.save_as(path.parent, path.stem)
+
+    def on_update_units_requested(self):
+        self.v.current_view.update_units(**Settings.units_dict())
+
+    def update_view_model(
+        self,
+        selected: Optional[List[VariableData]] = None,
+        scroll_to: Optional[VariableData] = None,
+    ):
+        """ Force programatical update of the current model. """
+        old_model = self.v.current_view.current_model
+        self.v.current_view.update_model(self.m.current_table, **Settings.units_dict())
+        self.v.update_view_visual(selected=selected, scroll_to=scroll_to, old_model=old_model)
+
+    def on_set_update_requested(self):
+        old_model = self.v.current_view.current_model
+        self.v.current_view.set_and_update_model(
+            self.m.current_table,
+            Settings.TABLE_NAME,
+            tree_node=Settings.TREE_NODE,
+            **Settings.units_dict()
+        )
+        self.v.update_view_visual(
+            old_model=old_model, selected=self.m.selected_variable_data,
+        )
+
+    def on_update_model_requested(self):
+        old_model = self.v.current_view.current_model
+        self.v.current_view.update_model(
+            self.m.current_table, tree_node=Settings.TREE_NODE, **Settings.units_dict()
+        )
+        self.v.update_view_visual(
+            old_model=old_model, selected=self.m.selected_variable_data,
+        )
+
+    def on_set_model_requested(self):
+        old_model = self.v.current_view.current_model
+        self.v.current_view.set_model(Settings.TABLE_NAME, **Settings.units_dict())
+        self.v.update_view_visual(
+            old_model=old_model, selected=self.m.selected_variable_data,
+        )
 
     def on_view_model_change_requested(self) -> None:
         """ Set new model for current view. """
@@ -173,7 +216,8 @@ class AppController:
         # make sure that appropriate views will be updated
         views = self.v.all_views if Settings.ALL_FILES else [self.v.current_view]
         for view in views:
-            view.next_update_forced = True
+            # TODO set model dirty flags
+            pass
 
         # apply function to all other widgets asynchronously
         if Settings.ALL_FILES:
@@ -231,10 +275,8 @@ class AppController:
                     units=new_variable.units,
                     proxyunits=variable_data.proxyunits,
                 )
-                self.v.update_view_model(
-                    self.m.current_table,
-                    selected=[new_variable_data],
-                    scroll_to=new_variable_data,
+                self.update_view_model(
+                    selected=[new_variable_data], scroll_to=new_variable_data,
                 )
 
     def on_variable_remove_requested(self) -> None:
@@ -245,7 +287,7 @@ class AppController:
         )
         if res:
             self.apply_async(Settings.CURRENT_FILE_ID, self._delete_variables, variables)
-            self.v.update_view_model(self.m.current_table)
+            self.update_view_model()
 
     def on_file_rename_requested(self, id_: int) -> None:
         """ Update file name. """
@@ -278,10 +320,8 @@ class AppController:
                     units=new_variable.units,
                     proxyunits=None,
                 )
-                self.v.update_view_model(
-                    self.m.current_table,
-                    selected=[new_variable_data],
-                    scroll_to=new_variable_data,
+                self.update_view_model(
+                    selected=[new_variable_data], scroll_to=new_variable_data,
                 )
 
     def on_file_remove_requested(self, tab_index: int) -> None:

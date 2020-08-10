@@ -75,6 +75,15 @@ class Settings:
         return {a: getattr(cls, a) for a in attrs if not callable(getattr(cls, a))}
 
     @classmethod
+    def units_dict(cls):
+        return {
+            "energy_units": cls.ENERGY_UNITS,
+            "power_units": cls.POWER_UNITS,
+            "units_system": cls.UNITS_SYSTEM,
+            "rate_to_energy": cls.RATE_TO_ENERGY,
+        }
+
+    @classmethod
     def as_str(cls):
         s = "Current Settings:"
         for k, v in cls.attribute_dict().items():

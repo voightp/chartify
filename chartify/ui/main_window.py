@@ -1,10 +1,8 @@
-import contextlib
 import ctypes
 from functools import partial
 from pathlib import Path
 from typing import Optional, Tuple, List, Dict
 
-import pandas as pd
 from PySide2.QtCore import QSize, Qt, QCoreApplication, Signal, QPoint, QTimer
 from PySide2.QtGui import QIcon, QKeySequence, QColor
 from PySide2.QtWebEngineWidgets import QWebEngineView
@@ -26,7 +24,6 @@ from PySide2.QtWidgets import (
     QSpacerItem,
 )
 from esofile_reader.base_file import VariableType
-from esofile_reader.constants import *
 from esofile_reader.convertor import is_rate_or_energy
 from esofile_reader.mini_classes import Variable
 from esofile_reader.storages.pqt_storage import ParquetStorage
@@ -37,7 +34,7 @@ from chartify.ui.dialogs import ConfirmationDialog, SingleInputDialog, DoubleInp
 from chartify.ui.misc_widgets import DropFrame, TabWidget
 from chartify.ui.progress_widget import ProgressContainer
 from chartify.ui.toolbar import Toolbar
-from chartify.ui.treeview import TreeView, ViewModel, SOURCE_UNITS
+from chartify.ui.treeview import TreeView, ViewModel
 from chartify.utils.css_theme import Palette, CssTheme
 from chartify.utils.icon_painter import Pixmap, filled_circle_pixmap
 from chartify.utils.utils import VariableData, FilterTuple
@@ -52,12 +49,13 @@ class MainWindow(QMainWindow):
     QCoreApplication.setApplicationName("chartify")
 
     paletteUpdated = Signal()
-    unitsUpdated = Signal(str, str, str, bool)
     tabChanged = Signal(int)
     treeNodeUpdated = Signal(str)
     selectionChanged = Signal(list)
-    viewModelUpdateRequested = Signal()
-    viewModelChangeRequested = Signal()
+    setUpdateModelRequested = Signal()
+    updateUnitsRequested = Signal()
+    updateModelRequested = Signal()
+    setModelRequested = Signal()
     fileProcessingRequested = Signal(list)
     fileRenameRequested = Signal(int)
     variableRenameRequested = Signal(int, VariableData)
@@ -134,15 +132,13 @@ class MainWindow(QMainWindow):
         self.tree_view_btn = QToolButton(self.view_tools)
         self.tree_view_btn.setObjectName("treeButton")
         self.tree_view_btn.setCheckable(True)
-        self.tree_view_btn.setChecked(Settings.TREE_VIEW)
+        self.tree_view_btn.setChecked(bool(Settings.TREE_NODE))
 
         self.collapse_all_btn = QToolButton(self.view_tools)
         self.collapse_all_btn.setObjectName("collapseButton")
-        self.collapse_all_btn.setEnabled(Settings.TREE_VIEW)
 
         self.expand_all_btn = QToolButton(self.view_tools)
         self.expand_all_btn.setObjectName("expandButton")
-        self.expand_all_btn.setEnabled(Settings.TREE_VIEW)
 
         self.filter_icon = QLabel(self.view_tools)
         self.filter_icon.setObjectName("filterIcon")
@@ -331,26 +327,13 @@ class MainWindow(QMainWindow):
         self.central_splitter.setSizes(Settings.SPLIT)
 
         # ~~~~ Tree view appearance ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.view_settings = {
-            TreeView.SIMPLE: {
-                "widths": {"fixed": 70},
-                "header": (KEY_LEVEL, UNITS_LEVEL, SOURCE_UNITS),
-            },
-            TreeView.TABLE: {
-                "widths": {"interactive": 200, "fixed": 70},
-                "header": (TYPE_LEVEL, KEY_LEVEL, UNITS_LEVEL, SOURCE_UNITS),
-            },
-            TreeView.TREE: {
-                "widths": {"interactive": 200, "fixed": 70},
-                "header": (TYPE_LEVEL, KEY_LEVEL, UNITS_LEVEL, SOURCE_UNITS),
-                "expanded": set(),
-            },
-        }
+        self.view_settings = {TreeView.SIMPLE: Settings.SIMPLE, TreeView.TREE: Settings.TREE}
 
         # ~~~~ Connect main ui user actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.connect_ui_signals()
         self.connect_tab_widget_signals()
         self.connect_view_tools_signals()
+        self.connect_toolbar_signals()
 
     @property
     def current_view(self) -> TreeView:
@@ -452,7 +435,7 @@ class MainWindow(QMainWindow):
         view.selectionCleared.connect(self.on_selection_cleared)
         view.selectionPopulated.connect(self.on_selection_populated)
         view.viewAppearanceChanged.connect(self.on_view_settings_changed)
-        view.treeNodeChangeRequested.connect(self.treeNodeUpdated.emit)
+        view.treeNodeChanged.connect(self.on_tree_node_changed)
         view.itemDoubleClicked.connect(self.variableRenameRequested.emit)
 
         # add the new view into tab widget
@@ -537,26 +520,21 @@ class MainWindow(QMainWindow):
         self.toolbar.remove_btn.setEnabled(False)
         self.selectionChanged.emit([])
 
+    def on_tree_node_changed(self, name: str):
+        """ Update model when tree node changes. """
+        Settings.TREE_NODE = name
+        self.updateModelRequested.emit()
+
     def on_view_settings_changed(self, view_type: str, new_settings: dict):
         """ Update current ui view settings. """
-        settings = self.view_settings[view_type]
-
-        def on_expanded():
-            settings["expanded"].add(value)
-
-        def on_collapsed():
-            with contextlib.suppress(KeyError):
-                settings["expanded"].remove(value)
 
         def on_interactive():
-            settings["widths"]["interactive"] = value
+            self.view_settings[view_type]["widths"]["interactive"] = value
 
         def on_header():
-            settings["header"] = value
+            self.view_settings[view_type]["header"] = value
 
         switch = {
-            "expanded": on_expanded,
-            "collapsed": on_collapsed,
             "interactive": on_interactive,
             "header": on_header,
         }
@@ -594,68 +572,44 @@ class MainWindow(QMainWindow):
         self,
         selected: Optional[List[VariableData]] = None,
         scroll_to: Optional[VariableData] = None,
+        old_model: Optional[ViewModel] = None,
     ):
-        # update visual appearance of the view to be consistent with a previous one
-        self.current_view.update_view_appearance(
-            **self.view_settings[self.current_view.view_type]
-        )
-        filter_tuple = self.get_filter_tuple()
-        if any(filter_tuple) and filter_tuple != self.current_view.model().filter_tuple:
-            self.current_view.filter_view(filter_tuple)
-
-        # clear selections to avoid having selected items from previous selection
-        self.current_view.deselect_all_variables()
-        if selected:
-            self.current_view.select_variables(selected)
-        # scroll to takes precedence over scrollbar position
-        if scroll_to:
-            self.current_view.scroll_to(selected[0])
-
-    def update_view_model(
-        self,
-        header_df: pd.DataFrame,
-        selected: Optional[List[VariableData]] = None,
-        scroll_to: Optional[VariableData] = None,
-    ):
-        """ Update model data of the current view. """
-        self.current_view.update_model(
-            header_df=header_df,
-            tree_node=Settings.TREE_NODE,
-            energy_units=Settings.ENERGY_UNITS,
-            power_units=Settings.POWER_UNITS,
-            units_system=Settings.UNITS_SYSTEM,
-            rate_to_energy=Settings.RATE_TO_ENERGY,
-        )
-        self.update_view_visual(selected, scroll_to=scroll_to)
-
-    def set_view_model(self, table_name: str, selected: Optional[List[VariableData]] = None):
-        """ Set new model for the current view. """
-        original_model = self.current_view.current_model
-        new_model = self.current_view.update_model(
-            table_name=table_name,
-            energy_units=Settings.ENERGY_UNITS,
-            power_units=Settings.POWER_UNITS,
-            units_system=Settings.UNITS_SYSTEM,
-            rate_to_energy=Settings.RATE_TO_ENERGY,
-        )
-        if (
-            not selected
-            and original_model is not None
-            and new_model.is_similar(original_model, rows_diff=0.05)
+        """ update visual appearance of the view to be consistent with a previous one. """
+        if old_model is not None and old_model.is_similar(
+            self.current_view.current_model, rows_diff=0.05
         ):
-            pass
-        self.update_view_visual(selected)
+            scroll_pos = old_model.scroll_position
+            expanded = old_model.expanded
+        else:
+            scroll_pos = self.current_view.current_model.scroll_position
+            expanded = self.current_view.current_model.expanded
+        self.current_view.update_appearance(
+            **self.view_settings[self.current_view.view_type],
+            filter_tuple=self.get_filter_tuple(),
+            expanded=expanded,
+            selected=selected,
+            scroll_pos=scroll_pos,
+            scroll_to=scroll_to,
+        )
 
     def on_table_change_requested(self, table_name: str):
         """ Change table on a current model. """
         Settings.TABLE_NAME = table_name
         new_model = self.current_view.models[table_name]
-        if new_model.is_simple or Settings.TREE_NODE == new_model.tree_node:
-            # simple view does not need to be updated when changing tables
-            self.viewModelChangeRequested.emit()
+        if self.current_view.current_model is None:
+            # model has not been set yet
+            self.setUpdateModelRequested.emit()
+        elif self.current_view.current_model == new_model:
+            # file changed and but table does not need to be changed
+            if new_model.is_simple or Settings.TREE_NODE == new_model.tree_node:
+                self.updateUnitsRequested.emit()
+            else:
+                self.updateModelRequested.emit()
         else:
-            # tree node has been changed on a non simple view
-            self.viewModelUpdateRequested.emit()
+            if new_model.is_simple or Settings.TREE_NODE == new_model.tree_node:
+                self.setModelRequested.emit()
+            else:
+                self.setUpdateModelRequested.emit()
         # slots are on a same thread so following is called synchronously
         # enable or disable applicable buttons
         allow_tree = not new_model.is_simple
@@ -667,21 +621,26 @@ class MainWindow(QMainWindow):
     def on_tab_changed(self, index: int) -> None:
         """ Update view when tabChanged event is fired. """
         if index == -1:
-            Settings.CURRENT_FILE_ID = None
             # there aren't any widgets available
+            Settings.CURRENT_FILE_ID = None
+            Settings.TABLE_NAME = None
             self.remove_variables_act.setEnabled(False)
             self.toolbar.set_initial_layout()
         else:
             Settings.CURRENT_FILE_ID = self.current_view.id_
+            # model keys represent available table names
             table_names = list(self.current_view.models.keys())
             if Settings.TABLE_NAME in table_names:
+                # leave previously set table if available on new model
                 table_name = Settings.TABLE_NAME
             else:
                 if self.current_view.current_model is None:
-                    # fresh view, source model has not been set yet
+                    # model has not been initialized on a current view
                     table_name = table_names[0]
                 else:
+                    # leave table set previously on a current view
                     table_name = self.current_view.current_model.name
+            # table buttons are always cleared and created again
             self.toolbar.update_table_buttons(table_names=table_names, selected=table_name)
             self.on_table_change_requested(table_name)
 
@@ -789,7 +748,7 @@ class MainWindow(QMainWindow):
             Settings.TREE_NODE = None
         self.collapse_all_btn.setEnabled(checked)
         self.expand_all_btn.setEnabled(checked)
-        self.viewModelUpdateRequested.emit()
+        self.updateModelRequested.emit()
 
     def on_text_edited(self):
         """ Delay firing a text edited event. """

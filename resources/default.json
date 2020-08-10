@@ -16,7 +16,7 @@
   "SI_POWER_UNITS": ["W", "kW", "MW"],
   "SPLIT": [540, 654],
   "TOTALS": false,
-  "TREE_NODE": "TYPE",
+  "TREE_NODE": "type",
   "UNITS_SYSTEM": "SI",
   "SIMPLE": {
     "widths": {
