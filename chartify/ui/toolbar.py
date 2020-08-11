@@ -101,8 +101,7 @@ class Toolbar(QFrame):
         self.custom_units_toggle.stateChanged.connect(self.custom_units_toggled)
         self.source_units_toggle = ToggleButton(self.units_group)
         self.source_units_toggle.setText("Source")
-        self.source_units_toggle.setChecked(Settings.SHOW_SOURCE_UNITS)
-        # self.source_units_toggle.stateChanged.connect(self.custom_units_toggled)
+        self.source_units_toggle.setChecked(not Settings.HIDE_SOURCE_UNITS)
         self.energy_btn = TitledButton("energy", self.units_group)
         self.power_btn = TitledButton("power", self.units_group)
         self.units_system_button = TitledButton("system", self.units_group)
@@ -230,10 +229,9 @@ class Toolbar(QFrame):
             self.table_buttons.append(btn)
         self.populate_group(self.table_group, self.table_buttons)
 
-    def custom_units_toggled(self, state: int) -> None:
+    def custom_units_toggled(self, checked: int) -> None:
         """ Update units settings when custom units toggled. """
-        enabled = state == 1
-        if not enabled:
+        if not checked:
             # set default EnergyPlus units
             energy = "J"
             power = "W"
@@ -255,10 +253,10 @@ class Toolbar(QFrame):
         self.units_system_button.update_state_internally(units_system)
         self.rate_energy_btn.setChecked(rate_to_energy)
 
-        self.energy_btn.setEnabled(enabled)
-        self.power_btn.setEnabled(enabled)
-        self.units_system_button.setEnabled(enabled)
-        self.rate_energy_btn.setEnabled(enabled)
+        self.energy_btn.setEnabled(checked)
+        self.power_btn.setEnabled(checked)
+        self.units_system_button.setEnabled(checked)
+        self.rate_energy_btn.setEnabled(checked)
 
         self.customUnitsToggled.emit(energy, power, units_system, rate_to_energy)
 

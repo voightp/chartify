@@ -34,7 +34,7 @@ from chartify.ui.dialogs import ConfirmationDialog, SingleInputDialog, DoubleInp
 from chartify.ui.misc_widgets import DropFrame, TabWidget
 from chartify.ui.progress_widget import ProgressContainer
 from chartify.ui.toolbar import Toolbar
-from chartify.ui.treeview import TreeView, ViewModel
+from chartify.ui.treeview import TreeView, ViewModel, SOURCE_UNITS
 from chartify.utils.css_theme import Palette, CssTheme
 from chartify.utils.icon_painter import Pixmap, filled_circle_pixmap
 from chartify.utils.utils import VariableData, FilterTuple
@@ -573,6 +573,7 @@ class MainWindow(QMainWindow):
         selected: Optional[List[VariableData]] = None,
         scroll_to: Optional[VariableData] = None,
         old_model: Optional[ViewModel] = None,
+        hide_source_units: bool = False,
     ):
         """ update visual appearance of the view to be consistent with a previous one. """
         if old_model is not None and old_model.is_similar(
@@ -590,6 +591,7 @@ class MainWindow(QMainWindow):
             selected=selected,
             scroll_pos=scroll_pos,
             scroll_to=scroll_to,
+            hide_source_units=hide_source_units,
         )
 
     def on_table_change_requested(self, table_name: str):
@@ -681,6 +683,11 @@ class MainWindow(QMainWindow):
         Settings.RATE_TO_ENERGY = checked
         self.updateUnitsRequested.emit()
 
+    def on_source_units_toggled(self, checked: bool):
+        Settings.HIDE_SOURCE_UNITS = not checked
+        if self.current_view:
+            self.current_view.hide_section(SOURCE_UNITS, not checked)
+
     def on_custom_units_toggled(
         self, energy_units: str, power_units: str, units_system: str, rate_to_energy: bool
     ):
@@ -725,6 +732,7 @@ class MainWindow(QMainWindow):
         self.toolbar.all_files_btn.toggled.connect(self.on_all_files_checked)
         self.toolbar.tableChangeRequested.connect(self.on_table_change_requested)
         self.toolbar.customUnitsToggled.connect(self.on_custom_units_toggled)
+        self.toolbar.source_units_toggle.stateChanged.connect(self.on_source_units_toggled)
         self.toolbar.rate_energy_btn.clicked.connect(self.on_rate_energy_btn_clicked)
         self.toolbar.energy_btn.menu().triggered.connect(self.on_energy_units_changed)
         self.toolbar.power_btn.menu().triggered.connect(self.on_power_units_changed)

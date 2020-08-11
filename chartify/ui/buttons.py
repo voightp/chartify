@@ -126,7 +126,7 @@ class ToggleButton(QFrame):
 
     """
 
-    stateChanged = Signal(int)
+    stateChanged = Signal(bool)
 
     def __init__(self, parent):
         super().__init__(parent)
@@ -149,7 +149,7 @@ class ToggleButton(QFrame):
     def onValueChange(self, val: int) -> None:
         """ Trigger slider stateChange signal. """
         self.setChecked(bool(val))
-        self.stateChanged.emit(val)
+        self.stateChanged.emit(bool(val))
 
     def isChecked(self) -> bool:
         """ Get the current state of toggle button. """

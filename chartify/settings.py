@@ -45,7 +45,7 @@ class Settings:
     ALL_FILES = None
     TOTALS = None
     TREE_NODE = None
-    SHOW_SOURCE_UNITS = None
+    HIDE_SOURCE_UNITS = None
 
     SIZE = None
     POSITION = None

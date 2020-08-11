@@ -130,6 +130,10 @@ class AppController:
     def on_update_units_requested(self):
         if not self.v.tab_wgt.is_empty():
             self.v.current_view.update_units(**Settings.units_dict())
+            self.v.update_view_visual(
+                selected=self.m.selected_variable_data,
+                hide_source_units=Settings.HIDE_SOURCE_UNITS,
+            )
 
     def update_view_model(
         self,
@@ -139,7 +143,12 @@ class AppController:
         """ Force programatical update of the current model. """
         old_model = self.v.current_view.current_model
         self.v.current_view.update_model(self.m.current_table, **Settings.units_dict())
-        self.v.update_view_visual(selected=selected, scroll_to=scroll_to, old_model=old_model)
+        self.v.update_view_visual(
+            selected=selected,
+            scroll_to=scroll_to,
+            old_model=old_model,
+            hide_source_units=Settings.HIDE_SOURCE_UNITS,
+        )
 
     def on_set_update_requested(self):
         old_model = self.v.current_view.current_model
@@ -150,7 +159,9 @@ class AppController:
             **Settings.units_dict()
         )
         self.v.update_view_visual(
-            old_model=old_model, selected=self.m.selected_variable_data,
+            old_model=old_model,
+            selected=self.m.selected_variable_data,
+            hide_source_units=Settings.HIDE_SOURCE_UNITS,
         )
 
     def on_update_model_requested(self):
@@ -159,14 +170,18 @@ class AppController:
             self.m.current_table, tree_node=Settings.TREE_NODE, **Settings.units_dict()
         )
         self.v.update_view_visual(
-            old_model=old_model, selected=self.m.selected_variable_data,
+            old_model=old_model,
+            selected=self.m.selected_variable_data,
+            hide_source_units=Settings.HIDE_SOURCE_UNITS,
         )
 
     def on_set_model_requested(self):
         old_model = self.v.current_view.current_model
         self.v.current_view.set_model(Settings.TABLE_NAME, **Settings.units_dict())
         self.v.update_view_visual(
-            old_model=old_model, selected=self.m.selected_variable_data,
+            old_model=old_model,
+            selected=self.m.selected_variable_data,
+            hide_source_units=Settings.HIDE_SOURCE_UNITS,
         )
 
     def on_view_model_change_requested(self) -> None:

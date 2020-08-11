@@ -336,7 +336,6 @@ class FilterModel(QSortFilterProxyModel):
         """ Set item flags. """
         if self.hasChildren(index):
             return Qt.ItemIsEnabled | Qt.ItemIsSelectable
-
         return Qt.ItemIsEnabled | Qt.ItemIsDragEnabled | Qt.ItemIsSelectable
 
 
@@ -539,7 +538,7 @@ class TreeView(QTreeView):
         """ Define resizing behaviour. """
         # units column width is always fixed
         units_index = self.proxy_model.get_logical_index(UNITS_LEVEL)
-        source_units_index = self.proxy_model.get_logical_index(UNITS_LEVEL)
+        source_units_index = self.proxy_model.get_logical_index(SOURCE_UNITS)
 
         self.header().setSectionResizeMode(units_index, QHeaderView.Fixed)
         self.header().setSectionResizeMode(source_units_index, QHeaderView.Fixed)
@@ -560,7 +559,7 @@ class TreeView(QTreeView):
             self.header().setSectionResizeMode(fixed, QHeaderView.Fixed)
             self.header().setStretchLastSection(False)
 
-            # key and variable sections can be either Stretch or Interactive
+            # key and type sections can be either Stretch or Interactive
             # Interactive section can be resized programmatically
             if vis_ixs[KEY_LEVEL] > vis_ixs[TYPE_LEVEL]:
                 stretch = log_ixs[KEY_LEVEL]
@@ -571,9 +570,10 @@ class TreeView(QTreeView):
 
             self.header().setSectionResizeMode(stretch, QHeaderView.Stretch)
             self.header().setSectionResizeMode(interactive, QHeaderView.Interactive)
-
-            # resize sections programmatically
             self.header().resizeSection(interactive, widths["interactive"])
+
+    def hide_section(self, name: str, hide: bool):
+        self.header().setSectionHidden(self.proxy_model.get_logical_index(name), hide)
 
     def update_appearance(
         self,
@@ -584,6 +584,7 @@ class TreeView(QTreeView):
         selected: Optional[List[VariableData]] = None,
         scroll_pos: Optional[int] = None,
         scroll_to: Optional[VariableData] = None,
+        hide_source_units: bool = False,
     ) -> None:
         """ Update the model appearance to be consistent with last view. """
         # filter expands all items so it's not required to use expanded set
@@ -591,6 +592,8 @@ class TreeView(QTreeView):
             self.filter_view(filter_tuple)
         elif expanded:
             self.expand_items(expanded)
+        # handle custom units column visibility
+        self.hide_section(SOURCE_UNITS, hide_source_units)
         # logical and visual indexes may differ so it's needed to update columns order
         self.reorder_columns(header)
         # update widths and order so columns appear consistently
@@ -661,6 +664,7 @@ class TreeView(QTreeView):
     def on_view_resized(self, log_ix: int, _, new_size: int) -> None:
         """ Store interactive section width in the main app. """
         if self.header().sectionResizeMode(log_ix) == self.header().Interactive:
+            print(f"resized {log_ix} {new_size}")
             self.viewAppearanceChanged.emit(self.view_type, {"interactive": new_size})
 
     def on_section_moved(self, _logical_ix, old_visual_ix: int, new_visual_ix: int) -> None:
