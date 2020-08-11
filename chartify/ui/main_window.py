@@ -58,7 +58,7 @@ class MainWindow(QMainWindow):
     setModelRequested = Signal()
     fileProcessingRequested = Signal(list)
     fileRenameRequested = Signal(int)
-    variableRenameRequested = Signal(int, VariableData)
+    variableRenameRequested = Signal(VariableData)
     variableRemoveRequested = Signal()
     aggregationRequested = Signal(str)
     fileRemoveRequested = Signal(int)

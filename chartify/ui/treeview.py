@@ -1,5 +1,5 @@
 import contextlib
-from typing import Dict, List, Set, Sequence, Optional, Union, Tuple
+from typing import Dict, List, Set, Sequence, Optional, Tuple
 
 import pandas as pd
 from PySide2.QtCore import (
@@ -259,13 +259,6 @@ class FilterModel(QSortFilterProxyModel):
 
     def filterAcceptsRow(self, source_row: int, source_parent: QStandardItem) -> bool:
         """ Set up filtering rules for the model. """
-
-        def valid():
-            if filter_string and val:
-                return filter_string.lower() in val.lower()
-            else:
-                return True
-
         if not any(self._filter_tuple):
             return True
 
@@ -287,9 +280,13 @@ class FilterModel(QSortFilterProxyModel):
                     filter_string = filter_string.strip()
                     val = variable_data.__getattribute__(k)
 
-                if not valid():
-                    # condition fails if any of filter fields does not match
-                    return False
+                if filter_string and val:
+                    if filter_string.lower() in val.lower():
+                        continue
+                    else:
+                        return False
+                else:
+                    return True
 
             return True
 
@@ -376,7 +373,7 @@ class TreeView(QTreeView):
 
     selectionCleared = Signal()
     selectionPopulated = Signal(list)
-    itemDoubleClicked = Signal(int, VariableData)
+    itemDoubleClicked = Signal(VariableData)
     viewAppearanceChanged = Signal(str, dict)
     treeNodeChanged = Signal(str)
 
@@ -483,7 +480,7 @@ class TreeView(QTreeView):
             # it's required to reapply column span after each filter
             self.setFirstTreeColumnSpanned()
 
-    def get_visual_names(self) -> tuple:
+    def get_visual_names(self) -> Tuple[str, ...]:
         """ Return sorted column names (by visual index). """
         dct_items = sorted(self.get_visual_indexes().items(), key=lambda x: x[1])
         return tuple([t[0] for t in dct_items])
@@ -493,11 +490,11 @@ class TreeView(QTreeView):
         log_ixs = self.proxy_model.get_logical_indexes()
         return {k: self.header().visualIndex(i) for k, i in log_ixs.items()}
 
-    def reorder_columns(self, order: Union[Tuple[str, str, str], Tuple[str, str, str, str]]):
+    def reorder_columns(self, order: Tuple[str, ...]):
         """ Reset column positions to match last visual appearance. """
-        vis_names = self.get_visual_names()
-        for i, nm in enumerate(order):
-            j = vis_names.index(nm)
+        for i, name in enumerate(order):
+            vis_indexes = self.get_visual_indexes()
+            j = vis_indexes[name]
             if i != j:
                 self.header().moveSection(j, i)
 
@@ -577,7 +574,7 @@ class TreeView(QTreeView):
 
     def update_appearance(
         self,
-        header: tuple = (TYPE_LEVEL, KEY_LEVEL, UNITS_LEVEL, SOURCE_UNITS),
+        header: Tuple[str, ...] = (TYPE_LEVEL, KEY_LEVEL, UNITS_LEVEL, SOURCE_UNITS),
         widths: Dict[str, int] = None,
         expanded: Set[str] = None,
         filter_tuple: FilterTuple = FilterTuple("", "", ""),
@@ -649,13 +646,11 @@ class TreeView(QTreeView):
         if self.proxy_model.hasChildren(index):
             name = self.proxy_model.data(index)
             self.current_model.expanded.add(name)
-            print("Expanded" + name)
 
     def on_item_collapsed(self, index: QModelIndex):
         with contextlib.suppress(KeyError):
             name = self.proxy_model.data(index)
             self.current_model.expanded.remove(name)
-            print("Collapsed" + name)
 
     def on_sort_order_changed(self, log_ix: int, order: Qt.SortOrder) -> None:
         """ Store current sorting order. """
@@ -664,7 +659,6 @@ class TreeView(QTreeView):
     def on_view_resized(self, log_ix: int, _, new_size: int) -> None:
         """ Store interactive section width in the main app. """
         if self.header().sectionResizeMode(log_ix) == self.header().Interactive:
-            print(f"resized {log_ix} {new_size}")
             self.viewAppearanceChanged.emit(self.view_type, {"interactive": new_size})
 
     def on_section_moved(self, _logical_ix, old_visual_ix: int, new_visual_ix: int) -> None:
