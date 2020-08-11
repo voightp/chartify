@@ -21,13 +21,13 @@
   "UNITS_SYSTEM": "SI",
   "SIMPLE": {
     "widths": {
-      "fixed": 70
+      "fixed": 60
     },
     "header": ["key", "units", "source units"]
   },
   "TREE": {
     "widths": {
-      "fixed": 70,
+      "fixed": 60,
       "interactive": 200
     },
     "header": ["type", "key", "units", "source units"]

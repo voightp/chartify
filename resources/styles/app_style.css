@@ -520,6 +520,7 @@ QTabBar QToolButton::right-arrow:disabled {
 }
 
 QHeaderView::section {
+    font-size: 12px;
     background-color: transparent;
     margin-left: 3px;
     margin-right: 3px;

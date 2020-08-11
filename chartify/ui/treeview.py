@@ -68,7 +68,7 @@ class ViewModel(QStandardItemModel):
     def __init__(
         self,
         name: str,
-        headed_df: pd.DataFrame,
+        header_df: pd.DataFrame,
         is_simple: bool = False,
         allow_rate_to_energy: bool = False,
     ):
@@ -84,7 +84,7 @@ class ViewModel(QStandardItemModel):
         self.dirty = False
         self.scroll_position = 0
         self.expanded = set()
-        self.populate_model(header_df=headed_df)
+        self.populate_model(header_df=header_df)
 
     def count_rows(self) -> int:
         """ Calculate total number of rows (including child rows). """
@@ -176,7 +176,7 @@ class ViewModel(QStandardItemModel):
         self.dirty = False
 
         # id and table data are not required
-        header_df.drop([ID_LEVEL, TABLE_LEVEL], axis=1, inplace=True)
+        header_df = header_df.drop([ID_LEVEL, TABLE_LEVEL], axis=1)
 
         # add proxy units - these will be visible on ui
         header_df[SOURCE_UNITS] = header_df[UNITS_LEVEL]
@@ -534,7 +534,7 @@ class TreeView(QTreeView):
                 else:
                     self.collapse(ix)
 
-    def resize_header(self, widths) -> None:
+    def resize_header(self, widths: Dict[str, int]) -> None:
         """ Define resizing behaviour. """
         # units column width is always fixed
         units_index = self.proxy_model.get_logical_index(UNITS_LEVEL)

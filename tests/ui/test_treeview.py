@@ -6,7 +6,7 @@ from PySide2.QtCore import Qt, QModelIndex
 from PySide2.QtWidgets import QHeaderView, QSizePolicy
 from esofile_reader import EsoFile
 
-from chartify.ui.treeview import TreeView, ViewModel
+from chartify.ui.treeview import TreeView, ViewModel, FilterModel
 from chartify.utils.utils import FilterTuple, VariableData
 from tests import ROOT
 
@@ -30,13 +30,15 @@ def daily_df(eso_file):
 
 @pytest.fixture
 def tree_view(qtbot, hourly_df):
-    model = ViewModel("hourly", is_simple=False, allow_rate_to_energy=False)
+    model = ViewModel("hourly", hourly_df, is_simple=False, allow_rate_to_energy=False)
     tree_view = TreeView(0, {"hourly": model})
     tree_view.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
     tree_view.setFixedWidth(WIDTH)
     tree_view.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-    tree_view.update_model("hourly", header_df=hourly_df, tree_node="type")
-    tree_view.update_appearance()
+    tree_view.set_and_update_model(header_df=hourly_df, table_name="hourly", tree_node="type")
+    tree_view.update_appearance(
+        widths={"interactive": 200, "fixed": 70}, hide_source_units=True
+    )
     tree_view.show()
     qtbot.addWidget(tree_view)
     return tree_view
@@ -60,17 +62,27 @@ def test_init_tree_view(tree_view: TreeView):
     assert tree_view.focusPolicy() == Qt.NoFocus
 
     assert tree_view.id_ == 0
+    assert list(tree_view.models.keys()) == ["hourly"]
+
+    assert tree_view.proxy_model.sortCaseSensitivity() == Qt.CaseInsensitive
+    assert tree_view.proxy_model.isRecursiveFilteringEnabled()
+    assert not tree_view.proxy_model.dynamicSortFilter()
+
+
+def test_treeview_properties(tree_view: TreeView):
+    assert isinstance(tree_view.current_model, ViewModel)
+    assert isinstance(tree_view.proxy_model, FilterModel)
+    assert tree_view.view_type == "tree"
+    assert tree_view.is_tree
+    assert not tree_view.allow_rate_to_energy
 
 
 def test_build_tree_view(qtbot, tree_view: TreeView, hourly_df: pd.DataFrame):
     assert tree_view.model().rowCount() == 49
     assert tree_view.model().sourceModel().rowCount() == 49
-
     assert tree_view.is_tree
-    assert not tree_view.rate_to_energy
-    assert tree_view.units_system == "SI"
-    assert tree_view.energy_units == "J"
-    assert not tree_view.next_update_forced
+    assert tree_view.current_model.units_system == "SI"
+    assert tree_view.current_model.energy_units == "J"
 
 
 def test_first_column_spanned(tree_view: TreeView, hourly_df: pd.DataFrame):
@@ -100,21 +112,20 @@ def test_initial_view_appearance(tree_view: TreeView, hourly_df: pd.DataFrame):
 
 
 def test_build_plain_view(qtbot, tree_view: TreeView, hourly_df: pd.DataFrame):
-    tree_view.update_model("hourly", header_df=hourly_df, tree_node=None)
+    tree_view.update_model(header_df=hourly_df, tree_node=None)
 
     assert tree_view.model().rowCount() == 77
     assert tree_view.model().sourceModel().rowCount() == 77
 
-    assert tree_view.interval == "hourly"
+    assert tree_view.current_model.name == "hourly"
     assert not tree_view.is_tree
-    assert not tree_view.rate_to_energy
-    assert tree_view.units_system == "SI"
-    assert tree_view.energy_units == "J"
-    assert not tree_view.next_update_forced
+    assert not tree_view.allow_rate_to_energy
+    assert tree_view.current_model.units_system == "SI"
+    assert tree_view.current_model.energy_units == "J"
 
 
 def test_first_column_not_spanned(tree_view: TreeView, hourly_df: pd.DataFrame):
-    tree_view.update_model("hourly", header_df=hourly_df, tree_node=None)
+    tree_view.update_model(header_df=hourly_df, tree_node=None)
     proxy_model = tree_view.model()
     for i in range(proxy_model.rowCount()):
         index = proxy_model.index(i, 0)
@@ -126,7 +137,7 @@ def test_first_column_not_spanned(tree_view: TreeView, hourly_df: pd.DataFrame):
 
 
 def test_resize_header(tree_view: TreeView, hourly_df: pd.DataFrame):
-    tree_view.update_model("hourly", header_df=hourly_df, tree_node=None)
+    tree_view.update_model(header_df=hourly_df, tree_node=None)
     tree_view.resize_header({"interactive": 250, "fixed": 100})
 
     assert tree_view.header().sectionSize(0) == 250
