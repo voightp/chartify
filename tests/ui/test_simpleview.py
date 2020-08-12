@@ -13,12 +13,6 @@ from tests import ROOT
 WIDTH = 402
 
 
-@pytest.fixture(scope="module")
-def results_file():
-    rf = ResultsFile.from_excel(Path(ROOT, "eso_files", "simple_view.xlsx"))
-    return rf
-
-
 @pytest.fixture
 def hourly_df(results_file):
     hourly_df = results_file.get_header_df("hourly")
@@ -166,14 +160,6 @@ def test_on_pressed(qtbot, simple_view: TreeView, hourly_df: pd.DataFrame):
     with qtbot.wait_signals(signals, check_params_cbs=callbacks):
         # need to click first as single double click would emit only pressed signal
         qtbot.mousePress(simple_view.viewport(), Qt.LeftButton, pos=point)
-
-
-def test_on_pressed_right_mb(qtbot, simple_view: TreeView, hourly_df: pd.DataFrame):
-    index = simple_view.model().index(1, 0)
-    point = simple_view.visualRect(index).center()
-    qtbot.mouseMove(simple_view.viewport(), pos=point)
-    with qtbot.assert_not_emitted(simple_view.pressed,):
-        qtbot.mousePress(simple_view.viewport(), Qt.RightButton, pos=point)
 
 
 def test_is_tree_kwarg(simple_view: TreeView, daily_df: pd.DataFrame):

@@ -64,6 +64,8 @@ class ViewModel(QStandardItemModel):
         Store current scrollbar position.
     expanded : set of {str}
         Currently expanded items.
+    **kwargs
+        Key word arguments passed to populate model method.
 
     """
 
@@ -73,6 +75,7 @@ class ViewModel(QStandardItemModel):
         header_df: pd.DataFrame,
         is_simple: bool = False,
         allow_rate_to_energy: bool = False,
+        **kwargs,
     ):
         super().__init__()
         self.name = name
@@ -86,7 +89,7 @@ class ViewModel(QStandardItemModel):
         self.dirty = False
         self.scroll_position = 0
         self.expanded = set()
-        self.populate_model(header_df=header_df)
+        self.populate_model(header_df=header_df, **kwargs)
 
     def count_rows(self) -> int:
         """ Calculate total number of rows (including child rows). """
@@ -556,7 +559,6 @@ class TreeView(QTreeView):
             # units column width is always fixed
             fixed = log_ixs[UNITS_LEVEL]
             self.header().setSectionResizeMode(fixed, QHeaderView.Fixed)
-            self.header().setStretchLastSection(False)
 
             # key and type sections can be either Stretch or Interactive
             # Interactive section can be resized programmatically
