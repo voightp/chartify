@@ -325,6 +325,22 @@ def test_get_visual_ixs(tree_view: TreeView):
     }
 
 
+def set_model(tree_view: TreeView):
+    tree_view.set_model()
+
+
+def set_and_update_model(tree_view: TreeView):
+    pass
+
+
+def update_model(tree_view: TreeView):
+    pass
+
+
+def update_units(tree_view: TreeView):
+    pass
+
+
 def test_build_view_kwargs_rate_to_energy(qtbot, tree_view: TreeView, daily_df: pd.DataFrame):
     tree_view.update_model(daily_df, "daily", is_tree=True, rate_to_energy=True)
     tree_view.update_appearance()

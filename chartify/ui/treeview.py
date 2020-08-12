@@ -41,6 +41,8 @@ class ViewModel(QStandardItemModel):
 
     Attributes
     ----------
+    name : str
+        Usually a name of the original table.
     is_simple : bool
         Check if model includes 'type' column.
     allow_rate_to_energy : bool

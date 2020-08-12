@@ -52,8 +52,6 @@ class MainWindow(QMainWindow):
     tabChanged = Signal(int)
     treeNodeUpdated = Signal(str)
     selectionChanged = Signal(list)
-    setUpdateModelRequested = Signal()
-    updateUnitsRequested = Signal()
     updateModelRequested = Signal()
     setModelRequested = Signal()
     fileProcessingRequested = Signal(list)
@@ -598,20 +596,12 @@ class MainWindow(QMainWindow):
         """ Change table on a current model. """
         Settings.TABLE_NAME = table_name
         new_model = self.current_view.models[table_name]
-        if self.current_view.current_model is None:
-            # model has not been set yet
-            self.setUpdateModelRequested.emit()
-        elif self.current_view.current_model == new_model:
+        if self.current_view.current_model == new_model:
             # file changed and but table does not need to be changed
-            if new_model.is_simple or Settings.TREE_NODE == new_model.tree_node:
-                self.updateUnitsRequested.emit()
-            else:
-                self.updateModelRequested.emit()
+            self.updateModelRequested.emit()
         else:
-            if new_model.is_simple or Settings.TREE_NODE == new_model.tree_node:
-                self.setModelRequested.emit()
-            else:
-                self.setUpdateModelRequested.emit()
+            self.setModelRequested.emit()
+
         # slots are on a same thread so following is called synchronously
         # enable or disable applicable buttons
         allow_tree = not new_model.is_simple

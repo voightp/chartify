@@ -95,8 +95,6 @@ class AppController:
         self.v.close_all_act.triggered.connect(lambda x: x)
         self.v.save_act.triggered.connect(self.on_save)
         self.v.save_as_act.triggered.connect(self.on_save_as)
-        self.v.setUpdateModelRequested.connect(self.on_set_update_requested)
-        self.v.updateUnitsRequested.connect(self.on_update_units_requested)
         self.v.updateModelRequested.connect(self.on_update_model_requested)
         self.v.setModelRequested.connect(self.on_set_model_requested)
 
@@ -127,20 +125,12 @@ class AppController:
         if path:
             self.m.storage.save_as(path.parent, path.stem)
 
-    def on_update_units_requested(self):
-        if not self.v.tab_wgt.is_empty():
-            self.v.current_view.update_units(**Settings.units_dict())
-            self.v.update_view_visual(
-                selected=self.m.selected_variable_data,
-                hide_source_units=Settings.HIDE_SOURCE_UNITS,
-            )
-
     def update_view_model(
         self,
         selected: Optional[List[VariableData]] = None,
         scroll_to: Optional[VariableData] = None,
     ):
-        """ Force programatical update of the current model. """
+        """ Force update of the current model. """
         old_model = self.v.current_view.current_model
         self.v.current_view.update_model(self.m.current_table, **Settings.units_dict())
         self.v.update_view_visual(
@@ -150,14 +140,16 @@ class AppController:
             hide_source_units=Settings.HIDE_SOURCE_UNITS,
         )
 
-    def on_set_update_requested(self):
+    def on_set_model_requested(self):
+        """ Set a new model on current view. """
         old_model = self.v.current_view.current_model
-        self.v.current_view.set_and_update_model(
-            self.m.current_table,
-            Settings.TABLE_NAME,
-            tree_node=Settings.TREE_NODE,
-            **Settings.units_dict()
-        )
+        new_model = self.v.current_view.models[Settings.TABLE_NAME]
+        if new_model.is_simple or Settings.TREE_NODE == new_model.tree_node:
+            self.v.current_view.set_model(Settings.TABLE_NAME, **Settings.units_dict())
+        else:
+            self.v.current_view.set_and_update_model(
+                self.m.current_table, Settings.TABLE_NAME, tree_node=Settings.TREE_NODE,
+            )
         self.v.update_view_visual(
             old_model=old_model,
             selected=self.m.selected_variable_data,
@@ -165,32 +157,20 @@ class AppController:
         )
 
     def on_update_model_requested(self):
+        """ Update current model on current view. """
         old_model = self.v.current_view.current_model
-        self.v.current_view.update_model(
-            self.m.current_table, tree_node=Settings.TREE_NODE, **Settings.units_dict()
-        )
+        new_model = self.v.current_view.models[Settings.TABLE_NAME]
+        if new_model.is_simple or Settings.TREE_NODE == new_model.tree_node:
+            self.v.current_view.update_units(**Settings.units_dict())
+        else:
+            self.v.current_view.update_model(
+                self.m.current_table, tree_node=Settings.TREE_NODE, **Settings.units_dict()
+            )
         self.v.update_view_visual(
             old_model=old_model,
             selected=self.m.selected_variable_data,
             hide_source_units=Settings.HIDE_SOURCE_UNITS,
         )
-
-    def on_set_model_requested(self):
-        old_model = self.v.current_view.current_model
-        self.v.current_view.set_model(Settings.TABLE_NAME, **Settings.units_dict())
-        self.v.update_view_visual(
-            old_model=old_model,
-            selected=self.m.selected_variable_data,
-            hide_source_units=Settings.HIDE_SOURCE_UNITS,
-        )
-
-    def on_view_model_change_requested(self) -> None:
-        """ Set new model for current view. """
-        self.v.set_view_model(Settings.TABLE_NAME)
-
-    def on_view_model_update_requested(self) -> None:
-        """ Update current model for current view. """
-        self.v.update_view_model(self.m.current_table)
 
     def on_file_processing_requested(self, paths: List[str]) -> None:
         """ Load new files. """
