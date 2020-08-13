@@ -4,7 +4,7 @@ from typing import List, Callable, Union, Any, Dict, Optional
 
 from PySide2.QtCore import QThreadPool
 from esofile_reader.base_file import VariableType
-from esofile_reader.mini_classes import ResultsFile, Variable
+from esofile_reader.mini_classes import ResultsFileType, Variable
 from esofile_reader.storages.pqt_storage import ParquetFile
 
 from chartify.controller.wv_controller import WVController
@@ -12,7 +12,7 @@ from chartify.model.model import AppModel
 from chartify.settings import Settings
 from chartify.ui.main_window import MainWindow
 from chartify.ui.treeview import ViewModel
-from chartify.utils.process_utils import create_pool, kill_child_processes, load_eso_file
+from chartify.utils.process_utils import create_pool, kill_child_processes, load_file
 from chartify.utils.threads import EsoFileWatcher, IterWorker, Monitor
 from chartify.utils.utils import get_str_identifier, VariableData
 
@@ -109,7 +109,7 @@ class AppController:
 
     def on_selection_change(self, variable_data: List[tuple]) -> None:
         """ Handle selection update. """
-        out_str = [" | ".join(var) for var in variable_data]
+        out_str = [" | ".join(var) for var in variable_data if var is not None]
         if out_str:
             print("Selected Variables:\n\t{}".format("\n\t".join(out_str)))
         self.m.selected_variable_data = variable_data
@@ -177,7 +177,7 @@ class AppController:
         workdir = str(self.m.storage.workdir)
         for path in paths:
             self.pool.submit(
-                load_eso_file,
+                load_file,
                 path,
                 workdir,
                 self.progress_queue,
@@ -225,7 +225,7 @@ class AppController:
 
     @staticmethod
     def _update_variable_name(
-        file: ResultsFile, variable_name: str, key_name: str, variable: VariableType
+        file: ResultsFileType, variable_name: str, key_name: str, variable: VariableType
     ) -> VariableType:
         """ Rename given 'Variable'. """
         # TODO handle None returned
@@ -233,14 +233,14 @@ class AppController:
         return var
 
     @staticmethod
-    def _delete_variables(file: ResultsFile, variables: List[VariableType]) -> None:
+    def _delete_variables(file: ResultsFileType, variables: List[VariableType]) -> None:
         """ Hide or remove selected variables. """
         # TODO return True or False
         file.remove_variables(variables)
 
     @staticmethod
     def _aggregate_variables(
-        file: ResultsFile,
+        file: ResultsFileType,
         variables: List[VariableType],
         key: str,
         type_: str,

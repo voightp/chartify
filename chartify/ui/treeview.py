@@ -573,7 +573,13 @@ class TreeView(QTreeView):
             self.header().setSectionResizeMode(interactive, QHeaderView.Interactive)
             self.header().resizeSection(interactive, widths["interactive"])
 
+    def show_all_sections(self):
+        """ Make all columns visible. """
+        for i in range(self.header().count()):
+            self.header().setSectionHidden(i, False)
+
     def hide_section(self, name: str, hide: bool):
+        """ Hide section of a given name. """
         self.header().setSectionHidden(self.proxy_model.get_logical_index(name), hide)
 
     def update_appearance(
@@ -593,7 +599,10 @@ class TreeView(QTreeView):
             self.filter_view(filter_tuple)
         elif expanded:
             self.expand_items(expanded)
-        # handle custom units column visibility
+        # handle custom units column visibility, need to show all
+        # as switching between simple and tree view may cause that
+        # another section will be hidden
+        self.show_all_sections()
         self.hide_section(SOURCE_UNITS, hide_source_units)
         # logical and visual indexes may differ so it's needed to update columns order
         self.reorder_columns(header)
