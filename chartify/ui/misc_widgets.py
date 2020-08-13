@@ -10,14 +10,13 @@ from PySide2.QtWidgets import (
     QFrame,
 )
 
-from chartify.ui.treeview import TreeView
 from chartify.utils.utils import refresh_css, filter_files
 
 
 class TabWidget(QTabWidget):
     """ Tab widget which displays information button when empty. """
 
-    tabClosed = Signal(TreeView)
+    tabClosed = Signal(int)
 
     def __init__(self, parent):
         super().__init__(parent)
@@ -32,7 +31,10 @@ class TabWidget(QTabWidget):
         self.drop_btn.setText("Choose a file or drag it here!")
         layout.addWidget(self.drop_btn)
 
-        self.tabCloseRequested.connect(self.close_tab)
+    def tabRemoved(self, index: int) -> None:
+        if self.is_empty():
+            self.drop_btn.setVisible(True)
+        self.tabClosed.emit(index)
 
     def is_empty(self) -> bool:
         """ Check if there's at least one loaded file. """
@@ -48,13 +50,6 @@ class TabWidget(QTabWidget):
         if self.is_empty():
             self.drop_btn.setVisible(False)
         self.addTab(wgt, title)
-
-    def close_tab(self, index: int) -> None:
-        wgt = self.widget(index)
-        self.removeTab(index)
-        if self.is_empty():
-            self.drop_btn.setVisible(True)
-        self.tabClosed.emit(wgt)
 
 
 class DropFrame(QFrame):

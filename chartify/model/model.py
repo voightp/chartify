@@ -2,11 +2,8 @@ from typing import List, Union
 
 import pandas as pd
 from PySide2.QtCore import QObject
-from esofile_reader import Variable
-from esofile_reader import get_results
-from esofile_reader.mini_classes import ResultsFile
-from esofile_reader.storages.pqt_storage import ParquetFile
-from esofile_reader.storages.pqt_storage import ParquetStorage
+from esofile_reader import Variable, SimpleVariable, get_results
+from esofile_reader.storages.pqt_storage import ParquetFile, ParquetStorage
 
 from chartify.charts.chart import Chart
 from chartify.charts.trace import Trace1D, Trace2D, TraceData
@@ -45,8 +42,20 @@ class AppModel(QObject):
                     type=variable_data.type,
                     units=variable_data.units,
                 )
+                if variable_data.type is not None
+                else SimpleVariable(
+                    table=Settings.TABLE_NAME, key=variable_data.key, units=variable_data.units,
+                )
             )
         return variables
+
+    @property
+    def current_file(self) -> ParquetFile:
+        return self.get_file(Settings.CURRENT_FILE_ID)
+
+    @property
+    def current_table(self) -> pd.DataFrame:
+        return self.current_file.get_header_df(Settings.TABLE_NAME)
 
     def get_file(self, id_: int) -> ParquetFile:
         """ Get 'DatabaseFile for the given id. """
@@ -68,7 +77,7 @@ class AppModel(QObject):
             files.append(file)
         return files
 
-    def store_file(self, file: ResultsFile) -> int:
+    def store_file(self, file: ParquetFile) -> int:
         """ Store file in database. """
         try:
             return self.storage.store_file(file)

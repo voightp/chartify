@@ -17,7 +17,7 @@ if process.returncode == 0:
         if "cp" + PY in str(w):
             v = p.match(str(w)).group(1)
             pairs.append((semver.VersionInfo.parse(v), w))
-    print(pairs)
+
     pairs.sort(key=lambda x: x[0], reverse=True)
     wheel = pairs[0][1]
     subprocess.run("pip uninstall -y esofile-reader")

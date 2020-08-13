@@ -1,6 +1,8 @@
+import json
 from pathlib import Path
+from typing import Optional
 
-from PySide2.QtCore import QSettings, QSize, QPoint
+from PySide2.QtCore import QSize
 
 
 class Settings:
@@ -15,7 +17,7 @@ class Settings:
     PALETTE_PATH = str(Path(ROOT, "resources/styles/palettes.json"))
     CSS_PATH = str(Path(ROOT, "resources/styles/app_style.css"))
     ICONS_PATH = str(Path(ROOT, "resources/icons/"))
-    PALETTE = None
+    SETTINGS_PATH = Path(Path.home(), ".chartify", "settings.json")
 
     IP_ENERGY_UNITS = ["Btu", "kBtu", "MBtu"]
     IP_POWER_UNITS = ["Btu/h", "kBtu/h", "MBtu/h", "W"]
@@ -23,6 +25,10 @@ class Settings:
     SI_POWER_UNITS = ["W", "kW", "MW"]
 
     ICON_SMALL_SIZE = QSize(20, 20)
+    ICON_MEDIUM_SIZE = QSize(40, 40)
+    ICON_LARGE_SIZE = QSize(60, 60)
+
+    PALETTE = None
 
     CURRENT_FILE_ID = None
 
@@ -38,64 +44,73 @@ class Settings:
     TABLE_NAME = None
     ALL_FILES = None
     TOTALS = None
-    TREE_VIEW = None
+    TREE_NODE = None
+    HIDE_SOURCE_UNITS = None
 
     SIZE = None
     POSITION = None
     MIRRORED = None
     SPLIT = None
 
+    SIMPLE = None
+    TREE = None
+
+    _EXCLUDE = [
+        "_EXCLUDE",
+        "ROOT",
+        "PALETTE",
+        "TABLE_NAME",
+        "URL",
+        "PALETTE_PATH",
+        "CSS_PATH",
+        "ICONS_PATH",
+        "ICON_SMALL_SIZE",
+        "ICON_MEDIUM_SIZE",
+        "ICON_LARGE_SIZE",
+        "SETTINGS_PATH",
+    ]
+
+    @classmethod
+    def attribute_dict(cls):
+        attrs = [a for a in dir(cls) if not a.startswith("__")]
+        return {a: getattr(cls, a) for a in attrs if not callable(getattr(cls, a))}
+
+    @classmethod
+    def units_dict(cls):
+        return {
+            "energy_units": cls.ENERGY_UNITS,
+            "power_units": cls.POWER_UNITS,
+            "units_system": cls.UNITS_SYSTEM,
+            "rate_to_energy": cls.RATE_TO_ENERGY,
+        }
+
     @classmethod
     def as_str(cls):
-        return (
-            "Current Settings:"
-            f"\n\tTable: '{cls.TABLE_NAME}'"
-            f"\n\tEnergy units: '{cls.ENERGY_UNITS}'"
-            f"\n\tPower units: '{cls.POWER_UNITS}'"
-            f"\n\tUnits system: '{cls.UNITS_SYSTEM}'"
-            f"\n\tRate to Energy: '{cls.RATE_TO_ENERGY}'"
-            f"\n\tCustom units: '{cls.CUSTOM_UNITS}'"
-        )
+        s = "Current Settings:"
+        for k, v in cls.attribute_dict().items():
+            s += f"\n\t{k}: '{v}'"
+        return s
 
     @classmethod
-    def load_reg_settings(cls):
-        """ Load application settings. """
-        s = QSettings()
-        cls.ENERGY_UNITS = s.value("Units/energyUnits", "kWh")
-        cls.POWER_UNITS = s.value("Units/powerUnits", "kW")
-        cls.UNITS_SYSTEM = s.value("Units/unitsSystem", "SI")
-        cls.RATE_TO_ENERGY = bool(s.value("Units/rateToEnergy", 0))
-        cls.CUSTOM_UNITS = bool(s.value("Units/customUnits", 1))
-        cls.LOAD_PATH = s.value("MainWindow/loadPath", "")
-        cls.SAVE_PATH = s.value("MainWindow/savePath", "")
-        cls.PALETTE_NAME = s.value("MainWindow/scheme", "default")
-
-        cls.TABLE_NAME = s.value("MainWindow/tableName", None)
-        cls.ALL_FILES = bool(s.value("MainWindow/allFiles", 0))
-        cls.TOTALS = bool(s.value("MainWindow/totals", 0))
-        cls.TREE_VIEW = bool(s.value("MainWindow/treeView", 0))
-
-        cls.SIZE = QSettings().value("MainWindow/size", QSize(800, 600))
-        cls.POSITION = QSettings().value("MainWindow/pos", QPoint(50, 50))
-        cls.MIRRORED = bool(QSettings().value("MainWindow/mirrored", False))
-        cls.SPLIT = QSettings().value("MainWindow/split", [524, 400])
+    def load_settings_from_json(cls, path: Optional[str] = None):
+        """ Load application settings from JSON file. """
+        if not path:
+            if cls.SETTINGS_PATH.exists():
+                path = cls.SETTINGS_PATH
+            else:
+                path = Path(cls.ROOT, "resources", "default.json")
+        with open(path, "r") as f:
+            settings = json.load(f)
+            for k, v in settings.items():
+                setattr(cls, k, v)
 
     @classmethod
-    def write_reg_settings(cls):
-        """ Store application settings. """
-        s = QSettings()
-        s.setValue("Units/energyUnits", cls.ENERGY_UNITS)
-        s.setValue("Units/powerUnits", cls.POWER_UNITS)
-        s.setValue("Units/unitsSystem", cls.UNITS_SYSTEM)
-        s.setValue("Units/customUnits", int(cls.CUSTOM_UNITS))
-        s.setValue("Units/rateToEnergy", int(cls.RATE_TO_ENERGY))
-        s.setValue("MainWindow/tableName", cls.TABLE_NAME)
-        s.setValue("MainWindow/allFiles", int(cls.ALL_FILES))
-        s.setValue("MainWindow/treeView", int(cls.TREE_VIEW))
-        s.setValue("MainWindow/scheme", cls.PALETTE_NAME)
-        s.setValue("MainWindow/loadPath", cls.LOAD_PATH)
-        s.setValue("MainWindow/savePath", cls.SAVE_PATH)
-        s.setValue("MainWindow/size", cls.SIZE)
-        s.setValue("MainWindow/pos", cls.POSITION)
-        s.setValue("MainWindow/mirrored", int(cls.MIRRORED))
-        s.setValue("MainWindow/split", cls.SPLIT)
+    def save_settings_to_json(cls, path: Optional[str] = None):
+        """ Save application settings into JSON file. """
+        if not path:
+            root = cls.SETTINGS_PATH.parent
+            Path.mkdir(root, exist_ok=True)
+            path = cls.SETTINGS_PATH
+        attrs = {k: v for k, v in cls.attribute_dict().items() if k not in cls._EXCLUDE}
+        with open(path, "w") as f:
+            json.dump(attrs, f)

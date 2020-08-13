@@ -21,7 +21,7 @@ if __name__ == "__main__":
     install_fonts(str(Path(root, "resources/fonts")), db)
     db.addApplicationFont(str(Path(root, "resources/fonts/Roboto-Regular.ttf")))
 
-    Settings.load_reg_settings()
+    Settings.load_settings_from_json()
 
     view = MainWindow()
     model = AppModel()

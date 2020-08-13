@@ -2,8 +2,8 @@ import contextlib
 import math
 import traceback
 import uuid
-from multiprocessing import Lock
-from multiprocessing import cpu_count
+from multiprocessing import Lock, cpu_count
+from pathlib import Path
 from typing import Tuple, List
 
 import loky
@@ -70,7 +70,7 @@ def store_file(
     return id_, file
 
 
-def load_eso_file(
+def load_file(
     path: str, workdir: str, progress_queue, file_queue, ids: List[int], lock: Lock
 ) -> None:
     """ Process and store eso file. """
@@ -80,24 +80,39 @@ def load_eso_file(
         with contextlib.suppress(IncompleteFile, BlankLineError, InvalidLineSyntax):
             # monitor.failed is called in processing function so suppressed
             # functions do not need to be dealt with explicitly
-            files = ResultsFile.from_eso_file(path, monitor=monitor)
+            suffix = Path(path).suffix
+            if suffix == ".eso":
+                files = ResultsFile.from_eso_file(path, monitor=monitor)
+            elif suffix == ".xlsx":
+                files = ResultsFile.from_excel(path)
+            else:
+                monitor.processing_failed(
+                    f"Cannot process file '{path}'. Unexpected file type: {suffix}!"
+                )
+
             for f in files if isinstance(files, list) else [files]:
-                id_, file = store_file(
+                id1, file1 = store_file(
                     results_file=f, workdir=workdir, monitor=monitor, ids=ids, lock=lock
                 )
-                file_queue.put(file)
-
                 # generate and store totals file
                 monitor.totals_started()
                 totals_file = ResultsFile.from_totals(f)
-                id_, file = store_file(
-                    results_file=totals_file,
-                    workdir=workdir,
-                    monitor=monitor,
-                    ids=ids,
-                    lock=lock,
-                )
-                file_queue.put(file)
+                if totals_file:
+                    id2, file2 = store_file(
+                        results_file=totals_file,
+                        workdir=workdir,
+                        monitor=monitor,
+                        ids=ids,
+                        lock=lock,
+                    )
+                    # assign new buddy attribute to link totals with original file
+                    file2.buddy = file1
+                    file1.buddy = file2
+                else:
+                    file2 = None
+                    file1.buddy = None
+
+                file_queue.put((file1, file2))
             file_queue.put(monitor_id)
             monitor.done()
 

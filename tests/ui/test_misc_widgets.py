@@ -58,13 +58,14 @@ class TestTabWidget:
             wgt = QWidget(tab_widget)
             tab_widget.add_tab(wgt, str(i))
             widgets.append(wgt)
-        tab_widget.close_tab(0)
+        tab_widget.removeTab(0)
         assert not tab_widget.widget(2)
+        assert not tab_widget.drop_btn.isVisible()
 
     def test_close_tab_visible_button(self, tab_widget: TabWidget):
         wgt = QWidget(tab_widget)
         tab_widget.add_tab(wgt, "test widget")
-        tab_widget.close_tab(0)
+        tab_widget.removeTab(0)
         assert tab_widget.drop_btn.isVisible()
 
 
