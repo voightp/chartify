@@ -5,23 +5,18 @@ import pytest
 from PySide2.QtCore import QMargins, Qt, QSize, QPoint
 from PySide2.QtGui import QKeySequence
 from PySide2.QtWidgets import QSizePolicy
+from esofile_reader import EsoFile
 
 from chartify.settings import Settings
 from chartify.ui.main_window import MainWindow
+from chartify.ui.treeview import ViewModel, TreeView
 from chartify.utils.utils import FilterTuple
+from tests import ROOT
 
 
-# @patch("chartify.ui.mw.Settings", autospec=True)
-# @patch("chartify.ui.toolbar.Settings", autospec=True)
-# def mocked_main_window(toolbar_mock, main_mock):
-#     for s in [main_mock, toolbar_mock]:
-#         s.TREE_VIEW = False
-#         s.SIZE = QSize(800, 600)
-#         s.POSITION = QPoint(150, 100)
-#         s.MIRRORED = False
-#         s.ALL_FILES = False
-#         s.ICON_SMALL_SIZE = QSize(20, 20)
-#     return MainWindow()
+@pytest.fixture(scope="module")
+def eso_file():
+    return EsoFile(Path(ROOT, "eso_files", "eplusout1.eso"))
 
 
 @pytest.fixture
@@ -35,7 +30,15 @@ def mw(qtbot, tmp_path):
     return main_window
 
 
-def test_init_main_window(qtbot, mw):
+@pytest.fixture
+def populated_tree_view(eso_file: EsoFile):
+    models = ViewModel.models_from_file(eso_file, tree_node="type")
+    tv = TreeView(0, models=models)
+    tv.set_model("daily")
+    return tv
+
+
+def test_init_main_window(qtbot, mw: MainWindow):
     assert mw.windowTitle() == "chartify"
     assert mw.focusPolicy() == Qt.StrongFocus
     assert mw.size() == QSize(1200, 800)
@@ -166,13 +169,100 @@ def test_init_main_window(qtbot, mw):
     )
 
 
-def test_tree_requested(qtbot, mw):
-    with patch("chartify.ui.mw.Settings") as mock_settings:
+def test_empty_current_view(mw: MainWindow):
+    assert not mw.current_view
+    assert not mw.all_views
+
+
+def test_mirror_layout(mw: MainWindow):
+    with patch("chartify.ui.main_window.Settings") as mock_settings:
+        mock_settings.MIRRORED = False
+        mw.mirror_layout()
+        assert mw.left_main_layout.itemAt(1).widget() == mw.toolbar
+        assert mw.left_main_layout.itemAt(0).widget() == mw.view_wgt
+        assert mw.central_splitter.widget(1) == mw.left_main_wgt
+        assert mw.central_splitter.widget(0) == mw.right_main_wgt
+        assert mock_settings.MIRRORED
+        assert mw.central_splitter.sizes() == [654, 540]
+
+
+def test_add_new_tab(mw: MainWindow, eso_file: EsoFile):
+    models = ViewModel.models_from_file(eso_file)
+    mw.add_new_tab(0, "test", models)
+    assert mw.tab_wgt.widget(0) == mw.current_view
+    assert not mw.toolbar.all_files_btn.isEnabled()
+    assert not mw.close_all_act.isEnabled()
+
+    models = ViewModel.models_from_file(eso_file)
+    mw.add_new_tab(0, "test", models)
+    assert mw.tab_wgt.widget(0) == mw.current_view
+    assert mw.all_views == [mw.tab_wgt.widget(0), mw.tab_wgt.widget(1)]
+    assert mw.toolbar.all_files_btn.isEnabled()
+    assert mw.close_all_act.isEnabled()
+
+
+def test_tree_requested(qtbot, mw: MainWindow):
+    with patch("chartify.ui.maiw_window.Settings") as mock_settings:
         assert not mw.tree_requested()
 
         qtbot.mouseClick(mw.tree_view_btn, Qt.LeftButton)
         assert mw.tree_requested()
         assert mock_settings.TREE_VIEW
+
+
+def test_expand_all_empty(mw: MainWindow):
+    try:
+        mw.expand_all()
+    except AttributeError:
+        pytest.fail()
+
+
+def test_collapse_all_empty(mw: MainWindow):
+    try:
+        mw.collapse_all()
+    except AttributeError:
+        pytest.fail()
+
+
+def test_save_storage_to_fs(mw: MainWindow):
+    with patch("chartify.ui.main_window.QFileDialog") as qdialog:
+        with patch("chartify.ui.main_window.Settings") as mock_settings:
+            mock_settings.SAVE_PATH = "save/path"
+            qdialog.getSaveFileName.return_value = ("some/dummy/path/file.abc", ".abc")
+            mw.save_storage_to_fs()
+            qdialog.getSaveFileName.assert_called_with(
+                parent=mw, caption="Save project", filter="CFS (*.cfs)", dir="save/path"
+            )
+            path = mw.save_storage_to_fs()
+            assert mock_settings.SAVE_PATH == "some\\dummy\\path"
+            assert path == Path("some/dummy/path/file.abc")
+
+
+def test_load_files_from_fs(qtbot, mw: MainWindow):
+    def cb(paths):
+        return paths == ["some/dummy/path/file.abc"]
+
+    with patch("chartify.ui.main_window.QFileDialog") as qdialog:
+        with patch("chartify.ui.main_window.Settings") as mock_settings:
+            with qtbot.wait_signal(mw.fileProcessingRequested, check_params_cb=cb):
+                qdialog.getOpenFileNames.return_value = (["some/dummy/path/file.abc"], ".abc")
+                mock_settings.LOAD_PATH = "load/path"
+                mw.load_files_from_fs()
+                qdialog.getOpenFileNames.assert_called_with(
+                    parent=mw,
+                    caption="Load Project / Eso File",
+                    filter="FILES (*.csv *.xlsx *.eso *.cfs)",
+                    dir="load/path",
+                )
+                assert mock_settings.LOAD_PATH == "some\\dummy\\path"
+
+
+def test_on_color_scheme_changed(qtbot, mw: MainWindow):
+    with patch("chartify.ui.main_window.Settings") as mock_settings:
+        with qtbot.wait_signal(mw.paletteUpdated):
+            mw.on_color_scheme_changed("monochrome")
+            assert mock_settings.PALETTE == mw.palettes["monochrome"]
+            assert mock_settings.PALETTE_NAME == "monochrome"
 
 
 def test_get_filter_tup(qtbot, mw):
@@ -217,3 +307,127 @@ def test_collapse_all(qtbot, mw):
     mw.collapse_all_btn.setEnabled(True)
     with qtbot.wait_signal(mw.collapseRequested):
         qtbot.mouseClick(mw.collapse_all_btn, Qt.LeftButton)
+
+
+def test_on_selection_populated(mw: MainWindow):
+    pytest.fail()
+
+
+def test_on_selection_cleared(mw: MainWindow):
+    pytest.fail()
+
+
+def test_on_tree_node_changed(mw: MainWindow):
+    pytest.fail()
+
+
+def test_on_view_settings_changed(mw: MainWindow):
+    pytest.fail()
+
+
+def test_on_splitter_moved(mw: MainWindow):
+    pytest.fail()
+
+
+def test_connect_ui_signals(mw: MainWindow):
+    pytest.fail()
+
+
+def test_get_filter_tuple(mw: MainWindow):
+    pytest.fail()
+
+
+def test_update_view_visual(mw: MainWindow):
+    pytest.fail()
+
+
+def test_on_table_change_requested(mw: MainWindow):
+    pytest.fail()
+
+
+def test_on_tab_changed(mw: MainWindow):
+    pytest.fail()
+
+
+def test_on_tab_bar_double_clicked(mw: MainWindow):
+    pytest.fail()
+
+
+def test_on_tab_closed(mw: MainWindow):
+    pytest.fail()
+
+
+def test_connect_tab_widget_signals(mw: MainWindow):
+    pytest.fail()
+
+
+def test_on_totals_checked(mw: MainWindow):
+    pytest.fail()
+
+
+def test_on_all_files_checked(mw: MainWindow):
+    pytest.fail()
+
+
+def test_on_rate_energy_btn_clicked(mw: MainWindow):
+    pytest.fail()
+
+
+def test_on_source_units_toggled(mw: MainWindow):
+    pytest.fail()
+
+
+def test_on_custom_units_toggled(mw: MainWindow):
+    pytest.fail()
+
+
+def test_on_energy_units_changed(mw: MainWindow):
+    pytest.fail()
+
+
+def test_on_power_units_changed(mw: MainWindow):
+    pytest.fail()
+
+
+def test_on_units_system_changed(mw: MainWindow):
+    pytest.fail()
+
+
+def test_connect_toolbar_signals(mw: MainWindow):
+    pytest.fail()
+
+
+def test_on_tree_btn_toggled(mw: MainWindow):
+    pytest.fail()
+
+
+def test_on_text_edited(mw: MainWindow):
+    pytest.fail()
+
+
+def test_on_filter_timeout(mw: MainWindow):
+    pytest.fail()
+
+
+def test_connect_view_tools_signals(mw: MainWindow):
+    pytest.fail()
+
+
+def test_confirm_rename_file(mw: MainWindow):
+    pytest.fail()
+
+
+def test_confirm_remove_variables(mw: MainWindow):
+    pytest.fail()
+
+
+def test_confirm_rename_variable(mw: MainWindow):
+    pytest.fail()
+
+
+def test_confirm_aggregate_variables(mw: MainWindow):
+    pytest.fail()
+
+
+def test_confirm_delete_file(mw: MainWindow):
+    pytest.fail()

@@ -444,10 +444,6 @@ class MainWindow(QMainWindow):
             self.toolbar.all_files_btn.setEnabled(True)
             self.close_all_act.setEnabled(True)
 
-        # enable all eso file results btn if it's suitable
-        if not self.tab_wgt.is_empty():
-            self.toolbar.totals_btn.setEnabled(True)
-
     def expand_all(self):
         """ Expand all tree view items. """
         if not self.tab_wgt.is_empty():
@@ -458,7 +454,7 @@ class MainWindow(QMainWindow):
         if not self.tab_wgt.is_empty():
             self.current_view.collapseAll()
 
-    def save_storage_to_fs(self) -> Path:
+    def save_storage_to_fs(self) -> Optional[Path]:
         path, _ = QFileDialog.getSaveFileName(
             parent=self,
             caption="Save project",
@@ -482,7 +478,7 @@ class MainWindow(QMainWindow):
             Settings.LOAD_PATH = str(Path(file_paths[0]).parent)
             self.fileProcessingRequested.emit(file_paths)
 
-    def on_color_scheme_changed(self, name):
+    def on_color_scheme_changed(self, name: str):
         """ Update the application palette. """
         if name != Settings.PALETTE_NAME:
             Settings.PALETTE = self.palettes[name]
@@ -491,7 +487,7 @@ class MainWindow(QMainWindow):
             self.load_icons()
             self.paletteUpdated.emit()
 
-    def on_selection_populated(self, variables):
+    def on_selection_populated(self, variables: List[VariableData]):
         """ Store current selection in main app. """
         self.remove_variables_act.setEnabled(True)
         self.toolbar.remove_btn.setEnabled(True)
@@ -638,6 +634,7 @@ class MainWindow(QMainWindow):
                     table_name = self.current_view.current_model.name
             # table buttons are always cleared and created again
             self.toolbar.update_table_buttons(table_names=table_names, selected=table_name)
+            # TODO handle totals button
             self.on_table_change_requested(table_name)
 
     def on_tab_bar_double_clicked(self, tab_index: int):

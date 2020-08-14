@@ -16,6 +16,7 @@ from PySide2.QtCore import (
 from PySide2.QtGui import QStandardItem, QStandardItemModel, QDrag, QPixmap
 from PySide2.QtWidgets import QTreeView, QAbstractItemView, QHeaderView
 from esofile_reader.constants import *
+from esofile_reader.mini_classes import ResultsFileType
 
 from chartify.utils.utils import (
     FilterTuple,
@@ -90,6 +91,19 @@ class ViewModel(QStandardItemModel):
         self.scroll_position = 0
         self.expanded = set()
         self.populate_model(header_df=header_df, **kwargs)
+
+    @classmethod
+    def models_from_file(cls, file: ResultsFileType, **kwargs) -> Dict[str, "ViewModel"]:
+        """ Process results file to create models. """
+        models = {}
+        for table_name in file.table_names:
+            header_df = file.get_header_df(table_name)
+            is_simple = file.is_header_simple(table_name)
+            allow_rate_to_energy = file.can_convert_rate_to_energy(table_name)
+            models[table_name] = ViewModel(
+                table_name, header_df, is_simple, allow_rate_to_energy, **kwargs
+            )
+        return models
 
     def count_rows(self) -> int:
         """ Calculate total number of rows (including child rows). """
