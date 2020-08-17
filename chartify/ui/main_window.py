@@ -496,7 +496,8 @@ class MainWindow(QMainWindow):
         if len(variables) > 1:
             units = [var.units for var in variables]
             if len(set(units)) == 1 or (
-                is_rate_or_energy(units) and self.current_model.allow_rate_to_energy
+                is_rate_or_energy(units)
+                and self.current_view.current_model.allow_rate_to_energy
             ):
                 self.toolbar.sum_btn.setEnabled(True)
                 self.toolbar.mean_btn.setEnabled(True)

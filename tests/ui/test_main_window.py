@@ -1,5 +1,6 @@
 from pathlib import Path
-from unittest.mock import patch
+from typing import List
+from unittest.mock import patch, MagicMock
 
 import pytest
 from PySide2.QtCore import QMargins, Qt, QSize, QPoint
@@ -10,7 +11,7 @@ from esofile_reader import EsoFile
 from chartify.settings import Settings
 from chartify.ui.main_window import MainWindow
 from chartify.ui.treeview import ViewModel, TreeView
-from chartify.utils.utils import FilterTuple
+from chartify.utils.utils import FilterTuple, VariableData
 from tests import ROOT
 
 
@@ -309,12 +310,44 @@ def test_collapse_all(qtbot, mw):
         qtbot.mouseClick(mw.collapse_all_btn, Qt.LeftButton)
 
 
-def test_on_selection_populated(mw: MainWindow):
-    pytest.fail()
+@pytest.mark.parametrize(
+    "variables,enabled,rate_to_energy",
+    [
+        ([VariableData("A", "B", "C", "F"), VariableData("C", "D", "kWh", "W")], False, False,),
+        ([VariableData("A", "B", "C", "F"), VariableData("C", "D", "C", "F")], True, False),
+        ([VariableData("A", "B", "J", "J"), VariableData("C", "D", "W", "kWh")], False, False,),
+        ([VariableData("A", "B", "J", "J"), VariableData("C", "D", "W", "kWh")], True, True),
+    ],
+)
+def test_on_selection_populated(
+    qtbot, mw: MainWindow, variables: List[VariableData], enabled: bool, rate_to_energy: bool
+):
+    def cb(vd):
+        return vd == variables
+
+    # with patch("MainWindow.current_view", new_callable=PropertyMock) as mock:
+    #     mock.return_value = rate_to_energy
+    tab_wgt_mock = MagicMock()
+    model_mock = MagicMock()
+    model_mock.current_model.allow_rate_to_energy = rate_to_energy
+    tab_wgt_mock.currentWidget.return_value = model_mock
+    mw.tab_wgt = tab_wgt_mock
+
+    with qtbot.wait_signal(mw.selectionChanged, check_params_cb=cb):
+        mw.on_selection_populated(variables)
+        assert mw.remove_variables_act.isEnabled()
+        assert mw.toolbar.remove_btn.isEnabled()
+        assert mw.toolbar.sum_btn.isEnabled() == enabled
+        assert mw.toolbar.mean_btn.isEnabled() == enabled
 
 
-def test_on_selection_cleared(mw: MainWindow):
-    pytest.fail()
+def test_on_selection_cleared(qtbot, mw: MainWindow):
+    with qtbot.wait_signal(mw.selectionChanged, check_params_cb=lambda x: x == []):
+        mw.on_selection_cleared()
+        assert not mw.remove_variables_act.isEnabled()
+        assert not mw.toolbar.sum_btn.isEnabled()
+        assert not mw.toolbar.mean_btn.isEnabled()
+        assert not mw.toolbar.remove_btn.isEnabled()
 
 
 def test_on_tree_node_changed(mw: MainWindow):
