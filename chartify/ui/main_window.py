@@ -669,7 +669,7 @@ class MainWindow(QMainWindow):
 
     def on_rate_energy_btn_clicked(self, checked: bool):
         Settings.RATE_TO_ENERGY = checked
-        self.updateUnitsRequested.emit()
+        self.updateModelRequested.emit()
 
     def on_source_units_toggled(self, checked: bool):
         Settings.HIDE_SOURCE_UNITS = not checked
@@ -690,26 +690,26 @@ class MainWindow(QMainWindow):
             self.toolbar.rate_energy_btn.setEnabled(False)
             rate_to_energy = False
         Settings.RATE_TO_ENERGY = rate_to_energy
-        self.updateUnitsRequested.emit()
+        self.updateModelRequested.emit()
 
     def on_energy_units_changed(self, act: QAction):
         changed = self.toolbar.energy_btn.update_state(act)
         if changed:
             Settings.ENERGY_UNITS = act.data()
-            self.updateUnitsRequested.emit()
+            self.updateModelRequested.emit()
 
     def on_power_units_changed(self, act: QAction):
         changed = self.toolbar.power_btn.update_state(act)
         if changed:
             Settings.POWER_UNITS = act.data()
-            self.updateUnitsRequested.emit()
+            self.updateModelRequested.emit()
 
     def on_units_system_changed(self, act: QAction):
         changed = self.toolbar.units_system_button.update_state(act)
         if changed:
             Settings.UNITS_SYSTEM = act.data()
             self.toolbar.filter_energy_power_units(act.data())
-            self.updateUnitsRequested.emit()
+            self.updateModelRequested.emit()
 
     def connect_toolbar_signals(self):
         # ~~~~ Toolbar Signals ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
