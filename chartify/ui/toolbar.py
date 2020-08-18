@@ -10,10 +10,11 @@ from PySide2.QtWidgets import (
     QMenu,
     QFrame,
     QAction,
+    QActionGroup,
 )
 
 from chartify.settings import Settings
-from chartify.ui.buttons import TitledButton, ToggleButton, CheckableButton, ClickButton
+from chartify.ui.buttons import TitledButton, ToggleButton
 
 
 class Toolbar(QFrame):
@@ -55,11 +56,15 @@ class Toolbar(QFrame):
         # ~~~~ Outputs group ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.outputs_group = QGroupBox("Outputs", self)
         self.outputs_group.setObjectName("outputsGroup")
-        self.totals_btn = CheckableButton(self.outputs_group)
+        self.totals_btn = QToolButton(self.outputs_group)
+        self.totals_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
+        self.totals_btn.setCheckable(True)
         self.totals_btn.setIconSize(Settings.ICON_SMALL_SIZE)
         self.totals_btn.setText("totals")
         self.totals_btn.setEnabled(False)
-        self.all_files_btn = CheckableButton(self.outputs_group)
+        self.all_files_btn = QToolButton(self.outputs_group)
+        self.all_files_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
+        self.all_files_btn.setCheckable(True)
         self.all_files_btn.setText("all files")
         self.all_files_btn.setChecked(Settings.ALL_FILES)
         self.all_files_btn.setEnabled(False)
@@ -77,17 +82,17 @@ class Toolbar(QFrame):
         tools_layout.setSpacing(0)
         tools_layout.setContentsMargins(0, 0, 0, 0)
         tools_layout.setAlignment(Qt.AlignTop)
-        self.sum_btn = ClickButton(self.tools_group)
+        self.sum_btn = QToolButton(self.tools_group)
+        self.sum_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
         self.sum_btn.setIconSize(Settings.ICON_SMALL_SIZE)
-        self.sum_btn.setEnabled(False)
         self.sum_btn.setText("sum")
-        self.mean_btn = ClickButton(self.tools_group)
+        self.mean_btn = QToolButton(self.tools_group)
+        self.mean_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
         self.mean_btn.setIconSize(Settings.ICON_SMALL_SIZE)
-        self.mean_btn.setEnabled(False)
         self.mean_btn.setText("mean")
-        self.remove_btn = ClickButton(self.tools_group)
+        self.remove_btn = QToolButton(self.tools_group)
+        self.remove_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
         self.remove_btn.setIconSize(Settings.ICON_SMALL_SIZE)
-        self.remove_btn.setEnabled(False)
         self.remove_btn.setText("remove")
         self.populate_group(self.tools_group, [self.sum_btn, self.mean_btn, self.remove_btn])
         self.layout.addWidget(self.tools_group)
@@ -157,11 +162,13 @@ class Toolbar(QFrame):
         """ Set up units options. """
 
         def create_actions(text_list, default):
+            group = QActionGroup(self)
             acts = []
             for text in text_list:
                 act = QAction(text, self)
                 act.setCheckable(True)
                 act.setData(text)
+                group.addAction(act)
                 acts.append(act)
             def_act = next(act for act in acts if act.data() == default)
             def_act.setChecked(True)
@@ -248,9 +255,9 @@ class Toolbar(QFrame):
             units_system = self.temp_settings["units_system"]
             rate_to_energy = self.temp_settings["rate_to_energy"]
 
-        self.energy_btn.update_state_internally(energy)
-        self.power_btn.update_state_internally(power)
-        self.units_system_button.update_state_internally(units_system)
+        self.energy_btn.set_action(energy)
+        self.power_btn.set_action(power)
+        self.units_system_button.set_action(units_system)
         self.rate_energy_btn.setChecked(rate_to_energy)
 
         self.energy_btn.setEnabled(checked)

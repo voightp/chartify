@@ -148,7 +148,10 @@ class AppController:
             self.v.current_view.set_model(Settings.TABLE_NAME, **Settings.units_dict())
         else:
             self.v.current_view.set_and_update_model(
-                self.m.current_table, Settings.TABLE_NAME, tree_node=Settings.TREE_NODE,
+                self.m.current_table,
+                Settings.TABLE_NAME,
+                tree_node=Settings.TREE_NODE,
+                **Settings.units_dict()
             )
         self.v.update_view_visual(
             old_model=old_model,
@@ -158,19 +161,20 @@ class AppController:
 
     def on_update_model_requested(self):
         """ Update current model on current view. """
-        old_model = self.v.current_view.current_model
-        new_model = self.v.current_view.models[Settings.TABLE_NAME]
-        if new_model.is_simple or Settings.TREE_NODE == new_model.tree_node:
-            self.v.current_view.update_units(**Settings.units_dict())
-        else:
-            self.v.current_view.update_model(
-                self.m.current_table, tree_node=Settings.TREE_NODE, **Settings.units_dict()
+        if self.v.current_view:
+            old_model = self.v.current_view.current_model
+            new_model = self.v.current_view.models[Settings.TABLE_NAME]
+            if new_model.is_simple or Settings.TREE_NODE == new_model.tree_node:
+                self.v.current_view.update_units(**Settings.units_dict())
+            else:
+                self.v.current_view.update_model(
+                    self.m.current_table, tree_node=Settings.TREE_NODE, **Settings.units_dict()
+                )
+            self.v.update_view_visual(
+                old_model=old_model,
+                selected=self.m.selected_variable_data,
+                hide_source_units=Settings.HIDE_SOURCE_UNITS,
             )
-        self.v.update_view_visual(
-            old_model=old_model,
-            selected=self.m.selected_variable_data,
-            hide_source_units=Settings.HIDE_SOURCE_UNITS,
-        )
 
     def on_file_processing_requested(self, paths: List[str]) -> None:
         """ Load new files. """

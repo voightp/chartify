@@ -72,6 +72,44 @@ class MainWindow(QMainWindow):
         self.resize(QSize(*Settings.SIZE))
         self.move(QPoint(*Settings.POSITION))
 
+        # ~~~~ Actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.load_file_act = QAction("Load file | files", self)
+        self.load_file_act.setShortcut(QKeySequence("Ctrl+L"))
+        self.close_all_act = QAction("Close all", self)
+        self.remove_variables_act = QAction("Delete", self)
+        self.sum_act = QAction("Sum", self)
+        self.sum_act.setShortcut(QKeySequence("Ctrl+T"))
+        self.mean_act = QAction("Mean", self)
+        self.mean_act.setShortcut(QKeySequence("Ctrl+M"))
+        self.collapse_all_act = QAction("Collapse All", self)
+        self.collapse_all_act.setShortcut(QKeySequence("Ctrl+Shift+E"))
+        self.expand_all_act = QAction("Expand All", self)
+        self.expand_all_act.setShortcut(QKeySequence("Ctrl+E"))
+        self.tree_act = QAction("Tree", self)
+        self.tree_act.setShortcut(QKeySequence("Ctrl+T"))
+        self.save_act = QAction("Save", self)
+        self.save_act.setShortcut(QKeySequence("Ctrl+S"))
+        self.save_as_act = QAction("Save as", self)
+        self.save_as_act.setShortcut(QKeySequence("Ctrl+Shift+S"))
+
+        # add actions to main window to allow shortcuts
+        self.addActions(
+            [
+                self.remove_variables_act,
+                self.sum_act,
+                self.mean_act,
+                self.collapse_all_act,
+                self.expand_all_act,
+                self.tree_act,
+            ]
+        )
+
+        # disable actions as these will be activated on selection
+        self.close_all_act.setEnabled(False)
+        self.sum_act.setEnabled(False)
+        self.mean_act.setEnabled(False)
+        self.remove_variables_act.setEnabled(False)
+
         # ~~~~ Main Window widgets ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.central_wgt = QWidget(self)
         self.central_layout = QHBoxLayout(self.central_wgt)
@@ -96,6 +134,10 @@ class MainWindow(QMainWindow):
 
         # ~~~~ Left hand Tools Widget ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.toolbar = Toolbar(self.left_main_wgt)
+        self.toolbar.sum_btn.setDefaultAction(self.sum_act)
+        self.toolbar.mean_btn.setDefaultAction(self.mean_act)
+        self.toolbar.remove_btn.setDefaultAction(self.remove_variables_act)
+        self.toolbar.sum_btn.setDefaultAction(self.sum_act)
         self.left_main_layout.addWidget(self.toolbar)
 
         # ~~~~ Left hand View widget  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -134,9 +176,11 @@ class MainWindow(QMainWindow):
 
         self.collapse_all_btn = QToolButton(self.view_tools)
         self.collapse_all_btn.setObjectName("collapseButton")
+        self.collapse_all_btn.setDefaultAction(self.collapse_all_act)
 
         self.expand_all_btn = QToolButton(self.view_tools)
         self.expand_all_btn.setObjectName("expandButton")
+        self.expand_all_btn.setDefaultAction(self.expand_all_act)
 
         self.filter_icon = QLabel(self.view_tools)
         self.filter_icon.setObjectName("filterIcon")
@@ -255,42 +299,6 @@ class MainWindow(QMainWindow):
         self.mini_menu_layout.setSpacing(0)
         self.toolbar.layout.insertWidget(0, self.mini_menu)
 
-        # ~~~~ Actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.load_file_act = QAction("Load file | files", self)
-        self.load_file_act.setShortcut(QKeySequence("Ctrl+L"))
-        self.close_all_act = QAction("Close all", self)
-        self.remove_variables_act = QAction("Delete", self)
-        self.sum_act = QAction("Sum", self)
-        self.sum_act.setShortcut(QKeySequence("Ctrl+T"))
-        self.avg_act = QAction("Mean", self)
-        self.avg_act.setShortcut(QKeySequence("Ctrl+M"))
-        self.collapse_all_act = QAction("Collapse All", self)
-        self.collapse_all_act.setShortcut(QKeySequence("Ctrl+Shift+E"))
-        self.expand_all_act = QAction("Expand All", self)
-        self.expand_all_act.setShortcut(QKeySequence("Ctrl+E"))
-        self.tree_act = QAction("Tree", self)
-        self.tree_act.setShortcut(QKeySequence("Ctrl+T"))
-        self.save_act = QAction("Save", self)
-        self.save_act.setShortcut(QKeySequence("Ctrl+S"))
-        self.save_as_act = QAction("Save as", self)
-        self.save_as_act.setShortcut(QKeySequence("Ctrl+Shift+S"))
-
-        # add actions to main window to allow shortcuts
-        self.addActions(
-            [
-                self.remove_variables_act,
-                self.sum_act,
-                self.avg_act,
-                self.collapse_all_act,
-                self.expand_all_act,
-                self.tree_act,
-            ]
-        )
-
-        # disable actions as these will be activated on selection
-        self.close_all_act.setEnabled(False)
-        self.remove_variables_act.setEnabled(False)
-
         self.load_file_btn = MenuButton("Load file | files", self)
         self.load_file_btn.setObjectName("fileButton")
         self.load_file_btn.setIconSize(Settings.ICON_SMALL_SIZE)
@@ -385,29 +393,34 @@ class MainWindow(QMainWindow):
         self.tab_wgt.drop_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
         self.tab_wgt.drop_btn.setIconSize(QSize(50, 50))
 
-        self.toolbar.totals_btn.set_icons(
-            Pixmap(Path(r, "building.png"), *c1),
-            Pixmap(Path(r, "building.png"), *c1, a=0.5),
-            Pixmap(Path(r, "building.png"), *c2),
-            Pixmap(Path(r, "building.png"), *c2, a=0.5),
-        )
+        icon = QIcon()
+        icon.addPixmap(Pixmap(Path(r, "building.png"), *c1), QIcon.Normal, QIcon.Off)
+        icon.addPixmap(Pixmap(Path(r, "building.png"), *c1, a=0.5), QIcon.Disabled, QIcon.Off)
+        icon.addPixmap(Pixmap(Path(r, "building.png"), *c2), QIcon.Normal, QIcon.On)
+        icon.addPixmap(Pixmap(Path(r, "building.png"), *c2, a=0.5), QIcon.Disabled, QIcon.On)
+        self.toolbar.totals_btn.setIcon(icon)
 
-        self.toolbar.all_files_btn.set_icons(
-            Pixmap(Path(r, "all_files.png"), *c1),
-            Pixmap(Path(r, "all_files.png"), *c1, a=0.5),
-            Pixmap(Path(r, "all_files.png"), *c2),
-            Pixmap(Path(r, "all_files.png"), *c2, a=0.5),
-        )
+        icon = QIcon()
+        icon.addPixmap(Pixmap(Path(r, "all_files.png"), *c1), QIcon.Normal, QIcon.Off)
+        icon.addPixmap(Pixmap(Path(r, "all_files.png"), *c1, a=0.5), QIcon.Disabled, QIcon.Off)
+        icon.addPixmap(Pixmap(Path(r, "all_files.png"), *c2), QIcon.Normal, QIcon.On)
+        icon.addPixmap(Pixmap(Path(r, "all_files.png"), *c2, a=0.5), QIcon.Disabled, QIcon.On)
+        self.toolbar.all_files_btn.setIcon(icon)
 
-        self.toolbar.sum_btn.set_icons(
-            Pixmap(Path(r, "sigma.png"), *c1), Pixmap(Path(r, "sigma.png"), *c1, a=0.5)
-        )
-        self.toolbar.mean_btn.set_icons(
-            Pixmap(Path(r, "mean.png"), *c1), Pixmap(Path(r, "mean.png"), *c1, a=0.5)
-        )
-        self.toolbar.remove_btn.set_icons(
-            Pixmap(Path(r, "remove.png"), *c1), Pixmap(Path(r, "remove.png"), *c1, a=0.5)
-        )
+        icon = QIcon()
+        icon.addPixmap(Pixmap(Path(r, "sigma.png"), *c1), QIcon.Normal, QIcon.Off)
+        icon.addPixmap(Pixmap(Path(r, "sigma.png"), *c1, a=0.5), QIcon.Disabled, QIcon.Off)
+        self.sum_act.setIcon(icon)
+
+        icon = QIcon()
+        icon.addPixmap(Pixmap(Path(r, "mean.png"), *c1), QIcon.Normal, QIcon.Off)
+        icon.addPixmap(Pixmap(Path(r, "mean.png"), *c1, a=0.5), QIcon.Disabled, QIcon.Off)
+        self.mean_act.setIcon(icon)
+
+        icon = QIcon()
+        icon.addPixmap(Pixmap(Path(r, "remove.png"), *c1), QIcon.Normal, QIcon.Off)
+        icon.addPixmap(Pixmap(Path(r, "remove.png"), *c1, a=0.5), QIcon.Disabled, QIcon.Off)
+        self.remove_variables_act.setIcon(icon)
 
     def load_css(self) -> CssTheme:
         """ Update application appearance. """
@@ -499,20 +512,19 @@ class MainWindow(QMainWindow):
                 is_rate_or_energy(units)
                 and self.current_view.current_model.allow_rate_to_energy
             ):
-                self.toolbar.sum_btn.setEnabled(True)
-                self.toolbar.mean_btn.setEnabled(True)
+                self.sum_act.setEnabled(True)
+                self.mean_act.setEnabled(True)
         else:
-            self.toolbar.sum_btn.setEnabled(False)
-            self.toolbar.mean_btn.setEnabled(False)
+            self.sum_act.setEnabled(False)
+            self.mean_act.setEnabled(False)
 
         self.selectionChanged.emit(variables)
 
     def on_selection_cleared(self):
         """ Handle behaviour when no variables are selected. """
         self.remove_variables_act.setEnabled(False)
-        self.toolbar.sum_btn.setEnabled(False)
-        self.toolbar.mean_btn.setEnabled(False)
-        self.toolbar.remove_btn.setEnabled(False)
+        self.sum_act.setEnabled(False)
+        self.mean_act.setEnabled(False)
         self.selectionChanged.emit([])
 
     def on_tree_node_changed(self, name: str):
@@ -553,7 +565,7 @@ class MainWindow(QMainWindow):
         self.expand_all_act.triggered.connect(self.expand_all)
         self.remove_variables_act.triggered.connect(self.variableRemoveRequested.emit)
         self.sum_act.triggered.connect(partial(self.aggregationRequested.emit, "sum"))
-        self.avg_act.triggered.connect(partial(self.aggregationRequested.emit, "mean"))
+        self.mean_act.triggered.connect(partial(self.aggregationRequested.emit, "mean"))
 
     def get_filter_tuple(self):
         """ Retrieve filter inputs from ui. """
@@ -693,29 +705,23 @@ class MainWindow(QMainWindow):
         self.updateModelRequested.emit()
 
     def on_energy_units_changed(self, act: QAction):
-        changed = self.toolbar.energy_btn.update_state(act)
-        if changed:
+        if act.data() != self.toolbar.energy_btn.data():
             Settings.ENERGY_UNITS = act.data()
             self.updateModelRequested.emit()
 
     def on_power_units_changed(self, act: QAction):
-        changed = self.toolbar.power_btn.update_state(act)
-        if changed:
+        if act.data() != self.toolbar.power_btn.data():
             Settings.POWER_UNITS = act.data()
             self.updateModelRequested.emit()
 
     def on_units_system_changed(self, act: QAction):
-        changed = self.toolbar.units_system_button.update_state(act)
-        if changed:
+        if act.data() != self.toolbar.units_system_button.data():
             Settings.UNITS_SYSTEM = act.data()
             self.toolbar.filter_energy_power_units(act.data())
             self.updateModelRequested.emit()
 
     def connect_toolbar_signals(self):
         # ~~~~ Toolbar Signals ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.toolbar.sum_btn.connect_action(self.sum_act)
-        self.toolbar.mean_btn.connect_action(self.avg_act)
-        self.toolbar.remove_btn.connect_action(self.remove_variables_act)
         self.toolbar.totals_btn.toggled.connect(self.on_totals_checked)
         self.toolbar.all_files_btn.toggled.connect(self.on_all_files_checked)
         self.toolbar.tableChangeRequested.connect(self.on_table_change_requested)
@@ -735,8 +741,8 @@ class MainWindow(QMainWindow):
             Settings.TREE_NODE = name
         else:
             Settings.TREE_NODE = None
-        self.collapse_all_btn.setEnabled(checked)
-        self.expand_all_btn.setEnabled(checked)
+        self.collapse_all_act.setEnabled(checked)
+        self.expand_all_act.setEnabled(checked)
         self.updateModelRequested.emit()
 
     def on_text_edited(self):
@@ -756,8 +762,6 @@ class MainWindow(QMainWindow):
         self.units_line_edit.textEdited.connect(self.on_text_edited)
         self.tree_view_btn.toggled.connect(self.on_tree_btn_toggled)
         self.timer.timeout.connect(self.on_filter_timeout)
-        self.expand_all_btn.clicked.connect(self.expand_all_act.trigger)
-        self.collapse_all_btn.clicked.connect(self.collapse_all_act.trigger)
 
     def confirm_rename_file(self, name: str, other_names: List[str]) -> Optional[str]:
         """ Rename file on a tab identified by the given index. """

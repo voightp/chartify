@@ -1,7 +1,6 @@
 from typing import List
 
 from PySide2.QtCore import Qt, Signal, QEvent, QPoint
-from PySide2.QtGui import QIcon
 from PySide2.QtWidgets import (
     QToolButton,
     QHBoxLayout,
@@ -10,74 +9,25 @@ from PySide2.QtWidgets import (
     QFrame,
     QSlider,
     QDialog,
-    QAction,
 )
 
 from chartify.utils.utils import refresh_css
 
 
-class ClickButton(QToolButton):
-    """ A base class which automatically modifies
-    icon transparency when disabled.
-
-    Clicked signal triggers a previously assigned
-    action. The button stays 'checked' until the action
-    finishes.
-
-    The button is meant to be used as non-checkable.
-
-    """
-
-    def __init__(self, parent):
-        super().__init__(parent)
-        self.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
-        self.setCheckable(False)
-        self.icons = {"enabled": QIcon(), "disabled": QIcon()}
-        self.click_act = None
-        self.clicked.connect(self.trigger_act)
-
-    def trigger_act(self) -> None:
-        """ Execute assigned action. """
-        # set 'checked' state while the action executes
-        self.setCheckable(True)
-        self.setChecked(True)
-
-        if self.click_act:
-            self.click_act.trigger()
-
-        # revert to the original state
-        self.setCheckable(False)
-
-    def connect_action(self, act: QAction) -> None:
-        """ Assign click action to the button. """
-        self.click_act = act
-
-    def set_icons(self, enabled_icon: QIcon, disabled_icon: QIcon) -> None:
-        """ Populate button's icons. """
-        self.icons["enabled"] = enabled_icon
-        self.icons["disabled"] = disabled_icon
-        self.setIcon(enabled_icon if self.isEnabled() else disabled_icon)
-
-    def setEnabled(self, enabled: bool) -> None:
-        """ Override to adjust icon opacity. """
-        super().setEnabled(enabled)
-        # update icon appearance, if icons attr has not been
-        # set before, this won't make any difference
-        icon = self.icons["enabled"] if enabled else self.icons["disabled"]
-        if icon:
-            self.setIcon(icon)
-
-
-class TitledButton(ClickButton):
+class TitledButton(QToolButton):
     """ A custom button to include a top left title label.  """
 
     def __init__(self, text, parent):
         super().__init__(parent)
         self.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
         self.setPopupMode(QToolButton.InstantPopup)
         self.title = QLabel(text, self)
         self.title.move(QPoint(4, 2))
         self.title.setAttribute(Qt.WA_TransparentForMouseEvents)
+        self.triggered.connect(lambda act: self.setDefaultAction(act))
+        self.triggered.connect(lambda: print("FOOO"))
+        self.triggered.connect(lambda act: print(act.data()))
 
     def setEnabled(self, enabled: bool) -> None:
         super().setEnabled(enabled)
@@ -90,25 +40,17 @@ class TitledButton(ClickButton):
         """ Show only actions on the given list(based on data). """
         if self.data() not in actions_data:
             # current action is not in requested actions
-            self.update_state_internally(actions_data[0])
+            self.set_action(actions_data[0])
         for act in self.menu().actions():
             act.setVisible(act.data() in actions_data)
 
-    def update_state(self, act: QAction) -> bool:
-        """ Handle changing button actions. """
-        current_act = self.defaultAction()
-        changed = current_act != act
-        if changed:
-            self.setDefaultAction(act)
-        current_act.setChecked(not changed)
-        return changed
-
-    def update_state_internally(self, data: str) -> None:
+    def set_action(self, data: str) -> None:
         """ Handle changing buttons state when handling not internally. """
         for act in self.menu().actions():
             if act.data() == data:
-                changed = self.update_state(act)
-                act.setChecked(changed)
+                self.defaultAction().setChecked(False)
+                act.setChecked(True)
+                self.setDefaultAction(act)
                 break
         else:
             raise KeyError(f"Unexpected action {data} requested!")
@@ -199,47 +141,6 @@ class MenuButton(QToolButton):
         self.setToolButtonStyle(Qt.ToolButtonIconOnly)
         self.setText(text)
         self.setPopupMode(QToolButton.InstantPopup)
-
-
-class CheckableButton(QToolButton):
-    """ A button to allow changing icon color when checked. """
-
-    def __init__(self, parent):
-        super().__init__(parent)
-        self.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
-        self.setCheckable(True)
-        self.toggled.connect(self._toggled)
-        self.icons = {
-            "primary": {"enabled": QIcon(), "disabled": QIcon()},
-            "secondary": {"enabled": QIcon(), "disabled": QIcon()},
-        }
-
-    def _toggled(self, checked: bool) -> None:
-        """ Update icons state. """
-        key = "secondary" if checked else "primary"
-        enabled = "enabled" if self.isEnabled() else "disabled"
-        self.setIcon(self.icons[key][enabled])
-
-    def update_icon(self) -> None:
-        """ Update current icon based on button state. """
-        key = "secondary" if self.isChecked() else "primary"
-        enabled = "enabled" if self.isEnabled() else "disabled"
-        self.setIcon(self.icons[key][enabled])
-
-    def set_icons(
-        self, icon1: QIcon, icon1_disabled: QIcon, icon2: QIcon, icon2_disabled: QIcon
-    ) -> None:
-        """ Assign button icons. """
-        self.icons["primary"]["enabled"] = icon1
-        self.icons["primary"]["disabled"] = icon1_disabled
-        self.icons["secondary"]["enabled"] = icon2
-        self.icons["secondary"]["disabled"] = icon2_disabled
-        self.update_icon()
-
-    def setEnabled(self, enabled: bool) -> None:
-        """ Override to adjust icon opacity. """
-        super().setEnabled(enabled)
-        self.update_icon()
 
 
 class StatusButton(QToolButton):

@@ -113,8 +113,8 @@ def test_init_main_window(qtbot, mw: MainWindow):
     assert mw.remove_variables_act.text() == "Delete"
     assert mw.sum_act.text() == "Sum"
     assert mw.sum_act.shortcut() == QKeySequence("Ctrl+T")
-    assert mw.avg_act.text() == "Mean"
-    assert mw.avg_act.shortcut() == QKeySequence("Ctrl+M")
+    assert mw.mean_act.text() == "Mean"
+    assert mw.mean_act.shortcut() == QKeySequence("Ctrl+M")
     assert mw.collapse_all_act.text() == "Collapse All"
     assert mw.collapse_all_act.shortcut() == QKeySequence("Ctrl+Shift+E")
     assert mw.expand_all_act.text() == "Expand All"
@@ -128,7 +128,7 @@ def test_init_main_window(qtbot, mw: MainWindow):
     assert mw.actions() == [
         mw.remove_variables_act,
         mw.sum_act,
-        mw.avg_act,
+        mw.mean_act,
         mw.collapse_all_act,
         mw.expand_all_act,
         mw.tree_act,
