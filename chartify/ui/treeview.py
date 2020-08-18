@@ -380,8 +380,10 @@ class TreeView(QTreeView):
         variables cannot be found in the model.
     itemDoubleClicked
         Is emitted on item double click.
-    viewAppearanceChanged
-        Is emitted when visual appearance changes.
+    viewHeaderResized
+        Is emitted when 'interactive' column width changes.
+    viewHeaderChanged
+        Is emitted when header order changes.
     treeNodeChanged
         Is emitted if the view uses tree structure changes.
 
@@ -394,6 +396,8 @@ class TreeView(QTreeView):
     selectionPopulated = Signal(list)
     itemDoubleClicked = Signal(VariableData)
     viewAppearanceChanged = Signal(str, dict)
+    viewHeaderResized = Signal(str, int)
+    viewHeaderChanged = Signal(str, tuple)
     treeNodeChanged = Signal(str)
 
     def __init__(self, id_: int, models: Dict[str, ViewModel]):
@@ -686,13 +690,12 @@ class TreeView(QTreeView):
     def on_view_resized(self, log_ix: int, _, new_size: int) -> None:
         """ Store interactive section width in the main app. """
         if self.header().sectionResizeMode(log_ix) == self.header().Interactive:
-            self.viewAppearanceChanged.emit(self.view_type, {"interactive": new_size})
+            self.viewHeaderResized.emit(self.view_type, new_size)
 
     def on_section_moved(self, _logical_ix, old_visual_ix: int, new_visual_ix: int) -> None:
         """ Handle updating the model when first column changed. """
         names = self.get_visual_names()
-        self.viewAppearanceChanged.emit(self.view_type, {"header": names})
-
+        self.viewHeaderChanged.emit(self.view_type, names)
         # view needs to be updated when the tree structure is applied and first item changes
         if (new_visual_ix == 0 or old_visual_ix == 0) and self.is_tree:
             self.treeNodeChanged.emit(names[0])

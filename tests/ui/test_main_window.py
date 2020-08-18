@@ -276,38 +276,6 @@ def test_on_color_scheme_changed(qtbot, mw: MainWindow):
             assert mock_settings.PALETTE_NAME == "monochrome"
 
 
-def test_get_filter_tup(qtbot, mw):
-    test_filter = FilterTuple(key="foo", type="bar", units="baz")
-    signals = [mw.timer.timeout, mw.textFiltered]
-    callbacks = [None, lambda x: x == test_filter]
-    with qtbot.wait_signals(signals=signals, check_params_cbs=callbacks):
-        qtbot.keyClicks(mw.key_line_edit, "foo")
-        qtbot.keyClicks(mw.type_line_edit, "bar")
-        qtbot.keyClicks(mw.units_line_edit, "baz")
-
-    assert mw.key_line_edit.text() == "foo"
-    assert mw.type_line_edit.text() == "bar"
-    assert mw.units_line_edit.text() == "baz"
-
-    assert mw.get_filter_tuple() == test_filter
-
-
-def test_toggle_tree_button(qtbot, mw):
-    with patch("chartify.ui.mw.Settings") as mock_settings:
-
-        def test_tree_btn_toggled(checked):
-            assert mw.tree_view_btn.property("checked")
-            assert mw.collapse_all_btn.isEnabled()
-            assert mw.expand_all_btn.isEnabled()
-            assert mock_settings.TREE_VIEW
-            return checked
-
-        callbacks = [test_tree_btn_toggled, None]
-        signals = [mw.tree_view_btn.toggled, mw.treeButtonChecked]
-        with qtbot.wait_signals(signals=signals, check_params_cbs=callbacks):
-            qtbot.mouseClick(mw.tree_view_btn, Qt.LeftButton)
-
-
 def test_expand_all(qtbot, mw):
     mw.expand_all_act.setEnabled(True)
     with qtbot.wait_signal(mw.expandRequested):
@@ -360,12 +328,21 @@ def test_on_selection_cleared(qtbot, mw: MainWindow):
         assert not mw.toolbar.remove_btn.isEnabled()
 
 
-def test_on_tree_node_changed(mw: MainWindow):
-    pytest.fail()
+def test_on_tree_node_changed(qtbot, mw: MainWindow):
+    with qtbot.wait_signal(mw.updateModelRequested):
+        with patch("chartify.ui.main_window.Settings") as mock_settings:
+            mw.on_tree_node_changed("foo")
+            assert mock_settings.TREE_NODE == "foo"
 
 
-def test_on_view_settings_changed(mw: MainWindow):
-    pytest.fail()
+def test_on_view_header_resized(mw: MainWindow):
+    mw.on_view_header_resized("tree", 100)
+    assert mw.view_settings["tree"]["widths"]["interactive"] == 100
+
+
+def test_on_view_header_changed(mw: MainWindow):
+    mw.on_view_header_changed("tree", ("foo", "bar", "baz"))
+    assert mw.view_settings["tree"]["header"] == ("foo", "bar", "baz")
 
 
 def test_on_splitter_moved(mw: MainWindow):
@@ -376,8 +353,20 @@ def test_connect_ui_signals(mw: MainWindow):
     pytest.fail()
 
 
-def test_get_filter_tuple(mw: MainWindow):
-    pytest.fail()
+def test_get_filter_tuple(qtbot, mw: MainWindow):
+    test_filter = FilterTuple(key="foo", type="bar", units="baz")
+    signals = [mw.timer.timeout, mw.textFiltered]
+    callbacks = [None, lambda x: x == test_filter]
+    with qtbot.wait_signals(signals=signals, check_params_cbs=callbacks):
+        qtbot.keyClicks(mw.key_line_edit, "foo")
+        qtbot.keyClicks(mw.type_line_edit, "bar")
+        qtbot.keyClicks(mw.units_line_edit, "baz")
+
+    assert mw.key_line_edit.text() == "foo"
+    assert mw.type_line_edit.text() == "bar"
+    assert mw.units_line_edit.text() == "baz"
+
+    assert mw.get_filter_tuple() == test_filter
 
 
 def test_update_view_visual(mw: MainWindow):
@@ -440,8 +429,20 @@ def test_connect_toolbar_signals(mw: MainWindow):
     pytest.fail()
 
 
-def test_on_tree_btn_toggled(mw: MainWindow):
-    pytest.fail()
+def test_on_tree_btn_toggled(qtbot, mw: MainWindow):
+    with patch("chartify.ui.mw.Settings") as mock_settings:
+
+        def test_tree_btn_toggled(checked):
+            assert mw.tree_view_btn.property("checked")
+            assert mw.collapse_all_btn.isEnabled()
+            assert mw.expand_all_btn.isEnabled()
+            assert mock_settings.TREE_VIEW
+            return checked
+
+        callbacks = [test_tree_btn_toggled, None]
+        signals = [mw.tree_view_btn.toggled, mw.treeButtonChecked]
+        with qtbot.wait_signals(signals=signals, check_params_cbs=callbacks):
+            qtbot.mouseClick(mw.tree_view_btn, Qt.LeftButton)
 
 
 def test_on_text_edited(mw: MainWindow):

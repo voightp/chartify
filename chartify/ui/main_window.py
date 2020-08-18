@@ -467,7 +467,8 @@ class MainWindow(QMainWindow):
         view = TreeView(id_, models)
         view.selectionCleared.connect(self.on_selection_cleared)
         view.selectionPopulated.connect(self.on_selection_populated)
-        view.viewAppearanceChanged.connect(self.on_view_settings_changed)
+        view.viewHeaderResized.connect(self.on_view_header_resized)
+        view.viewHeaderChanged.connect(self.on_view_header_changed)
         view.treeNodeChanged.connect(self.on_tree_node_changed)
         view.itemDoubleClicked.connect(self.variableRenameRequested.emit)
 
@@ -554,21 +555,13 @@ class MainWindow(QMainWindow):
         Settings.TREE_NODE = name
         self.updateModelRequested.emit()
 
-    def on_view_settings_changed(self, view_type: str, new_settings: dict):
-        """ Update current ui view settings. """
+    def on_view_header_resized(self, view_type: str, width: int):
+        """ store current interactive column width. """
+        self.view_settings[view_type]["widths"]["interactive"] = width
 
-        def on_interactive():
-            self.view_settings[view_type]["widths"]["interactive"] = value
-
-        def on_header():
-            self.view_settings[view_type]["header"] = value
-
-        switch = {
-            "interactive": on_interactive,
-            "header": on_header,
-        }
-        for key, value in new_settings.items():
-            switch[key]()
+    def on_view_header_changed(self, view_type: str, header: Tuple[str, ...]):
+        """ Store current header order. """
+        self.view_settings[view_type]["header"] = header
 
     def on_splitter_moved(self):
         """ Store current splitter position. """
