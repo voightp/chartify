@@ -159,13 +159,6 @@ QToolButton#swapButton {
     height: 20px;
 }
 
-ClickButton:checked {
-    background-color: transparent;
-    color: PRIMARY_TEXT_COLOR;
-    border-color: SECONDARY_COLOR;
-    font-weight: bold;
-}
-
 #collapseButton, #expandButton, #treeButton {
     width: 23;
     height: 18;
@@ -174,37 +167,14 @@ ClickButton:checked {
     margin: 1px;
 }
 
-#collapseButton {
-    image: URL(./resources/icons/unfold_less.png) #SECONDARY_TEXT_COLOR;
-}
-
-#expandButton {
-    image: URL(./resources/icons/unfold_more.png) #SECONDARY_TEXT_COLOR;
-}
-
-#treeButton {
-    image: URL(./resources/icons/plain_view.png) #SECONDARY_TEXT_COLOR;
-}
-
 #collapseButton:disabled, #expandButton:disabled, #treeButton:disabled {
     border-color: SECONDARY_TEXT_COLOR #50;
-}
-
-#collapseButton:disabled {
-    image: URL(./resources/icons/unfold_less.png) #SECONDARY_TEXT_COLOR #50;
-}
-
-#expandButton:disabled {
-    image: URL(./resources/icons/unfold_more.png) #SECONDARY_TEXT_COLOR #50;
 }
 
 #collapseButton:hover, #expandButton:hover, #treeButton:hover {
     background-color: SECONDARY_TEXT_COLOR #15;
 }
 
-#treeButton:checked {
-    image: URL(./resources/icons/tree_view.png) #SECONDARY_TEXT_COLOR;
-}
 
 QToolButton#dropButton {
     background: transparent;
@@ -310,27 +280,6 @@ QToolButton#schemeButton::menu-indicator {
     margin: 0px;
     width: 0px;
     height: 0px;
-}
-
-IconMenuButton QMenu::icon {
-    margin: 0px;
-    padding: 0px 5px;
-}
-
-IconMenuButton QMenu::item {
-    background-color: SURFACE_COLOR;
-    padding: 10px 24px 10px 30px;
-    border: 1px solid transparent;
-}
-
-IconMenuButton QMenu::item:selected {
-    background: SECONDARY_COLOR #15;
-}
-
-IconMenuButton QMenu::indicator {
-    width: 12px;
-    height: 12px;
-    padding-left: 6px;
 }
 
 /* ~~~~~ LINE EDIT ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */

@@ -76,17 +76,25 @@ class MainWindow(QMainWindow):
         self.load_file_act = QAction("Load file | files", self)
         self.load_file_act.setShortcut(QKeySequence("Ctrl+L"))
         self.close_all_act = QAction("Close all", self)
+        self.close_all_act.setEnabled(False)
         self.remove_variables_act = QAction("Delete", self)
+        self.remove_variables_act.setEnabled(False)
         self.sum_act = QAction("Sum", self)
         self.sum_act.setShortcut(QKeySequence("Ctrl+T"))
+        self.sum_act.setEnabled(False)
         self.mean_act = QAction("Mean", self)
         self.mean_act.setShortcut(QKeySequence("Ctrl+M"))
+        self.mean_act.setEnabled(False)
         self.collapse_all_act = QAction("Collapse All", self)
         self.collapse_all_act.setShortcut(QKeySequence("Ctrl+Shift+E"))
+        self.collapse_all_act.setEnabled(bool(Settings.TREE_NODE))
         self.expand_all_act = QAction("Expand All", self)
         self.expand_all_act.setShortcut(QKeySequence("Ctrl+E"))
+        self.expand_all_act.setEnabled(bool(Settings.TREE_NODE))
         self.tree_act = QAction("Tree", self)
         self.tree_act.setShortcut(QKeySequence("Ctrl+T"))
+        self.tree_act.setCheckable(True)
+        self.tree_act.setChecked(bool(Settings.TREE_NODE))
         self.save_act = QAction("Save", self)
         self.save_act.setShortcut(QKeySequence("Ctrl+S"))
         self.save_as_act = QAction("Save as", self)
@@ -103,12 +111,6 @@ class MainWindow(QMainWindow):
                 self.tree_act,
             ]
         )
-
-        # disable actions as these will be activated on selection
-        self.close_all_act.setEnabled(False)
-        self.sum_act.setEnabled(False)
-        self.mean_act.setEnabled(False)
-        self.remove_variables_act.setEnabled(False)
 
         # ~~~~ Main Window widgets ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.central_wgt = QWidget(self)
@@ -171,8 +173,7 @@ class MainWindow(QMainWindow):
         # ~~~~ Set up view buttons  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.tree_view_btn = QToolButton(self.view_tools)
         self.tree_view_btn.setObjectName("treeButton")
-        self.tree_view_btn.setCheckable(True)
-        self.tree_view_btn.setChecked(bool(Settings.TREE_NODE))
+        self.tree_view_btn.setDefaultAction(self.tree_act)
 
         self.collapse_all_btn = QToolButton(self.view_tools)
         self.collapse_all_btn.setObjectName("collapseButton")
@@ -282,7 +283,7 @@ class MainWindow(QMainWindow):
         self.scheme_btn.setDefaultAction(def_act)
         self.scheme_btn.setMenu(menu)
         self.scheme_btn.setObjectName("schemeButton")
-        menu.triggered.connect(lambda act: self.scheme_btn.setIcon(act.icon()))
+        self.scheme_btn.triggered.connect(lambda act: self.scheme_btn.setDefaultAction(act))
 
         # ~~~~ Swap button ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.swap_btn = QToolButton(self)
@@ -422,6 +423,27 @@ class MainWindow(QMainWindow):
         icon.addPixmap(Pixmap(Path(r, "remove.png"), *c1, a=0.5), QIcon.Disabled, QIcon.Off)
         self.remove_variables_act.setIcon(icon)
 
+        icon = QIcon()
+        icon.addPixmap(Pixmap(Path(r, "plain_view.png"), *c2), QIcon.Normal, QIcon.Off)
+        icon.addPixmap(Pixmap(Path(r, "plain_view.png"), *c2, a=0.5), QIcon.Disabled, QIcon.Off)
+        icon.addPixmap(Pixmap(Path(r, "tree_view.png"), *c2), QIcon.Normal, QIcon.On)
+        icon.addPixmap(Pixmap(Path(r, "tree_view.png"), *c2, a=0.5), QIcon.Disabled, QIcon.On)
+        self.tree_act.setIcon(icon)
+
+        icon = QIcon()
+        icon.addPixmap(Pixmap(Path(r, "unfold_less.png"), *c2), QIcon.Normal, QIcon.Off)
+        icon.addPixmap(
+            Pixmap(Path(r, "unfold_less.png"), *c2, a=0.5), QIcon.Disabled, QIcon.Off
+        )
+        self.collapse_all_act.setIcon(icon)
+
+        icon = QIcon()
+        icon.addPixmap(Pixmap(Path(r, "unfold_more.png"), *c2), QIcon.Normal, QIcon.Off)
+        icon.addPixmap(
+            Pixmap(Path(r, "unfold_more.png"), *c2, a=0.5), QIcon.Disabled, QIcon.Off
+        )
+        self.expand_all_act.setIcon(icon)
+
     def load_css(self) -> CssTheme:
         """ Update application appearance. """
         css = CssTheme(Settings.CSS_PATH)
@@ -560,7 +582,7 @@ class MainWindow(QMainWindow):
 
         # ~~~~ Actions Signals ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.load_file_act.triggered.connect(self.load_files_from_fs)
-        self.tree_act.triggered.connect(self.tree_view_btn.toggle)
+        self.tree_act.triggered.connect(self.on_tree_act_checked)
         self.collapse_all_act.triggered.connect(self.collapse_all)
         self.expand_all_act.triggered.connect(self.expand_all)
         self.remove_variables_act.triggered.connect(self.variableRemoveRequested.emit)
@@ -614,9 +636,9 @@ class MainWindow(QMainWindow):
         # slots are on a same thread so following is called synchronously
         # enable or disable applicable buttons
         allow_tree = not new_model.is_simple
-        self.tree_view_btn.setEnabled(allow_tree)
-        self.expand_all_btn.setEnabled(allow_tree)
-        self.collapse_all_btn.setEnabled(allow_tree)
+        self.tree_act.setEnabled(allow_tree)
+        self.expand_all_act.setEnabled(allow_tree)
+        self.collapse_all_act.setEnabled(allow_tree)
         self.toolbar.update_rate_to_energy(new_model.allow_rate_to_energy)
 
     def on_tab_changed(self, index: int) -> None:
@@ -732,13 +754,10 @@ class MainWindow(QMainWindow):
         self.toolbar.power_btn.menu().triggered.connect(self.on_power_units_changed)
         self.toolbar.units_system_button.menu().triggered.connect(self.on_units_system_changed)
 
-    def on_tree_btn_toggled(self, checked: bool):
+    def on_tree_act_checked(self, checked: bool):
         """ Update view when view type is changed. """
-        Settings.TREE_VIEW = checked
-        self.tree_view_btn.setProperty("checked", checked)
         if checked:
-            name = self.current_view.get_visual_names()[0]
-            Settings.TREE_NODE = name
+            Settings.TREE_NODE = self.view_settings[TreeView.TREE]["header"][0]
         else:
             Settings.TREE_NODE = None
         self.collapse_all_act.setEnabled(checked)
@@ -760,7 +779,7 @@ class MainWindow(QMainWindow):
         self.type_line_edit.textEdited.connect(self.on_text_edited)
         self.key_line_edit.textEdited.connect(self.on_text_edited)
         self.units_line_edit.textEdited.connect(self.on_text_edited)
-        self.tree_view_btn.toggled.connect(self.on_tree_btn_toggled)
+        self.tree_view_btn.toggled.connect(self.on_tree_act_checked)
         self.timer.timeout.connect(self.on_filter_timeout)
 
     def confirm_rename_file(self, name: str, other_names: List[str]) -> Optional[str]:

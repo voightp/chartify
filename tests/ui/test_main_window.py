@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 from unittest.mock import patch, MagicMock
 
 import pytest
@@ -113,14 +113,20 @@ def test_init_main_window(qtbot, mw: MainWindow):
     assert mw.remove_variables_act.text() == "Delete"
     assert mw.sum_act.text() == "Sum"
     assert mw.sum_act.shortcut() == QKeySequence("Ctrl+T")
+    assert not mw.sum_act.isEnabled()
     assert mw.mean_act.text() == "Mean"
     assert mw.mean_act.shortcut() == QKeySequence("Ctrl+M")
+    assert not mw.mean_act.isEnabled()
     assert mw.collapse_all_act.text() == "Collapse All"
     assert mw.collapse_all_act.shortcut() == QKeySequence("Ctrl+Shift+E")
+    assert mw.collapse_all_act.isEnabled()
     assert mw.expand_all_act.text() == "Expand All"
     assert mw.expand_all_act.shortcut() == QKeySequence("Ctrl+E")
+    assert mw.collapse_all_act.isEnabled()
     assert mw.tree_act.text() == "Tree"
     assert mw.tree_act.shortcut() == QKeySequence("Ctrl+T")
+    assert mw.tree_act.isEnabled()
+    assert mw.tree_act.isChecked()
     assert mw.save_act.text() == "Save"
     assert mw.save_act.shortcut() == QKeySequence("Ctrl+S")
     assert mw.save_as_act.text() == "Save as"
@@ -202,13 +208,17 @@ def test_add_new_tab(mw: MainWindow, eso_file: EsoFile):
     assert mw.close_all_act.isEnabled()
 
 
-def test_tree_requested(qtbot, mw: MainWindow):
-    with patch("chartify.ui.maiw_window.Settings") as mock_settings:
-        assert not mw.tree_requested()
-
-        qtbot.mouseClick(mw.tree_view_btn, Qt.LeftButton)
-        assert mw.tree_requested()
-        assert mock_settings.TREE_VIEW
+@pytest.mark.parametrize("checked,node,enabled", [(True, "type", True), (False, None, False)])
+def test_on_tree_act_checked(
+    qtbot, mw: MainWindow, checked: bool, node: Optional[str], enabled: bool
+):
+    mw.tree_act.setChecked(not checked)
+    with patch("chartify.ui.main_window.Settings") as mock_settings:
+        with qtbot.wait_signals([mw.tree_act.triggered, mw.updateModelRequested]):
+            qtbot.mouseClick(mw.tree_view_btn, Qt.LeftButton)
+            assert mw.collapse_all_act.isEnabled() == enabled
+            assert mw.expand_all_act.isEnabled() == enabled
+            assert mock_settings.TREE_NODE == node
 
 
 def test_expand_all_empty(mw: MainWindow):
@@ -299,13 +309,13 @@ def test_toggle_tree_button(qtbot, mw):
 
 
 def test_expand_all(qtbot, mw):
-    mw.expand_all_btn.setEnabled(True)
+    mw.expand_all_act.setEnabled(True)
     with qtbot.wait_signal(mw.expandRequested):
         qtbot.mouseClick(mw.expand_all_btn, Qt.LeftButton)
 
 
 def test_collapse_all(qtbot, mw):
-    mw.collapse_all_btn.setEnabled(True)
+    mw.collapse_all_act.setEnabled(True)
     with qtbot.wait_signal(mw.collapseRequested):
         qtbot.mouseClick(mw.collapse_all_btn, Qt.LeftButton)
 
