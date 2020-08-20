@@ -395,7 +395,6 @@ class TreeView(QTreeView):
     selectionCleared = Signal()
     selectionPopulated = Signal(list)
     itemDoubleClicked = Signal(VariableData)
-    viewAppearanceChanged = Signal(str, dict)
     viewHeaderResized = Signal(str, int)
     viewHeaderChanged = Signal(str, tuple)
     treeNodeChanged = Signal(str)

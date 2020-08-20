@@ -289,12 +289,13 @@ class AppController:
             self.apply_async(Settings.CURRENT_FILE_ID, self._delete_variables, variables)
             self.update_view_model()
 
-    def on_file_rename_requested(self, id_: int) -> None:
+    def on_file_rename_requested(self, tab_index: int, id_: int) -> None:
         """ Update file name. """
         name = self.m.get_file_name(id_)
         other_names = self.m.get_other_file_names()
-        new_name = self.m.confirm_rename_file(name, other_names)
-        if new_name:
+        new_name = self.v.confirm_rename_file(name, other_names)
+        if new_name is not None:
+            self.v.rename_tab(tab_index, name)
             self.m.rename_file(id_, new_name)
 
     def on_aggregation_requested(self, func: Union[str, Callable]) -> None:

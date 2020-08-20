@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Set
 from unittest.mock import patch, MagicMock
 
 import pytest
@@ -10,7 +10,7 @@ from esofile_reader import EsoFile
 
 from chartify.settings import Settings
 from chartify.ui.main_window import MainWindow
-from chartify.ui.treeview import ViewModel, TreeView
+from chartify.ui.treeview import ViewModel
 from chartify.utils.utils import FilterTuple, VariableData
 from tests import ROOT
 
@@ -32,11 +32,12 @@ def mw(qtbot, tmp_path):
 
 
 @pytest.fixture
-def populated_tree_view(eso_file: EsoFile):
+def populated_mw(mw: MainWindow, eso_file: EsoFile):
     models = ViewModel.models_from_file(eso_file, tree_node="type")
-    tv = TreeView(0, models=models)
-    tv.set_model("daily")
-    return tv
+    mw.add_new_tab(0, "dummy", models)
+    mw.on_tab_changed(0)
+    mw.current_view.set_model("daily")
+    return mw
 
 
 def test_init_main_window(qtbot, mw: MainWindow):
@@ -228,11 +229,24 @@ def test_expand_all_empty(mw: MainWindow):
         pytest.fail()
 
 
+def test_expand_all(qtbot, populated_mw: MainWindow):
+    populated_mw.on_table_change_requested("daily")
+    qtbot.mouseClick(populated_mw.expand_all_btn, Qt.LeftButton)
+    assert len(populated_mw.current_view.current_model.expanded) == 28
+
+
 def test_collapse_all_empty(mw: MainWindow):
     try:
         mw.collapse_all()
     except AttributeError:
         pytest.fail()
+
+
+def test_collapse_all(qtbot, populated_mw: MainWindow):
+    populated_mw.on_table_change_requested("daily")
+    qtbot.mouseClick(populated_mw.expand_all_btn, Qt.LeftButton)
+    qtbot.mouseClick(populated_mw.collapse_all_btn, Qt.LeftButton)
+    assert len(populated_mw.current_view.current_model.expanded) == 0
 
 
 def test_save_storage_to_fs(mw: MainWindow):
@@ -276,18 +290,6 @@ def test_on_color_scheme_changed(qtbot, mw: MainWindow):
             assert mock_settings.PALETTE_NAME == "monochrome"
 
 
-def test_expand_all(qtbot, mw):
-    mw.expand_all_act.setEnabled(True)
-    with qtbot.wait_signal(mw.expandRequested):
-        qtbot.mouseClick(mw.expand_all_btn, Qt.LeftButton)
-
-
-def test_collapse_all(qtbot, mw):
-    mw.collapse_all_act.setEnabled(True)
-    with qtbot.wait_signal(mw.collapseRequested):
-        qtbot.mouseClick(mw.collapse_all_btn, Qt.LeftButton)
-
-
 @pytest.mark.parametrize(
     "variables,enabled,rate_to_energy",
     [
@@ -303,8 +305,6 @@ def test_on_selection_populated(
     def cb(vd):
         return vd == variables
 
-    # with patch("MainWindow.current_view", new_callable=PropertyMock) as mock:
-    #     mock.return_value = rate_to_energy
     tab_wgt_mock = MagicMock()
     model_mock = MagicMock()
     model_mock.current_model.allow_rate_to_energy = rate_to_energy
@@ -345,55 +345,225 @@ def test_on_view_header_changed(mw: MainWindow):
     assert mw.view_settings["tree"]["header"] == ("foo", "bar", "baz")
 
 
-def test_on_splitter_moved(mw: MainWindow):
-    pytest.fail()
+def test_on_splitter_moved(qtbot, mw: MainWindow):
+    with patch("chartify.ui.main_window.Settings") as mock_settings:
+        mw.central_splitter.setSizes([530, 664])
+        mw.on_splitter_moved()  # this is only triggered with manual interaction
+        assert mock_settings.SPLIT == [530, 664]
 
 
-def test_connect_ui_signals(mw: MainWindow):
-    pytest.fail()
+def test_file_dropped_signal(qtbot, mw: MainWindow):
+    paths = ["/some/path", "/another/path"]
+    with qtbot.wait_signal(mw.fileProcessingRequested, check_params_cb=lambda x: x == paths):
+        mw.left_main_wgt.fileDropped.emit(paths)
+
+
+def test_load_file_signal(qtbot, mw: MainWindow):
+    mw.load_file_act.triggered.disconnect(mw.load_files_from_fs)
+    with patch("chartify.ui.main_window.MainWindow.load_files_from_fs") as mock_func:
+        mw.connect_ui_signals()
+        mw.load_file_act.trigger()
+        mock_func.assert_called_once_with()
+
+
+def test_tree_act(qtbot, mw: MainWindow):
+    mw.tree_act.toggled.disconnect(mw.on_tree_act_checked)
+    with patch("chartify.ui.main_window.MainWindow.on_tree_act_checked") as mock_func:
+        mw.connect_ui_signals()
+        mw.tree_act.trigger()
+        mock_func.assert_called_once_with(False)
+
+
+def test_collapse_all_act(mw: MainWindow):
+    mw.collapse_all_act.triggered.disconnect(mw.collapse_all)
+    with patch("chartify.ui.main_window.MainWindow.collapse_all") as mock_func:
+        mw.connect_ui_signals()
+        mw.collapse_all_act.trigger()
+        mock_func.assert_called_once_with()
+
+
+def test_expand_all_act(mw: MainWindow):
+    mw.expand_all_act.triggered.disconnect(mw.expand_all)
+    with patch("chartify.ui.main_window.MainWindow.expand_all") as mock_func:
+        mw.connect_ui_signals()
+        mw.expand_all_act.trigger()
+        mock_func.assert_called_once_with()
+
+
+def test_remove_variables_act(qtbot, mw: MainWindow):
+    with qtbot.wait_signal(mw.variableRemoveRequested):
+        mw.remove_variables_act.trigger()
+
+
+def test_sum_act(qtbot, mw: MainWindow):
+    with qtbot.wait_signal(mw.aggregationRequested, check_params_cb=lambda x: x == "sum"):
+        mw.sum_act.trigger()
+
+
+def test_mean_act(qtbot, mw: MainWindow):
+    with qtbot.wait_signal(mw.aggregationRequested, check_params_cb=lambda x: x == "mean"):
+        mw.mean_act.trigger()
 
 
 def test_get_filter_tuple(qtbot, mw: MainWindow):
-    test_filter = FilterTuple(key="foo", type="bar", units="baz")
-    signals = [mw.timer.timeout, mw.textFiltered]
-    callbacks = [None, lambda x: x == test_filter]
-    with qtbot.wait_signals(signals=signals, check_params_cbs=callbacks):
-        qtbot.keyClicks(mw.key_line_edit, "foo")
-        qtbot.keyClicks(mw.type_line_edit, "bar")
-        qtbot.keyClicks(mw.units_line_edit, "baz")
-
-    assert mw.key_line_edit.text() == "foo"
-    assert mw.type_line_edit.text() == "bar"
-    assert mw.units_line_edit.text() == "baz"
-
-    assert mw.get_filter_tuple() == test_filter
+    mw.key_line_edit.setText("foo")
+    mw.type_line_edit.setText("bar")
+    mw.units_line_edit.setText("baz")
+    assert FilterTuple("foo", "bar", "baz") == mw.get_filter_tuple()
 
 
-def test_update_view_visual(mw: MainWindow):
-    pytest.fail()
+@pytest.mark.parametrize(
+    "similar,old_pos, current_pos,expected_pos,old_expanded,current_expanded,expected_expanded",
+    [
+        (True, 123, 321, 123, {"A", "B"}, {"C", "D"}, {"A", "B"}),
+        (False, 123, 321, 321, {"A", "B"}, {"C", "D"}, {"C", "D"}),
+    ],
+)
+def test_update_view_visual(
+    mw: MainWindow,
+    similar: bool,
+    old_pos: int,
+    current_pos: int,
+    expected_pos: int,
+    old_expanded: Set[str],
+    current_expanded: Set[str],
+    expected_expanded: Set[str],
+):
+    old_model = MagicMock()
+    old_model.is_similar.return_value = similar
+    old_model.scroll_position = old_pos
+    old_model.expanded = old_expanded
+    with patch("chartify.ui.main_window.MainWindow.current_view") as current_view:
+        current_view.current_model.scroll_position = current_pos
+        current_view.current_model.expanded = current_expanded
+        current_view.view_type = "tree"
+        var = VariableData("Temperature", "Zone A", "C", "C")
+        mw.update_view_visual(
+            selected=[var], scroll_to=var, old_model=old_model, hide_source_units=False
+        )
+        current_view.update_appearance.assert_called_with(
+            widths={"fixed": 60, "interactive": 200},
+            header=["type", "key", "units", "source units"],
+            filter_tuple=FilterTuple(key="", type="", units=""),
+            expanded=expected_expanded,
+            selected=[var],
+            scroll_pos=expected_pos,
+            scroll_to=var,
+            hide_source_units=False,
+        )
 
 
-def test_on_table_change_requested(mw: MainWindow):
-    pytest.fail()
+@pytest.mark.parametrize(
+    "is_simple,enabled, rate_to_energy, rate_to_energy_enabled",
+    [(True, False, True, True), (False, True, False, False)],
+)
+def test_on_table_change_requested(
+    qtbot,
+    populated_mw: MainWindow,
+    is_simple: bool,
+    enabled: bool,
+    rate_to_energy: bool,
+    rate_to_energy_enabled: bool,
+):
+    with patch("chartify.ui.main_window.Settings") as mock_settings:
+        with qtbot.wait_signal(populated_mw.setModelRequested):
+            new_model = populated_mw.current_view.models["hourly"]
+            new_model.is_simple = is_simple
+            new_model.allow_rate_to_energy = rate_to_energy
+            populated_mw.on_table_change_requested("hourly")
+            assert mock_settings.TABLE_NAME == "hourly"
+            assert populated_mw.tree_act.isEnabled() == enabled
+            assert populated_mw.expand_all_act.isEnabled() == enabled
+            assert populated_mw.collapse_all_act.isEnabled() == enabled
+            assert populated_mw.toolbar.rate_energy_btn.isEnabled() == rate_to_energy_enabled
 
 
-def test_on_tab_changed(mw: MainWindow):
-    pytest.fail()
+def test_on_table_change_requested_same_table(qtbot, populated_mw: MainWindow):
+    with patch("chartify.ui.main_window.Settings") as mock_settings:
+        with qtbot.wait_signal(populated_mw.updateModelRequested):
+            populated_mw.on_table_change_requested("daily")
+            assert mock_settings.TABLE_NAME == "daily"
 
 
-def test_on_tab_bar_double_clicked(mw: MainWindow):
-    pytest.fail()
+def test_on_tab_changed(populated_mw: MainWindow, eso_file: EsoFile):
+    models = ViewModel.models_from_file(eso_file, tree_node="type")
+    models.pop("runperiod")  # delete so models are not identical
+    populated_mw.add_new_tab(1, "new file", models)
+    with patch("chartify.ui.main_window.Settings") as mock_settings:
+        mock_settings.TABLE_NAME = "daily"
+        populated_mw.tab_wgt.setCurrentIndex(1)
+        assert mock_settings.CURRENT_FILE_ID == 1
+        assert mock_settings.TABLE_NAME == "daily"
+        button_names = [btn.text() for btn in populated_mw.toolbar.table_buttons]
+        assert button_names == ["hourly", "daily", "monthly"]
 
 
-def test_on_tab_closed(mw: MainWindow):
-    pytest.fail()
+def test_on_tab_changed_fresh(mw: MainWindow, eso_file: EsoFile):
+    models = ViewModel.models_from_file(eso_file, tree_node="type")
+    with patch("chartify.ui.main_window.Settings") as mock_settings:
+        mw.add_new_tab(0, "new file", models)
+        mock_settings.TABLE_NAME = "hourly"
+        assert mock_settings.CURRENT_FILE_ID == 0
+        assert mock_settings.TABLE_NAME == "hourly"
 
 
-def test_connect_tab_widget_signals(mw: MainWindow):
-    pytest.fail()
+def test_on_tab_changed_empty(populated_mw: MainWindow):
+    with patch("chartify.ui.main_window.Settings") as mock_settings:
+        populated_mw.tab_wgt.removeTab(0)
+        assert mock_settings.CURRENT_FILE_ID is None
+        assert mock_settings.TABLE_NAME is None
+        assert not populated_mw.remove_variables_act.isEnabled()
+        assert not populated_mw.toolbar.all_files_btn.isEnabled()
+        assert not populated_mw.toolbar.totals_btn.isEnabled()
+        assert populated_mw.toolbar.rate_energy_btn.isEnabled()
+        assert not populated_mw.toolbar.table_buttons
+        assert not populated_mw.toolbar.table_group.layout().itemAt(0)
 
 
-def test_on_totals_checked(mw: MainWindow):
+def test_on_tab_bar_double_clicked(qtbot, populated_mw: MainWindow):
+    def cb(tab_index, id_):
+        return tab_index == 0 and id_ == 0
+
+    with qtbot.wait_signal(populated_mw.fileRenameRequested, check_params_cb=cb):
+        populated_mw.on_tab_bar_double_clicked(0)
+
+
+def test_on_tab_closed(populated_mw: MainWindow):
+    populated_mw.tab_wgt.removeTab(0)
+    assert not populated_mw.toolbar.all_files_btn.isEnabled()
+    assert not populated_mw.close_all_act.isEnabled()
+
+
+def test_connect_tab_widget_close_requested(qtbot, mw: MainWindow):
+    with qtbot.wait_signal(mw.fileRemoveRequested, check_params_cb=lambda x: x == 123):
+        mw.tab_wgt.tabCloseRequested.emit(123)
+
+
+def test_connect_tab_widget_current_changed(qtbot, mw: MainWindow):
+    with patch("chartify.ui.main_window.MainWindow.on_tab_changed") as func_mock:
+        mw.tab_wgt.currentChanged.emit(123)
+        func_mock.assert_called_once_with(123)
+
+
+def test_connect_tab_widget_tab_double_clicked(qtbot, mw: MainWindow):
+    with patch("chartify.ui.main_window.MainWindow.on_tab_bar_double_clicked") as func_mock:
+        mw.tab_wgt.tabBarDoubleClicked.emit(123)
+        func_mock.assert_called_once_with(123)
+
+
+def test_connect_tab_widget_tab_closed(qtbot, mw: MainWindow):
+    with patch("chartify.ui.main_window.MainWindow.on_tab_closed") as func_mock:
+        mw.tab_wgt.tabClosed.emit(123)
+        func_mock.assert_called_once_with()
+
+
+def test_connect_tab_widget_drop_btn_clicked(qtbot, mw: MainWindow):
+    with patch("chartify.ui.main_window.MainWindow.load_files_from_fs") as func_mock:
+        mw.tab_wgt.drop_btn.click()
+        func_mock.assert_called_once_with()
+
+
+def test_on_totals_checked(qtbot, mw: MainWindow):
     pytest.fail()
 
 
@@ -401,8 +571,16 @@ def test_on_all_files_checked(mw: MainWindow):
     pytest.fail()
 
 
-def test_on_rate_energy_btn_clicked(mw: MainWindow):
-    pytest.fail()
+def test_table_change_requested(mw: MainWindow):
+    with patch("chartify.ui.main_window.MainWindow.on_table_change_requested") as func_mock:
+        mw.toolbar.tableChangeRequested.emit("test")
+        func_mock.assert_called_once_with("test")
+
+
+def test_on_rate_energy_btn_checked(qtbot, mw: MainWindow):
+    with patch("chartify.ui.main_window.MainWindow.on_rate_energy_btn_checked") as func_mock:
+        qtbot.mouseClick(mw.toolbar.rate_energy_btn, Qt.LeftButton)
+        func_mock.assert_called_once_with(True)
 
 
 def test_on_source_units_toggled(mw: MainWindow):
@@ -445,7 +623,20 @@ def test_on_tree_btn_toggled(qtbot, mw: MainWindow):
             qtbot.mouseClick(mw.tree_view_btn, Qt.LeftButton)
 
 
-def test_on_text_edited(mw: MainWindow):
+def test_on_text_edited(qtbot, mw: MainWindow):
+    test_filter = FilterTuple(key="foo", type="bar", units="baz")
+    signals = [mw.timer.timeout, mw.textFiltered]
+    callbacks = [None, lambda x: x == test_filter]
+    with qtbot.wait_signals(signals=signals, check_params_cbs=callbacks):
+        qtbot.keyClicks(mw.key_line_edit, "foo")
+        qtbot.keyClicks(mw.type_line_edit, "bar")
+        qtbot.keyClicks(mw.units_line_edit, "baz")
+
+    assert mw.key_line_edit.text() == "foo"
+    assert mw.type_line_edit.text() == "bar"
+    assert mw.units_line_edit.text() == "baz"
+
+    assert mw.get_filter_tuple() == test_filter
     pytest.fail()
 
 

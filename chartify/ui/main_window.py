@@ -55,7 +55,7 @@ class MainWindow(QMainWindow):
     updateModelRequested = Signal()
     setModelRequested = Signal()
     fileProcessingRequested = Signal(list)
-    fileRenameRequested = Signal(int)
+    fileRenameRequested = Signal(int, int)
     variableRenameRequested = Signal(VariableData)
     variableRemoveRequested = Signal()
     aggregationRequested = Signal(str)
@@ -460,6 +460,10 @@ class MainWindow(QMainWindow):
         Settings.MIRRORED = not Settings.MIRRORED
         Settings.SPLIT = self.central_splitter.sizes()
 
+    def rename_tab(self, index: int, name: str):
+        """ Set new tab name. """
+        self.v.tab_wgt.setTabText(index, name)
+
     def add_new_tab(self, id_: int, name: str, models: Dict[str, ViewModel]):
         """ Add file on the UI. """
         # create an empty 'View' widget - the data will be
@@ -575,7 +579,7 @@ class MainWindow(QMainWindow):
 
         # ~~~~ Actions Signals ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.load_file_act.triggered.connect(self.load_files_from_fs)
-        self.tree_act.triggered.connect(self.on_tree_act_checked)
+        self.tree_act.toggled.connect(self.on_tree_act_checked)
         self.collapse_all_act.triggered.connect(self.collapse_all)
         self.expand_all_act.triggered.connect(self.expand_all)
         self.remove_variables_act.triggered.connect(self.variableRemoveRequested.emit)
@@ -616,36 +620,38 @@ class MainWindow(QMainWindow):
             hide_source_units=hide_source_units,
         )
 
-    def on_table_change_requested(self, table_name: str):
+    def on_table_change_requested(self, table_name: Optional[str]):
         """ Change table on a current model. """
         Settings.TABLE_NAME = table_name
-        new_model = self.current_view.models[table_name]
-        if self.current_view.current_model == new_model:
-            # file changed and but table does not need to be changed
-            self.updateModelRequested.emit()
-        else:
-            self.setModelRequested.emit()
+        if table_name is not None:
+            new_model = self.current_view.models[table_name]
+            if self.current_view.current_model == new_model:
+                # file changed and but table does not need to be changed
+                self.updateModelRequested.emit()
+            else:
+                self.setModelRequested.emit()
 
-        # slots are on a same thread so following is called synchronously
-        # enable or disable applicable buttons
-        allow_tree = not new_model.is_simple
-        self.tree_act.setEnabled(allow_tree)
-        self.expand_all_act.setEnabled(allow_tree)
-        self.collapse_all_act.setEnabled(allow_tree)
-        self.toolbar.update_rate_to_energy(new_model.allow_rate_to_energy)
+            # slots are on a same thread so following is called synchronously
+            # enable or disable applicable buttons
+            allow_tree = not new_model.is_simple
+            self.tree_act.setEnabled(allow_tree)
+            self.expand_all_act.setEnabled(allow_tree)
+            self.collapse_all_act.setEnabled(allow_tree)
+            self.toolbar.update_rate_to_energy(new_model.allow_rate_to_energy)
 
     def on_tab_changed(self, index: int) -> None:
         """ Update view when tabChanged event is fired. """
         if index == -1:
             # there aren't any widgets available
             Settings.CURRENT_FILE_ID = None
-            Settings.TABLE_NAME = None
             # update toolbar buttons availability
             self.remove_variables_act.setEnabled(False)
             self.toolbar.all_files_btn.setEnabled(False)
             self.toolbar.totals_btn.setEnabled(False)
             self.toolbar.rate_energy_btn.setEnabled(True)
-            self.toolbar.clear_group(self.table_group)
+            # self.toolbar.clear_group(self.toolbar.table_group)
+            table_names = []
+            table_name = None
         else:
             Settings.CURRENT_FILE_ID = self.current_view.id_
             # model keys represent available table names
@@ -661,13 +667,13 @@ class MainWindow(QMainWindow):
                     # leave table set previously on a current view
                     table_name = self.current_view.current_model.name
             # table buttons are always cleared and created again
-            self.toolbar.update_table_buttons(table_names=table_names, selected=table_name)
-            # TODO handle totals button
-            self.on_table_change_requested(table_name)
+        self.toolbar.update_table_buttons(table_names=table_names, selected=table_name)
+        # TODO handle totals button
+        self.on_table_change_requested(table_name)
 
     def on_tab_bar_double_clicked(self, tab_index: int):
         id_ = self.tab_wgt.widget(tab_index).id_
-        self.fileRenameRequested.emit(id_)
+        self.fileRenameRequested.emit(tab_index, id_)
 
     def on_tab_closed(self):
         """ Update the interface when number of tabs changes. """
@@ -678,9 +684,9 @@ class MainWindow(QMainWindow):
     def connect_tab_widget_signals(self):
         # ~~~~ Tab Signals ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.tab_wgt.tabCloseRequested.connect(self.fileRemoveRequested.emit)
+        self.tab_wgt.tabClosed.connect(self.on_tab_closed)
         self.tab_wgt.currentChanged.connect(self.on_tab_changed)
         self.tab_wgt.tabBarDoubleClicked.connect(self.on_tab_bar_double_clicked)
-        self.tab_wgt.tabClosed.connect(self.on_tab_closed)
         self.tab_wgt.drop_btn.clicked.connect(self.load_files_from_fs)
 
     def on_totals_checked(self, checked: bool):
@@ -694,7 +700,7 @@ class MainWindow(QMainWindow):
         # this does not have an impact on the UI
         Settings.ALL_FILES = checked
 
-    def on_rate_energy_btn_clicked(self, checked: bool):
+    def on_rate_energy_btn_checked(self, checked: bool):
         Settings.RATE_TO_ENERGY = checked
         self.updateModelRequested.emit()
 
@@ -742,7 +748,7 @@ class MainWindow(QMainWindow):
         self.toolbar.tableChangeRequested.connect(self.on_table_change_requested)
         self.toolbar.customUnitsToggled.connect(self.on_custom_units_toggled)
         self.toolbar.source_units_toggle.stateChanged.connect(self.on_source_units_toggled)
-        self.toolbar.rate_energy_btn.clicked.connect(self.on_rate_energy_btn_clicked)
+        self.toolbar.rate_energy_btn.toggled.connect(self.on_rate_energy_btn_checked)
         self.toolbar.energy_btn.menu().triggered.connect(self.on_energy_units_changed)
         self.toolbar.power_btn.menu().triggered.connect(self.on_power_units_changed)
         self.toolbar.units_system_button.menu().triggered.connect(self.on_units_system_changed)
@@ -772,7 +778,6 @@ class MainWindow(QMainWindow):
         self.type_line_edit.textEdited.connect(self.on_text_edited)
         self.key_line_edit.textEdited.connect(self.on_text_edited)
         self.units_line_edit.textEdited.connect(self.on_text_edited)
-        self.tree_view_btn.toggled.connect(self.on_tree_act_checked)
         self.timer.timeout.connect(self.on_filter_timeout)
 
     def confirm_rename_file(self, name: str, other_names: List[str]) -> Optional[str]:
@@ -786,10 +791,7 @@ class MainWindow(QMainWindow):
         )
         res = dialog.exec_()
         if res == 1:
-            name = dialog.input1_text
-            index = self.tab_wgt.currentIndex()
-            self.tab_wgt.setTabText(index, name)
-            return name
+            return dialog.input1_text
 
     def confirm_remove_variables(
         self, variables: List[Variable], all_files: bool, file_name: str

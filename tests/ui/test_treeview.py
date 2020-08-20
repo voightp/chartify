@@ -262,7 +262,7 @@ def test_on_view_resized(qtbot, tree_view: TreeView, hourly_df: pd.DataFrame):
 
 
 def test_on_view_resized_stretch(qtbot, tree_view: TreeView, hourly_df: pd.DataFrame):
-    with qtbot.assertNotEmitted(tree_view.viewAppearanceChanged):
+    with qtbot.assertNotEmitted(tree_view.viewHeaderResized):
         tree_view.header().resizeSection(1, 125)
 
 
