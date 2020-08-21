@@ -637,7 +637,7 @@ class MainWindow(QMainWindow):
             self.tree_act.setEnabled(allow_tree)
             self.expand_all_act.setEnabled(allow_tree)
             self.collapse_all_act.setEnabled(allow_tree)
-            self.toolbar.update_rate_to_energy(new_model.allow_rate_to_energy)
+            self.toolbar.enable_rate_to_energy(new_model.allow_rate_to_energy)
 
     def on_tab_changed(self, index: int) -> None:
         """ Update view when tabChanged event is fired. """
@@ -718,7 +718,7 @@ class MainWindow(QMainWindow):
         # model could have been changed prior to custom units toggle
         # so rate to energy conversion may not be applicable
         if self.tab_wgt.is_empty() or self.current_view.allow_rate_to_energy:
-            self.toolbar.update_rate_to_energy(True)
+            self.toolbar.enable_rate_to_energy(True)
         else:
             self.toolbar.rate_energy_btn.setEnabled(False)
             rate_to_energy = False

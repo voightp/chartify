@@ -215,7 +215,7 @@ class Toolbar(QFrame):
         # show only relevant units
         self.filter_energy_power_units(Settings.UNITS_SYSTEM)
 
-    def update_rate_to_energy(self, can_convert: bool):
+    def enable_rate_to_energy(self, can_convert: bool):
         """ Enable or disable rate to energy button. """
         if self.custom_units_toggle.isChecked():
             self.rate_energy_btn.setEnabled(can_convert)
@@ -236,7 +236,7 @@ class Toolbar(QFrame):
             self.table_buttons.append(btn)
         self.populate_group(self.table_group, self.table_buttons)
 
-    def custom_units_toggled(self, checked: int) -> None:
+    def custom_units_toggled(self, checked: bool) -> None:
         """ Update units settings when custom units toggled. """
         if not checked:
             # set default EnergyPlus units

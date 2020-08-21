@@ -5,7 +5,7 @@ from unittest.mock import patch, MagicMock
 import pytest
 from PySide2.QtCore import QMargins, Qt, QSize, QPoint
 from PySide2.QtGui import QKeySequence
-from PySide2.QtWidgets import QSizePolicy
+from PySide2.QtWidgets import QSizePolicy, QAction
 from esofile_reader import EsoFile
 
 from chartify.settings import Settings
@@ -578,33 +578,102 @@ def test_table_change_requested(mw: MainWindow):
 
 
 def test_on_rate_energy_btn_checked(qtbot, mw: MainWindow):
-    with patch("chartify.ui.main_window.MainWindow.on_rate_energy_btn_checked") as func_mock:
-        qtbot.mouseClick(mw.toolbar.rate_energy_btn, Qt.LeftButton)
-        func_mock.assert_called_once_with(True)
+    with patch("chartify.ui.main_window.Settings") as mock_settings:
+        with qtbot.wait_signal(mw.updateModelRequested):
+            mw.on_rate_energy_btn_checked(True)
+            assert mock_settings.RATE_TO_ENERGY is True
 
 
 def test_on_source_units_toggled(mw: MainWindow):
-    pytest.fail()
+    with patch("chartify.ui.main_window.Settings") as mock_settings:
+        with patch("chartify.ui.main_window.MainWindow.current_view") as mock_view:
+            mw.on_source_units_toggled(True)
+            assert mock_settings.HIDE_SOURCE_UNITS is False
+            mock_view.hide_section.assert_called_once_with("source units", False)
 
 
-def test_on_custom_units_toggled(mw: MainWindow):
-    pytest.fail()
+@pytest.mark.parametrize("allow_rate_to_energy,rate_to_energy", [(True, True), (False, False)])
+def test_on_custom_units_toggled(
+    qtbot, populated_mw: MainWindow, allow_rate_to_energy: bool, rate_to_energy: bool
+):
+    populated_mw.current_view.current_model.allow_rate_to_energy = allow_rate_to_energy
+    with patch("chartify.ui.main_window.Settings") as mock_settings:
+        with qtbot.wait_signal(mw.updateModelRequested):
+            mw.on_custom_units_toggled("kBTU", "MW", "IP", True)
+            assert mock_settings.ENERGY_UNITS == "kBTU"
+            assert mock_settings.POWER_UNITS == "MW"
+            assert mock_settings.UNITS_SYSTEM == "IP"
+            assert mock_settings.RATE_TO_ENERGY is rate_to_energy
+            assert populated_mw.toolbar.rate_energy_btn.isEnabled() is rate_to_energy
 
 
-def test_on_energy_units_changed(mw: MainWindow):
-    pytest.fail()
+def test_on_energy_units_changed(qtbot, mw: MainWindow):
+    act = QAction()
+    act.setData("FOO")
+    with patch("chartify.ui.main_window.Settings") as mock_settings:
+        with qtbot.wait_signal(mw.updateModelRequested):
+            mw.on_energy_units_changed(act)
+            mock_settings.ENERGY_UNITS = "FOO"
 
 
-def test_on_power_units_changed(mw: MainWindow):
-    pytest.fail()
+def test_on_power_units_changed(qtbot, mw: MainWindow):
+    act = QAction()
+    act.setData("FOO")
+    with patch("chartify.ui.main_window.Settings") as mock_settings:
+        with qtbot.wait_signal(mw.updateModelRequested):
+            mw.on_power_units_changed(act)
+            mock_settings.POWER_UNITS = "FOO"
 
 
-def test_on_units_system_changed(mw: MainWindow):
-    pytest.fail()
+def test_on_units_system_changed(qtbot, mw: MainWindow):
+    act = QAction()
+    act.setData("FOO")
+    with patch("chartify.ui.main_window.Settings") as mock_settings:
+        with qtbot.wait_signal(mw.updateModelRequested):
+            mw.on_units_system_changed(act)
+            mock_settings.UNITS_SYSTEM = "FOO"
 
 
-def test_connect_toolbar_signals(mw: MainWindow):
-    pytest.fail()
+def test_connect_totals_btn(mw: MainWindow):
+    pass
+
+
+def test_connect_all_files_btn(mw: MainWindow):
+    pass
+
+
+def test_connect_tableChangeRequested(mw: MainWindow):
+    pass
+
+
+def test_connect_customUnitsToggled(mw: MainWindow):
+    pass
+
+
+def test_connect_source_units_toggle(mw: MainWindow):
+    pass
+
+
+def test_connect_rate_energy_btn(mw: MainWindow):
+    pass
+
+
+def test_connect_energy_btn(mw: MainWindow):
+    pass
+
+
+def test_connect_power_btn(mw: MainWindow):
+    pass
+
+
+def test_connect_units_system_button(mw: MainWindow):
+    pass
+
+
+def test_connect_rate_energy_toggle(qtbot, mw: MainWindow):
+    with patch("chartify.ui.main_window.MainWindow.on_rate_energy_btn_checked") as func_mock:
+        qtbot.mouseClick(mw.toolbar.rate_energy_btn, Qt.LeftButton)
+        func_mock.assert_called_once_with(True)
 
 
 def test_on_tree_btn_toggled(qtbot, mw: MainWindow):
