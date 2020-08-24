@@ -598,8 +598,8 @@ def test_on_custom_units_toggled(
 ):
     populated_mw.current_view.current_model.allow_rate_to_energy = allow_rate_to_energy
     with patch("chartify.ui.main_window.Settings") as mock_settings:
-        with qtbot.wait_signal(mw.updateModelRequested):
-            mw.on_custom_units_toggled("kBTU", "MW", "IP", True)
+        with qtbot.wait_signal(populated_mw.updateModelRequested):
+            populated_mw.on_custom_units_toggled("kBTU", "MW", "IP", True)
             assert mock_settings.ENERGY_UNITS == "kBTU"
             assert mock_settings.POWER_UNITS == "MW"
             assert mock_settings.UNITS_SYSTEM == "IP"
@@ -634,40 +634,63 @@ def test_on_units_system_changed(qtbot, mw: MainWindow):
             mock_settings.UNITS_SYSTEM = "FOO"
 
 
-def test_connect_totals_btn(mw: MainWindow):
-    pass
+def test_connect_totals_btn(qtbot, mw: MainWindow):
+    mw.toolbar.totals_btn.setEnabled(True)
+    with patch("chartify.ui.main_window.MainWindow.on_totals_checked") as mock_func:
+        qtbot.mouseClick(mw.toolbar.totals_btn, Qt.LeftButton)
+        mock_func.assert_called_once_with(True)
 
 
-def test_connect_all_files_btn(mw: MainWindow):
-    pass
+def test_connect_all_files_btn(qtbot, mw: MainWindow):
+    mw.toolbar.all_files_btn.setEnabled(True)
+    with patch("chartify.ui.main_window.MainWindow.on_all_files_checked") as mock_func:
+        qtbot.mouseClick(mw.toolbar.all_files_btn, Qt.LeftButton)
+        mock_func.assert_called_once_with(True)
 
 
 def test_connect_tableChangeRequested(mw: MainWindow):
-    pass
+    with patch("chartify.ui.main_window.MainWindow.on_table_change_requested") as mock_func:
+        mw.toolbar.tableChangeRequested.emit("foo")
+        mock_func.assert_called_once_with("foo")
 
 
-def test_connect_customUnitsToggled(mw: MainWindow):
-    pass
+def test_connect_customUnitsToggled(qtbot, mw: MainWindow):
+    with patch("chartify.ui.main_window.MainWindow.on_custom_units_toggled") as mock_func:
+        mw.toolbar.customUnitsToggled.emit("foo", "bar", "baz", True)
+        mock_func.assert_called_once_with("foo", "bar", "baz", True)
 
 
-def test_connect_source_units_toggle(mw: MainWindow):
-    pass
+def test_connect_source_units_toggle(qtbot, mw: MainWindow):
+    with patch("chartify.ui.main_window.MainWindow.on_source_units_toggled") as mock_func:
+        mw.toolbar.source_units_toggle.stateChanged.emit(True)
+        mock_func.assert_called_once_with(True)
 
 
-def test_connect_rate_energy_btn(mw: MainWindow):
-    pass
+def test_connect_rate_energy_btn(qtbot, mw: MainWindow):
+    with patch("chartify.ui.main_window.MainWindow.on_rate_energy_btn_checked") as mock_func:
+        qtbot.mouseClick(mw.toolbar.rate_energy_btn, Qt.LeftButton)
+        mock_func.assert_called_once_with(True)
 
 
 def test_connect_energy_btn(mw: MainWindow):
-    pass
+    with patch("chartify.ui.main_window.MainWindow.on_energy_units_changed") as mock_func:
+        act = mw.toolbar.energy_btn.menu().actions()[0]
+        act.trigger()
+        mock_func.assert_called_once_with(act)
 
 
 def test_connect_power_btn(mw: MainWindow):
-    pass
+    with patch("chartify.ui.main_window.MainWindow.on_power_units_changed") as mock_func:
+        act = mw.toolbar.power_btn.menu().actions()[0]
+        act.trigger()
+        mock_func.assert_called_once_with(act)
 
 
 def test_connect_units_system_button(mw: MainWindow):
-    pass
+    with patch("chartify.ui.main_window.MainWindow.on_units_system_changed") as mock_func:
+        act = mw.toolbar.units_system_button.menu().actions()[0]
+        act.trigger()
+        mock_func.assert_called_once_with(act)
 
 
 def test_connect_rate_energy_toggle(qtbot, mw: MainWindow):
@@ -676,53 +699,105 @@ def test_connect_rate_energy_toggle(qtbot, mw: MainWindow):
         func_mock.assert_called_once_with(True)
 
 
-def test_on_tree_btn_toggled(qtbot, mw: MainWindow):
-    with patch("chartify.ui.mw.Settings") as mock_settings:
-
-        def test_tree_btn_toggled(checked):
-            assert mw.tree_view_btn.property("checked")
-            assert mw.collapse_all_btn.isEnabled()
-            assert mw.expand_all_btn.isEnabled()
-            assert mock_settings.TREE_VIEW
-            return checked
-
-        callbacks = [test_tree_btn_toggled, None]
-        signals = [mw.tree_view_btn.toggled, mw.treeButtonChecked]
-        with qtbot.wait_signals(signals=signals, check_params_cbs=callbacks):
+@pytest.mark.parametrize("checked,tree_node", [(True, "type"), (False, None)])
+def test_on_tree_btn_toggled(qtbot, mw: MainWindow, checked: bool, tree_node: Optional[str]):
+    with patch("chartify.ui.main_window.Settings") as mock_settings:
+        mw.tree_act.setChecked(not checked)
+        with qtbot.wait_signal(mw.updateModelRequested):
             qtbot.mouseClick(mw.tree_view_btn, Qt.LeftButton)
+            assert mw.tree_act.isChecked() is checked
+            assert mw.collapse_all_btn.isEnabled() is checked
+            assert mw.expand_all_btn.isEnabled() is checked
+            assert mock_settings.TREE_NODE == tree_node
 
 
-def test_on_text_edited(qtbot, mw: MainWindow):
-    test_filter = FilterTuple(key="foo", type="bar", units="baz")
-    signals = [mw.timer.timeout, mw.textFiltered]
-    callbacks = [None, lambda x: x == test_filter]
-    with qtbot.wait_signals(signals=signals, check_params_cbs=callbacks):
+def test_on_text_edited(qtbot, populated_mw: MainWindow):
+    def cb():
+        mock_view.filter_view.assert_called_once_with(FilterTuple("foo", "bar", "baz"))
+        return True
+
+    with patch("chartify.ui.main_window.MainWindow.current_view") as mock_view:
+        qtbot.wait_signal(populated_mw.timer.timeout, check_params_cb=cb)
+        qtbot.keyClicks(populated_mw.key_line_edit, "foo")
+        qtbot.keyClicks(populated_mw.type_line_edit, "bar")
+        qtbot.keyClicks(populated_mw.units_line_edit, "baz")
+
+    assert populated_mw.key_line_edit.text() == "foo"
+    assert populated_mw.type_line_edit.text() == "bar"
+    assert populated_mw.units_line_edit.text() == "baz"
+    assert populated_mw.get_filter_tuple() == FilterTuple("foo", "bar", "baz")
+
+
+def test_on_filter_timeout_empty(mw: MainWindow):
+    mw.key_line_edit.setText("foo")
+    mw.type_line_edit.setText("bar")
+    mw.units_line_edit.setText("baz")
+    with patch("chartify.ui.main_window.MainWindow.current_view") as mock_view:
+        mw.on_filter_timeout()
+        assert not mock_view.filter_view.called
+
+
+def test_on_filter_timeout(populated_mw: MainWindow):
+    populated_mw.key_line_edit.setText("foo")
+    populated_mw.type_line_edit.setText("bar")
+    populated_mw.units_line_edit.setText("baz")
+    with patch("chartify.ui.main_window.MainWindow.current_view") as mock_view:
+        populated_mw.on_filter_timeout()
+        mock_view.filter_view.assert_called_once_with(FilterTuple("foo", "bar", "baz"))
+
+
+def test_connect_type_line_edit(qtbot, mw: MainWindow):
+    with patch("chartify.ui.main_window.MainWindow.on_text_edited") as mock_func:
+        qtbot.keyClicks(mw.type_line_edit, "foo")
+        mock_func.assert_called_with()
+
+
+def test_connect_key_line_edit(qtbot, mw: MainWindow):
+    with patch("chartify.ui.main_window.MainWindow.on_text_edited") as mock_func:
         qtbot.keyClicks(mw.key_line_edit, "foo")
-        qtbot.keyClicks(mw.type_line_edit, "bar")
-        qtbot.keyClicks(mw.units_line_edit, "baz")
-
-    assert mw.key_line_edit.text() == "foo"
-    assert mw.type_line_edit.text() == "bar"
-    assert mw.units_line_edit.text() == "baz"
-
-    assert mw.get_filter_tuple() == test_filter
-    pytest.fail()
+        mock_func.assert_called_with()
 
 
-def test_on_filter_timeout(mw: MainWindow):
-    pytest.fail()
+def test_connect_units_line_edit(qtbot, mw: MainWindow):
+    with patch("chartify.ui.main_window.MainWindow.on_filter_timeout") as mock_func:
+        mw.timer.timeout.emit()
+        mock_func.assert_called_once_with()
 
 
-def test_connect_view_tools_signals(mw: MainWindow):
-    pytest.fail()
+def test_connect_timer(qtbot, mw: MainWindow):
+    with patch("chartify.ui.main_window.MainWindow.on_filter_timeout") as mock_func:
+        mw.timer.timeout.emit()
+        mock_func.assert_called_once_with()
 
 
-def test_confirm_rename_file(mw: MainWindow):
-    pytest.fail()
+@pytest.mark.parametrize("confirmed,expected", [(0, None), (1, "test")])
+def test_confirm_rename_file(mw: MainWindow, confirmed: int, expected: Optional[str]):
+    with patch("chartify.ui.main_window.SingleInputDialog") as dialog:
+        instance = dialog.return_value
+        instance.exec_.return_value = confirmed
+        instance.input1_text = "test"
+        out = mw.confirm_rename_file("test", ["foo", "bar"])
+        dialog.assert_called_once_with(
+            mw,
+            title="Enter a new file name.",
+            input1_name="Name",
+            input1_text="test",
+            input1_blocker=["foo", "bar"],
+        )
+        assert out == expected
 
 
-def test_confirm_remove_variables(mw: MainWindow):
-    pytest.fail()
+@pytest.mark.parametrize("confirmed,expected", [(0, False), (1, True)])
+def test_confirm_remove_variables(mw: MainWindow, confirmed: int, expected: bool):
+    with patch("chartify.ui.main_window.ConfirmationDialog") as dialog:
+        instance = dialog.return_value
+        instance.exec_.return_value = confirmed
+        instance.input1_text = "test"
+        out = mw.confirm_remove_variables([VariableData("A", "B", "C", "D")], False, "foo")
+        dialog.assert_called_once_with(
+            mw, "Delete following variables from file 'foo': ", det_text="B | C | D"
+        )
+        assert out == expected
 
 
 def test_confirm_rename_variable(mw: MainWindow):

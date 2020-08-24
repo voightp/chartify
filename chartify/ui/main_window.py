@@ -770,8 +770,7 @@ class MainWindow(QMainWindow):
     def on_filter_timeout(self):
         """ Apply a filter when the filter text is edited. """
         if not self.tab_wgt.is_empty():
-            filter_tuple = self.get_filter_tuple()
-            self.current_view.filter_view(filter_tuple)
+            self.current_view.filter_view(self.get_filter_tuple())
 
     def connect_view_tools_signals(self):
         # ~~~~ Filter actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -789,8 +788,7 @@ class MainWindow(QMainWindow):
             input1_text=name,
             input1_blocker=other_names,
         )
-        res = dialog.exec_()
-        if res == 1:
+        if dialog.exec_() == 1:
             return dialog.input1_text
 
     def confirm_remove_variables(
