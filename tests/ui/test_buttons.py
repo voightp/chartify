@@ -7,10 +7,8 @@ from PySide2.QtWidgets import QAction, QMenu
 
 from chartify.ui.buttons import (
     StatusButton,
-    ClickButton,
     TitledButton,
     ToggleButton,
-    CheckableButton,
     MenuButton,
 )
 from chartify.utils.icon_painter import Pixmap
@@ -27,40 +25,6 @@ def icon1():
 def icon2():
     path = Path(ROOT, "resources/icons/test.png")
     return QIcon(Pixmap(path, r=100, g=100, b=100, a=0.7))
-
-
-class TestClickButton:
-    @pytest.fixture
-    def button(self, qtbot):
-        button = ClickButton(None)
-        button.show()
-        qtbot.add_widget(button)
-        return button
-
-    def test_button_init(self, qtbot, button: ClickButton):
-        assert button.toolButtonStyle() == Qt.ToolButtonTextUnderIcon
-        assert not button.isCheckable()
-        assert not button.click_act
-
-    def test_action(self, qtbot, button: ClickButton):
-        act = QAction()
-        button.connect_action(act)
-        assert button.click_act == act
-
-        with qtbot.wait_signal(act.triggered):
-            qtbot.mouseClick(button, Qt.LeftButton)
-
-    def test_icons(self, qtbot, button: ClickButton, icon1: QIcon, icon2: QIcon):
-        button.set_icons(icon1, icon2)
-
-        assert button.icons["enabled"] == icon1
-        assert button.icons["disabled"] == icon2
-
-    def test_set_enabled(self, qtbot, button: ClickButton, icon1: QIcon, icon2: QIcon):
-        button.set_icons(icon1, icon2)
-        button.setEnabled(False)
-
-        assert not button.isEnabled()
 
 
 class TestTitledButton:
@@ -99,21 +63,22 @@ class TestTitledButton:
         for a, b in zip(button.menu().actions(), [False, False, True, True, False]):
             assert a.isVisible() == b
 
-    def test_update_state(self, button: TitledButton):
+    def test_exclusive_action(self, button: TitledButton):
         original_act = button.menu().actions()[0]
+        original_act.setChecked(True)
         act = button.menu().actions()[-1]
-        assert button.update_state(act)
+        button.set_action(act.data())
         assert not original_act.isChecked()
 
-    def test_update_state_internally(self, button: TitledButton):
+    def test_set_action(self, button: TitledButton):
         data = "Action 4 data"
-        button.update_state_internally(data)
+        button.set_action(data)
         assert button.data() == data
 
-    def test_update_state_internally_invalid(self, button: TitledButton):
+    def test_set_action_invalid(self, button: TitledButton):
         data = "Invalid data"
         with pytest.raises(KeyError):
-            button.update_state_internally(data)
+            button.set_action(data)
 
 
 class TestToggleButton:
@@ -193,45 +158,10 @@ class TestMenuButton:
         qtbot.add_widget(button)
         return button
 
-    def test_button_init(self, button: CheckableButton):
+    def test_button_init(self, button: MenuButton):
         assert button.toolButtonStyle() == Qt.ToolButtonIconOnly
         assert button.text() == "TEST"
         assert button.popupMode() == MenuButton.InstantPopup
-
-
-class TestCheckableButton:
-    @pytest.fixture
-    def button(self, qtbot):
-        button = CheckableButton(None)
-        button.status_label = "FOO BAR BAZ\nSomething something something Dark Side"
-        button.show()
-        qtbot.add_widget(button)
-        return button
-
-    def test_button_init(self, button: CheckableButton):
-        assert button.toolButtonStyle() == Qt.ToolButtonTextUnderIcon
-        assert button.isCheckable()
-
-    def test_button_toggled(self, qtbot, button: CheckableButton):
-        icon = button.icon()
-        with qtbot.wait_signal(button.toggled, check_params_cb=lambda x: x):
-            qtbot.mouseClick(button, Qt.LeftButton)
-        assert button.isChecked()
-        assert button.icon() is not icon
-
-    def test_set_icons(self, button: CheckableButton):
-        i1, i2, i3, i4 = QIcon(), QIcon(), QIcon(), QIcon()
-        button.set_icons(i1, i2, i3, i4)
-        assert button.icons["primary"]["enabled"] == i1
-        assert button.icons["primary"]["disabled"] == i2
-        assert button.icons["secondary"]["enabled"] == i3
-        assert button.icons["secondary"]["disabled"] == i4
-
-    def test_button_enabled(self, button: CheckableButton):
-        icon = button.icon()
-        button.setEnabled(True)
-        assert button.isEnabled()
-        assert button.icon() is not icon
 
 
 class TestStatusButton:

@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 from PySide2.QtCore import Qt
 from PySide2.QtWidgets import (
@@ -82,7 +82,7 @@ class SingleInputDialog(BaseTwoButtonDialog):
         title: str,
         input1_name: str,
         input1_text: str,
-        input1_blocker: List[str] = None,
+        input1_blocker: Optional[List[str]] = None,
     ):
         super().__init__(parent, title)
         form = QWidget(self)
@@ -117,8 +117,8 @@ class DoubleInputDialog(SingleInputDialog):
         input1_text: str,
         input2_name: str,
         input2_text: str,
-        input1_blocker: List[str] = None,
-        input2_blocker: List[str] = None,
+        input1_blocker: Optional[List[str]] = None,
+        input2_blocker: Optional[List[str]] = None,
     ):
         super().__init__(parent, title, input1_name, input1_text, input1_blocker)
         self.input2_blocker = input2_blocker if input2_blocker else []
@@ -140,7 +140,7 @@ class DoubleInputDialog(SingleInputDialog):
         return valid
 
 
-class ConfirmationDialog(QDialog):
+class ConfirmationDialog(BaseTwoButtonDialog):
     """ A custom dialog to confirm user actions.
 
     The dialog works as QMessageBox with a bit
@@ -148,32 +148,17 @@ class ConfirmationDialog(QDialog):
 
     """
 
-    def __init__(self, parent, text, inf_text=None, det_text=None):
-        super().__init__(parent, Qt.FramelessWindowHint)
-
-        layout = QVBoxLayout(self)
-        layout.setSpacing(0)
-        layout.setContentsMargins(0, 0, 0, 0)
-
-        main_text = QLabel(self)
-        main_text.setText(text)
-        main_text.setProperty("primary", True)
-        layout.addWidget(main_text)
-
+    def __init__(
+        self, parent, title: str, inf_text: Optional[str] = None, det_text: Optional[str] = None
+    ):
+        super().__init__(parent, title)
         if inf_text:
             label = QLabel(self)
             label.setText(inf_text)
-            layout.addWidget(label)
-
+            self.content_layout.addWidget(label)
         if det_text:
             area = QTextEdit(self)
             area.setText(det_text)
             area.setLineWrapMode(QTextEdit.NoWrap)
             area.setTextInteractionFlags(Qt.NoTextInteraction)
-            layout.addWidget(area)
-
-        box = QDialogButtonBox(self)
-        box.accepted.connect(self.accept)
-        box.rejected.connect(self.reject)
-
-        layout.addWidget(box)
+            self.content_layout.addWidget(area)

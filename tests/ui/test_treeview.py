@@ -254,35 +254,35 @@ def test_on_tree_node_changed_dont_build_tree(qtbot, tree_view: TreeView):
 
 
 def test_on_view_resized(qtbot, tree_view: TreeView, hourly_df: pd.DataFrame):
-    def test_size(view_type, dct):
-        return view_type == "tree" and dct["interactive"] == 125
+    def test_size(view_type, width):
+        return view_type == "tree" and width == 125
 
-    with qtbot.wait_signal(tree_view.viewAppearanceChanged, check_params_cb=test_size):
+    with qtbot.wait_signal(tree_view.viewHeaderResized, check_params_cb=test_size):
         tree_view.header().resizeSection(0, 125)
 
 
 def test_on_view_resized_stretch(qtbot, tree_view: TreeView, hourly_df: pd.DataFrame):
-    with qtbot.assertNotEmitted(tree_view.viewAppearanceChanged):
+    with qtbot.assertNotEmitted(tree_view.viewHeaderResized):
         tree_view.header().resizeSection(1, 125)
 
 
 def test_on_section_moved_rebuild(qtbot, tree_view: TreeView, hourly_df: pd.DataFrame):
-    def test_header(view_type, dct):
-        return view_type == "tree" and dct["header"] == ("key", "units", "type", "source units")
+    def test_header(view_type, header):
+        return view_type == "tree" and header == ("key", "units", "type", "source units")
 
-    signals = [(tree_view.viewAppearanceChanged, "0"), (tree_view.treeNodeChanged, "1")]
+    signals = [(tree_view.viewHeaderChanged, "0"), (tree_view.treeNodeChanged, "1")]
     callbacks = [test_header, None]
     with qtbot.wait_signals(signals=signals, check_params_cbs=callbacks):
         tree_view.header().moveSection(0, 2)
 
 
 def test_on_section_moved_plain_view(qtbot, tree_view: TreeView, hourly_df: pd.DataFrame):
-    def test_header(view_type, dct):
-        return view_type == "tree" and dct["header"] == ("key", "units", "type", "source units")
+    def test_header(view_type, header):
+        return view_type == "tree" and header == ("key", "units", "type", "source units")
 
     tree_view.update_model(header_df=hourly_df, tree_node=None)
     tree_view.reorder_columns(("type", "key", "units", "source units"))
-    with qtbot.wait_signal(tree_view.viewAppearanceChanged, check_params_cb=test_header):
+    with qtbot.wait_signal(tree_view.viewHeaderChanged, check_params_cb=test_header):
         tree_view.header().moveSection(0, 2)
 
 
