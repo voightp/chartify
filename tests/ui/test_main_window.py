@@ -1,12 +1,12 @@
 from pathlib import Path
-from typing import List, Optional, Set
+from typing import List, Optional, Set, Tuple
 from unittest.mock import patch, MagicMock
 
 import pytest
 from PySide2.QtCore import QMargins, Qt, QSize, QPoint
 from PySide2.QtGui import QKeySequence
 from PySide2.QtWidgets import QSizePolicy, QAction
-from esofile_reader import EsoFile
+from esofile_reader import EsoFile, Variable, SimpleVariable
 
 from chartify.settings import Settings
 from chartify.ui.main_window import MainWindow
@@ -800,13 +800,120 @@ def test_confirm_remove_variables(mw: MainWindow, confirmed: int, expected: bool
         assert out == expected
 
 
-def test_confirm_rename_variable(mw: MainWindow):
-    pytest.fail()
+@pytest.mark.parametrize("confirmed,expected", [(0, None), (1, ("renamed", None))])
+def test_confirm_rename_variable_simple_variable(
+    mw: MainWindow, confirmed: int, expected: Optional[Tuple[str, None]]
+):
+    with patch("chartify.ui.main_window.SingleInputDialog") as dialog:
+        instance = dialog.return_value
+        instance.exec_.return_value = confirmed
+        instance.input1_text = "renamed"
+        out = mw.confirm_rename_variable("test", None)
+        dialog.assert_called_once_with(
+            mw, title="Rename variable:", input1_name="Key", input1_text="test",
+        )
+        assert out == expected
 
 
-def test_confirm_aggregate_variables(mw: MainWindow):
-    pytest.fail()
+@pytest.mark.parametrize("confirmed,expected", [(0, None), (1, ("renamed1", "renamed2"))])
+def test_confirm_rename_variable(
+    mw: MainWindow, confirmed: int, expected: Optional[Tuple[str, None]]
+):
+    with patch("chartify.ui.main_window.DoubleInputDialog") as dialog:
+        instance = dialog.return_value
+        instance.exec_.return_value = confirmed
+        instance.input1_text = "renamed1"
+        instance.input2_text = "renamed2"
+        out = mw.confirm_rename_variable("test1", "test2")
+        dialog.assert_called_once_with(
+            mw,
+            title="Rename variable:",
+            input1_name="Key",
+            input1_text="test1",
+            input2_name="Type",
+            input2_text="test2",
+        )
+        assert out == expected
 
 
-def test_confirm_delete_file(mw: MainWindow):
-    pytest.fail()
+@pytest.mark.parametrize(
+    "confirmed,expected,variables,key",
+    [
+        (0, None, [SimpleVariable("T", "A", "D"), SimpleVariable("T", "A", "D")], "A - sum",),
+        (
+            1,
+            ("New KEY", None),
+            [SimpleVariable("T", "A", "D"), SimpleVariable("T", "B", "D")],
+            "Custom Key - sum",
+        ),
+    ],
+)
+def test_confirm_aggregate_variables_simple_variables(
+    mw: MainWindow,
+    confirmed: int,
+    expected: Optional[Tuple[str, None]],
+    variables: List[SimpleVariable],
+    key: str,
+):
+    with patch("chartify.ui.main_window.SingleInputDialog") as dialog:
+        instance = dialog.return_value
+        instance.exec_.return_value = confirmed
+        instance.input1_text = "New KEY"
+        out = mw.confirm_aggregate_variables(variables, "sum")
+        dialog.assert_called_once_with(
+            mw, title="Enter details of the new variable:", input1_name="Key", input1_text=key,
+        )
+        assert out == expected
+
+
+@pytest.mark.parametrize(
+    "confirmed,expected,variables,key,type_",
+    [
+        (
+            0,
+            None,
+            [Variable("T", "A", "B", "C"), Variable("T", "A", "B", "C")],
+            "A - sum",
+            "B",
+        ),
+        (
+            1,
+            ("New KEY", "New TYPE"),
+            [Variable("T", "A", "E", "C"), Variable("T", "B", "F", "C")],
+            "Custom Key - sum",
+            "Custom Type",
+        ),
+    ],
+)
+def test_confirm_aggregate_variables(
+    mw: MainWindow,
+    confirmed: int,
+    expected: Optional[Tuple[str, None]],
+    variables: List[Variable],
+    key: str,
+    type_: str,
+):
+    with patch("chartify.ui.main_window.DoubleInputDialog") as dialog:
+        instance = dialog.return_value
+        instance.exec_.return_value = confirmed
+        instance.input1_text = "New KEY"
+        instance.input2_text = "New TYPE"
+        out = mw.confirm_aggregate_variables(variables, "sum")
+        dialog.assert_called_once_with(
+            mw,
+            title="Enter details of the new variable:",
+            input1_name="Key",
+            input1_text=key,
+            input2_name="Type",
+            input2_text=type_,
+        )
+        assert out == expected
+
+
+@pytest.mark.parametrize("confirmed,expected", [(0, False), (1, True)])
+def test_confirm_delete_file(mw: MainWindow, confirmed: int, expected: bool):
+    with patch("chartify.ui.main_window.ConfirmationDialog") as dialog:
+        instance = dialog.return_value
+        instance.exec_.return_value = confirmed
+        out = mw.confirm_delete_file("FOO")
+        assert out is expected

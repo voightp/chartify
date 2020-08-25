@@ -833,7 +833,7 @@ class MainWindow(QMainWindow):
 
         # let key name be the same as all names are identical
         if all(map(lambda x: x.key == variables[0].key, variables)):
-            key = variables[0].key
+            key = f"{variables[0].key} - {func_name}"
 
         if type_ is None:
             dialog = SingleInputDialog(
@@ -842,7 +842,7 @@ class MainWindow(QMainWindow):
                 input1_name="Key",
                 input1_text=key,
             )
-            if dialog.exec() == 1:
+            if dialog.exec_() == 1:
                 return dialog.input1_text, None
         else:
             if all(map(lambda x: x.type == variables[0].type, variables)):
@@ -856,11 +856,10 @@ class MainWindow(QMainWindow):
                 input2_name="Type",
                 input2_text=type_,
             )
-            if dialog.exec() == 1:
+            if dialog.exec_() == 1:
                 return dialog.input1_text, dialog.input2_text
 
     def confirm_delete_file(self, name: str):
         """ Confirm delete file. . """
-        text = f"Delete file {name}: "
-        dialog = ConfirmationDialog(self, text)
+        dialog = ConfirmationDialog(self, f"Delete file {name}?")
         return dialog.exec_() == 1
