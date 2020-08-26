@@ -332,7 +332,7 @@ class AppController:
         file_name = self.m.get_file(id_).file_name
         res = self.v.confirm_delete_file(file_name)
         if res:
-            treeview.deleteLater(tab_index)
+            treeview.deleteLater()
             self.m.delete_file(id_)
             self.ids.remove(id_)
             self.v.tab_wgt.removeTab(tab_index)
