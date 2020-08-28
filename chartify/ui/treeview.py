@@ -143,6 +143,19 @@ class ViewModel(QStandardItemModel):
                     count += item.rowCount()
         return count
 
+    def get_logical_names(self) -> List[str]:
+        """ Get names sorted by logical index. """
+        return [self.headerData(i, Qt.Horizontal).lower() for i in range(self.columnCount())]
+
+    def get_logical_index(self, name: str) -> int:
+        """ Get a logical index of a given section title. """
+        return self.get_logical_names().index(name)
+
+    def get_logical_indexes(self) -> Dict[str, int]:
+        """ Return logical positions of header labels. """
+        names = self.get_logical_names()
+        return {k: names.index(k) for k in names}
+
     def is_similar(self, other_model: "ViewModel", rows_diff: float = 0.05):
         """ Check if number of variables and structure matches the other model. """
         count = self.count_rows()
@@ -301,19 +314,6 @@ class FilterModel(QSortFilterProxyModel):
     def filter_tuple(self, filter_tuple: FilterTuple) -> None:
         self._filter_tuple = filter_tuple
         self.invalidateFilter()
-
-    def get_logical_names(self) -> List[str]:
-        """ Get names sorted by logical index. """
-        return [self.headerData(i, Qt.Horizontal).lower() for i in range(self.columnCount())]
-
-    def get_logical_index(self, name: str) -> int:
-        """ Get a logical index of a given section title. """
-        return self.get_logical_names().index(name)
-
-    def get_logical_indexes(self) -> Dict[str, int]:
-        """ Return logical positions of header labels. """
-        names = self.get_logical_names()
-        return {k: names.index(k) for k in names}
 
     def data_at_index(self, proxy_index: QModelIndex) -> VariableData:
         """ Get item data from source model. """
@@ -561,7 +561,7 @@ class TreeView(QTreeView):
 
     def get_visual_indexes(self) -> Dict[str, int]:
         """ Get a dictionary of section visual index pairs. """
-        log_ixs = self.proxy_model.get_logical_indexes()
+        log_ixs = self.current_model.get_logical_indexes()
         return {k: self.header().visualIndex(i) for k, i in log_ixs.items()}
 
     def reorder_columns(self, order: Tuple[str, ...]):
@@ -608,8 +608,8 @@ class TreeView(QTreeView):
     def resize_header(self, widths: Dict[str, int]) -> None:
         """ Define resizing behaviour. """
         # units column width is always fixed
-        units_index = self.proxy_model.get_logical_index(UNITS_LEVEL)
-        source_units_index = self.proxy_model.get_logical_index(SOURCE_UNITS)
+        units_index = self.current_model.get_logical_index(UNITS_LEVEL)
+        source_units_index = self.current_model.get_logical_index(SOURCE_UNITS)
 
         self.header().setSectionResizeMode(units_index, QHeaderView.Fixed)
         self.header().setSectionResizeMode(source_units_index, QHeaderView.Fixed)
@@ -619,10 +619,10 @@ class TreeView(QTreeView):
         self.header().resizeSection(source_units_index, widths["fixed"])
 
         if self.current_model.is_simple:
-            stretch = self.proxy_model.get_logical_index(KEY_LEVEL)
+            stretch = self.current_model.get_logical_index(KEY_LEVEL)
             self.header().setSectionResizeMode(stretch, QHeaderView.Stretch)
         else:
-            log_ixs = self.proxy_model.get_logical_indexes()
+            log_ixs = self.current_model.get_logical_indexes()
             vis_ixs = self.get_visual_indexes()
 
             # units column width is always fixed
@@ -649,7 +649,7 @@ class TreeView(QTreeView):
 
     def hide_section(self, name: str, hide: bool):
         """ Hide section of a given name. """
-        self.header().setSectionHidden(self.proxy_model.get_logical_index(name), hide)
+        self.header().setSectionHidden(self.current_model.get_logical_index(name), hide)
 
     def update_appearance(
         self,
