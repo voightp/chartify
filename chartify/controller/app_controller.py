@@ -4,6 +4,7 @@ from typing import List, Callable, Union, Any, Dict, Optional
 
 from PySide2.QtCore import QThreadPool
 from esofile_reader.base_file import VariableType
+from esofile_reader.constants import UNITS_LEVEL
 from esofile_reader.mini_classes import ResultsFileType, Variable
 from esofile_reader.storages.pqt_storage import ParquetFile
 
@@ -145,7 +146,10 @@ class AppController:
         old_model = self.v.current_view.current_model
         new_model = self.v.current_view.models[Settings.TABLE_NAME]
         if new_model.is_simple or Settings.TREE_NODE == new_model.tree_node:
-            self.v.current_view.set_model(Settings.TABLE_NAME, **Settings.units_dict())
+            self.v.current_view.set_model(Settings.TABLE_NAME)
+            self.v.current_view.update_units(
+                self.m.current_table[UNITS_LEVEL], **Settings.units_dict()
+            )
         else:
             self.v.current_view.set_and_update_model(
                 self.m.current_table,
@@ -165,7 +169,9 @@ class AppController:
             old_model = self.v.current_view.current_model
             new_model = self.v.current_view.models[Settings.TABLE_NAME]
             if new_model.is_simple or Settings.TREE_NODE == new_model.tree_node:
-                self.v.current_view.update_units(**Settings.units_dict())
+                self.v.current_view.update_units(
+                    self.m.current_table[UNITS_LEVEL], **Settings.units_dict()
+                )
             else:
                 self.v.current_view.update_model(
                     self.m.current_table, tree_node=Settings.TREE_NODE, **Settings.units_dict()

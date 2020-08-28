@@ -4,11 +4,9 @@ from pathlib import Path
 from random import randint
 from typing import Sequence, List
 
-import numpy as np
 import pandas as pd
 from PySide2.QtCore import QObject
 from esofile_reader.constants import AVERAGED_UNITS
-from esofile_reader.conversion_tables import rate_table, energy_table, si_to_ip
 
 VariableData = namedtuple("VariableData", "key type units proxyunits")
 FilterTuple = namedtuple("FilterTuple", "key type units")
@@ -158,62 +156,6 @@ def remove_recursively(dct, ref_dct):
             del dct[k]
         else:
             remove_recursively(dct[k], v)
-
-
-def create_proxy_units_column(
-    source_units: pd.Series,
-    rate_to_energy: bool,
-    units_system: str,
-    energy_units: str,
-    power_units: str,
-) -> pd.Series:
-    # always replace whitespace with dash
-    proxy_units = pd.Series(np.empty(source_units.size))
-    proxy_units[:] = np.NaN
-    pairs = [("", "-")]
-    all_units = source_units.unique()
-
-    if energy_units != "J":
-        pairs.extend(
-            [
-                ("J", energy_table(energy_units)[1]),
-                ("J/m2", energy_table(energy_units, per_area=True)[1]),
-            ]
-        )
-
-    if power_units != "W":
-        pairs.extend(
-            [
-                ("W", rate_table(power_units)[1]),
-                ("W/m2", rate_table(power_units, per_area=True)[1]),
-            ]
-        )
-
-    if rate_to_energy:
-        if energy_units != "J":
-            pairs.extend(
-                [
-                    ("W", energy_table(energy_units)[1]),
-                    ("W/m2", energy_table(energy_units, per_area=True)[1]),
-                ]
-            )
-        else:
-            pairs.extend([("W", "J"), ("W/m2", "J/m2")])
-
-    if units_system != "SI":
-        for u in all_units:
-            ip = si_to_ip(u)
-            if ip:
-                pairs.append((ip[0], ip[1]))
-
-    # populate proxy column with new units
-    for o, n in pairs:
-        proxy_units.loc[source_units == o] = n
-
-    # replace all missing fields with original units
-    proxy_units.loc[proxy_units.isna()] = source_units
-
-    return proxy_units
 
 
 class SignalBlocker:

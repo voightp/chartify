@@ -16,16 +16,44 @@ from PySide2.QtCore import (
 from PySide2.QtGui import QStandardItem, QStandardItemModel, QDrag, QPixmap
 from PySide2.QtWidgets import QTreeView, QAbstractItemView, QHeaderView
 from esofile_reader.constants import *
+from esofile_reader.convertor import create_conversion_tuples
 from esofile_reader.mini_classes import ResultsFileType
 
 from chartify.utils.utils import (
     FilterTuple,
     VariableData,
-    create_proxy_units_column,
     SignalBlocker,
 )
 
 SOURCE_UNITS = "source units"
+
+
+def create_proxy_units_column(
+    source_units: pd.Series,
+    rate_to_energy: bool,
+    units_system: str,
+    energy_units: str,
+    power_units: str,
+) -> pd.Series:
+    """ Convert original units as defined by given parameters. """
+    intermediate_units = source_units.copy()
+    if rate_to_energy:
+        intermediate_units[intermediate_units == "W"] = "J"
+        intermediate_units[intermediate_units == "W/m2"] = "J/m2"
+    conversion_tuples = create_conversion_tuples(
+        intermediate_units,
+        units_system=units_system,
+        rate_units=power_units,
+        energy_units=energy_units,
+    )
+    # no units are displayed as dash
+    conversion_tuples.append(("", "-", 1))
+    old_units, new_units, _ = zip(*conversion_tuples)
+    proxy_units = intermediate_units.copy()
+    # populate proxy column with new units
+    for old, new in zip(old_units, new_units):
+        proxy_units.loc[intermediate_units == old] = new
+    return proxy_units
 
 
 class ViewModel(QStandardItemModel):
@@ -224,14 +252,38 @@ class ViewModel(QStandardItemModel):
 
     def update_units(
         self,
+        source_units: pd.Series,
         rate_to_energy: bool = False,
         units_system: str = "SI",
         energy_units: str = "J",
         power_units: str = "W",
     ):
         """ Assign proxy units. """
-        # TODO
-        pass
+        self.rate_to_energy = rate_to_energy
+        self.units_system = units_system
+        self.energy_units = energy_units
+        self.power_units = power_units
+        proxy_units = create_proxy_units_column(
+            source_units,
+            rate_to_energy=rate_to_energy,
+            units_system=units_system,
+            energy_units=energy_units,
+            power_units=power_units,
+        )
+        source_units.name = SOURCE_UNITS
+        df = pd.concat([source_units, proxy_units], axis=1)
+        # create look up dictionary with source units as keys and proxy units as values
+        df.drop_duplicates(inplace=True)
+        df = df.loc[df[SOURCE_UNITS] != df[UNITS_LEVEL], :]
+        if not df.empty:
+            df.set_index(SOURCE_UNITS, inplace=True)
+            # look_up = df.squeeze().to_dict()
+            print(self.horizontalHeaderItem(0).text())
+            print(self.horizontalHeaderItem(1).text())
+            print(self.horizontalHeaderItem(2).text())
+            print(self.horizontalHeaderItem(3).text())
+        else:
+            print("NO NEED TO UPDATE UNITS!")
 
 
 class FilterModel(QSortFilterProxyModel):
@@ -645,10 +697,9 @@ class TreeView(QTreeView):
             # check explicitly to avoid skipping '0' position
             self.update_scrollbar_position(scroll_pos)
 
-    def set_model(self, table_name: str, **kwargs) -> ViewModel:
+    def set_model(self, table_name: str) -> ViewModel:
         """ Assign new model. """
         model = self.models[table_name]
-        model.update_units(**kwargs)
         with SignalBlocker(self.verticalScrollBar()):
             self.proxy_model.setSourceModel(model)
         return model
@@ -667,9 +718,9 @@ class TreeView(QTreeView):
         self.current_model.populate_model(header_df, **kwargs)
         return self.current_model
 
-    def update_units(self, **kwargs) -> ViewModel:
+    def update_units(self, source_units: pd.Series, **kwargs) -> ViewModel:
         """ Update tree viw model. """
-        self.current_model.update_units(**kwargs)
+        self.current_model.update_units(source_units, **kwargs)
         return self.current_model
 
     def on_item_expanded(self, index: QModelIndex):
