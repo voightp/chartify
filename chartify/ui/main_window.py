@@ -739,6 +739,8 @@ class MainWindow(QMainWindow):
         if act.data() != self.toolbar.units_system_button.data():
             Settings.UNITS_SYSTEM = act.data()
             self.toolbar.filter_energy_power_units(act.data())
+            Settings.POWER_UNITS = self.toolbar.power_btn.data()
+            Settings.ENERGY_UNITS = self.toolbar.energy_btn.data()
             self.updateModelRequested.emit()
 
     def connect_toolbar_signals(self):
