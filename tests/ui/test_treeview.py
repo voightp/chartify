@@ -242,7 +242,7 @@ def test_resize_header_hide_source_units(tree_view: TreeView, hourly_df: pd.Data
 
 def test_on_tree_node_changed_build_tree(qtbot, tree_view: TreeView):
     assert tree_view.get_visual_names() == ("type", "key", "units", "source units")
-    with qtbot.wait_signal(tree_view.treeNodeChanged, timeout=1000):
+    with qtbot.wait_signal(tree_view.viewTreeNodeChanged, timeout=1000):
         tree_view.header().moveSection(2, 0)
         assert tree_view.get_visual_names() == ("units", "type", "key", "source units")
         assert tree_view.header().sortIndicatorOrder() == Qt.AscendingOrder
@@ -250,7 +250,7 @@ def test_on_tree_node_changed_build_tree(qtbot, tree_view: TreeView):
 
 def test_on_tree_node_changed_dont_build_tree(qtbot, tree_view: TreeView):
     assert tree_view.get_visual_names() == ("type", "key", "units", "source units")
-    with qtbot.assertNotEmitted(tree_view.treeNodeChanged):
+    with qtbot.assertNotEmitted(tree_view.viewTreeNodeChanged):
         tree_view.header().moveSection(2, 1)
 
 
@@ -258,12 +258,12 @@ def test_on_view_resized(qtbot, tree_view: TreeView, hourly_df: pd.DataFrame):
     def test_size(view_type, width):
         return view_type == "tree" and width == 125
 
-    with qtbot.wait_signal(tree_view.viewHeaderResized, check_params_cb=test_size):
+    with qtbot.wait_signal(tree_view.viewColumnResized, check_params_cb=test_size):
         tree_view.header().resizeSection(0, 125)
 
 
 def test_on_view_resized_stretch(qtbot, tree_view: TreeView, hourly_df: pd.DataFrame):
-    with qtbot.assertNotEmitted(tree_view.viewHeaderResized):
+    with qtbot.assertNotEmitted(tree_view.viewColumnResized):
         tree_view.header().resizeSection(1, 125)
 
 
@@ -271,7 +271,7 @@ def test_on_section_moved_rebuild(qtbot, tree_view: TreeView, hourly_df: pd.Data
     def test_header(view_type, header):
         return view_type == "tree" and header == ("key", "units", "type", "source units")
 
-    signals = [(tree_view.viewHeaderChanged, "0"), (tree_view.treeNodeChanged, "1")]
+    signals = [(tree_view.viewColumnOrderChanged, "0"), (tree_view.viewTreeNodeChanged, "1")]
     callbacks = [test_header, None]
     with qtbot.wait_signals(signals=signals, check_params_cbs=callbacks):
         tree_view.header().moveSection(0, 2)
@@ -283,7 +283,7 @@ def test_on_section_moved_plain_view(qtbot, tree_view: TreeView, hourly_df: pd.D
 
     tree_view.update_model(header_df=hourly_df, tree_node=None)
     tree_view.reorder_columns(("type", "key", "units", "source units"))
-    with qtbot.wait_signal(tree_view.viewHeaderChanged, check_params_cb=test_header):
+    with qtbot.wait_signal(tree_view.viewColumnOrderChanged, check_params_cb=test_header):
         tree_view.header().moveSection(0, 2)
 
 

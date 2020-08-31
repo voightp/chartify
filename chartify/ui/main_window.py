@@ -471,9 +471,9 @@ class MainWindow(QMainWindow):
         view = TreeView(id_, models)
         view.selectionCleared.connect(self.on_selection_cleared)
         view.selectionPopulated.connect(self.on_selection_populated)
-        view.viewHeaderResized.connect(self.on_view_header_resized)
-        view.viewHeaderChanged.connect(self.on_view_header_changed)
-        view.treeNodeChanged.connect(self.on_tree_node_changed)
+        view.viewColumnResized.connect(self.on_view_header_resized)
+        view.viewColumnOrderChanged.connect(self.on_view_header_changed)
+        view.viewTreeNodeChanged.connect(self.on_tree_node_changed)
         view.itemDoubleClicked.connect(self.variableRenameRequested.emit)
 
         # add the new view into tab widget
