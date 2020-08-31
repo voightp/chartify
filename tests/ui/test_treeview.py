@@ -496,6 +496,23 @@ def test_update_units(tree_view: TreeView, hourly_df: pd.DataFrame):
     assert tree_view.current_model.tree_node == "type"
 
 
+def test_update_units_proxy_tree_node(tree_view: TreeView, hourly_df: pd.DataFrame):
+    units = {
+        "energy_units": "J",
+        "power_units": "MW",
+        "rate_to_energy": True,
+        "units_system": "IP",
+    }
+    tree_view.update_model(hourly_df, tree_node="units")
+    tree_view.update_units(hourly_df[UNITS_LEVEL], **units)
+    assert tree_view.current_model.name == "hourly"
+    assert tree_view.current_model.energy_units == "J"
+    assert tree_view.current_model.power_units == "MW"
+    assert tree_view.current_model.units_system == "IP"
+    assert tree_view.current_model.rate_to_energy
+    assert tree_view.current_model.tree_node == "units"
+
+
 def test_update_view_model_appearance(qtbot, tree_view: TreeView, daily_df: pd.DataFrame):
     header = ("type", "units", "key", "source units")
     tree_view.set_and_update_model(daily_df, "daily", tree_node="type")
