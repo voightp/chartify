@@ -298,6 +298,14 @@ toml = "*"
 virtualenv = ">=20.0.8"
 
 [[package]]
+category = "dev"
+description = "Decorators for profiling/timing/tracing individual functions"
+name = "profilehooks"
+optional = false
+python-versions = "*"
+version = "1.12.0"
+
+[[package]]
 category = "main"
 description = "Cross-platform lib for process and system monitoring in Python."
 name = "psutil"
@@ -501,7 +509,7 @@ python-versions = "*"
 version = "0.2.5"
 
 [metadata]
-content-hash = "131764f784e2413f391932ce63ab4049465fd92ef83032368ae6d81b3bc54fb6"
+content-hash = "2cb803e125f126b13fc9f547a3b6aa1d5ef00783beae1469fc90fb5944b1dba2"
 python-versions = "3.8"
 
 [metadata.files]
@@ -713,6 +721,10 @@ pluggy = [
 pre-commit = [
     {file = "pre_commit-2.6.0-py2.py3-none-any.whl", hash = "sha256:e8b1315c585052e729ab7e99dcca5698266bedce9067d21dc909c23e3ceed626"},
     {file = "pre_commit-2.6.0.tar.gz", hash = "sha256:1657663fdd63a321a4a739915d7d03baedd555b25054449090f97bb0cb30a915"},
+]
+profilehooks = [
+    {file = "profilehooks-1.12.0-py2.py3-none-any.whl", hash = "sha256:dc87f319c9596b8c50fd374e3c08c51fa29a61553f1d9281482e4ca31829b021"},
+    {file = "profilehooks-1.12.0.tar.gz", hash = "sha256:05b87589df8a8c630fd701bae6008cc1cfff4457bd0064887ad25248327a5ba3"},
 ]
 psutil = [
     {file = "psutil-5.7.0-cp27-none-win32.whl", hash = "sha256:298af2f14b635c3c7118fd9183843f4e73e681bb6f01e12284d4d70d48a60953"},
