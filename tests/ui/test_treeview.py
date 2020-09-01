@@ -241,15 +241,15 @@ def test_resize_header_hide_source_units(tree_view: TreeView, hourly_df: pd.Data
 
 
 def test_on_tree_node_changed_build_tree(qtbot, tree_view: TreeView):
-    assert tree_view.get_visual_names() == ("type", "key", "units", "source units")
+    assert tree_view.get_visual_column_names() == ("type", "key", "units", "source units")
     with qtbot.wait_signal(tree_view.viewTreeNodeChanged, timeout=1000):
         tree_view.header().moveSection(2, 0)
-        assert tree_view.get_visual_names() == ("units", "type", "key", "source units")
+        assert tree_view.get_visual_column_names() == ("units", "type", "key", "source units")
         assert tree_view.header().sortIndicatorOrder() == Qt.AscendingOrder
 
 
 def test_on_tree_node_changed_dont_build_tree(qtbot, tree_view: TreeView):
-    assert tree_view.get_visual_names() == ("type", "key", "units", "source units")
+    assert tree_view.get_visual_column_names() == ("type", "key", "units", "source units")
     with qtbot.assertNotEmitted(tree_view.viewTreeNodeChanged):
         tree_view.header().moveSection(2, 1)
 
@@ -424,13 +424,13 @@ def test_on_pressed_right_mb(qtbot, tree_view: TreeView):
 
 
 def test_get_visual_names(tree_view: TreeView):
-    assert tree_view.get_visual_names() == ("type", "key", "units", "source units")
+    assert tree_view.get_visual_column_names() == ("type", "key", "units", "source units")
     tree_view.reorder_columns(("units", "type", "key", "source units"))
-    assert tree_view.get_visual_names() == ("units", "type", "key", "source units")
+    assert tree_view.get_visual_column_names() == ("units", "type", "key", "source units")
 
 
 def test_get_visual_ixs(tree_view: TreeView):
-    assert tree_view.get_visual_indexes() == {
+    assert tree_view.get_visual_column_mapping() == {
         "type": 0,
         "key": 1,
         "units": 2,
@@ -525,7 +525,7 @@ def test_update_view_model_appearance(qtbot, tree_view: TreeView, daily_df: pd.D
     assert tree_view.header().sectionSize(tree_view.header().logicalIndex(2)) == 150
     assert tree_view.header().sectionSize(tree_view.header().logicalIndex(3)) == 50
 
-    assert tree_view.get_visual_names() == header
+    assert tree_view.get_visual_column_names() == header
 
     assert tree_view.isExpanded(tree_view.model().index(11, 0))
     assert tree_view.isExpanded(tree_view.model().index(13, 0))
