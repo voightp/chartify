@@ -420,7 +420,7 @@ class ViewModel(QStandardItemModel):
         df = df.loc[df[UNITS_LEVEL] != df[PROXY_UNITS_LEVEL], :]
         if not df.empty:
             df.set_index(UNITS_LEVEL, inplace=True)
-            return df.squeeze().to_dict()
+            return df.loc[:, PROXY_UNITS_LEVEL].to_dict()
 
     def update_proxy_units_parent_item(
         self, row_number: int, conversion_look_up: Dict[str, str],
