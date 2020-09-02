@@ -23,13 +23,13 @@
     "widths": {
       "fixed": 60
     },
-    "header": ["key", "units", "source units"]
+    "header": ["key", "proxy_units", "units"]
   },
   "TREE": {
     "widths": {
       "fixed": 60,
       "interactive": 200
     },
-    "header": ["type", "key", "units", "source units"]
+    "header": ["type", "key", "proxy_units", "units"]
   }
 }

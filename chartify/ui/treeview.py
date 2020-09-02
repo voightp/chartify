@@ -26,8 +26,7 @@ from chartify.utils.utils import (
     SignalBlocker,
 )
 
-SOURCE_UNITS = "source units"
-STATUS_TIP = "status tip"
+PROXY_UNITS_LEVEL = "proxy_units"
 
 
 class ViewModel(QStandardItemModel):
@@ -130,6 +129,7 @@ class ViewModel(QStandardItemModel):
         conversion_tuples.append(("", "-", 1))
         old_units, new_units, _ = zip(*conversion_tuples)
         proxy_units = intermediate_units.copy()
+        proxy_units.name = PROXY_UNITS_LEVEL
         # populate proxy column with new units
         for old, new in zip(old_units, new_units):
             proxy_units.loc[intermediate_units == old] = new
@@ -170,12 +170,12 @@ class ViewModel(QStandardItemModel):
     def get_row_display_data_mapping(
         self, row_number: int, parent_index: Optional[QModelIndex] = None
     ) -> Dict[str, str]:
-        """ Get item text as column name : text dictionary. """
+        """ Get item text as column data : text dictionary. """
         row_display_data = self.get_row_display_data(row_number, parent_index=parent_index)
         column_mapping = self.get_logical_column_mapping()
         return {k: row_display_data[v] for k, v in column_mapping.items()}
 
-    def get_row_display_data_as_variable_data(
+    def get_row_variable_data(
         self, row_number: int, parent_index: Optional[QModelIndex] = None
     ) -> VariableData:
         """ Get row data as eso file Variable or SimpleVariable. """
@@ -183,34 +183,36 @@ class ViewModel(QStandardItemModel):
         return VariableData(
             key=row_data_mapping[KEY_LEVEL],
             type=None if self.is_simple else row_data_mapping[TYPE_LEVEL],
-            units=row_data_mapping[SOURCE_UNITS],
+            units=row_data_mapping[UNITS_LEVEL],
         )
 
-    def get_logical_column_names(self) -> List[str]:
-        """ Get names sorted by logical index. """
-        return [self.headerData(i, Qt.Horizontal).lower() for i in range(self.columnCount())]
+    def get_logical_column_data(self) -> List[str]:
+        """ Get header data sorted by logical index. """
+        return [
+            self.headerData(i, Qt.Horizontal, Qt.UserRole) for i in range(self.columnCount())
+        ]
 
-    def get_logical_column_number(self, name: str) -> int:
+    def get_logical_column_number(self, data: str) -> int:
         """ Get a logical index of a given section title. """
-        return self.get_logical_column_names().index(name)
+        return self.get_logical_column_data().index(data)
 
     def get_logical_column_mapping(self) -> Dict[str, int]:
         """ Return logical positions of header labels. """
-        names = self.get_logical_column_names()
-        return {k: names.index(k) for k in names}
+        data = self.get_logical_column_data()
+        return {k: data.index(k) for k in data}
 
     def get_parent_text_from_variables(
         self, variables: List[VariableData]
     ) -> Optional[Set[str]]:
         """ Extract parent part of variable from given list. """
-        if self.tree_node and self.tree_node is not UNITS_LEVEL:
+        if self.tree_node and self.tree_node != PROXY_UNITS_LEVEL:
             return {v.__getattribute__(self.tree_node) for v in variables}
 
     def get_matching_selection(self, variables: List[VariableData]) -> QItemSelection:
         """ Find selection matching given list of variables. """
 
         def tree_node_matches():
-            if self.tree_node == UNITS_LEVEL:
+            if self.tree_node == PROXY_UNITS_LEVEL:
                 # proxy units are not stored in variable data
                 return True
             else:
@@ -230,11 +232,11 @@ class ViewModel(QStandardItemModel):
             index = self.index(i, 0)
             if self.is_tree_node_row(i) and tree_node_matches():
                 for j in range(self.rowCount(index)):
-                    row_variable_data = self.get_row_display_data_as_variable_data(j, index)
+                    row_variable_data = self.get_row_variable_data(j, index)
                     if variable_matches():
-                        selection.append(QItemSelectionRange(index))
+                        selection.append(QItemSelectionRange(self.index(j, 0, index)))
             else:
-                row_variable_data = self.get_row_display_data_as_variable_data(i)
+                row_variable_data = self.get_row_variable_data(i)
                 if variable_matches():
                     selection.append(QItemSelectionRange(index))
         return selection
@@ -266,10 +268,10 @@ class ViewModel(QStandardItemModel):
         for row in rows.values:
             # first standard item is empty to avoid having parent string in the child row
             item_row = [QStandardItem("")]
-            status_tip = self.create_status_tip(row, column_mapping)
-            self.set_item_row_status_tip(status_tip, item_row)
             for item in row[1:]:
                 item_row.append(QStandardItem(item))
+            status_tip = self.create_status_tip(row, column_mapping)
+            self.set_item_row_status_tip(status_tip, item_row)
             parent.appendRow(item_row)
 
     def append_tree_rows(self, header_df: pd.DataFrame) -> None:
@@ -290,7 +292,7 @@ class ViewModel(QStandardItemModel):
         """ Create status tip string. """
         key = row_display_data[column_mapping[KEY_LEVEL]]
         type_ = row_display_data[column_mapping[TYPE_LEVEL]] if not self.is_simple else None
-        proxy_units = row_display_data[column_mapping[UNITS_LEVEL]]
+        proxy_units = row_display_data[column_mapping[PROXY_UNITS_LEVEL]]
         if type_ is not None:
             status_tip = f"{key} | {type_} | {proxy_units}"
         else:
@@ -332,12 +334,11 @@ class ViewModel(QStandardItemModel):
     ) -> pd.DataFrame:
         """ Process variables header DataFrame to be compatible with treeview model. """
         # id and table data are not required
-        header_df.drop([ID_LEVEL, TABLE_LEVEL], axis=1)
+        header_df = header_df.drop([ID_LEVEL, TABLE_LEVEL], axis=1)
 
         # add proxy units - these will be visible on ui
-        header_df[SOURCE_UNITS] = header_df[UNITS_LEVEL]
-        header_df[UNITS_LEVEL] = self.create_proxy_units_column(
-            source_units=header_df[SOURCE_UNITS],
+        header_df[PROXY_UNITS_LEVEL] = self.create_proxy_units_column(
+            source_units=header_df[UNITS_LEVEL],
             rate_to_energy=rate_to_energy,
             units_system=units_system,
             energy_units=energy_units,
@@ -350,10 +351,19 @@ class ViewModel(QStandardItemModel):
             header_df = header_df.loc[:, new_columns]
         return header_df
 
-    def set_column_names(self, names: List[str]):
+    def set_column_header_item_data(self, header_data: List[str]):
         """ Assign names to the horizontal header. """
-        self.setColumnCount(len(names))
-        self.setHorizontalHeaderLabels(names)
+        names = {
+            KEY_LEVEL: "key",
+            TYPE_LEVEL: "type",
+            UNITS_LEVEL: "source units",
+            PROXY_UNITS_LEVEL: "units",
+        }
+        for i, data in enumerate(header_data):
+            item = QStandardItem()
+            item.setData(data, Qt.UserRole)
+            item.setData(names[data], Qt.DisplayRole)
+            self.setHorizontalHeaderItem(i, item)
 
     @profile
     def populate_model(
@@ -383,7 +393,7 @@ class ViewModel(QStandardItemModel):
             energy_units=energy_units,
             power_units=power_units,
         )
-        self.set_column_names(header_df.columns.tolist())
+        self.set_column_header_item_data(header_df.columns.tolist())
         if self.tree_node:
             self.append_tree_rows(header_df)
         else:
@@ -404,13 +414,12 @@ class ViewModel(QStandardItemModel):
             energy_units=energy_units,
             power_units=power_units,
         )
-        source_units.name = SOURCE_UNITS
         df = pd.concat([source_units, proxy_units], axis=1)
         # create look up dictionary with source units as keys and proxy units as values
         df.drop_duplicates(inplace=True)
-        df = df.loc[df[SOURCE_UNITS] != df[UNITS_LEVEL], :]
+        df = df.loc[df[UNITS_LEVEL] != df[PROXY_UNITS_LEVEL], :]
         if not df.empty:
-            df.set_index(SOURCE_UNITS, inplace=True)
+            df.set_index(UNITS_LEVEL, inplace=True)
             return df.squeeze().to_dict()
 
     def update_proxy_units_parent_item(
@@ -419,7 +428,7 @@ class ViewModel(QStandardItemModel):
         """ Update proxy units parent item accordingly to conversion lok up. """
         parent_index = self.index(row_number, 0)
         first_child_row_data = self.get_row_display_data_mapping(0, parent_index)
-        source_units = first_child_row_data[SOURCE_UNITS]
+        source_units = first_child_row_data[UNITS_LEVEL]
         proxy_units = conversion_look_up.get(source_units, source_units)
         proxy_units_item = self.item(row_number, 0)
         proxy_units_item.setData(proxy_units, Qt.DisplayRole)
@@ -441,7 +450,7 @@ class ViewModel(QStandardItemModel):
     ) -> None:
         """ Update proxy units item accordingly to conversion pairs and source units. """
         row_mapping = self.get_row_display_data_mapping(row_number, parent_index)
-        source_units = row_mapping[SOURCE_UNITS]
+        source_units = row_mapping[UNITS_LEVEL]
         proxy_units_item = self.itemFromIndex(
             self.index(row_number, column_number, parent_index)
         )
@@ -450,7 +459,7 @@ class ViewModel(QStandardItemModel):
 
     def update_proxy_units_column(self, conversion_look_up: Dict[str, str]) -> None:
         """ Update proxy units column accordingly to conversion pairs and source units. """
-        proxy_units_column_number = self.get_logical_column_number(UNITS_LEVEL)
+        proxy_units_column_number = self.get_logical_column_number(PROXY_UNITS_LEVEL)
         for i in range(self.rowCount()):
             index = self.index(i, 0)
             if self.hasChildren(index):
@@ -481,7 +490,7 @@ class ViewModel(QStandardItemModel):
             source_units, rate_to_energy, units_system, energy_units, power_units
         )
         if conversion_look_up:
-            if self.get_logical_column_number(UNITS_LEVEL) == 0 and self.tree_node is not None:
+            if self.tree_node == PROXY_UNITS_LEVEL:
                 self.update_proxy_units_parent_column(conversion_look_up)
             else:
                 self.update_proxy_units_column(conversion_look_up)
@@ -492,7 +501,7 @@ class FilterModel(QSortFilterProxyModel):
 
     def __init__(self):
         super().__init__()
-        self._filter_tuple = FilterTuple(key="", type="", units="")
+        self._filter_tuple = FilterTuple(key="", type="", proxy_units="")
 
     @property
     def filter_tuple(self) -> FilterTuple:
@@ -518,7 +527,8 @@ class FilterModel(QSortFilterProxyModel):
 
     def filter_matches_row(self, row_data_mapping: Dict) -> bool:
         """ Check if current filter tuple matches row display data. """
-        for field_name, item_text in row_data_mapping.items():
+        row_data_to_filter = {k: v for k, v in row_data_mapping.items() if k != UNITS_LEVEL}
+        for field_name, item_text in row_data_to_filter.items():
             filter_text = self.filter_tuple.__getattribute__(field_name)
             filter_text = filter_text.strip()
             if filter_text:
@@ -532,17 +542,16 @@ class FilterModel(QSortFilterProxyModel):
             return True
         # first item can be either parent for 'tree' structure or a normal item
         # parent rows can be excluded as valid items are displayed due to recursive filter
-        if self.sourceModel().is_tree_node_row(source_row_number):
-            return False
-        else:
+        if source_parent.isValid():
             row_data_mapping = self.sourceModel().get_row_display_data_mapping(
                 source_row_number, source_parent
             )
             return self.filter_matches_row(row_data_mapping)
+        return False
 
     def find_matching_proxy_selection(self, variables: List[VariableData]) -> QItemSelection:
         """ Check if output variables are available in a new model. """
-        source_selection = self.sourceModel().find_matching_selection(variables)
+        source_selection = self.sourceModel().get_matching_selection(variables)
         return self.mapSelectionFromSource(source_selection)
 
     def flags(self, index: QModelIndex) -> None:
@@ -640,7 +649,7 @@ class TreeView(QTreeView):
         self.collapsed.connect(self.on_item_collapsed)
 
     @property
-    def current_model(self) -> ViewModel:
+    def source_model(self) -> ViewModel:
         return self.proxy_model.sourceModel()
 
     @property
@@ -649,16 +658,16 @@ class TreeView(QTreeView):
 
     @property
     def view_type(self) -> str:
-        return self.SIMPLE if self.current_model.is_simple else self.TREE
+        return self.SIMPLE if self.source_model.is_simple else self.TREE
 
     @property
     def is_tree(self) -> bool:
-        return bool(self.current_model.tree_node)
+        return bool(self.source_model.tree_node)
 
     @property
     def allow_rate_to_energy(self) -> bool:
-        if self.current_model:
-            return self.current_model.allow_rate_to_energy
+        if self.source_model:
+            return self.source_model.allow_rate_to_energy
         else:
             return True
 
@@ -698,14 +707,14 @@ class TreeView(QTreeView):
             # it's required to reapply column span after each filter
             self.set_parent_items_spanned()
 
-    def get_visual_column_names(self) -> Tuple[str, ...]:
-        """ Return sorted column names (by visual index). """
+    def get_visual_column_data(self) -> Tuple[str, ...]:
+        """ Return sorted column data (by visual index). """
         dct_items = sorted(self.get_visual_column_mapping().items(), key=lambda x: x[1])
         return tuple([t[0] for t in dct_items])
 
     def get_visual_column_mapping(self) -> Dict[str, int]:
         """ Get a dictionary of section visual index pairs. """
-        logical_mapping = self.current_model.get_logical_column_mapping()
+        logical_mapping = self.source_model.get_logical_column_mapping()
         return {k: self.header().visualIndex(i) for k, i in logical_mapping.items()}
 
     def reorder_columns(self, column_order: Tuple[str, ...]):
@@ -724,7 +733,7 @@ class TreeView(QTreeView):
             self.verticalScrollBar().setMaximum(pos)
         self.verticalScrollBar().setValue(pos)
         # stored value changes on user action, need to store manually
-        self.current_model.scroll_position = pos
+        self.source_model.scroll_position = pos
 
     def update_sort_order(self) -> None:
         """ Set column_order for sort column. """
@@ -749,28 +758,28 @@ class TreeView(QTreeView):
                 else:
                     self.collapse(ix)
 
-    def resize_header(self, widths: Dict[str, int]) -> None:
+    def set_header_resize_mode(self, widths: Dict[str, int]) -> None:
         """ Define resizing behaviour. """
         # units column width is always fixed
-        units_index = self.current_model.get_logical_column_number(UNITS_LEVEL)
-        source_units_index = self.current_model.get_logical_column_number(SOURCE_UNITS)
+        proxy_units_index = self.source_model.get_logical_column_number(PROXY_UNITS_LEVEL)
+        source_units_index = self.source_model.get_logical_column_number(UNITS_LEVEL)
 
-        self.header().setSectionResizeMode(units_index, QHeaderView.Fixed)
+        self.header().setSectionResizeMode(proxy_units_index, QHeaderView.Fixed)
         self.header().setSectionResizeMode(source_units_index, QHeaderView.Fixed)
         self.header().setStretchLastSection(False)
 
-        self.header().resizeSection(units_index, widths["fixed"])
+        self.header().resizeSection(proxy_units_index, widths["fixed"])
         self.header().resizeSection(source_units_index, widths["fixed"])
 
-        if self.current_model.is_simple:
-            stretch = self.current_model.get_logical_column_number(KEY_LEVEL)
+        if self.source_model.is_simple:
+            stretch = self.source_model.get_logical_column_number(KEY_LEVEL)
             self.header().setSectionResizeMode(stretch, QHeaderView.Stretch)
         else:
-            log_ixs = self.current_model.get_logical_column_mapping()
+            log_ixs = self.source_model.get_logical_column_mapping()
             vis_ixs = self.get_visual_column_mapping()
 
             # units column width is always fixed
-            fixed = log_ixs[UNITS_LEVEL]
+            fixed = log_ixs[PROXY_UNITS_LEVEL]
             self.header().setSectionResizeMode(fixed, QHeaderView.Fixed)
 
             # key and type sections can be either Stretch or Interactive
@@ -791,13 +800,13 @@ class TreeView(QTreeView):
         for i in range(self.header().count()):
             self.header().setSectionHidden(i, False)
 
-    def hide_section(self, name: str, hide: bool):
+    def hide_section(self, data: str, hide: bool):
         """ Hide section of a given name. """
-        self.header().setSectionHidden(self.current_model.get_logical_column_number(name), hide)
+        self.header().setSectionHidden(self.source_model.get_logical_column_number(data), hide)
 
     def update_appearance(
         self,
-        header: Tuple[str, ...] = (TYPE_LEVEL, KEY_LEVEL, UNITS_LEVEL, SOURCE_UNITS),
+        header: Tuple[str, ...] = (TYPE_LEVEL, KEY_LEVEL, PROXY_UNITS_LEVEL, UNITS_LEVEL),
         widths: Dict[str, int] = None,
         expanded: Set[str] = None,
         filter_tuple: FilterTuple = FilterTuple("", "", ""),
@@ -816,11 +825,11 @@ class TreeView(QTreeView):
         # as switching between simple and tree view may cause that
         # another section will be hidden
         self.show_all_sections()
-        self.hide_section(SOURCE_UNITS, hide_source_units)
+        self.hide_section(UNITS_LEVEL, hide_source_units)
         # logical and visual indexes may differ so it's needed to update columns column_order
         self.reorder_columns(header)
         # update widths and column_order so columns appear consistently
-        self.resize_header(widths)
+        self.set_header_resize_mode(widths)
         # TODO handle sort column_order and scrollbar
         self.update_sort_order()
         # make sure that parent column spans full width
@@ -841,41 +850,35 @@ class TreeView(QTreeView):
             # check explicitly to avoid skipping '0' position
             self.update_scrollbar_position(scroll_pos)
 
-    def set_model(self, table_name: str) -> ViewModel:
+    def set_model(self, table_name: str) -> None:
         """ Assign new model. """
         model = self.models[table_name]
         with SignalBlocker(self.verticalScrollBar()):
             self.proxy_model.setSourceModel(model)
-        return model
 
-    def set_and_update_model(
-        self, header_df: pd.DataFrame, table_name: str, **kwargs
-    ) -> ViewModel:
+    def set_and_update_model(self, header_df: pd.DataFrame, table_name: str, **kwargs) -> None:
         model = self.models[table_name]
         model.populate_model(header_df, **kwargs)
         with SignalBlocker(self.verticalScrollBar()):
             self.proxy_model.setSourceModel(model)
-        return model
 
-    def update_model(self, header_df: pd.DataFrame, **kwargs) -> ViewModel:
+    def update_model(self, header_df: pd.DataFrame, **kwargs) -> None:
         """ Update tree viw model. """
-        self.current_model.populate_model(header_df, **kwargs)
-        return self.current_model
+        self.source_model.populate_model(header_df, **kwargs)
 
-    def update_units(self, source_units: pd.Series, **kwargs) -> ViewModel:
+    def update_units(self, source_units: pd.Series, **kwargs) -> None:
         """ Update tree viw model. """
-        self.current_model.update_proxy_units(source_units, **kwargs)
-        return self.current_model
+        self.source_model.update_proxy_units(source_units, **kwargs)
 
-    def on_item_expanded(self, index: QModelIndex):
-        if self.proxy_model.hasChildren(index):
-            name = self.proxy_model.data(index)
-            self.current_model.expanded.add(name)
+    def on_item_expanded(self, proxy_index: QModelIndex):
+        if self.proxy_model.hasChildren(proxy_index):
+            name = self.proxy_model.data(proxy_index)
+            self.source_model.expanded.add(name)
 
-    def on_item_collapsed(self, index: QModelIndex):
+    def on_item_collapsed(self, proxy_index: QModelIndex):
         with contextlib.suppress(KeyError):
-            name = self.proxy_model.data(index)
-            self.current_model.expanded.remove(name)
+            name = self.proxy_model.data(proxy_index)
+            self.source_model.expanded.remove(name)
 
     def on_sort_order_changed(self, log_ix: int, order: Qt.SortOrder) -> None:
         """ Store current sorting column_order. """
@@ -886,38 +889,39 @@ class TreeView(QTreeView):
         if self.header().sectionResizeMode(log_ix) == self.header().Interactive:
             self.viewColumnResized.emit(self.view_type, new_size)
 
+    def tree_node_changed(self, old_visual_ix: int, new_visual_ix: int) -> bool:
+        """ Check if tree node column changed. """
+        return self.is_tree and (new_visual_ix == 0 or old_visual_ix == 0)
+
     def on_section_moved(self, _logical_ix, old_visual_ix: int, new_visual_ix: int) -> None:
-        """ Handle updating the model when first column changed. """
-        names = self.get_visual_column_names()
+        """ Handle updating the model when column order changes. """
+        names = self.get_visual_column_data()
         self.viewColumnOrderChanged.emit(self.view_type, names)
-        # view needs to be updated when the tree structure is applied and first item changes
-        if (new_visual_ix == 0 or old_visual_ix == 0) and self.is_tree:
+        if self.tree_node_changed(old_visual_ix, new_visual_ix):
             self.viewTreeNodeChanged.emit(names[0])
             # automatically sort first column based on last sort update
             self.header().setSortIndicator(0, self.proxy_model.sortOrder())
 
     def on_slider_moved(self, val: int) -> None:
         """ Handle moving view slider. """
-        self.current_model.scroll_position = val
+        self.source_model.scroll_position = val
 
-    def on_double_clicked(self, index: QModelIndex):
+    def on_double_clicked(self, proxy_index: QModelIndex):
         """ Handle view double click. """
-        source_item = self.proxy_model.item_at_proxy_index(index)
-        if not source_item.hasChildren():
-            # parent item cannot be renamed
-            if source_item.column() > 0:
-                index = index.siblingAtColumn(0)
-            variable_data = self.proxy_model.data_at_proxy_index(index)
-            if variable_data:
-                self.itemDoubleClicked.emit(variable_data)
+        source_index = self.proxy_model.mapToSource(proxy_index)
+        if not self.source_model.hasChildren(source_index):
+            row_number = source_index.row()
+            row_variable_data = self.source_model.get_row_variable_data(
+                row_number, source_index.parent()
+            )
+            self.itemDoubleClicked.emit(row_variable_data)
 
-    def _select_children(self, source_item: QStandardItem, source_index: QModelIndex) -> None:
+    def select_all_children(self, source_index: QModelIndex) -> None:
         """ Select all children of the parent row. """
-        first_ix = source_index.child(0, 0)
-        last_ix = source_index.child((source_item.rowCount() - 1), 0)
-        selection = QItemSelection(first_ix, last_ix)
-        proxy_selection = self.proxy_model.mapSelectionFromSource(selection)
-        self._select_items(proxy_selection)
+        first_index = source_index.child(0, 0)
+        last_index = source_index.child((self.source_model.rowCount(source_index) - 1), 0)
+        source_selection = QItemSelection(first_index, last_index)
+        self.select_model_items(source_selection)
 
     def deselect_all_variables(self) -> None:
         """ Deselect all currently selected variables. """
@@ -926,55 +930,75 @@ class TreeView(QTreeView):
 
     def select_variables(self, variables: List[VariableData]) -> None:
         """ Select rows with containing given variable data. """
-        # Find matching items and select items on a new model
-        proxy_selection = self.proxy_model.find_matching_proxy_selection(variables)
-        # select items in view
-        self._select_items(proxy_selection)
-        proxy_rows = proxy_selection.indexes()
-        variables_data = [self.proxy_model.data_at_proxy_index(index) for index in proxy_rows]
-        if variables_data:
-            self.selectionPopulated.emit(variables_data)
-        else:
-            self.selectionCleared.emit()
+        source_selection = self.source_model.get_matching_selection(variables)
+        if source_selection.indexes():
+            self.select_model_items(source_selection)
+            variable_data = self.get_selected_variable_data()
+            self.selectionPopulated.emit(variable_data)
 
-    def _deselect_item(self, proxy_index: QModelIndex) -> None:
-        """ Select an item programmatically. """
+    def deselect_item(self, source_index: QModelIndex) -> None:
+        """ Deselect an item programmatically. """
+        proxy_index = self.proxy_model.mapFromSource(source_index)
         self.selectionModel().select(
             proxy_index, QItemSelectionModel.Deselect | QItemSelectionModel.Rows
         )
 
-    def _select_items(self, proxy_selection: QItemSelection) -> None:
+    def select_model_items(self, source_selection: QItemSelection) -> None:
         """ Select items given by given selection (model indexes). """
+        proxy_selection = self.proxy_model.mapSelectionFromSource(source_selection)
         self.selectionModel().select(
             proxy_selection, QItemSelectionModel.Select | QItemSelectionModel.Rows
         )
 
+    def can_select_all_children(
+        self, parent_source_index: QModelIndex, selected_source_indexes: List[QModelIndex]
+    ) -> bool:
+        """ Check if all child items should be selected on parent click. """
+        is_any_child_selected = any(
+            map(lambda x: x.parent() == parent_source_index, selected_source_indexes)
+        )
+        parent_proxy_index = self.proxy_model.mapFromSource(parent_source_index)
+        return self.isExpanded(parent_proxy_index) and not is_any_child_selected
+
+    def get_selected_variable_data(self) -> List[VariableData]:
+        """ Get currently selected variable data. """
+        proxy_row_indexes = self.selectionModel().selectedRows()
+        source_row_indexes = self.proxy_model.map_to_source(proxy_row_indexes)
+        variable_data = []
+        for source_index in source_row_indexes:
+            row_number = source_index.row()
+            if not self.source_model.hasChildren(source_index):
+                row_variable_data = self.source_model.get_row_variable_data(
+                    row_number, source_index.parent()
+                )
+                variable_data.append(row_variable_data)
+        return variable_data
+
+    def update_parent_selection(self, source_row_indexes: List[QModelIndex]) -> None:
+        """
+        Update parent item selection.
+
+        Desired behaviour is to select all the children unless
+        any of the children is already included in the multi-selection
+
+        """
+        for source_index in source_row_indexes:
+            if self.source_model.hasChildren(source_index):
+                # select all the children if the item is expanded
+                # and none of its children has been already selected
+                if self.can_select_all_children(source_index, source_row_indexes):
+                    self.select_all_children(source_index)
+                # deselect all the parent nodes as these should not be
+                # included in output variable data
+                self.deselect_item(source_index)
+
     def on_pressed(self) -> None:
         """ Handle pressing the view item or items. """
-        proxy_rows = self.selectionModel().selectedRows()
-        rows = self.proxy_model.map_to_source(proxy_rows)
-        if proxy_rows:
-            # handle a case in which expanded parent node is clicked
-            # note that desired behaviour is to select all the children
-            # unless any of the children is included in the multi selection
-            for index in proxy_rows:
-                source_item = self.proxy_model.item_at_proxy_index(index)
-                source_index = self.proxy_model.mapToSource(index)
-                if source_item.hasChildren():
-                    # select all the children if the item is expanded
-                    # and none of the children has been already selected
-                    cond = any(map(lambda x: x.parent() == source_index, rows))
-                    if self.isExpanded(index) and not cond:
-                        self._select_children(source_item, source_index)
-                    # deselect all the parent nodes as these should not be
-                    # included in output variable data
-                    self._deselect_item(index)
-            # needs to be called again to get updated selection
-            proxy_rows = self.selectionModel().selectedRows()
-            variables_data = [
-                self.proxy_model.data_at_proxy_index(index) for index in proxy_rows
-            ]
-            if variables_data:
-                self.selectionPopulated.emit(variables_data)
-            else:
-                self.selectionCleared.emit()
+        proxy_row_indexes = self.selectionModel().selectedRows()
+        source_row_indexes = self.proxy_model.map_to_source(proxy_row_indexes)
+        self.update_parent_selection(source_row_indexes)
+        variable_data = self.get_selected_variable_data()
+        if variable_data:
+            self.selectionPopulated.emit(variable_data)
+        else:
+            self.selectionCleared.emit()

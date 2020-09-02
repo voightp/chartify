@@ -132,7 +132,7 @@ class AppController:
         scroll_to: Optional[VariableData] = None,
     ):
         """ Force update of the current model. """
-        old_model = self.v.current_view.current_model
+        old_model = self.v.current_view.source_model
         self.v.current_view.update_model(self.m.current_table, **Settings.units_dict())
         self.v.update_view_visual(
             selected=selected,
@@ -143,7 +143,7 @@ class AppController:
 
     def on_set_model_requested(self):
         """ Set a new model on current view. """
-        old_model = self.v.current_view.current_model
+        old_model = self.v.current_view.source_model
         new_model = self.v.current_view.models[Settings.TABLE_NAME]
         if new_model.is_simple or Settings.TREE_NODE == new_model.tree_node:
             self.v.current_view.set_model(Settings.TABLE_NAME)
@@ -166,7 +166,7 @@ class AppController:
     def on_update_model_requested(self):
         """ Update current model on current view. """
         if self.v.current_view:
-            old_model = self.v.current_view.current_model
+            old_model = self.v.current_view.source_model
             new_model = self.v.current_view.models[Settings.TABLE_NAME]
             if new_model.is_simple or Settings.TREE_NODE == new_model.tree_node:
                 self.v.current_view.update_units(

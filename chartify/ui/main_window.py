@@ -24,6 +24,7 @@ from PySide2.QtWidgets import (
     QSpacerItem,
 )
 from esofile_reader.base_file import VariableType
+from esofile_reader.constants import *
 from esofile_reader.convertor import is_rate_or_energy
 from esofile_reader.mini_classes import Variable
 from esofile_reader.storages.pqt_storage import ParquetStorage
@@ -34,7 +35,7 @@ from chartify.ui.dialogs import ConfirmationDialog, SingleInputDialog, DoubleInp
 from chartify.ui.misc_widgets import DropFrame, TabWidget
 from chartify.ui.progress_widget import ProgressContainer
 from chartify.ui.toolbar import Toolbar
-from chartify.ui.treeview import TreeView, ViewModel, SOURCE_UNITS
+from chartify.ui.treeview import TreeView, ViewModel
 from chartify.utils.css_theme import Palette, CssTheme
 from chartify.utils.icon_painter import Pixmap, filled_circle_pixmap
 from chartify.utils.utils import VariableData, FilterTuple
@@ -530,14 +531,12 @@ class MainWindow(QMainWindow):
     def on_selection_populated(self, variables: List[VariableData]):
         """ Store current selection in main app. """
         self.remove_variables_act.setEnabled(True)
-        self.toolbar.remove_btn.setEnabled(True)
 
         # check if variables can be aggregated
         if len(variables) > 1:
             units = [var.units for var in variables]
             if len(set(units)) == 1 or (
-                is_rate_or_energy(units)
-                and self.current_view.current_model.allow_rate_to_energy
+                is_rate_or_energy(units) and self.current_view.source_model.allow_rate_to_energy
             ):
                 self.sum_act.setEnabled(True)
                 self.mean_act.setEnabled(True)
@@ -591,7 +590,7 @@ class MainWindow(QMainWindow):
         return FilterTuple(
             key=self.key_line_edit.text(),
             type=self.type_line_edit.text(),
-            units=self.units_line_edit.text(),
+            proxy_units=self.units_line_edit.text(),
         )
 
     def update_view_visual(
@@ -603,13 +602,13 @@ class MainWindow(QMainWindow):
     ):
         """ update visual appearance of the view to be consistent with a previous one. """
         if old_model is not None and old_model.is_similar(
-            self.current_view.current_model, rows_diff=0.05
+            self.current_view.source_model, rows_diff=0.05
         ):
             scroll_pos = old_model.scroll_position
             expanded = old_model.expanded
         else:
-            scroll_pos = self.current_view.current_model.scroll_position
-            expanded = self.current_view.current_model.expanded
+            scroll_pos = self.current_view.source_model.scroll_position
+            expanded = self.current_view.source_model.expanded
         self.current_view.update_appearance(
             **self.view_settings[self.current_view.view_type],
             filter_tuple=self.get_filter_tuple(),
@@ -625,7 +624,7 @@ class MainWindow(QMainWindow):
         Settings.TABLE_NAME = table_name
         if table_name is not None:
             new_model = self.current_view.models[table_name]
-            if self.current_view.current_model == new_model:
+            if self.current_view.source_model == new_model:
                 # file changed and but table does not need to be changed
                 self.updateModelRequested.emit()
             else:
@@ -660,12 +659,12 @@ class MainWindow(QMainWindow):
                 # leave previously set table if available on new model
                 table_name = Settings.TABLE_NAME
             else:
-                if self.current_view.current_model is None:
+                if self.current_view.source_model is None:
                     # model has not been initialized on a current view
                     table_name = table_names[0]
                 else:
                     # leave table set previously on a current view
-                    table_name = self.current_view.current_model.name
+                    table_name = self.current_view.source_model.name
             # table buttons are always cleared and created again
         self.toolbar.update_table_buttons(table_names=table_names, selected=table_name)
         # TODO handle totals button
@@ -707,7 +706,7 @@ class MainWindow(QMainWindow):
     def on_source_units_toggled(self, checked: bool):
         Settings.HIDE_SOURCE_UNITS = not checked
         if self.current_view:
-            self.current_view.hide_section(SOURCE_UNITS, not checked)
+            self.current_view.hide_section(UNITS_LEVEL, not checked)
 
     def on_custom_units_toggled(
         self, energy_units: str, power_units: str, units_system: str, rate_to_energy: bool

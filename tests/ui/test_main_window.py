@@ -232,7 +232,7 @@ def test_expand_all_empty(mw: MainWindow):
 def test_expand_all(qtbot, populated_mw: MainWindow):
     populated_mw.on_table_change_requested("daily")
     qtbot.mouseClick(populated_mw.expand_all_btn, Qt.LeftButton)
-    assert len(populated_mw.current_view.current_model.expanded) == 28
+    assert len(populated_mw.current_view.source_model.expanded) == 28
 
 
 def test_collapse_all_empty(mw: MainWindow):
@@ -246,7 +246,7 @@ def test_collapse_all(qtbot, populated_mw: MainWindow):
     populated_mw.on_table_change_requested("daily")
     qtbot.mouseClick(populated_mw.expand_all_btn, Qt.LeftButton)
     qtbot.mouseClick(populated_mw.collapse_all_btn, Qt.LeftButton)
-    assert len(populated_mw.current_view.current_model.expanded) == 0
+    assert len(populated_mw.current_view.source_model.expanded) == 0
 
 
 def test_save_storage_to_fs(mw: MainWindow):
@@ -293,10 +293,10 @@ def test_on_color_scheme_changed(qtbot, mw: MainWindow):
 @pytest.mark.parametrize(
     "variables,enabled,rate_to_energy",
     [
-        ([VariableData("A", "B", "C", "F"), VariableData("C", "D", "kWh", "W")], False, False,),
-        ([VariableData("A", "B", "C", "F"), VariableData("C", "D", "C", "F")], True, False),
-        ([VariableData("A", "B", "J", "J"), VariableData("C", "D", "W", "kWh")], False, False,),
-        ([VariableData("A", "B", "J", "J"), VariableData("C", "D", "W", "kWh")], True, True),
+        ([VariableData("A", "B", "C"), VariableData("C", "D", "kWh")], False, False,),
+        ([VariableData("A", "B", "C"), VariableData("C", "D", "C")], True, False),
+        ([VariableData("A", "B", "J"), VariableData("C", "D", "W")], False, False,),
+        ([VariableData("A", "B", "J"), VariableData("C", "D", "W")], True, True),
     ],
 )
 def test_on_selection_populated(
@@ -307,7 +307,7 @@ def test_on_selection_populated(
 
     tab_wgt_mock = MagicMock()
     model_mock = MagicMock()
-    model_mock.current_model.allow_rate_to_energy = rate_to_energy
+    model_mock.source_model.allow_rate_to_energy = rate_to_energy
     tab_wgt_mock.currentWidget.return_value = model_mock
     mw.tab_wgt = tab_wgt_mock
 
@@ -434,17 +434,17 @@ def test_update_view_visual(
     old_model.scroll_position = old_pos
     old_model.expanded = old_expanded
     with patch("chartify.ui.main_window.MainWindow.current_view") as current_view:
-        current_view.current_model.scroll_position = current_pos
-        current_view.current_model.expanded = current_expanded
+        current_view.source_model.scroll_position = current_pos
+        current_view.source_model.expanded = current_expanded
         current_view.view_type = "tree"
-        var = VariableData("Temperature", "Zone A", "C", "C")
+        var = VariableData("Temperature", "Zone A", "C")
         mw.update_view_visual(
             selected=[var], scroll_to=var, old_model=old_model, hide_source_units=False
         )
         current_view.update_appearance.assert_called_with(
             widths={"fixed": 60, "interactive": 200},
-            header=["type", "key", "units", "source units"],
-            filter_tuple=FilterTuple(key="", type="", units=""),
+            header=["type", "key", "proxy_units", "units"],
+            filter_tuple=FilterTuple(key="", type="", proxy_units=""),
             expanded=expected_expanded,
             selected=[var],
             scroll_pos=expected_pos,
@@ -589,14 +589,14 @@ def test_on_source_units_toggled(mw: MainWindow):
         with patch("chartify.ui.main_window.MainWindow.current_view") as mock_view:
             mw.on_source_units_toggled(True)
             assert mock_settings.HIDE_SOURCE_UNITS is False
-            mock_view.hide_section.assert_called_once_with("source units", False)
+            mock_view.hide_section.assert_called_once_with("units", False)
 
 
 @pytest.mark.parametrize("allow_rate_to_energy,rate_to_energy", [(True, True), (False, False)])
 def test_on_custom_units_toggled(
     qtbot, populated_mw: MainWindow, allow_rate_to_energy: bool, rate_to_energy: bool
 ):
-    populated_mw.current_view.current_model.allow_rate_to_energy = allow_rate_to_energy
+    populated_mw.current_view.source_model.allow_rate_to_energy = allow_rate_to_energy
     with patch("chartify.ui.main_window.Settings") as mock_settings:
         with qtbot.wait_signal(populated_mw.updateModelRequested):
             populated_mw.on_custom_units_toggled("kBTU", "MW", "IP", True)
@@ -793,9 +793,9 @@ def test_confirm_remove_variables(mw: MainWindow, confirmed: int, expected: bool
         instance = dialog.return_value
         instance.exec_.return_value = confirmed
         instance.input1_text = "test"
-        out = mw.confirm_remove_variables([VariableData("A", "B", "C", "D")], False, "foo")
+        out = mw.confirm_remove_variables([Variable("T", "A", "B", "C")], False, "foo")
         dialog.assert_called_once_with(
-            mw, "Delete following variables from file 'foo': ", det_text="B | C | D"
+            mw, "Delete following variables from file 'foo': ", det_text="A | B | C"
         )
         assert out == expected
 
