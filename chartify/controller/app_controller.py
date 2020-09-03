@@ -87,6 +87,7 @@ class AppController:
         self.v.paletteUpdated.connect(self.wvc.refresh_layout)
         self.v.selectionChanged.connect(self.on_selection_change)
         self.v.fileProcessingRequested.connect(self.on_file_processing_requested)
+        self.v.syncFileProcessingRequested.connect(self.on_sync_file_processing_requested)
         self.v.fileRenameRequested.connect(self.on_file_rename_requested)
         self.v.variableRenameRequested.connect(self.on_variable_rename_requested)
         self.v.variableRemoveRequested.connect(self.on_variable_remove_requested)
@@ -194,6 +195,14 @@ class AppController:
                 self.file_queue,
                 self.ids,
                 self.lock,
+            )
+
+    def on_sync_file_processing_requested(self, paths: List[str]) -> None:
+        """ Load new files. """
+        workdir = str(self.m.storage.workdir)
+        for path in paths:
+            load_file(
+                path, workdir, self.progress_queue, self.file_queue, self.ids, self.lock,
             )
 
     def on_all_files_loaded(self, monitor_id: str) -> None:

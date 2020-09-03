@@ -365,7 +365,6 @@ class ViewModel(QStandardItemModel):
             item.setData(names[data], Qt.DisplayRole)
             self.setHorizontalHeaderItem(i, item)
 
-    @profile
     def populate_model(
         self,
         header_df: pd.DataFrame,
@@ -377,7 +376,8 @@ class ViewModel(QStandardItemModel):
     ) -> None:
         """  Create a model and set up its appearance. """
         # make sure that model is empty
-        self.clear()
+        if self.rowCount() > 0:
+            self.clear()
 
         # tree node data is always None for 'Simple' views
         self.tree_node = tree_node if not self.is_simple else None
@@ -850,22 +850,26 @@ class TreeView(QTreeView):
             # check explicitly to avoid skipping '0' position
             self.update_scrollbar_position(scroll_pos)
 
+    @profile
     def set_model(self, table_name: str) -> None:
         """ Assign new model. """
         model = self.models[table_name]
         with SignalBlocker(self.verticalScrollBar()):
             self.proxy_model.setSourceModel(model)
 
+    @profile
     def set_and_update_model(self, header_df: pd.DataFrame, table_name: str, **kwargs) -> None:
         model = self.models[table_name]
         model.populate_model(header_df, **kwargs)
         with SignalBlocker(self.verticalScrollBar()):
             self.proxy_model.setSourceModel(model)
 
+    @profile
     def update_model(self, header_df: pd.DataFrame, **kwargs) -> None:
         """ Update tree viw model. """
         self.source_model.populate_model(header_df, **kwargs)
 
+    @profile
     def update_units(self, source_units: pd.Series, **kwargs) -> None:
         """ Update tree viw model. """
         self.source_model.update_proxy_units(source_units, **kwargs)

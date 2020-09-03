@@ -1,7 +1,7 @@
 import ctypes
 from functools import partial
 from pathlib import Path
-from typing import Optional, Tuple, List, Dict
+from typing import Optional, Tuple, List, Dict, Union
 
 from PySide2.QtCore import QSize, Qt, QCoreApplication, Signal, QPoint, QTimer
 from PySide2.QtGui import QIcon, QKeySequence, QColor
@@ -56,6 +56,7 @@ class MainWindow(QMainWindow):
     updateModelRequested = Signal()
     setModelRequested = Signal()
     fileProcessingRequested = Signal(list)
+    syncFileProcessingRequested = Signal(list)
     fileRenameRequested = Signal(int, int)
     variableRenameRequested = Signal(VariableData)
     variableRemoveRequested = Signal()
@@ -507,8 +508,18 @@ class MainWindow(QMainWindow):
             Settings.SAVE_PATH = str(path.parent)
             return path
 
+    def load_files_from_paths_synchronously(self, paths: List[Union[str, Path]]):
+        """ Load results from given paths.  """
+        Settings.LOAD_PATH = str(Path(paths[0]).parent)
+        self.syncFileProcessingRequested.emit(paths)
+
+    def load_files_from_paths(self, paths: List[Union[str, Path]]):
+        """ Load results from given paths.  """
+        Settings.LOAD_PATH = str(Path(paths[0]).parent)
+        self.fileProcessingRequested.emit(paths)
+
     def load_files_from_fs(self):
-        """ Select eso files from explorer and start processing. """
+        """ Let user select files to processed from filesystem. """
         file_paths, _ = QFileDialog.getOpenFileNames(
             parent=self,
             caption="Load Project / Eso File",
@@ -516,8 +527,7 @@ class MainWindow(QMainWindow):
             dir=Settings.LOAD_PATH,
         )
         if file_paths:
-            Settings.LOAD_PATH = str(Path(file_paths[0]).parent)
-            self.fileProcessingRequested.emit(file_paths)
+            self.load_files_from_paths(file_paths)
 
     def on_color_scheme_changed(self, name: str):
         """ Update the application palette. """
