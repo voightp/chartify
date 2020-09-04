@@ -121,7 +121,7 @@ class WVController(QObject):
     @profile
     def add_new_traces(self, item_id: str, type_: str) -> None:
         """ Process raw pd.DataFrame and store the data. """
-        df = self.m.get_results(include_interval=True, include_id=False)
+        df = self.m.get_results()
         totals = calculate_totals(df)
         timestamps = [dt.timestamp() for dt in df.index.to_pydatetime()]
         chart = self.m.fetch_component(item_id)

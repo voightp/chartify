@@ -111,18 +111,14 @@ class AppModel(QObject):
         else:
             files = self.storage.files[Settings.CURRENT_FILE_ID]
 
-        # transform variable data to variable (variable data holds extra proxy units)
-        variables = [
-            Variable(Settings.TABLE_NAME, v.key, v.type, v.units)
-            for v in self.selected_variable_data
-        ]
-
-        args = (files, variables)
+        args = (files, self.selected_variables)
         kwargs = {
             "rate_units": Settings.POWER_UNITS,
             "energy_units": Settings.ENERGY_UNITS,
             "add_file_name": "column",
-            "rate_to_energy_dct": {Settings.TABLE_NAME: Settings.RATE_TO_ENERGY},
+            "rate_to_energy": Settings.RATE_TO_ENERGY,
+            "include_table_name": True,
+            "include_id": False,
             **kwargs,
         }
 
