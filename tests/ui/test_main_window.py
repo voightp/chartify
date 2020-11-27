@@ -96,7 +96,7 @@ def test_init_main_window(qtbot, mw: MainWindow):
 
     assert mw.statusBar() == mw.status_bar
     assert mw.statusBar().height() == 20
-    assert mw.progress_cont.parent() == mw.statusBar()
+    assert mw.progress_container.parent() == mw.statusBar()
 
     assert list(mw.palettes.keys()) == ["default", "monochrome", "dark"]
     assert Settings.PALETTE == mw.palettes[Settings.PALETTE_NAME]

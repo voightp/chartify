@@ -382,13 +382,12 @@ class ProgressContainer(QWidget):
         if len(self.files) <= self.MAX_VISIBLE_JOBS:
             self._update_bar()
 
-    def set_range(self, id_: str, value: int, max_value: int, message: str = "") -> None:
+    def set_range(self, id_: str, value: int, max_value: int) -> None:
         """ Set up maximum progress value. """
         with contextlib.suppress(KeyError):
             f = self.files[id_]
             f.maximum = max_value
             f.value = value
-            f.status = message
             if self._position_changed(f):
                 self._update_bar()
 
@@ -416,11 +415,10 @@ class ProgressContainer(QWidget):
                 self.locked.append(f)
                 self._update_bar()
 
-    def set_pending(self, id_: str, message: str = "") -> None:
+    def set_pending(self, id_: str) -> None:
         """ Set pending status on the given file. """
         with contextlib.suppress(KeyError):
             f = self.files[id_]
-            f.status = message
             f.set_pending()
             if f not in self.locked:
                 # pending files become locked so their position does not change

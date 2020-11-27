@@ -23,11 +23,11 @@ from PySide2.QtWidgets import (
     QLineEdit,
     QSpacerItem,
 )
-from esofile_reader.base_file import VariableType
-from esofile_reader.constants import *
-from esofile_reader.convertor import is_rate_or_energy
-from esofile_reader.mini_classes import Variable
-from esofile_reader.storages.pqt_storage import ParquetStorage
+from esofile_reader import Variable
+from esofile_reader.convertor import all_rate_or_energy
+from esofile_reader.df.level_names import *
+from esofile_reader.pqt.parquet_storage import ParquetStorage
+from esofile_reader.typehints import VariableType
 
 from chartify.settings import Settings
 from chartify.ui.buttons import MenuButton
@@ -252,8 +252,8 @@ class MainWindow(QMainWindow):
         self.status_bar.setFixedHeight(20)
         self.setStatusBar(self.status_bar)
 
-        self.progress_cont = ProgressContainer(self.status_bar)
-        self.status_bar.addWidget(self.progress_cont)
+        self.progress_container = ProgressContainer(self.status_bar)
+        self.status_bar.addWidget(self.progress_container)
 
         # ~~~~ Palettes ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.palettes = Palette.parse_palettes(Settings.PALETTE_PATH)
@@ -513,21 +513,22 @@ class MainWindow(QMainWindow):
         Settings.LOAD_PATH = str(Path(paths[0]).parent)
         self.syncFileProcessingRequested.emit(paths)
 
-    def load_files_from_paths(self, paths: List[Union[str, Path]]):
+    def load_files_from_paths(self, paths: List[Path]):
         """ Load results from given paths.  """
-        Settings.LOAD_PATH = str(Path(paths[0]).parent)
+        Settings.LOAD_PATH = paths[0].parent
         self.fileProcessingRequested.emit(paths)
 
     def load_files_from_fs(self):
         """ Let user select files to processed from filesystem. """
+        dir_ = str(Settings.LOAD_PATH) if isinstance(Settings.LOAD_PATH, Path) else None
         file_paths, _ = QFileDialog.getOpenFileNames(
             parent=self,
             caption="Load Project / Eso File",
             filter="FILES (*.csv *.xlsx *.eso *.cfs)",
-            dir=Settings.LOAD_PATH,
+            dir=dir_,
         )
         if file_paths:
-            self.load_files_from_paths(file_paths)
+            self.load_files_from_paths([Path(p) for p in file_paths])
 
     def on_color_scheme_changed(self, name: str):
         """ Update the application palette. """
@@ -546,7 +547,8 @@ class MainWindow(QMainWindow):
         if len(variables) > 1:
             units = [var.units for var in variables]
             if len(set(units)) == 1 or (
-                is_rate_or_energy(units) and self.current_view.source_model.allow_rate_to_energy
+                all_rate_or_energy(units)
+                and self.current_view.source_model.allow_rate_to_energy
             ):
                 self.sum_act.setEnabled(True)
                 self.mean_act.setEnabled(True)

@@ -1,4 +1,4 @@
-from esofile_reader.constants import *
+from esofile_reader.processing.eplus import *
 
 from chartify.utils.css_theme import parse_color
 from chartify.utils.icon_painter import combine_colors

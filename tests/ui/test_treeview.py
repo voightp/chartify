@@ -4,7 +4,7 @@ import pandas as pd
 import pytest
 from PySide2.QtCore import Qt, QModelIndex
 from PySide2.QtWidgets import QHeaderView, QSizePolicy
-from esofile_reader import EsoFile, ResultsFile
+from esofile_reader import EsoFile, GenericFile
 from esofile_reader.constants import UNITS_LEVEL
 
 from chartify.ui.treeview import TreeView, ViewModel, FilterModel
@@ -21,7 +21,7 @@ def eso_file():
 
 @pytest.fixture(scope="module")
 def excel_file():
-    return ResultsFile.from_excel(Path(ROOT, "eso_files", "simple_view.xlsx"))
+    return GenericFile.from_excel(Path(ROOT, "eso_files", "simple_view.xlsx"))
 
 
 @pytest.fixture

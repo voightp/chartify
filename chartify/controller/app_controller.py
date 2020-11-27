@@ -1,20 +1,23 @@
 import os
 from multiprocessing import Manager
+from pathlib import Path
 from typing import List, Callable, Union, Any, Dict, Optional
 
 from PySide2.QtCore import QThreadPool
-from esofile_reader.base_file import VariableType
-from esofile_reader.constants import UNITS_LEVEL
-from esofile_reader.mini_classes import ResultsFileType, Variable
-from esofile_reader.storages.pqt_storage import ParquetFile
+from esofile_reader import Variable
+from esofile_reader.df.level_names import UNITS_LEVEL
+from esofile_reader.pqt.parquet_file import ParquetFile
+from esofile_reader.typehints import VariableType, ResultsFileType
 
+from chartify.controller.file_processing import load_file
 from chartify.controller.wv_controller import WVController
 from chartify.model.model import AppModel
 from chartify.settings import Settings
 from chartify.ui.main_window import MainWindow
 from chartify.ui.treeview import ViewModel
-from chartify.utils.process_utils import create_pool, kill_child_processes, load_file
-from chartify.utils.threads import EsoFileWatcher, IterWorker, Monitor
+from chartify.utils.process_utils import create_pool, kill_child_processes
+from chartify.utils.progress_logging import ProgressThread
+from chartify.utils.threads import EsoFileWatcher, IterWorker
 from chartify.utils.utils import get_str_identifier, VariableData
 
 
@@ -55,8 +58,8 @@ class AppController:
         self.watcher.all_loaded.connect(self.on_all_files_loaded)
         self.watcher.start()
 
-        self.monitor = Monitor(self.progress_queue)
-        self.monitor.start()
+        self.progress_thread = ProgressThread(self.progress_queue)
+        self.progress_thread.start()
 
         # ~~~~ Thread executor ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.thread_pool = QThreadPool()
@@ -66,7 +69,7 @@ class AppController:
 
         # ~~~~ Connect signals ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.connect_view_signals()
-        self.connect_model_signals()
+        self.connect_progress_signals()
 
     def tear_down(self) -> None:
         """ Clean up application resources. """
@@ -74,7 +77,7 @@ class AppController:
         # Settings.save_settings_to_json()
 
         self.watcher.terminate()
-        self.monitor.terminate()
+        self.progress_thread.terminate()
         self.manager.shutdown()
 
         kill_child_processes(os.getpid())
@@ -100,14 +103,14 @@ class AppController:
         self.v.updateModelRequested.connect(self.on_update_model_requested)
         self.v.setModelRequested.connect(self.on_set_model_requested)
 
-    def connect_model_signals(self) -> None:
-        """ Create monitor signals. """
-        self.monitor.file_added.connect(self.v.progress_cont.add_file)
-        self.monitor.progress_updated.connect(self.v.progress_cont.update_progress)
-        self.monitor.range_changed.connect(self.v.progress_cont.set_range)
-        self.monitor.pending.connect(self.v.progress_cont.set_pending)
-        self.monitor.failed.connect(self.v.progress_cont.set_failed)
-        self.monitor.status_changed.connect(self.v.progress_cont.set_status)
+    def connect_progress_signals(self) -> None:
+        """ Create progress_thread signals. """
+        self.progress_thread.file_added.connect(self.v.progress_container.add_file)
+        self.progress_thread.progress_updated.connect(self.v.progress_container.update_progress)
+        self.progress_thread.range_changed.connect(self.v.progress_container.set_range)
+        self.progress_thread.pending.connect(self.v.progress_container.set_pending)
+        self.progress_thread.failed.connect(self.v.progress_container.set_failed)
+        self.progress_thread.status_changed.connect(self.v.progress_container.set_status)
 
     def on_selection_change(self, variable_data: List[tuple]) -> None:
         """ Handle selection update. """
@@ -183,14 +186,13 @@ class AppController:
                 hide_source_units=Settings.HIDE_SOURCE_UNITS,
             )
 
-    def on_file_processing_requested(self, paths: List[str]) -> None:
+    def on_file_processing_requested(self, paths: List[Path]) -> None:
         """ Load new files. """
-        workdir = str(self.m.storage.workdir)
         for path in paths:
             self.pool.submit(
                 load_file,
                 path,
-                workdir,
+                self.m.workdir,
                 self.progress_queue,
                 self.file_queue,
                 self.ids,
@@ -199,15 +201,14 @@ class AppController:
 
     def on_sync_file_processing_requested(self, paths: List[str]) -> None:
         """ Load new files. """
-        workdir = str(self.m.storage.workdir)
         for path in paths:
             load_file(
-                path, workdir, self.progress_queue, self.file_queue, self.ids, self.lock,
+                path, self.m.workdir, self.progress_queue, self.file_queue, self.ids, self.lock,
             )
 
     def on_all_files_loaded(self, monitor_id: str) -> None:
         """ Remove progress widget from ui. """
-        self.v.progress_cont.remove_file(monitor_id)
+        self.v.progress_container.remove_file(monitor_id)
 
     def on_file_loaded(self, file: ParquetFile, models: Dict[str, ViewModel]) -> None:
         """ Add results file into 'tab' widget. """

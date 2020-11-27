@@ -6,7 +6,7 @@ from typing import Sequence, List
 
 import pandas as pd
 from PySide2.QtCore import QObject
-from esofile_reader.constants import AVERAGED_UNITS
+from esofile_reader.processing.totals import AVERAGED_UNITS
 
 VariableData = namedtuple("VariableData", "key type units")
 FilterTuple = namedtuple("FilterTuple", ["key", "type", "proxy_units"])

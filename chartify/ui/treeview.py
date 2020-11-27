@@ -15,9 +15,9 @@ from PySide2.QtCore import (
 )
 from PySide2.QtGui import QStandardItem, QStandardItemModel, QDrag, QPixmap
 from PySide2.QtWidgets import QTreeView, QAbstractItemView, QHeaderView
-from esofile_reader.constants import *
-from esofile_reader.convertor import create_conversion_tuples
-from esofile_reader.mini_classes import ResultsFileType
+from esofile_reader.df.level_names import *
+from esofile_reader.convertor import create_conversion_dict, can_convert_rate_to_energy
+from esofile_reader.typehints import ResultsFileType
 from profilehooks import profile
 
 from chartify.utils.utils import (
@@ -100,7 +100,7 @@ class ViewModel(QStandardItemModel):
         for table_name in file.table_names:
             header_df = file.get_header_df(table_name)
             is_simple = file.is_header_simple(table_name)
-            allow_rate_to_energy = file.can_convert_rate_to_energy(table_name)
+            allow_rate_to_energy = can_convert_rate_to_energy(file, table_name)
             models[table_name] = ViewModel(
                 table_name, header_df, is_simple, allow_rate_to_energy, **kwargs
             )
@@ -119,20 +119,19 @@ class ViewModel(QStandardItemModel):
         if rate_to_energy:
             intermediate_units[intermediate_units == "W"] = "J"
             intermediate_units[intermediate_units == "W/m2"] = "J/m2"
-        conversion_tuples = create_conversion_tuples(
+        conversion_dict = create_conversion_dict(
             intermediate_units,
             units_system=units_system,
             rate_units=power_units,
             energy_units=energy_units,
         )
         # no units are displayed as dash
-        conversion_tuples.append(("", "-", 1))
-        old_units, new_units, _ = zip(*conversion_tuples)
+        conversion_dict[""] = ("-", 1)
         proxy_units = intermediate_units.copy()
         proxy_units.name = PROXY_UNITS_LEVEL
         # populate proxy column with new units
-        for old, new in zip(old_units, new_units):
-            proxy_units.loc[intermediate_units == old] = new
+        for old, v in conversion_dict.items():
+            proxy_units.loc[intermediate_units == old] = v[0]
         return proxy_units
 
     def count_rows(self) -> int:
@@ -472,7 +471,6 @@ class ViewModel(QStandardItemModel):
                     i, proxy_units_column_number, conversion_look_up, QModelIndex()
                 )
 
-    @profile
     def update_proxy_units(
         self,
         source_units: pd.Series,
@@ -850,26 +848,22 @@ class TreeView(QTreeView):
             # check explicitly to avoid skipping '0' position
             self.update_scrollbar_position(scroll_pos)
 
-    @profile
     def set_model(self, table_name: str) -> None:
         """ Assign new model. """
         model = self.models[table_name]
         with SignalBlocker(self.verticalScrollBar()):
             self.proxy_model.setSourceModel(model)
 
-    @profile
     def set_and_update_model(self, header_df: pd.DataFrame, table_name: str, **kwargs) -> None:
         model = self.models[table_name]
         model.populate_model(header_df, **kwargs)
         with SignalBlocker(self.verticalScrollBar()):
             self.proxy_model.setSourceModel(model)
 
-    @profile
     def update_model(self, header_df: pd.DataFrame, **kwargs) -> None:
         """ Update tree viw model. """
         self.source_model.populate_model(header_df, **kwargs)
 
-    @profile
     def update_units(self, source_units: pd.Series, **kwargs) -> None:
         """ Update tree viw model. """
         self.source_model.update_proxy_units(source_units, **kwargs)
