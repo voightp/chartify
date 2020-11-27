@@ -24,7 +24,7 @@ class AppModel(QObject):
     def __init__(self):
         super().__init__()
         # ~~~~ File Database ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.storage = ParquetStorage()
+        self.storage = ParquetStorage(parent=Settings.APP_TEMP_NAME)
 
         # ~~~~ Currently selected variables ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.selected_variable_data = []

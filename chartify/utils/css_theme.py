@@ -175,6 +175,12 @@ class CssTheme:
         self.content = ""
         self._temp = []
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self._temp.clear()
+
     @staticmethod
     def parse_line(line: str, color_key: str, rgb: Tuple[int, int, int]) -> str:
         """ Get a color string or tuple. """
@@ -198,7 +204,7 @@ class CssTheme:
             if not path.exists():
                 raise FileNotFoundError(f"Cannot find url: '{path}'!")
             p = Pixmap(str(path), *rgb)
-            tf = p.as_temp()
+            tf = p.as_temp(Settings.APP_TEMP_NAME)
             line = f"{prop}url({tf.fileName()});\n"
         except IndexError:
             # this is raised when there's no match or unexpected output

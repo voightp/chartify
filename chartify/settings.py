@@ -1,4 +1,5 @@
 import json
+import tempfile
 from pathlib import Path
 from typing import Optional
 
@@ -19,7 +20,10 @@ class Settings:
     ICONS_PATH = str(Path(ROOT, "resources/icons/"))
     SETTINGS_PATH = Path(Path.home(), ".chartify", "settings.json")
 
-    IP_ENERGY_UNITS = ["Btu", "kBtu", "MBtu"]
+    APP_TEMP_DIR = tempfile.TemporaryDirectory(prefix="chartify-", suffix="-bar")
+    APP_TEMP_NAME = APP_TEMP_DIR.name
+    print("LOADED " + APP_TEMP_NAME)
+    IP_ENERGY_UNITS = ["Btu", "kBbtu", "MBtu"]
     IP_POWER_UNITS = ["Btu/h", "kBtu/h", "MBtu/h", "W"]
     SI_ENERGY_UNITS = ["Wh", "kWh", "MWh", "J", "MJ", "GJ"]
     SI_POWER_UNITS = ["W", "kW", "MW"]

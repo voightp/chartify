@@ -331,8 +331,7 @@ class MainWindow(QMainWindow):
         self.mini_menu_layout.addWidget(self.about_btn)
 
         # ~~~~ Set up app appearance ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.css = self.load_css()
-        self.load_icons()
+        self.load_css()
         self.central_splitter.setSizes(Settings.SPLIT)
 
         # ~~~~ Tree view appearance ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -446,14 +445,14 @@ class MainWindow(QMainWindow):
         )
         self.expand_all_act.setIcon(icon)
 
-    def load_css(self) -> CssTheme:
+    def load_css(self) -> None:
         """ Update application appearance. """
-        css = CssTheme(Settings.CSS_PATH)
-        css.populate_content(Settings.PALETTE)
-        # css needs to be cleared to repaint the window properly
-        self.setStyleSheet("")
-        self.setStyleSheet(css.content)
-        return css
+        with CssTheme(Settings.CSS_PATH) as css:
+            css.populate_content(Settings.PALETTE)
+            # css needs to be cleared to repaint the window properly
+            self.setStyleSheet("")
+            self.setStyleSheet(css.content)
+            self.load_icons()
 
     def mirror_layout(self):
         """ Mirror the layout. """
@@ -535,8 +534,7 @@ class MainWindow(QMainWindow):
         if name != Settings.PALETTE_NAME:
             Settings.PALETTE = self.palettes[name]
             Settings.PALETTE_NAME = name
-            self.css = self.load_css()
-            self.load_icons()
+            self.load_css()
             self.paletteUpdated.emit()
 
     def on_selection_populated(self, variables: List[VariableData]):

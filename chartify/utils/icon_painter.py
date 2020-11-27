@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Union, Tuple
-
-from PySide2.QtCore import Qt, QBuffer, QTemporaryFile, QRectF, QSize
+import tempfile
+from PySide2.QtCore import Qt, QBuffer, QIODevice, QTemporaryFile, QRectF, QSize, QDir
 from PySide2.QtGui import QImage, QPixmap, QColor, QPainter, QFontMetrics, QPen, QFont
 
 
@@ -32,11 +32,11 @@ class Pixmap(QPixmap):
                     img.setPixelColor(x, y, new_col)
         self.convertFromImage(img)
 
-    def as_temp(self) -> QTemporaryFile:
+    def as_temp(self, dir_=None) -> tempfile.TemporaryFile:
         """ Save the pixmap as a temporary file. """
         buff = QBuffer()
         self.save(buff, "PNG")
-        tf = QTemporaryFile()
+        tf = QTemporaryFile(f"{dir_}/icon")
         tf.open()
         tf.write(buff.data())
         tf.close()
