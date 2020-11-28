@@ -1,7 +1,7 @@
 from pathlib import Path
 
 import pytest
-from PySide2.QtCore import QCoreApplication, Qt, QMimeData
+from PySide2.QtCore import QCoreApplication, Qt, QMimeData, QUrl
 from PySide2.QtGui import QDragEnterEvent, QDragLeaveEvent, QDropEvent
 from PySide2.QtWidgets import QWidget
 
@@ -72,7 +72,7 @@ class TestTabWidget:
 class TestDropFrame:
     @pytest.fixture(autouse=True)
     def drop_frame(self, qtbot):
-        drop_frame = DropFrame(None)
+        drop_frame = DropFrame(None, extensions=[".eso", ".xlsx"])
         drop_frame.show()
         qtbot.add_widget(drop_frame)
         return drop_frame
@@ -83,7 +83,7 @@ class TestDropFrame:
 
     def test_dragEnterEvent(self, drop_frame: DropFrame):
         mime = QMimeData()
-        mime.setUrls(["C:/dummy/path.eso"])
+        mime.setUrls([QUrl("file://C:/dummy/path.eso")])
         mime.setText("HELLO FROM CHARTIFY")
         event = QDragEnterEvent(
             drop_frame.pos(), Qt.CopyAction, mime, Qt.LeftButton, Qt.NoModifier
@@ -93,7 +93,7 @@ class TestDropFrame:
 
     def test_dragEnterEvent_invalid_ext(self, drop_frame: DropFrame):
         mime = QMimeData()
-        mime.setUrls(["C:/dummy/path.invalid"])
+        mime.setUrls([QUrl("file://C:/dummy/path.invalid")])
         mime.setText("HELLO FROM CHARTIFY")
         event = QDragEnterEvent(
             drop_frame.pos(), Qt.CopyAction, mime, Qt.LeftButton, Qt.NoModifier
@@ -103,7 +103,7 @@ class TestDropFrame:
 
     def test_dragEnterEvent_leave(self, drop_frame: DropFrame):
         mime = QMimeData()
-        mime.setUrls(["C:/dummy/path.eso"])
+        mime.setUrls([QUrl("file://C:/dummy/path.eso")])
         mime.setText("HELLO FROM CHARTIFY")
         event = QDragEnterEvent(
             drop_frame.pos(), Qt.CopyAction, mime, Qt.LeftButton, Qt.NoModifier
@@ -116,8 +116,8 @@ class TestDropFrame:
         assert drop_frame.property("drag-accept") == ""
 
     def test_dropEvent(self, qtbot, drop_frame: DropFrame):
-        paths = [str(Path(ROOT, "eso_files", "simple_view.xlsx"))]
-        urls = ["file:" + p for p in paths]
+        paths = [Path(ROOT, "eso_files", "simple_view.xlsx")]
+        urls = ["file:" + str(p) for p in paths]
         mime = QMimeData()
         mime.setUrls(urls)
         mime.setText("HELLO FROM CHARTIFY")
@@ -132,6 +132,7 @@ class TestDropFrame:
         )
 
         def cb(a):
+            print(a)
             return a == paths
 
         with qtbot.wait_signal(drop_frame.fileDropped, check_params_cb=cb):

@@ -1,11 +1,8 @@
 import os
 from collections import namedtuple
-from pathlib import Path
 from random import randint
-from typing import Sequence, List
 
 import pandas as pd
-from PySide2.QtCore import QObject
 from esofile_reader.processing.totals import AVERAGED_UNITS
 
 VariableData = namedtuple("VariableData", "key type units")
@@ -158,26 +155,6 @@ def remove_recursively(dct, ref_dct):
             remove_recursively(dct[k], v)
 
 
-class SignalBlocker:
-    def __init__(self, *args: QObject):
-        self.args = args
-
-    def __enter__(self):
-        for a in self.args:
-            a.blockSignals(True)
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        for a in self.args:
-            a.blockSignals(False)
-
-
-def refresh_css(*args):
-    """ Refresh CSS of the widget. """
-    for a in args:
-        a.style().unpolish(a)
-        a.style().polish(a)
-
-
 def printdict(dct, limit=10):
     """ Print dictionary ignoring massive lists. """
     print_dict = {}
@@ -199,29 +176,3 @@ def printdict(dct, limit=10):
         else:
             print_dict[k] = v
     return print_dict
-
-
-def get_top_level_widget(wgt):
-    top_level = None
-
-    def traverse(wgt):
-        parent = wgt.parent()
-        if parent:
-            traverse(parent)
-        else:
-            nonlocal top_level
-            top_level = wgt
-
-    traverse(wgt)
-
-    return top_level
-
-
-def filter_files(paths: List[str], extensions: Sequence[str] = (".eso", ".xlsx")):
-    """ Return a list of file paths with given extensions. """
-    filtered = []
-    for path in paths:
-        p = Path(path)
-        if p.suffix in extensions:
-            filtered.append(path)
-    return filtered

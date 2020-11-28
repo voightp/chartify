@@ -18,15 +18,6 @@ class TestPixmap:
         img = p.toImage()
         assert img.pixelColor(10, 10).getRgb() == QColor(110, 120, 110, 127).getRgb()
 
-    def test_as_temp(self):
-        p = Pixmap(Path(ROOT, "./resources/icons/test.png"), r=110, g=120, b=110, a=0.5)
-        tf = p.as_temp()
-        path = Path(tf.fileName())
-        assert path.exists()
-
-        del tf
-        assert not path.exists()
-
 
 def test_text_to_pixmap(qtbot):
     f = QFont("Times", 20, QFont.Bold)

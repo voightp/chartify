@@ -2,7 +2,7 @@ import ctypes
 from functools import partial
 from pathlib import Path
 from typing import Optional, Tuple, List, Dict, Union
-
+import shutil
 from PySide2.QtCore import QSize, Qt, QCoreApplication, Signal, QPoint, QTimer
 from PySide2.QtGui import QIcon, QKeySequence, QColor
 from PySide2.QtWebEngineWidgets import QWebEngineView
@@ -36,7 +36,7 @@ from chartify.ui.misc_widgets import DropFrame, TabWidget
 from chartify.ui.progress_widget import ProgressContainer
 from chartify.ui.toolbar import Toolbar
 from chartify.ui.treeview import TreeView, ViewModel
-from chartify.utils.css_theme import Palette, CssTheme
+from chartify.utils.css_theme import Palette, CssParser
 from chartify.utils.icon_painter import Pixmap, filled_circle_pixmap
 from chartify.utils.utils import VariableData, FilterTuple
 
@@ -125,7 +125,7 @@ class MainWindow(QMainWindow):
         self.central_layout.addWidget(self.central_splitter)
 
         # ~~~~ Left hand area ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.left_main_wgt = DropFrame(self.central_splitter)
+        self.left_main_wgt = DropFrame(self.central_splitter, Settings.EXTENSIONS)
         self.left_main_wgt.setObjectName("leftMainWgt")
         self.left_main_layout = QHBoxLayout(self.left_main_wgt)
         left_side_policy = QSizePolicy()
@@ -265,8 +265,8 @@ class MainWindow(QMainWindow):
         for name, colors in self.palettes.items():
             act = QAction(name, self)
             act.triggered.connect(partial(self.on_color_scheme_changed, name))
-            c1 = QColor(*colors.get_color("SECONDARY_COLOR", as_tuple=True))
-            c2 = QColor(*colors.get_color("BACKGROUND_COLOR", as_tuple=True))
+            c1 = QColor(*colors.get_color_tuple("SECONDARY_COLOR"))
+            c2 = QColor(*colors.get_color_tuple("BACKGROUND_COLOR"))
             act.setIcon(
                 filled_circle_pixmap(
                     Settings.ICON_LARGE_SIZE, c1, c2=c2, border_color=QColor(255, 255, 255)
@@ -331,7 +331,8 @@ class MainWindow(QMainWindow):
         self.mini_menu_layout.addWidget(self.about_btn)
 
         # ~~~~ Set up app appearance ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.load_css()
+        self._temp_icons = []
+        self.load_css_and_icons()
         self.central_splitter.setSizes(Settings.SPLIT)
 
         # ~~~~ Tree view appearance ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -379,10 +380,10 @@ class MainWindow(QMainWindow):
         # this sets toolbar icon on win 7
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("foo")
 
-        c1 = Settings.PALETTE.get_color("PRIMARY_TEXT_COLOR", as_tuple=True)
-        c2 = Settings.PALETTE.get_color("SECONDARY_TEXT_COLOR", as_tuple=True)
+        c1 = Settings.PALETTE.get_color_tuple("PRIMARY_TEXT_COLOR")
+        c2 = Settings.PALETTE.get_color_tuple("SECONDARY_TEXT_COLOR")
 
-        r = Settings.ICONS_PATH
+        r = Settings.SOURCE_ICONS_DIR
         self.setWindowIcon(Pixmap(Path(r, "smile.png"), 255, 255, 255))
 
         self.load_file_btn.setIcon(QIcon(Pixmap(Path(r, "file.png"), *c1)))
@@ -445,14 +446,24 @@ class MainWindow(QMainWindow):
         )
         self.expand_all_act.setIcon(icon)
 
-    def load_css(self) -> None:
+    @staticmethod
+    def _create_icons_dir(parent: Path):
+        icons_dir = Path(parent, "icons")
+        shutil.rmtree(icons_dir, ignore_errors=True)
+        icons_dir.mkdir()
+        return icons_dir
+
+    def load_css_and_icons(self) -> None:
         """ Update application appearance. """
-        with CssTheme(Settings.CSS_PATH) as css:
-            css.populate_content(Settings.PALETTE)
-            # css needs to be cleared to repaint the window properly
-            self.setStyleSheet("")
-            self.setStyleSheet(css.content)
-            self.load_icons()
+        icons_dir = self._create_icons_dir(Settings.APP_TEMP_DIR)
+        css, icon_paths = CssParser.parse_css_files(
+            [Settings.CSS_PATH], Settings.PALETTE, Settings.SOURCE_ICONS_DIR, icons_dir,
+        )
+        # css needs to be cleared to repaint the window properly
+        self.setStyleSheet("")
+        self.setStyleSheet(css)
+        self._temp_icons = icon_paths
+        self.load_icons()
 
     def mirror_layout(self):
         """ Mirror the layout. """
@@ -534,7 +545,7 @@ class MainWindow(QMainWindow):
         if name != Settings.PALETTE_NAME:
             Settings.PALETTE = self.palettes[name]
             Settings.PALETTE_NAME = name
-            self.load_css()
+            self.load_css_and_icons()
             self.paletteUpdated.emit()
 
     def on_selection_populated(self, variables: List[VariableData]):

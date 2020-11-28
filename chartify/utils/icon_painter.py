@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Union, Tuple
-import tempfile
-from PySide2.QtCore import Qt, QBuffer, QIODevice, QTemporaryFile, QRectF, QSize, QDir
+
+from PySide2.QtCore import Qt, QIODevice, QRectF, QSize, QFile
 from PySide2.QtGui import QImage, QPixmap, QColor, QPainter, QFontMetrics, QPen, QFont
 
 
@@ -20,6 +20,22 @@ class Pixmap(QPixmap):
         if not (r == 0 and g == 0 and b == 0 and a == 1):
             self.repaint(r, g, b, a)
 
+    @classmethod
+    def repaint_icon(
+        cls, source_path: Path, dest_dir: Path, r: int = 0, g: int = 0, b: int = 0, a: float = 1
+    ) -> str:
+        """ Repaint given icons and store it into given dir. """
+        if not source_path.exists():
+            raise FileNotFoundError(f"Cannot find url: '{source_path}'!")
+        p = Pixmap(source_path, r, g, b, a)
+        name = f"{source_path.stem} {r}{g}{b}{a}" + source_path.suffix
+        dest_path = Path(dest_dir, name)
+        f = QFile(str(dest_path))
+        f.open(QIODevice.WriteOnly)
+        p.save(f)
+        f.close()
+        return f.fileName()
+
     def repaint(self, r: int, g: int, b: int, a: float) -> None:
         """ Repaint all non-transparent pixels with given color. """
         img = QImage(self.toImage())
@@ -31,16 +47,6 @@ class Pixmap(QPixmap):
                 if f > 0:
                     img.setPixelColor(x, y, new_col)
         self.convertFromImage(img)
-
-    def as_temp(self, dir_=None) -> tempfile.TemporaryFile:
-        """ Save the pixmap as a temporary file. """
-        buff = QBuffer()
-        self.save(buff, "PNG")
-        tf = QTemporaryFile(f"{dir_}/icon")
-        tf.open()
-        tf.write(buff.data())
-        tf.close()
-        return tf
 
 
 def text_to_pixmap(text: str, font: QFont, color: QColor, size: QSize = None) -> QPixmap:

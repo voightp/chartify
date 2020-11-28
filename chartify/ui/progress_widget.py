@@ -14,7 +14,7 @@ from PySide2.QtWidgets import (
 )
 
 from chartify.ui.buttons import StatusButton
-from chartify.utils.utils import refresh_css
+from chartify.ui.widget_functions import refresh_css
 
 
 class ProgressFile:
@@ -229,11 +229,11 @@ class ProgressWidget(QFrame):
         else:
             self.setVisible(False)
 
+    @refresh_css
     def update_style(self) -> None:
         """ Update style according to the 'failed' state. """
         if self.property("failed") != self.file_ref.failed:
             self.setProperty("failed", self.file_ref.failed)
-            refresh_css(self.label, self.progress_bar, self.file_btn)
 
     def update_status(self) -> None:
         """ Update button tooltip. """
@@ -284,16 +284,8 @@ class ProgressContainer(QWidget):
         Widgets to visually represent file information.
     files : Dict of int, ProgressFile
         Holds file reference for all processed files.
-    locked List of ProgressFile
+    locked : List of ProgressFile
         Stores files with locked position.
-
-    Constants
-    ---------
-    MAX_VISIBLE_JOBS
-        Maximum number of visible progress widgets on status bar.
-    OVERLAP
-        Defines a threshold which needs to be exceeded to switch
-        positions. For example file only moves if
 
     """
 

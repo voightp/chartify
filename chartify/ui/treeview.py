@@ -23,8 +23,8 @@ from profilehooks import profile
 from chartify.utils.utils import (
     FilterTuple,
     VariableData,
-    SignalBlocker,
 )
+from chartify.ui.widget_functions import SignalBlocker
 
 PROXY_UNITS_LEVEL = "proxy_units"
 

@@ -5,7 +5,7 @@ import pytest
 from PySide2.QtCore import Qt, QModelIndex
 from PySide2.QtWidgets import QHeaderView, QSizePolicy
 from esofile_reader import EsoFile, GenericFile
-from esofile_reader.constants import UNITS_LEVEL
+from esofile_reader.df.level_names import UNITS_LEVEL
 
 from chartify.ui.treeview import TreeView, ViewModel, FilterModel
 from chartify.utils.utils import VariableData, FilterTuple
@@ -16,7 +16,7 @@ WIDTH = 402
 
 @pytest.fixture(scope="module")
 def eso_file():
-    return EsoFile(Path(ROOT, "eso_files", "eplusout1.eso"))
+    return EsoFile.from_path(Path(ROOT, "eso_files", "eplusout1.eso"))
 
 
 @pytest.fixture(scope="module")

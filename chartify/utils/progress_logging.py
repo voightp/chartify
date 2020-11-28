@@ -75,9 +75,6 @@ class ProgressThread(QThread):
     def run(self):
         while True:
             logger_id, identifier, args = self.progress_queue.get()
-            print(logger_id, end=" | ")
-            print(identifier, end=" | ")
-            print(args)
             switch = {
                 ERROR: self.failed,
                 NEW_FILE: self.file_added,

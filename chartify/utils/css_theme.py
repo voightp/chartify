@@ -2,11 +2,8 @@ import json
 import re
 import traceback
 from pathlib import Path
-from typing import Tuple, Dict, Union, Iterable
+from typing import Tuple, Dict, Union, Iterable, Optional, List
 
-from PySide2.QtCore import QTemporaryFile
-
-from chartify.settings import Settings
 from chartify.utils.icon_painter import Pixmap
 
 
@@ -46,10 +43,10 @@ def perc_to_float(perc: Union[str, int]) -> float:
     return round(int(perc) / 100, 2) if perc else None
 
 
-def string_rgb(rgb: Tuple[int, int, int], opacity: float = None) -> str:
+def string_rgb(rgb: Union[Tuple[int, int, int], Tuple[int, int, int, float]]) -> str:
     """ Create rgb string. """
-    if opacity:
-        srgb = f"rgba({rgb[0]}, {rgb[1]}, {rgb[2]}, {opacity})"
+    if len(rgb) == 4:
+        srgb = f"rgba({rgb[0]}, {rgb[1]}, {rgb[2]}, {rgb[3]})"
     else:
         srgb = f"rgb({rgb[0]}, {rgb[1]}, {rgb[2]})"
     return srgb
@@ -117,21 +114,16 @@ class Palette:
                 palettes[name] = cls(name, default_color=default_color, **p)
         return palettes
 
-    def get_color(
-        self, color_key: str, opacity: float = None, as_tuple: bool = False
-    ) -> Union[Tuple[int, int, int], Tuple[int, int, int, float], str]:
-        """ Get specified color as string. """
+    def get_color_tuple(
+        self, color_key: str, opacity: float = None
+    ) -> Union[Tuple[int, int, int], Tuple[int, int, int, float]]:
         try:
             rgb = self.colors_dct[color_key]
             if opacity:
                 # add opacity to rgb request
                 if opacity < 0 or opacity > 1:
                     raise InvalidRangeError("Opacity must be a float in range 0.0-1.0")
-            return (
-                ((*rgb, opacity) if opacity else rgb)
-                if as_tuple
-                else string_rgb(rgb, opacity=opacity)
-            )
+            return (*rgb, opacity) if opacity else rgb
         except KeyError:
             colors_str = ", ".join(self.colors_dct.keys())
             raise KeyError(
@@ -139,17 +131,27 @@ class Palette:
                 f"available, use one of: '{colors_str}'."
             )
 
-    def get_all_colors(
-        self, as_tuple: bool = False
-    ) -> Dict[str, Union[Tuple[int, int, int], str]]:
+    def get_color(self, color_key: str, opacity: float = None) -> str:
+        """ Get specified color as string. """
+        color_tuple = self.get_color_tuple(color_key, opacity)
+        return string_rgb(color_tuple)
+
+    def get_all_colors(self) -> Dict[str, str]:
         """ Get all colors key, color dict (color as string). """
         dct = {}
         for k in self.colors_dct.keys():
-            dct[k] = self.get_color(k, as_tuple=as_tuple)
+            dct[k] = self.get_color(k)
+        return dct
+
+    def get_all_color_tuples(self) -> Dict[str, Tuple[int, int, int]]:
+        """ Get all colors key, color dict (color as string). """
+        dct = {}
+        for k in self.colors_dct.keys():
+            dct[k] = self.get_color_tuple(k)
         return dct
 
 
-class CssTheme:
+class CssParser:
     """ A class used to parse input css.
 
     Lines containing 'palette' color keys or
@@ -158,80 +160,87 @@ class CssTheme:
     Icons defined as: URL(some/path)#PRIMARY_COLOR#20
     will be repainted using given 'palette' color.
 
-    Note that 'populate_content' needs to be called
+    Note that 'parse_css_files' needs to be called
     to process given css files.
-
-    Arguments
-    ---------
-    palette : Palette
-        Defines color theme.
-    *args
-        Css file paths.
 
     """
 
-    def __init__(self, *args):
-        self.css_paths = list(args)
-        self.content = ""
-        self._temp = []
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self._temp.clear()
-
-    @staticmethod
-    def parse_line(line: str, color_key: str, rgb: Tuple[int, int, int]) -> str:
+    @classmethod
+    def parse_line(cls, line: str, color_key: str, rgb: Tuple[int, int, int]) -> str:
         """ Get a color string or tuple. """
         pattern = f"(.*){color_key}\s?#?(\d\d)?;?"
         prop, opacity = re.findall(pattern, line)[0]
-        srgb = string_rgb(rgb, opacity=perc_to_float(opacity) if opacity else None)
-        return f"{prop}{srgb};\n"
+        rgb = rgb if not opacity else (*rgb, perc_to_float(opacity))
+        return f"{prop}{string_rgb(rgb)};\n"
 
-    @staticmethod
-    def parse_url(
-        line: str, color_key: str, rgb: Tuple[int, int, int]
-    ) -> Tuple[str, QTemporaryFile]:
+    @classmethod
+    def parse_url(cls, line: str, color_key: str) -> Tuple[str, str, Optional[float]]:
         """ Parse a line with an url. """
         pattern = f"(.*)URL\((.*?)\)\s?#{color_key}\s?#?(\d\d)?;"
         try:
             tup = re.findall(pattern, line)
             prop, url, opacity = tup[0]
-            rgb = rgb if not opacity else (*rgb, perc_to_float(opacity) if opacity else None)
-            # a temporary file is required to store repainted pixmap
-            path = Path(Settings.ROOT, Path(url))
-            if not path.exists():
-                raise FileNotFoundError(f"Cannot find url: '{path}'!")
-            p = Pixmap(str(path), *rgb)
-            tf = p.as_temp(Settings.APP_TEMP_NAME)
-            line = f"{prop}url({tf.fileName()});\n"
+            opacity = perc_to_float(opacity) if opacity else None
         except IndexError:
             # this is raised when there's no match or unexpected output
             raise InvalidUrlLine(f"Failed to parse {line}.\n{traceback.format_exc()}")
-        return line, tf
+        return prop, url, opacity
 
-    def parse_css(self, source_css: Iterable[str], palette: Palette) -> str:
+    @classmethod
+    def parse_url_line(
+        cls,
+        line: str,
+        color_key: str,
+        rgb: Tuple[int, int, int],
+        source_icons_dir: Path,
+        dest_icons_dir: Path,
+    ) -> Tuple[str, str]:
+        """ Create a new icon based on css line.  """
+        prop, url, opacity = cls.parse_url(line, color_key)
+        source_path = Path(source_icons_dir, url)
+        rgb = (*rgb, opacity) if opacity else rgb
+        dest_path = Pixmap.repaint_icon(source_path, dest_icons_dir, *rgb)
+        return f"{prop}url({dest_path});\n", dest_path
+
+    @classmethod
+    def parse_css(
+        cls,
+        source_css: Iterable[str],
+        palette: Palette,
+        source_icons_dir: Path,
+        dest_icons_dir: Path,
+    ) -> Tuple[str, List[str]]:
         """ Parse given css file. """
         css = ""
+        icon_paths = []
         for line in source_css:
             if any(map(lambda x: x in line, palette.COLORS)):
                 color_key = next(k for k in palette.COLORS if k in line)
-                rgb = palette.get_color(color_key, as_tuple=True)
-                if "URL" in line:
-                    line, tf = self.parse_url(line, color_key, rgb)
-                    self._temp.append(tf)
+                rgb = palette.get_color_tuple(color_key)
+                if "URL" in line or "url" in line:
+                    line, icon_path = cls.parse_url_line(
+                        line, color_key, rgb, source_icons_dir, dest_icons_dir
+                    )
+                    icon_paths.append(icon_path)
                 else:
-                    line = self.parse_line(line, color_key, rgb)
+                    line = cls.parse_line(line, color_key, rgb)
             css += line
-        return css
+        return css, icon_paths
 
-    def populate_content(self, palette: Palette) -> None:
-        """ Update palette. """
-        self._temp.clear()  # temp icons will be created again
-        content = ""
-        for file in self.css_paths:
-            with open(file, "r") as f:
-                css = self.parse_css(f, palette)
-                content += css
-        self.content = content
+    @classmethod
+    def parse_css_files(
+        cls,
+        css_paths: List[Path],
+        palette: Palette,
+        source_icons_dir: Path,
+        dest_icons_dir: Path,
+    ) -> Tuple[str, List[str]]:
+        """ Read and parse given css paths. """
+        all_css = ""
+        all_icon_paths = []
+        for path in css_paths:
+            with open(path, "r") as f:
+                css, icon_paths = cls.parse_css(f, palette, source_icons_dir, dest_icons_dir)
+                all_css += css
+                all_icon_paths.extend(icon_paths)
+        return all_css, all_icon_paths

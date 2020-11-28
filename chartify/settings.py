@@ -17,12 +17,13 @@ class Settings:
     URL = "http://127.0.0.1:8080/"
     PALETTE_PATH = str(Path(ROOT, "resources/styles/palettes.json"))
     CSS_PATH = str(Path(ROOT, "resources/styles/app_style.css"))
-    ICONS_PATH = str(Path(ROOT, "resources/icons/"))
+    SOURCE_ICONS_DIR = Path(ROOT, "resources/icons/")
     SETTINGS_PATH = Path(Path.home(), ".chartify", "settings.json")
 
-    APP_TEMP_DIR = tempfile.TemporaryDirectory(prefix="chartify-", suffix="-bar")
-    APP_TEMP_NAME = APP_TEMP_DIR.name
-    print("LOADED " + APP_TEMP_NAME)
+    APP_TEMP_DIR = Path(tempfile.gettempdir(), "chartify")
+
+    EXTENSIONS = [".eso", ".xlsx", ".csv"]
+
     IP_ENERGY_UNITS = ["Btu", "kBbtu", "MBtu"]
     IP_POWER_UNITS = ["Btu/h", "kBtu/h", "MBtu/h", "W"]
     SI_ENERGY_UNITS = ["Wh", "kWh", "MWh", "J", "MJ", "GJ"]
@@ -67,11 +68,13 @@ class Settings:
         "URL",
         "PALETTE_PATH",
         "CSS_PATH",
-        "ICONS_PATH",
+        "SOURCE_ICONS_DIR",
         "ICON_SMALL_SIZE",
         "ICON_MEDIUM_SIZE",
         "ICON_LARGE_SIZE",
         "SETTINGS_PATH",
+        "APP_TEMP_DIR",
+        "APP_TEMP_NAME",
     ]
 
     @classmethod

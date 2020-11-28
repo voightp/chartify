@@ -1,14 +1,13 @@
 import io
 import json
 from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 
 from chartify.utils.css_theme import (
     parse_color,
     Palette,
-    CssTheme,
+    CssParser,
     InvalidRangeError,
     perc_to_float,
     string_rgb,
@@ -28,14 +27,14 @@ def test_perc_to_float():
 
 
 @pytest.mark.parametrize(
-    "rgb,opacity,expected",
+    "rgb,expected",
     [
-        ((100, 100, 100), None, "rgb(100, 100, 100)"),
-        ((100, 100, 100), 0.7, "rgba(100, 100, 100, 0.7)"),
+        ((100, 100, 100), "rgb(100, 100, 100)"),
+        ((100, 100, 100, 0.7), "rgba(100, 100, 100, 0.7)"),
     ],
 )
-def test_string_rgb(rgb, opacity, expected):
-    assert string_rgb(rgb, opacity) == expected
+def test_string_rgb(rgb, expected):
+    assert string_rgb(rgb) == expected
 
 
 @pytest.mark.parametrize(
@@ -163,10 +162,10 @@ class TestPalette:
             palette.get_color("PRIMARY_COLOR", opacity=1.1)
 
     def test_get_color_as_tuple(self, palette: Palette):
-        assert palette.get_color("PRIMARY_COLOR", as_tuple=True) == (255, 255, 255)
+        assert palette.get_color_tuple("PRIMARY_COLOR") == (255, 255, 255)
 
     def test_get_color_opacity_as_tuple(self, palette: Palette):
-        c = palette.get_color("PRIMARY_COLOR", opacity=0.5, as_tuple=True)
+        c = palette.get_color_tuple("PRIMARY_COLOR", opacity=0.5)
         assert c == (255, 255, 255, 0.5)
 
     def test_get_invalid_color(self, palette: Palette):
@@ -182,7 +181,7 @@ class TestPalette:
         }
 
     def test_get_all_colors_as_tuple(self, palette: Palette):
-        assert palette.get_all_colors(as_tuple=True) == {
+        assert palette.get_all_color_tuples() == {
             "PRIMARY_COLOR": (255, 255, 255),
             "PRIMARY_TEXT_COLOR": (0, 0, 0),
             "SECONDARY_COLOR": (100, 100, 100),
@@ -194,7 +193,7 @@ class TestCssTheme:
     @pytest.fixture(scope="class")
     def css(self):
         # reduce colors for test purposes
-        return CssTheme()
+        return CssParser()
 
     @pytest.mark.parametrize(
         "line,color_key,rgb,expected",
@@ -214,7 +213,7 @@ class TestCssTheme:
         ],
     )
     def test_parse_line(self, line: str, color_key: str, rgb: tuple, expected: str):
-        css = CssTheme()
+        css = CssParser()
         assert css.parse_line(line, color_key, rgb) == expected
 
     @pytest.mark.parametrize(
@@ -232,30 +231,22 @@ class TestCssTheme:
             ),
         ],
     )
-    def test_parse_url(self, line: str, color_key: str, rgb: tuple, qtbot):
-        with patch("chartify.utils.css_theme.Settings") as mock_settings:
-            mock_settings.ROOT = ROOT
-            css = CssTheme()
-            line, tf = css.parse_url(line, color_key, rgb)
-            assert line == f"  image: url({tf.fileName()});\n"
+    def test_parse_url(self, line: str, color_key: str, rgb: tuple, qtbot, tmpdir):
+        css = CssParser()
+        line, dest_path = css.parse_url_line(line, color_key, rgb, ROOT, tmpdir)
+        assert line == f"  image: url({dest_path});\n"
 
     def test_parse_url_index_error(self):
-        with patch("chartify.utils.css_theme.Settings") as mock_settings:
-            mock_settings.ROOT = ROOT
-            css = CssTheme()
-            line = "URL #WRONGCOLOR"
-            with pytest.raises(InvalidUrlLine):
-                _ = css.parse_url(line, "PRIMARY_COLOR", (0, 0, 0))
+        line = "URL #WRONGCOLOR"
+        with pytest.raises(InvalidUrlLine):
+            _ = CssParser.parse_url(line, "PRIMARY_COLOR")
 
-    def test_parse_url_invalid_path(self):
-        with patch("chartify.utils.css_theme.Settings") as mock_settings:
-            mock_settings.ROOT = ROOT
-            css = CssTheme()
-            line = "image: URL(./invalid/test.png) #PRIMARY_COLOR#70;"
-            with pytest.raises(FileNotFoundError):
-                _ = css.parse_url(line, "PRIMARY_COLOR", (0, 0, 0))
+    def test_parse_url_invalid_path(self, tmpdir):
+        line = "image: URL(./invalid/test.png) #PRIMARY_COLOR#70;"
+        with pytest.raises(FileNotFoundError):
+            _ = CssParser.parse_url_line(line, "PRIMARY_COLOR", (10, 10, 10), ROOT, tmpdir)
 
-    def test_parse_css(self, palette: Palette, qtbot):
+    def test_parse_css(self, palette: Palette, qtbot, tmpdir):
         s = """
 TitledButton {
     font-size: 13px;
@@ -273,21 +264,17 @@ TitledButton:checked {
     color: PRIMARY_TEXT_COLOR;
 }"""
         sio = io.StringIO(s)
-        with patch("chartify.utils.css_theme.Settings") as mock_settings:
-            mock_settings.ROOT = ROOT
-            css = CssTheme()
-            parsed = css.parse_css(sio.readlines(), palette)
-            temp_icon = css._temp[0].fileName()
-            assert (
-                parsed
-                == f"""
+        parsed, temp_icons = CssParser.parse_css(sio.readlines(), palette, ROOT, tmpdir)
+        assert (
+            parsed
+            == f"""
 TitledButton {{
     font-size: 13px;
     image: url(./resources/icons/test.png);
 }}
 
 TitledButton::menu-indicator {{
-    image: url({temp_icon});
+    image: url({temp_icons[0]});
     margin: 1px;
 }}
 
@@ -296,33 +283,4 @@ TitledButton:checked {{
     border-color: rgb(255, 255, 255);
     color: rgb(0, 0, 0);
 }}"""
-            )
-
-    def test_populate_content(self, palette: Palette, qtbot):
-        with patch("chartify.utils.css_theme.Settings") as mock_settings:
-            mock_settings.ROOT = ROOT
-            css = CssTheme(
-                Path(ROOT).joinpath("./resources/styles/test1.css"),
-                Path(ROOT).joinpath("./resources/styles/test2.css"),
-            )
-            css.populate_content(palette)
-            temp_icon = css._temp[0].fileName()
-            assert (
-                css.content
-                == f"""
-TitledButton {{
-    font-size: 13px;
-    image: url(./resources/icons/test.png);
-}}
-
-TitledButton::menu-indicator {{
-    image: url({temp_icon});
-    margin: 1px;
-}}
-
-TitledButton:checked {{
-    background-color: transparent;
-    border-color: rgb(255, 255, 255);
-    color: rgb(0, 0, 0);
-}}"""
-            )
+        )

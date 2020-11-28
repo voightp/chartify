@@ -49,7 +49,7 @@ DropFrame#leftMainWgt[drag-accept=false] {
 QSplitter::handle {
     height: 6px;
     background-color: SURFACE_COLOR;
-    image: URL(./resources/icons/dots.png) #BACKGROUND_COLOR;
+    image: URL(dots.png) #BACKGROUND_COLOR;
 }
 
 /* workaround to repaint handle */
@@ -58,7 +58,7 @@ QSplitterHandle:hover {
 }
 
 QSplitter::handle:horizontal:hover {
-    image: URL(./resources/icons/dots.png) #SECONDARY_COLOR;
+    image: URL(dots.png) #SECONDARY_COLOR;
 }
 
 /* ~~~~~ STATUS BAR ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
@@ -79,7 +79,7 @@ QLabel {
 }
 
 QLabel#filterIcon {
-    image: URL(./resources/icons/filter_list.png) #SECONDARY_TEXT_COLOR;
+    image: URL(filter_list.png) #SECONDARY_TEXT_COLOR;
     min-width: 20px;
     min-height: 20px;
 }
@@ -154,7 +154,7 @@ QToolButton#swapButton {
     margin: 0px;
     border: 0px;
     background: transparent;
-    image: URL(./resources/icons/swap.png) #PRIMARY_COLOR;
+    image: URL(swap.png) #PRIMARY_COLOR;
     width: 20px;
     height: 20px;
 }
@@ -208,7 +208,7 @@ MenuButton#settingsButton {
 }
 
 MenuButton::menu-indicator {
-    image: url(./resources/icons/transparent.png);
+    image: url(transparent.png);
     margin: 3px;
     width: 10px;
     height: 10px;
@@ -221,7 +221,7 @@ TitledButton {
 }
 
 TitledButton::menu-indicator {
-    image: URL(./resources/icons/expand_more.png) #PRIMARY_COLOR;
+    image: URL(expand_more.png) #PRIMARY_COLOR;
     margin: 1px;
     width: 12px;
     height: 12px;
@@ -276,7 +276,7 @@ QToolButton#schemeButton QMenu {
 }
 
 QToolButton#schemeButton::menu-indicator {
-    image: url(./resources/icons/transparent.png);
+    image: url(transparent.png);
     margin: 0px;
     width: 0px;
     height: 0px;
@@ -313,6 +313,10 @@ SummaryWidget QLabel {
     font-size: 11px;
 }
 
+ProgressWidget QLabel {
+    font-size: 11px;
+}
+
 ProgressWidget QProgressBar {
     background: OK_COLOR #40;
     border: 0px solid transparent;
@@ -333,7 +337,7 @@ ProgressWidget[failed=true] QProgressBar::chunk {
 }
 
 ProgressWidget StatusButton {
-    image: URL(./resources/icons/file.png) #PRIMARY_COLOR;
+    image: URL(file.png) #PRIMARY_COLOR;
     margin: 0px;
     padding: 0px;
     border: 0px solid transparent;
@@ -343,18 +347,15 @@ ProgressWidget StatusButton {
 }
 
 ProgressWidget[failed=true] StatusButton {
-    image: URL(./resources/icons/remove_file.png) #ERROR_COLOR;
-}
-
-#statusLabel {
-    background-color: SURFACE_COLOR;
-    border: 1px solid PRIMARY_COLOR;
-    padding: 5px;
-    margin: 0px;
+    image: URL(remove_file.png) #ERROR_COLOR;
 }
 
 #statusLabel {
     font-size: 11px;
+    background-color: SURFACE_COLOR;
+    border: 1px solid PRIMARY_COLOR;
+    padding: 5px;
+    margin: 0px;
 }
 
 ProgressWidget[failed=true] QLabel {
@@ -408,15 +409,15 @@ QTabBar::tab:selected {
 }
 
 QTabBar::close-button {
-    image: URL(./resources/icons/remove.png) #SECONDARY_TEXT_COLOR;
+    image: URL(remove.png) #SECONDARY_TEXT_COLOR;
 }
 
 QTabBar::close-button:selected {
-    image: URL(./resources/icons/remove.png) #PRIMARY_COLOR;
+    image: URL(remove.png) #PRIMARY_COLOR;
 }
 
 QTabBar::close-button:hover {
-    image: URL(./resources/icons/remove.png) #ERROR_COLOR;
+    image: URL(remove.png) #ERROR_COLOR;
 }
 
 QTabBar::tab:first:selected {
@@ -453,19 +454,19 @@ QTabBar::scroller {
 }
 
 QTabBar QToolButton::left-arrow {
-    image: URL(./resources/icons/chevron_left.png) #SECONDARY_TEXT_COLOR;
+    image: URL(chevron_left.png) #SECONDARY_TEXT_COLOR;
 }
 
 QTabBar QToolButton::left-arrow:disabled {
-    image: url(./resources/icons/transparent.png);
+    image: url(transparent.png);
 }
 
 QTabBar QToolButton::right-arrow {
-    image: URL(./resources/icons/chevron_right.png) #SECONDARY_TEXT_COLOR;
+    image: URL(chevron_right.png) #SECONDARY_TEXT_COLOR;
 }
 
 QTabBar QToolButton::right-arrow:disabled {
-    image: url(./resources/icons/transparent.png);
+    image: url(transparent.png);
 }
 
 QHeaderView::section {
@@ -487,7 +488,7 @@ QHeaderView::section:checked {
 /* style the sort indicator */
 QHeaderView::down-arrow {
     color: PRIMARY_TEXT_COLOR;
-    image: URL(./resources/icons/expand_less.png) #PRIMARY_COLOR;
+    image: URL(expand_less.png) #PRIMARY_COLOR;
     width: 12px;
     height: 12px;
     subcontrol-position: right;
@@ -496,7 +497,7 @@ QHeaderView::down-arrow {
 
 QHeaderView::up-arrow {
     color: PRIMARY_TEXT_COLOR;
-    image: URL(./resources/icons/expand_more.png) #PRIMARY_COLOR;
+    image: URL(expand_more.png) #PRIMARY_COLOR;
     width: 12px;
     height: 12px;
 }
@@ -540,11 +541,11 @@ QTreeView::branch:has-children {
 }
 
 QTreeView::branch:has-children:closed {
-    image: URL(./resources/icons/plus.png) #PRIMARY_TEXT_COLOR;
+    image: URL(plus.png) #PRIMARY_TEXT_COLOR;
 }
 
 QTreeView::branch:has-children:open {
-    image: URL(./resources/icons/minus.png) #PRIMARY_TEXT_COLOR;
+    image: URL(minus.png) #PRIMARY_TEXT_COLOR;
 }
 
 QScrollBar:vertical {
@@ -655,7 +656,7 @@ QMenu::indicator {
 }
 
 QMenu::indicator:non-exclusive:checked {
-    image: URL(./resources/icons/check.png) #SECONDARY_TEXT_COLOR;
+    image: URL(check.png) #SECONDARY_TEXT_COLOR;
 }
 
 ToggleButton {
@@ -738,20 +739,20 @@ QDialog QTextEdit {
 }
 
 QDialogButtonBox #okButton {
-    image: URL(./resources/icons/check.png) #PRIMARY_COLOR;
+    image: URL(check.png) #PRIMARY_COLOR;
 }
 
 QDialogButtonBox #rejectButton {
-    image: URL(./resources/icons/remove.png) #PRIMARY_COLOR;
+    image: URL(remove.png) #PRIMARY_COLOR;
     margin-right: 4px;
 }
 
 QDialogButtonBox #okButton:hover {
-    image: URL(./resources/icons/check.png) #OK_COLOR;
+    image: URL(check.png) #OK_COLOR;
     background: transparent;
 }
 
 QDialogButtonBox #rejectButton:hover {
-    image: URL(./resources/icons/remove.png) #ERROR_COLOR;
+    image: URL(remove.png) #ERROR_COLOR;
     background: transparent;
 }

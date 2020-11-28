@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import List, Optional, Set, Tuple
 from unittest.mock import patch, MagicMock
-
+import tempfile
 import pytest
 from PySide2.QtCore import QMargins, Qt, QSize, QPoint
 from PySide2.QtGui import QKeySequence
@@ -17,12 +17,14 @@ from tests import ROOT
 
 @pytest.fixture(scope="module")
 def eso_file():
-    return EsoFile(Path(ROOT, "eso_files", "eplusout1.eso"))
+    return EsoFile.from_path(Path(ROOT, "eso_files", "eplusout1.eso"))
 
 
 @pytest.fixture
 def mw(qtbot, tmp_path):
     Settings.SETTINGS_PATH = Path("dummy/path")  # force default
+    app_tempdir = tempfile.TemporaryDirectory(prefix="chartify")
+    Settings.APP_TEMP_DIR = Path(app_tempdir.name)
     Settings.load_settings_from_json()
     main_window = MainWindow()
     qtbot.add_widget(main_window)
@@ -166,7 +168,7 @@ def test_init_main_window(qtbot, mw: MainWindow):
     assert mw.central_splitter.sizes() == Settings.SPLIT
 
     assert (
-        mw.css.content[0:144]
+        mw.styleSheet()[0:144]
         == """/* ~~~~~ GLOBAL ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
 * {
@@ -265,21 +267,21 @@ def test_save_storage_to_fs(mw: MainWindow):
 
 def test_load_files_from_fs(qtbot, mw: MainWindow):
     def cb(paths):
-        return paths == ["some/dummy/path/file.abc"]
+        return paths == [Path("some/dummy/path/file.abc")]
 
     with patch("chartify.ui.main_window.QFileDialog") as qdialog:
         with patch("chartify.ui.main_window.Settings") as mock_settings:
             with qtbot.wait_signal(mw.fileProcessingRequested, check_params_cb=cb):
                 qdialog.getOpenFileNames.return_value = (["some/dummy/path/file.abc"], ".abc")
-                mock_settings.LOAD_PATH = "load/path"
+                mock_settings.LOAD_PATH = Path("load/path")
                 mw.load_files_from_fs()
                 qdialog.getOpenFileNames.assert_called_with(
                     parent=mw,
                     caption="Load Project / Eso File",
                     filter="FILES (*.csv *.xlsx *.eso *.cfs)",
-                    dir="load/path",
+                    dir="load\\path",
                 )
-                assert mock_settings.LOAD_PATH == "some\\dummy\\path"
+                assert mock_settings.LOAD_PATH == Path("some/dummy/path")
 
 
 def test_on_color_scheme_changed(qtbot, mw: MainWindow):

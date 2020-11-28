@@ -11,7 +11,7 @@ from PySide2.QtWidgets import (
     QDialog,
 )
 
-from chartify.utils.utils import refresh_css
+from chartify.ui.widget_functions import refresh_css
 
 
 class TitledButton(QToolButton):
@@ -26,8 +26,6 @@ class TitledButton(QToolButton):
         self.title.move(QPoint(4, 2))
         self.title.setAttribute(Qt.WA_TransparentForMouseEvents)
         self.triggered.connect(lambda act: self.setDefaultAction(act))
-        self.triggered.connect(lambda: print("FOOO"))
-        self.triggered.connect(lambda act: print(act.data()))
 
     def setEnabled(self, enabled: bool) -> None:
         super().setEnabled(enabled)
@@ -110,12 +108,13 @@ class ToggleButton(QFrame):
         self.label.setIndent(0)
         self.layout().insertWidget(0, self.label)
 
+    @refresh_css
     def setChecked(self, checked: bool) -> None:
         """ Set toggle button checked. """
         self.slider.setValue(int(checked))
         self.slider.setProperty("isChecked", True if checked else "")
-        refresh_css(self.slider)
 
+    @refresh_css
     def setEnabled(self, enabled: bool) -> None:
         """ Enable or disable the button. """
         self.slider.setEnabled(enabled)
@@ -125,7 +124,6 @@ class ToggleButton(QFrame):
         else:
             self.slider.setProperty("isChecked", "")
             self.slider.setProperty("isEnabled", False)
-        refresh_css(self.slider)
 
 
 class MenuButton(QToolButton):

@@ -2,7 +2,7 @@ import os
 from multiprocessing import Manager
 from pathlib import Path
 from typing import List, Callable, Union, Any, Dict, Optional
-
+import shutil
 from PySide2.QtCore import QThreadPool
 from esofile_reader import Variable
 from esofile_reader.df.level_names import UNITS_LEVEL
@@ -75,6 +75,8 @@ class AppController:
         """ Clean up application resources. """
         # TODO enable once main window polished
         # Settings.save_settings_to_json()
+
+        shutil.rmtree(Settings.APP_TEMP_DIR, ignore_errors=True)
 
         self.watcher.terminate()
         self.progress_thread.terminate()

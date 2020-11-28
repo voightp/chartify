@@ -131,14 +131,13 @@ def test_add_file_visible(container: ProgressContainer):
 
 
 def test_set_range_invisible_to_visible(container: ProgressContainer):
-    container.set_range("1", 500, 1000, "range set!")
+    container.set_range("1", 500, 1000)
     file = container.files["1"]
     widget = container.widgets[3]
 
     assert container._get_visible_index(file) == 3
     assert file.maximum == 1000
     assert file.value == 500
-    assert file.status == "range set!"
     assert file.relative_value == 500 / 1000 * 100
     assert not file.failed
     assert file.widget == widget
@@ -147,7 +146,7 @@ def test_set_range_invisible_to_visible(container: ProgressContainer):
     assert widget.label.text() == "file-1"
     assert widget.progress_bar.value() == 500
     assert widget.progress_bar.maximum() == 1000
-    assert widget.file_btn.text == "File: C:/dummy/path/file-1.eso\nPhase: range set!"
+    assert widget.file_btn.text == "File: C:/dummy/path/file-1.eso\nPhase: "
 
 
 def test_update_progress(container: ProgressContainer):
@@ -226,19 +225,17 @@ def test_set_failed(container: ProgressContainer):
 
 
 def test_set_pending(container: ProgressContainer):
-    container.set_pending("8", "pending!")
+    container.set_pending("8")
     file = container.files["8"]
     widget = container.widgets[0]
 
     assert file.maximum == 0
     assert file.value == 0
-    assert file.status == "pending!"
 
     assert widget.file_ref == file
     assert widget.label.text() == "file-8"
     assert widget.progress_bar.value() == 0
     assert widget.progress_bar.maximum() == 0
-    assert widget.file_btn.text == "File: C:/dummy/path/file-8.eso\nPhase: pending!"
 
 
 def test_remove_file(container: ProgressContainer):
