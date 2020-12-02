@@ -16,14 +16,20 @@ class SignalBlocker:
 
 
 def refresh_css(func):
+    """ Update css on a widget and all its children. """
+
     def wrapper(self, *args, **kwargs):
+        def loop(wgt):
+            for child in wgt.children():
+                if issubclass(type(child), QWidget):
+                    wgt.style().unpolish(child)
+                    wgt.style().polish(child)
+                    loop(child)
+
         result = func(self, *args, **kwargs)
         self.style().unpolish(self)
         self.style().polish(self)
-        for child in self.children():
-            if issubclass(type(child), QWidget):
-                self.style().unpolish(child)
-                self.style().polish(child)
+        loop(self)
         return result
 
     return wrapper
