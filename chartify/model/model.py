@@ -1,10 +1,11 @@
+from pathlib import Path
 from typing import List, Union
 
 import pandas as pd
 from PySide2.QtCore import QObject
 from esofile_reader import Variable, SimpleVariable, get_results
-from esofile_reader.pqt.parquet_storage import ParquetStorage
 from esofile_reader.pqt.parquet_file import ParquetFile
+from esofile_reader.pqt.parquet_storage import ParquetStorage
 
 from chartify.charts.chart import Chart
 from chartify.charts.trace import Trace1D, Trace2D, TraceData
@@ -24,7 +25,7 @@ class AppModel(QObject):
     def __init__(self):
         super().__init__()
         # ~~~~ File Database ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.storage = ParquetStorage(parent=Settings.APP_TEMP_DIR)
+        self.storage = ParquetStorage(path=Path(Settings.APP_TEMP_DIR, "storage"))
 
         # ~~~~ Currently selected variables ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.selected_variable_data = []
