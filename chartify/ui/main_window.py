@@ -160,6 +160,14 @@ class MainWindow(QMainWindow):
         self.tab_wgt.setMinimumWidth(400)
         self.view_layout.addWidget(self.tab_wgt)
 
+        self.tab_wgt1 = TabWidget(self.view_wgt)
+        self.tab_wgt1.setMinimumWidth(400)
+        self.view_layout.addWidget(self.tab_wgt)
+
+        self.tab_wgt1 = TabWidget(self.view_wgt)
+        self.tab_wgt1.setMinimumWidth(400)
+        self.view_layout.addWidget(self.tab_wgt)
+
         # ~~~~ Left hand Tab Tools  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.view_tools = QFrame(self.view_wgt)
         self.setObjectName("viewTools")
