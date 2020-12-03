@@ -5,9 +5,10 @@ from multiprocessing import Lock
 from pathlib import Path
 from typing import List, Tuple
 
+from esofile_reader.exceptions import NoResults
 from esofile_reader import GenericFile
 from esofile_reader.exceptions import IncompleteFile, BlankLineError, InvalidLineSyntax
-from esofile_reader.pqt.parquet_file import ParquetFile
+from esofile_reader.pqt.parquet_file import ParquetFile, ParquetFrame
 
 from chartify.utils.progress_logging import UiLogger
 
@@ -16,7 +17,9 @@ def store_file(
     results_file: GenericFile, workdir: Path, logger: UiLogger, ids: List[int], lock: Lock,
 ) -> Tuple[int, ParquetFile]:
     """ Store results file as 'ParquetFile'. """
+    ParquetFrame.MAX_N_COLUMNS = 2000
     with logger.log_task(f"Store file {results_file.file_name}"):
+        logger.log_section("calculating number of parquets")
         n = ParquetFile.predict_number_of_parquets(results_file)
         logger.set_maximum_progress(n)
         with lock:
@@ -24,6 +27,7 @@ def store_file(
             while id_ in ids:
                 id_ += 1
             ids.append(id_)
+        logger.log_section("writing parquets")
         file = ParquetFile.from_results_file(id_, results_file, pardir=workdir, logger=logger)
     return id_, file
 
@@ -38,7 +42,7 @@ def load_file(
         with contextlib.suppress(IncompleteFile, BlankLineError, InvalidLineSyntax):
             # progress_thread.failed is called in processing function so suppressed
             # functions do not need to be dealt with explicitly
-            suffix = Path(path).suffix
+            suffix = path.suffix
             if suffix == ".eso" or ".sql":
                 files = GenericFile.from_eplus_multienv_file(path, logger=logger)
             elif suffix == ".xlsx" or ".csv":
@@ -52,9 +56,8 @@ def load_file(
                 id1, file1 = store_file(
                     results_file=f, workdir=workdir, logger=logger, ids=ids, lock=lock
                 )
-
-                totals_file = GenericFile.from_totals(f)
-                if totals_file:
+                try:
+                    totals_file = GenericFile.from_totals(file1, logger=logger)
                     id2, file2 = store_file(
                         results_file=totals_file,
                         workdir=workdir,
@@ -65,10 +68,9 @@ def load_file(
                     # assign new buddy attribute to link totals with original file
                     file2.buddy = file1
                     file1.buddy = file2
-                else:
+                except NoResults:
                     file2 = None
                     file1.buddy = None
-
                 file_queue.put((file1, file2))
             file_queue.put(logger_id)
             logger.done()

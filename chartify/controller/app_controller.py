@@ -1,8 +1,9 @@
 import os
+import shutil
 from multiprocessing import Manager
 from pathlib import Path
 from typing import List, Callable, Union, Any, Dict, Optional
-import shutil
+
 from PySide2.QtCore import QThreadPool
 from esofile_reader import Variable
 from esofile_reader.df.level_names import UNITS_LEVEL
@@ -55,7 +56,6 @@ class AppController:
         # ~~~~ Monitoring threads ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.watcher = EsoFileWatcher(self.file_queue)
         self.watcher.file_loaded.connect(self.on_file_loaded)
-        self.watcher.all_loaded.connect(self.on_all_files_loaded)
         self.watcher.start()
 
         self.progress_thread = ProgressThread(self.progress_queue)
@@ -113,6 +113,7 @@ class AppController:
         self.progress_thread.pending.connect(self.v.progress_container.set_pending)
         self.progress_thread.failed.connect(self.v.progress_container.set_failed)
         self.progress_thread.status_changed.connect(self.v.progress_container.set_status)
+        self.progress_thread.done.connect(self.v.progress_container.remove_file)
 
     def on_selection_change(self, variable_data: List[tuple]) -> None:
         """ Handle selection update. """
@@ -201,16 +202,12 @@ class AppController:
                 self.lock,
             )
 
-    def on_sync_file_processing_requested(self, paths: List[str]) -> None:
+    def on_sync_file_processing_requested(self, paths: List[Path]) -> None:
         """ Load new files. """
         for path in paths:
             load_file(
                 path, self.m.workdir, self.progress_queue, self.file_queue, self.ids, self.lock,
             )
-
-    def on_all_files_loaded(self, monitor_id: str) -> None:
-        """ Remove progress widget from ui. """
-        self.v.progress_container.remove_file(monitor_id)
 
     def on_file_loaded(self, file: ParquetFile, models: Dict[str, ViewModel]) -> None:
         """ Add results file into 'tab' widget. """
