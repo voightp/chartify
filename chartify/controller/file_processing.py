@@ -72,7 +72,6 @@ def load_file(
                     file2 = None
                     file1.buddy = None
                 file_queue.put((file1, file2))
-            file_queue.put(logger_id)
             logger.done()
 
     except Exception:
