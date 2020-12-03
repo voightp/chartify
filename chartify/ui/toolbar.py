@@ -11,6 +11,7 @@ from PySide2.QtWidgets import (
     QFrame,
     QAction,
     QActionGroup,
+    QRadioButton,
 )
 
 from chartify.settings import Settings
@@ -43,6 +44,34 @@ class Toolbar(QFrame):
         self.layout.setSpacing(0)
         self.layout.setAlignment(Qt.AlignTop)
 
+        # ~~~~ Outputs group ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.outputs_group = QGroupBox("Outputs", self)
+        self.outputs_group.setObjectName("outputsGroup")
+        outputs_group_layout = QVBoxLayout(self.outputs_group)
+        outputs_group_layout.setSpacing(0)
+        outputs_group_layout.setContentsMargins(0, 0, 0, 0)
+        outputs_group_layout.setAlignment(Qt.AlignTop)
+
+        self.standard_btn = QRadioButton(self.outputs_group)
+        self.standard_btn.setText("standard")
+        outputs_group_layout.addWidget(self.standard_btn)
+
+        self.totals_btn = QRadioButton(self.outputs_group)
+        self.totals_btn.setText("totals")
+        outputs_group_layout.addWidget(self.totals_btn)
+
+        self.diff_btn = QRadioButton(self.outputs_group)
+        self.diff_btn.setText("difference")
+        outputs_group_layout.addWidget(self.diff_btn)
+
+        self.all_files_toggle = ToggleButton(self.outputs_group)
+        self.all_files_toggle.setText("All files")
+        self.all_files_toggle.setChecked(Settings.ALL_FILES)
+        self.all_files_toggle.setEnabled(False)
+        outputs_group_layout.addWidget(self.all_files_toggle)
+
+        self.layout.addWidget(self.outputs_group)
+
         # ~~~~ Tables group ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.table_buttons = []
         self.table_group = QGroupBox("Tables", self)
@@ -52,28 +81,6 @@ class Toolbar(QFrame):
         table_buttons_layout.setContentsMargins(0, 0, 0, 0)
         table_buttons_layout.setAlignment(Qt.AlignTop)
         self.layout.addWidget(self.table_group)
-
-        # ~~~~ Outputs group ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.outputs_group = QGroupBox("Outputs", self)
-        self.outputs_group.setObjectName("outputsGroup")
-        self.totals_btn = QToolButton(self.outputs_group)
-        self.totals_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
-        self.totals_btn.setCheckable(True)
-        self.totals_btn.setIconSize(Settings.ICON_SMALL_SIZE)
-        self.totals_btn.setText("totals")
-        self.totals_btn.setEnabled(False)
-        self.all_files_btn = QToolButton(self.outputs_group)
-        self.all_files_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
-        self.all_files_btn.setCheckable(True)
-        self.all_files_btn.setText("all files")
-        self.all_files_btn.setChecked(Settings.ALL_FILES)
-        self.all_files_btn.setEnabled(False)
-        outputs_buttons_layout = QGridLayout(self.outputs_group)
-        outputs_buttons_layout.setSpacing(0)
-        outputs_buttons_layout.setContentsMargins(0, 0, 0, 0)
-        outputs_buttons_layout.setAlignment(Qt.AlignTop)
-        self.populate_group(self.outputs_group, [self.totals_btn, self.all_files_btn])
-        self.layout.addWidget(self.outputs_group)
 
         # ~~~~ Tools group ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.tools_group = QGroupBox("Tools", self)

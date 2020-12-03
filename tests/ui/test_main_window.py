@@ -645,7 +645,7 @@ def test_connect_totals_btn(qtbot, mw: MainWindow):
 
 def test_connect_all_files_btn(qtbot, mw: MainWindow):
     mw.toolbar.all_files_btn.setEnabled(True)
-    with patch("chartify.ui.main_window.MainWindow.on_all_files_checked") as mock_func:
+    with patch("chartify.ui.main_window.MainWindow.on_all_files_toggled") as mock_func:
         qtbot.mouseClick(mw.toolbar.all_files_btn, Qt.LeftButton)
         mock_func.assert_called_once_with(True)
 

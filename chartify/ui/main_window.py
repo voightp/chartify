@@ -397,20 +397,6 @@ class MainWindow(QMainWindow):
         self.tab_wgt.drop_btn.setIconSize(QSize(50, 50))
 
         icon = QIcon()
-        icon.addPixmap(Pixmap(Path(r, "building.png"), *c1), QIcon.Normal, QIcon.Off)
-        icon.addPixmap(Pixmap(Path(r, "building.png"), *c1, a=0.5), QIcon.Disabled, QIcon.Off)
-        icon.addPixmap(Pixmap(Path(r, "building.png"), *c2), QIcon.Normal, QIcon.On)
-        icon.addPixmap(Pixmap(Path(r, "building.png"), *c2, a=0.5), QIcon.Disabled, QIcon.On)
-        self.toolbar.totals_btn.setIcon(icon)
-
-        icon = QIcon()
-        icon.addPixmap(Pixmap(Path(r, "all_files.png"), *c1), QIcon.Normal, QIcon.Off)
-        icon.addPixmap(Pixmap(Path(r, "all_files.png"), *c1, a=0.5), QIcon.Disabled, QIcon.Off)
-        icon.addPixmap(Pixmap(Path(r, "all_files.png"), *c2), QIcon.Normal, QIcon.On)
-        icon.addPixmap(Pixmap(Path(r, "all_files.png"), *c2, a=0.5), QIcon.Disabled, QIcon.On)
-        self.toolbar.all_files_btn.setIcon(icon)
-
-        icon = QIcon()
         icon.addPixmap(Pixmap(Path(r, "sigma.png"), *c1), QIcon.Normal, QIcon.Off)
         icon.addPixmap(Pixmap(Path(r, "sigma.png"), *c1, a=0.5), QIcon.Disabled, QIcon.Off)
         self.sum_act.setIcon(icon)
@@ -493,7 +479,7 @@ class MainWindow(QMainWindow):
 
         # enable all eso file results btn if there's multiple files
         if self.tab_wgt.count() > 1:
-            self.toolbar.all_files_btn.setEnabled(True)
+            self.toolbar.all_files_toggle.setEnabled(True)
             self.close_all_act.setEnabled(True)
 
     def expand_all(self):
@@ -714,7 +700,7 @@ class MainWindow(QMainWindow):
         # TODO handle totals
         Settings.TOTALS = checked
 
-    def on_all_files_checked(self, checked: bool):
+    def on_all_files_toggled(self, checked: bool):
         """ Request view update when totals requested. """
         # settings does not need to be updated as
         # this does not have an impact on the UI
@@ -766,7 +752,7 @@ class MainWindow(QMainWindow):
     def connect_toolbar_signals(self):
         # ~~~~ Toolbar Signals ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.toolbar.totals_btn.toggled.connect(self.on_totals_checked)
-        self.toolbar.all_files_btn.toggled.connect(self.on_all_files_checked)
+        self.toolbar.all_files_toggle.stateChanged.connect(self.on_all_files_toggled)
         self.toolbar.tableChangeRequested.connect(self.on_table_change_requested)
         self.toolbar.customUnitsToggled.connect(self.on_custom_units_toggled)
         self.toolbar.source_units_toggle.stateChanged.connect(self.on_source_units_toggled)
