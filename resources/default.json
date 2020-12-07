@@ -14,22 +14,8 @@
   "SIZE": [1200, 800],
   "SI_ENERGY_UNITS": ["Wh", "kWh", "MWh", "J", "MJ", "GJ"],
   "SI_POWER_UNITS": ["W", "kW", "MW"],
-  "SPLIT": [540, 654],
-  "TOTALS": false,
-  "HIDE_SOURCE_UNITS": false,
-  "TREE_NODE": "type",
   "UNITS_SYSTEM": "SI",
-  "SIMPLE": {
-    "widths": {
-      "fixed": 60
-    },
-    "header": ["key", "proxy_units", "units"]
-  },
-  "TREE": {
-    "widths": {
-      "fixed": 60,
-      "interactive": 200
-    },
-    "header": ["type", "key", "proxy_units", "units"]
-  }
+  "SPLIT": [540, 654],
+  "HIDE_SOURCE_UNITS": false,
+  "OUTPUTS_INDEX": 0
 }

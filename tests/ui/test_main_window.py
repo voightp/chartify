@@ -10,7 +10,7 @@ from esofile_reader import EsoFile, Variable, SimpleVariable
 
 from chartify.settings import Settings
 from chartify.ui.main_window import MainWindow
-from chartify.ui.treeview import ViewModel
+from chartify.ui.treeview_model import ViewModel
 from chartify.utils.utils import FilterTuple, VariableData
 from tests import ROOT
 
@@ -53,7 +53,7 @@ def test_init_main_window(qtbot, mw: MainWindow):
 
     assert mw.left_main_layout.itemAt(0).widget() == mw.toolbar
     assert mw.left_main_layout.itemAt(1).widget() == mw.view_wgt
-    assert mw.view_layout.itemAt(0).widget() == mw.tab_wgt
+    assert mw.view_layout.itemAt(0).widget() == mw.standard_tab_wgt
     assert mw.view_layout.itemAt(1).widget() == mw.view_tools
 
     assert mw.left_main_wgt.objectName() == "leftMainWgt"
@@ -163,7 +163,7 @@ def test_init_main_window(qtbot, mw: MainWindow):
     assert mw.mini_menu_layout.itemAt(1).widget() == mw.save_btn
     assert mw.mini_menu_layout.itemAt(2).widget() == mw.about_btn
 
-    assert mw.tab_wgt.minimumWidth() == 400
+    assert mw.standard_tab_wgt.minimumWidth() == 400
     assert mw.main_chart_widget.minimumWidth() == 600
     assert mw.central_splitter.sizes() == Settings.SPLIT
 
@@ -181,7 +181,6 @@ def test_init_main_window(qtbot, mw: MainWindow):
 
 def test_empty_current_view(mw: MainWindow):
     assert not mw.current_view
-    assert not mw.all_views
 
 
 def test_mirror_layout(mw: MainWindow):
@@ -199,14 +198,13 @@ def test_mirror_layout(mw: MainWindow):
 def test_add_new_tab(mw: MainWindow, eso_file: EsoFile):
     models = ViewModel.models_from_file(eso_file)
     mw.add_new_tab(0, "test", models)
-    assert mw.tab_wgt.widget(0) == mw.current_view
+    assert mw.standard_tab_wgt.widget(0) == mw.current_view
     assert not mw.toolbar.all_files_btn.isEnabled()
     assert not mw.close_all_act.isEnabled()
 
     models = ViewModel.models_from_file(eso_file)
     mw.add_new_tab(0, "test", models)
-    assert mw.tab_wgt.widget(0) == mw.current_view
-    assert mw.all_views == [mw.tab_wgt.widget(0), mw.tab_wgt.widget(1)]
+    assert mw.standard_tab_wgt.widget(0) == mw.current_view
     assert mw.toolbar.all_files_btn.isEnabled()
     assert mw.close_all_act.isEnabled()
 
@@ -311,7 +309,7 @@ def test_on_selection_populated(
     model_mock = MagicMock()
     model_mock.source_model.allow_rate_to_energy = rate_to_energy
     tab_wgt_mock.currentWidget.return_value = model_mock
-    mw.tab_wgt = tab_wgt_mock
+    mw.standard_tab_wgt = tab_wgt_mock
 
     with qtbot.wait_signal(mw.selectionChanged, check_params_cb=cb):
         mw.on_selection_populated(variables)
@@ -493,7 +491,7 @@ def test_on_tab_changed(populated_mw: MainWindow, eso_file: EsoFile):
     populated_mw.add_new_tab(1, "new file", models)
     with patch("chartify.ui.main_window.Settings") as mock_settings:
         mock_settings.TABLE_NAME = "daily"
-        populated_mw.tab_wgt.setCurrentIndex(1)
+        populated_mw.standard_tab_wgt.setCurrentIndex(1)
         assert mock_settings.CURRENT_FILE_ID == 1
         assert mock_settings.TABLE_NAME == "daily"
         button_names = [btn.text() for btn in populated_mw.toolbar.table_buttons]
@@ -511,12 +509,12 @@ def test_on_tab_changed_fresh(mw: MainWindow, eso_file: EsoFile):
 
 def test_on_tab_changed_empty(populated_mw: MainWindow):
     with patch("chartify.ui.main_window.Settings") as mock_settings:
-        populated_mw.tab_wgt.removeTab(0)
+        populated_mw.standard_tab_wgt.removeTab(0)
         assert mock_settings.CURRENT_FILE_ID is None
         assert mock_settings.TABLE_NAME is None
         assert not populated_mw.remove_variables_act.isEnabled()
         assert not populated_mw.toolbar.all_files_btn.isEnabled()
-        assert not populated_mw.toolbar.totals_btn.isEnabled()
+        assert not populated_mw.toolbar.totals_outputs_btn.isEnabled()
         assert populated_mw.toolbar.rate_energy_btn.isEnabled()
         assert not populated_mw.toolbar.table_buttons
         assert not populated_mw.toolbar.table_group.layout().itemAt(0)
@@ -531,37 +529,37 @@ def test_on_tab_bar_double_clicked(qtbot, populated_mw: MainWindow):
 
 
 def test_on_tab_closed(populated_mw: MainWindow):
-    populated_mw.tab_wgt.removeTab(0)
+    populated_mw.standard_tab_wgt.removeTab(0)
     assert not populated_mw.toolbar.all_files_btn.isEnabled()
     assert not populated_mw.close_all_act.isEnabled()
 
 
 def test_connect_tab_widget_close_requested(qtbot, mw: MainWindow):
     with qtbot.wait_signal(mw.fileRemoveRequested, check_params_cb=lambda x: x == 123):
-        mw.tab_wgt.tabCloseRequested.emit(123)
+        mw.standard_tab_wgt.tabCloseRequested.emit(123)
 
 
 def test_connect_tab_widget_current_changed(qtbot, mw: MainWindow):
     with patch("chartify.ui.main_window.MainWindow.on_tab_changed") as func_mock:
-        mw.tab_wgt.currentChanged.emit(123)
+        mw.standard_tab_wgt.currentChanged.emit(123)
         func_mock.assert_called_once_with(123)
 
 
 def test_connect_tab_widget_tab_double_clicked(qtbot, mw: MainWindow):
     with patch("chartify.ui.main_window.MainWindow.on_tab_bar_double_clicked") as func_mock:
-        mw.tab_wgt.tabBarDoubleClicked.emit(123)
+        mw.standard_tab_wgt.tabBarDoubleClicked.emit(123)
         func_mock.assert_called_once_with(123)
 
 
 def test_connect_tab_widget_tab_closed(qtbot, mw: MainWindow):
     with patch("chartify.ui.main_window.MainWindow.on_tab_closed") as func_mock:
-        mw.tab_wgt.tabClosed.emit(123)
+        mw.standard_tab_wgt.tabClosed.emit(123)
         func_mock.assert_called_once_with()
 
 
 def test_connect_tab_widget_drop_btn_clicked(qtbot, mw: MainWindow):
     with patch("chartify.ui.main_window.MainWindow.load_files_from_fs") as func_mock:
-        mw.tab_wgt.drop_btn.click()
+        mw.standard_tab_wgt.tab_wgt_button.click()
         func_mock.assert_called_once_with()
 
 
@@ -637,9 +635,9 @@ def test_on_units_system_changed(qtbot, mw: MainWindow):
 
 
 def test_connect_totals_btn(qtbot, mw: MainWindow):
-    mw.toolbar.totals_btn.setEnabled(True)
+    mw.toolbar.totals_outputs_btn.setEnabled(True)
     with patch("chartify.ui.main_window.MainWindow.on_totals_checked") as mock_func:
-        qtbot.mouseClick(mw.toolbar.totals_btn, Qt.LeftButton)
+        qtbot.mouseClick(mw.toolbar.totals_outputs_btn, Qt.LeftButton)
         mock_func.assert_called_once_with(True)
 
 

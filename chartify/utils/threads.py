@@ -1,7 +1,7 @@
 from PySide2.QtCore import QThread, Signal, QRunnable
 from esofile_reader.pqt.parquet_file import ParquetFile
 
-from chartify.ui.treeview import ViewModel
+from chartify.ui.treeview_model import ViewModel
 
 
 # noinspection PyUnresolvedReferences

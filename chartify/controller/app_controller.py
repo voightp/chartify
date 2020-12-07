@@ -6,7 +6,6 @@ from typing import List, Callable, Union, Any, Dict, Optional
 
 from PySide2.QtCore import QThreadPool
 from esofile_reader import Variable
-from esofile_reader.df.level_names import UNITS_LEVEL
 from esofile_reader.pqt.parquet_file import ParquetFile
 from esofile_reader.typehints import VariableType, ResultsFileType
 
@@ -15,7 +14,8 @@ from chartify.controller.wv_controller import WVController
 from chartify.model.model import AppModel
 from chartify.settings import Settings
 from chartify.ui.main_window import MainWindow
-from chartify.ui.treeview import ViewModel
+from chartify.ui.treeview import TreeView
+from chartify.ui.treeview_model import ViewModel
 from chartify.utils.process_utils import create_pool, kill_child_processes
 from chartify.utils.progress_logging import ProgressThread
 from chartify.utils.threads import EsoFileWatcher, IterWorker
@@ -102,8 +102,6 @@ class AppController:
         self.v.close_all_act.triggered.connect(lambda x: x)
         self.v.save_act.triggered.connect(self.on_save)
         self.v.save_as_act.triggered.connect(self.on_save_as)
-        self.v.updateModelRequested.connect(self.on_update_model_requested)
-        self.v.setModelRequested.connect(self.on_set_model_requested)
 
     def connect_progress_signals(self) -> None:
         """ Create progress_thread signals. """
@@ -120,7 +118,6 @@ class AppController:
         out_str = [" | ".join(var) for var in variable_data if var is not None]
         if out_str:
             print("Selected Variables:\n\t{}".format("\n\t".join(out_str)))
-        self.m.selected_variable_data = variable_data
 
     def on_save(self):
         if not self.m.storage.path:
@@ -133,61 +130,10 @@ class AppController:
         if path:
             self.m.storage.save_as(path.parent, path.stem)
 
-    def update_view_model(
-        self,
-        selected: Optional[List[VariableData]] = None,
-        scroll_to: Optional[VariableData] = None,
-    ):
-        """ Force update of the current model. """
-        old_model = self.v.current_view.source_model
-        self.v.current_view.update_model(self.m.current_table, **Settings.units_dict())
-        self.v.update_view_visual(
-            selected=selected,
-            scroll_to=scroll_to,
-            old_model=old_model,
-            hide_source_units=Settings.HIDE_SOURCE_UNITS,
-        )
-
-    def on_set_model_requested(self):
-        """ Set a new model on current view. """
-        old_model = self.v.current_view.source_model
-        new_model = self.v.current_view.models[Settings.TABLE_NAME]
-        if new_model.is_simple or Settings.TREE_NODE == new_model.tree_node:
-            self.v.current_view.set_model(Settings.TABLE_NAME)
-            self.v.current_view.update_units(
-                self.m.current_table[UNITS_LEVEL], **Settings.units_dict()
-            )
-        else:
-            self.v.current_view.set_and_update_model(
-                self.m.current_table,
-                Settings.TABLE_NAME,
-                tree_node=Settings.TREE_NODE,
-                **Settings.units_dict()
-            )
-        self.v.update_view_visual(
-            old_model=old_model,
-            selected=self.m.selected_variable_data,
-            hide_source_units=Settings.HIDE_SOURCE_UNITS,
-        )
-
-    def on_update_model_requested(self):
-        """ Update current model on current view. """
-        if self.v.current_view:
-            old_model = self.v.current_view.source_model
-            new_model = self.v.current_view.models[Settings.TABLE_NAME]
-            if new_model.is_simple or Settings.TREE_NODE == new_model.tree_node:
-                self.v.current_view.update_units(
-                    self.m.current_table[UNITS_LEVEL], **Settings.units_dict()
-                )
-            else:
-                self.v.current_view.update_model(
-                    self.m.current_table, tree_node=Settings.TREE_NODE, **Settings.units_dict()
-                )
-            self.v.update_view_visual(
-                old_model=old_model,
-                selected=self.m.selected_variable_data,
-                hide_source_units=Settings.HIDE_SOURCE_UNITS,
-            )
+    def update_view_model(self, view: TreeView, scroll_to: Optional[VariableData] = None):
+        """ Force update of a given model. """
+        view.update_model(**Settings.all_units_dictionary())
+        self.v.update_view_visual(view, scroll_to=scroll_to)
 
     def on_file_processing_requested(self, paths: List[Path]) -> None:
         """ Load new files. """
@@ -220,7 +166,7 @@ class AppController:
         self.m.storage.files[file.id_] = file
 
         # add new tab into tab widget
-        self.v.add_new_tab(file.id_, name, models)
+        self.v.add_new_tab(file.id_, name, file.file_type, models)
 
     def apply_async(self, id_: int, func: Callable, *args, **kwargs) -> Any:
         """ A wrapper to apply functions to current views. """
@@ -229,7 +175,7 @@ class AppController:
         val = func(file, *args, **kwargs)
 
         # make sure that appropriate views will be updated
-        views = self.v.all_views if Settings.ALL_FILES else [self.v.current_view]
+        views = self.v.all_current_views if Settings.ALL_FILES else [self.v.current_view]
         for view in views:
             # TODO set model dirty flags
             pass
@@ -280,21 +226,23 @@ class AppController:
         if res:
             new_key, new_type = res
             if (new_type != old_type and new_type is not None) or new_key != old_key:
-                var = self.m.selected_variables[0]
                 new_variable = self.apply_async(
-                    Settings.CURRENT_FILE_ID, self._update_variable_name, new_type, new_key, var
+                    Settings.CURRENT_FILE_ID,
+                    self._update_variable_name,
+                    new_type,
+                    new_key,
+                    variable_data,
                 )
                 new_variable_data = VariableData(
                     key=new_variable.key,
                     type=new_variable.type if isinstance(new_variable, Variable) else None,
                     units=new_variable.units,
-                    proxyunits=variable_data.proxyunits,
                 )
-                self.update_view_model(
-                    selected=[new_variable_data], scroll_to=new_variable_data,
-                )
+                self.update_view_model(scroll_to=new_variable_data)
 
-    def on_variable_remove_requested(self) -> None:
+    def on_variable_remove_requested(
+        self, view: TreeView, variable_data: List[VariableData]
+    ) -> None:
         """ Remove variables from a file or all files. """
         variables = self.m.selected_variables
         res = self.v.confirm_remove_variables(
@@ -303,15 +251,6 @@ class AppController:
         if res:
             self.apply_async(Settings.CURRENT_FILE_ID, self._delete_variables, variables)
             self.update_view_model()
-
-    def on_file_rename_requested(self, tab_index: int, id_: int) -> None:
-        """ Update file name. """
-        name = self.m.get_file_name(id_)
-        other_names = self.m.get_other_file_names()
-        new_name = self.v.confirm_rename_file(name, other_names)
-        if new_name is not None:
-            self.v.rename_tab(tab_index, name)
-            self.m.rename_file(id_, new_name)
 
     def on_aggregation_requested(self, func: Union[str, Callable]) -> None:
         """ Create a new variable using given aggregation function. """
@@ -334,15 +273,23 @@ class AppController:
                     key=new_variable.key,
                     type=new_variable.type if isinstance(new_variable, Variable) else None,
                     units=new_variable.units,
-                    proxyunits=None,
                 )
                 self.update_view_model(
                     selected=[new_variable_data], scroll_to=new_variable_data,
                 )
 
+    def on_file_rename_requested(self, tab_index: int, id_: int) -> None:
+        """ Update file name. """
+        name = self.m.get_file_name(id_)
+        other_names = self.m.get_other_file_names()
+        new_name = self.v.confirm_rename_file(name, other_names)
+        if new_name is not None:
+            self.v.rename_tab(tab_index, name)
+            self.m.rename_file(id_, new_name)
+
     def on_file_remove_requested(self, tab_index: int) -> None:
         """ Delete file from the database. """
-        treeview = self.v.tab_wgt.widget(tab_index)
+        treeview = self.v.current_tab_widget.widget(tab_index)
         id_ = treeview.id_
         file_name = self.m.get_file(id_).file_name
         res = self.v.confirm_delete_file(file_name)
@@ -350,4 +297,4 @@ class AppController:
             treeview.deleteLater()
             self.m.delete_file(id_)
             self.ids.remove(id_)
-            self.v.tab_wgt.removeTab(tab_index)
+            self.v.current_tab_widget.removeTab(tab_index)

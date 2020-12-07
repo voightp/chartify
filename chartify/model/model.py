@@ -3,7 +3,7 @@ from typing import List, Union
 
 import pandas as pd
 from PySide2.QtCore import QObject
-from esofile_reader import Variable, SimpleVariable, get_results
+from esofile_reader import get_results
 from esofile_reader.pqt.parquet_file import ParquetFile
 from esofile_reader.pqt.parquet_storage import ParquetStorage
 
@@ -27,29 +27,8 @@ class AppModel(QObject):
         # ~~~~ File Database ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.storage = ParquetStorage(path=Path(Settings.APP_TEMP_DIR, "storage"))
 
-        # ~~~~ Currently selected variables ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.selected_variable_data = []
-
         # ~~~~ Webview Database ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.wv_database = {"trace_data": [], "traces": [], "components": [], "items": {}}
-
-    @property
-    def selected_variables(self) -> List[Variable]:
-        variables = []
-        for variable_data in self.selected_variable_data:
-            variables.append(
-                Variable(
-                    table=Settings.TABLE_NAME,
-                    key=variable_data.key,
-                    type=variable_data.type,
-                    units=variable_data.units,
-                )
-                if variable_data.type is not None
-                else SimpleVariable(
-                    table=Settings.TABLE_NAME, key=variable_data.key, units=variable_data.units,
-                )
-            )
-        return variables
 
     @property
     def current_file(self) -> ParquetFile:

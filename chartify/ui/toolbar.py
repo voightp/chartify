@@ -12,6 +12,7 @@ from PySide2.QtWidgets import (
     QAction,
     QActionGroup,
     QRadioButton,
+    QButtonGroup,
 )
 
 from chartify.settings import Settings
@@ -24,6 +25,7 @@ class Toolbar(QFrame):
 
     """
 
+    tabWidgetChangeRequested = Signal(int)
     tableChangeRequested = Signal(str)
     customUnitsToggled = Signal(str, str, str, bool)
 
@@ -52,17 +54,26 @@ class Toolbar(QFrame):
         outputs_group_layout.setContentsMargins(0, 0, 0, 0)
         outputs_group_layout.setAlignment(Qt.AlignTop)
 
-        self.standard_btn = QRadioButton(self.outputs_group)
-        self.standard_btn.setText("standard")
-        outputs_group_layout.addWidget(self.standard_btn)
+        self.outputs_button_group = QButtonGroup(self)
+        self.outputs_button_group.idClicked.connect(self.on_outputs_toggle_toggled)
 
-        self.totals_btn = QRadioButton(self.outputs_group)
-        self.totals_btn.setText("totals")
-        outputs_group_layout.addWidget(self.totals_btn)
+        self.standard_outputs_btn = QRadioButton(self.outputs_group)
+        self.standard_outputs_btn.setText("standard")
+        self.standard_outputs_btn.setChecked(Settings.OUTPUTS_INDEX == 0)
+        self.outputs_button_group.addButton(self.standard_outputs_btn, 0)
+        outputs_group_layout.addWidget(self.standard_outputs_btn)
 
-        self.diff_btn = QRadioButton(self.outputs_group)
-        self.diff_btn.setText("difference")
-        outputs_group_layout.addWidget(self.diff_btn)
+        self.totals_outputs_btn = QRadioButton(self.outputs_group)
+        self.totals_outputs_btn.setText("totals")
+        self.totals_outputs_btn.setChecked(Settings.OUTPUTS_INDEX == 1)
+        self.outputs_button_group.addButton(self.totals_outputs_btn, 1)
+        outputs_group_layout.addWidget(self.totals_outputs_btn)
+
+        self.diff_outputs_btn = QRadioButton(self.outputs_group)
+        self.diff_outputs_btn.setText("difference")
+        self.totals_outputs_btn.setChecked(Settings.OUTPUTS_INDEX == 2)
+        self.outputs_button_group.addButton(self.diff_outputs_btn, 2)
+        outputs_group_layout.addWidget(self.diff_outputs_btn)
 
         self.all_files_toggle = ToggleButton(self.outputs_group)
         self.all_files_toggle.setText("All files")
@@ -107,6 +118,7 @@ class Toolbar(QFrame):
         # ~~~~ Units group ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.units_group = QGroupBox("Units", self)
         self.units_group.setObjectName("unitsGroup")
+        units_group_layout = QGridLayout(self.units_group)
         self.custom_units_toggle = ToggleButton(self.units_group)
         self.custom_units_toggle.setText("Custom")
         self.custom_units_toggle.setChecked(Settings.CUSTOM_UNITS)
@@ -127,8 +139,8 @@ class Toolbar(QFrame):
             self.units_group,
             [self.energy_btn, self.power_btn, self.units_system_button, self.rate_energy_btn],
         )
-        self.units_group.layout().addWidget(self.custom_units_toggle, 2, 0, 1, 2)
-        self.units_group.layout().addWidget(self.source_units_toggle, 3, 0, 1, 2)
+        units_group_layout.addWidget(self.custom_units_toggle, 2, 0, 1, 2)
+        units_group_layout.addWidget(self.source_units_toggle, 3, 0, 1, 2)
         self.layout.addWidget(self.units_group)
 
     @staticmethod
@@ -163,7 +175,7 @@ class Toolbar(QFrame):
 
     def totals_requested(self):
         """ Check if results from all eso files are requested. """
-        return self.totals_btn.isChecked()
+        return self.totals_outputs_btn.isChecked()
 
     def set_up_units(self):
         """ Set up units options. """
@@ -223,7 +235,7 @@ class Toolbar(QFrame):
         self.filter_energy_power_units(Settings.UNITS_SYSTEM)
 
     def enable_rate_to_energy(self, can_convert: bool):
-        """ Enable or disable rate to energy button. """
+        """ Enable or disable rate to energy tab_wgt_button. """
         if self.custom_units_toggle.isChecked():
             self.rate_energy_btn.setEnabled(can_convert)
         else:
@@ -290,3 +302,7 @@ class Toolbar(QFrame):
         """ Request view update when interval changes. """
         table_name = next(btn.text() for btn in self.table_buttons if btn.isChecked())
         self.tableChangeRequested.emit(table_name)
+
+    def on_outputs_toggle_toggled(self, index: int):
+        """ Request tab widget display corresponding to toggle button. """
+        self.tabWidgetChangeRequested.emit(index)

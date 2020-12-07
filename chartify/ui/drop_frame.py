@@ -2,55 +2,10 @@ from pathlib import Path
 from typing import List
 
 from PySide2.QtCore import Signal, QUrl
-from PySide2.QtGui import QDragEnterEvent, QDropEvent, QDragLeaveEvent
-from PySide2.QtWidgets import (
-    QWidget,
-    QHBoxLayout,
-    QTabWidget,
-    QToolButton,
-    QFrame,
-)
+from PySide2.QtGui import QDragEnterEvent, QDragLeaveEvent, QDropEvent
+from PySide2.QtWidgets import QFrame, QWidget
 
 from chartify.ui.widget_functions import refresh_css
-
-
-class TabWidget(QTabWidget):
-    """ Tab widget which displays information button when empty. """
-
-    tabClosed = Signal(int)
-
-    def __init__(self, parent):
-        super().__init__(parent)
-        self.setUsesScrollButtons(True)
-        self.setTabsClosable(True)
-        self.setMovable(True)
-        self.setTabPosition(QTabWidget.North)
-
-        layout = QHBoxLayout(self)
-        self.drop_btn = QToolButton(self)
-        self.drop_btn.setObjectName("dropButton")
-        self.drop_btn.setText("Choose a file or drag it here!")
-        layout.addWidget(self.drop_btn)
-
-    def tabRemoved(self, index: int) -> None:
-        if self.is_empty():
-            self.drop_btn.setVisible(True)
-        self.tabClosed.emit(index)
-
-    def is_empty(self) -> bool:
-        """ Check if there's at least one loaded file. """
-        return self.count() <= 0
-
-    def get_all_children(self) -> List[QWidget]:
-        return [self.widget(i) for i in range(self.count())]
-
-    def get_all_child_names(self) -> List[str]:
-        return [self.tabText(i) for i in range(self.count())]
-
-    def add_tab(self, wgt: QWidget, title: str) -> None:
-        if self.is_empty():
-            self.drop_btn.setVisible(False)
-        self.addTab(wgt, title)
 
 
 class DropFrame(QFrame):

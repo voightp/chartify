@@ -1,562 +1,62 @@
 import contextlib
-from typing import Dict, List, Set, Optional, Tuple
+from collections import defaultdict
+from functools import partial
+from typing import Dict, List, Set, Tuple, Any
 
-import pandas as pd
 from PySide2.QtCore import (
-    QSortFilterProxyModel,
     QMimeData,
     QEvent,
     QItemSelectionModel,
     QItemSelection,
-    QItemSelectionRange,
     Signal,
     QModelIndex,
     Qt,
 )
-from PySide2.QtGui import QStandardItem, QStandardItemModel, QDrag, QPixmap
+from PySide2.QtGui import QDrag, QPixmap
 from PySide2.QtWidgets import QTreeView, QAbstractItemView, QHeaderView
 from esofile_reader.df.level_names import *
-from esofile_reader.convertor import create_conversion_dict, can_convert_rate_to_energy
-from esofile_reader.typehints import ResultsFileType
-from profilehooks import profile
+from esofile_reader.typehints import Variable, SimpleVariable
 
+from chartify.ui.treeview_model import ViewModel, FilterModel, PROXY_UNITS_LEVEL
+from chartify.ui.widget_functions import SignalBlocker
 from chartify.utils.utils import (
     FilterTuple,
     VariableData,
 )
-from chartify.ui.widget_functions import SignalBlocker
 
-PROXY_UNITS_LEVEL = "proxy_units"
-
-
-class ViewModel(QStandardItemModel):
-    """ View models allowing 'tree' like structure.
-
-    Model can show up to four columns 'key', 'type', units' and
-    'source units'. 'Type' column is optional.
-    The 'VariableData' named tuple containing variable information
-    is stored as 'UserData' on the first item in row (only for
-    'child' items when tree structure is applied).
-
-    Tree items which would only have one child are automatically
-    treated as plain table rows.
-
-    Attributes
-    ----------
-    name : str
-        Usually a name of the original table.
-    is_simple : bool
-        Check if model includes 'type' column.
-    allow_rate_to_energy : bool
-        Define if model can convert rate to energy.
-    tree_node : str
-        Current tree column node, may be 'None' for
-        plain table structure.
-    rate_to_energy : bool
-        Checks if rate is transposed to energy.
-    units_system : str
-        Current view units system {SI, IP}.
-    energy_units : str
-        Used energy units.
-    power_units : str
-        Used power units.
-    dirty : bool
-        Check if model needs to be updated.
-    scroll_position : int
-        Store current scrollbar position.
-    expanded : set of {str}
-        Currently expanded items.
-    **kwargs
-        Key word arguments passed to populate model method.
-
-    """
-
-    def __init__(
-        self,
-        name: str,
-        header_df: pd.DataFrame,
-        is_simple: bool = False,
-        allow_rate_to_energy: bool = False,
-        **kwargs,
-    ):
-        super().__init__()
-        self.name = name
-        self.is_simple = is_simple
-        self.allow_rate_to_energy = allow_rate_to_energy
-        self.tree_node = None
-        self.rate_to_energy = False
-        self.units_system = "SI"
-        self.energy_units = "J"
-        self.power_units = "W"
-        self.dirty = False
-        self.scroll_position = 0
-        self.expanded = set()
-        self.populate_model(header_df=header_df, **kwargs)
-
-    @classmethod
-    def models_from_file(cls, file: ResultsFileType, **kwargs) -> Dict[str, "ViewModel"]:
-        """ Process results file to create models. """
-        models = {}
-        for table_name in file.table_names:
-            header_df = file.get_header_df(table_name)
-            is_simple = file.is_header_simple(table_name)
-            allow_rate_to_energy = can_convert_rate_to_energy(file, table_name)
-            models[table_name] = ViewModel(
-                table_name, header_df, is_simple, allow_rate_to_energy, **kwargs
-            )
-        return models
-
-    @staticmethod
-    def create_proxy_units_column(
-        source_units: pd.Series,
-        rate_to_energy: bool,
-        units_system: str,
-        energy_units: str,
-        power_units: str,
-    ) -> pd.Series:
-        """ Convert original units as defined by given parameters. """
-        intermediate_units = source_units.copy()
-        if rate_to_energy:
-            intermediate_units[intermediate_units == "W"] = "J"
-            intermediate_units[intermediate_units == "W/m2"] = "J/m2"
-        conversion_dict = create_conversion_dict(
-            intermediate_units,
-            units_system=units_system,
-            rate_units=power_units,
-            energy_units=energy_units,
-        )
-        # no units are displayed as dash
-        conversion_dict[""] = ("-", 1)
-        proxy_units = intermediate_units.copy()
-        proxy_units.name = PROXY_UNITS_LEVEL
-        # populate proxy column with new units
-        for old, v in conversion_dict.items():
-            proxy_units.loc[intermediate_units == old] = v[0]
-        return proxy_units
-
-    def count_rows(self) -> int:
-        """ Calculate total number of rows (including child rows). """
-        count = self.rowCount()
-        if not self.is_simple:
-            for i in range(self.rowCount()):
-                item = self.item(i, 0)
-                if item.hasChildren():
-                    count += item.rowCount()
-        return count
-
-    def is_tree_node_row(self, row_number: int) -> bool:
-        """ Check if the row is a parent row. """
-        return self.item(row_number, 0).hasChildren()
-
-    def get_display_data_at_index(self, index: QModelIndex):
-        """ Get item displayed text. """
-        return self.itemFromIndex(index).data(Qt.DisplayRole)
-
-    def get_row_display_data(
-        self, row_number: int, parent_index: Optional[QModelIndex] = None
-    ) -> List[str]:
-        """ Get item text as column name : text dictionary. """
-        parent_index = parent_index if parent_index else QModelIndex()
-        display_data = []
-        for i in range(self.columnCount()):
-            index = self.index(row_number, i, parent_index)
-            display_data.append(self.get_display_data_at_index(index))
-        # child item in first column is displayed as an empty string
-        if parent_index.isValid():
-            display_data[0] = self.get_display_data_at_index(parent_index)
-        return display_data
-
-    def get_row_display_data_mapping(
-        self, row_number: int, parent_index: Optional[QModelIndex] = None
-    ) -> Dict[str, str]:
-        """ Get item text as column data : text dictionary. """
-        row_display_data = self.get_row_display_data(row_number, parent_index=parent_index)
-        column_mapping = self.get_logical_column_mapping()
-        return {k: row_display_data[v] for k, v in column_mapping.items()}
-
-    def get_row_variable_data(
-        self, row_number: int, parent_index: Optional[QModelIndex] = None
-    ) -> VariableData:
-        """ Get row data as eso file Variable or SimpleVariable. """
-        row_data_mapping = self.get_row_display_data_mapping(row_number, parent_index)
-        return VariableData(
-            key=row_data_mapping[KEY_LEVEL],
-            type=None if self.is_simple else row_data_mapping[TYPE_LEVEL],
-            units=row_data_mapping[UNITS_LEVEL],
-        )
-
-    def get_logical_column_data(self) -> List[str]:
-        """ Get header data sorted by logical index. """
-        return [
-            self.headerData(i, Qt.Horizontal, Qt.UserRole) for i in range(self.columnCount())
-        ]
-
-    def get_logical_column_number(self, data: str) -> int:
-        """ Get a logical index of a given section title. """
-        return self.get_logical_column_data().index(data)
-
-    def get_logical_column_mapping(self) -> Dict[str, int]:
-        """ Return logical positions of header labels. """
-        data = self.get_logical_column_data()
-        return {k: data.index(k) for k in data}
-
-    def get_parent_text_from_variables(
-        self, variables: List[VariableData]
-    ) -> Optional[Set[str]]:
-        """ Extract parent part of variable from given list. """
-        if self.tree_node and self.tree_node != PROXY_UNITS_LEVEL:
-            return {v.__getattribute__(self.tree_node) for v in variables}
-
-    def get_matching_selection(self, variables: List[VariableData]) -> QItemSelection:
-        """ Find selection matching given list of variables. """
-
-        def tree_node_matches():
-            if self.tree_node == PROXY_UNITS_LEVEL:
-                # proxy units are not stored in variable data
-                return True
-            else:
-                parent_text = self.get_display_data_at_index(index)
-                return parent_text in variables_parent_text
-
-        def variable_matches():
-            return row_variable_data in variables
-
-        # this is used to quickly check if parent matches given list
-        # if the parent does not match, any of children cannot match
-        # and all the children can be therefore skipped
-        variables_parent_text = self.get_parent_text_from_variables(variables)
-
-        selection = QItemSelection()
-        for i in range(self.rowCount()):
-            index = self.index(i, 0)
-            if self.is_tree_node_row(i) and tree_node_matches():
-                for j in range(self.rowCount(index)):
-                    row_variable_data = self.get_row_variable_data(j, index)
-                    if variable_matches():
-                        selection.append(QItemSelectionRange(self.index(j, 0, index)))
-            else:
-                row_variable_data = self.get_row_variable_data(i)
-                if variable_matches():
-                    selection.append(QItemSelectionRange(index))
-        return selection
-
-    def is_similar(self, other_model: "ViewModel", rows_diff: float = 0.05):
-        """ Check if number of variables and structure matches the other model. """
-        count = self.count_rows()
-        diff = (count - other_model.count_rows()) / count
-        return self.tree_node == other_model.tree_node and abs(diff) <= rows_diff
-
-    @staticmethod
-    def set_item_row_status_tip(status_tip: str, item_row: List[QStandardItem]) -> None:
-        """ Set status tip on each item in row. """
-        for item in item_row:
-            item.setStatusTip(status_tip)
-
-    def append_rows(self, rows: pd.DataFrame) -> None:
-        """ Append rows to the root item. """
-        column_mapping = self.get_logical_column_mapping()
-        for row in rows.values:
-            item_row = [QStandardItem(item) for item in row]
-            status_tip = self.create_status_tip(row, column_mapping)
-            self.set_item_row_status_tip(status_tip, item_row)
-            self.invisibleRootItem().appendRow(item_row)
-
-    def append_child_rows(self, parent: QStandardItem, rows: pd.DataFrame) -> None:
-        """ Append rows to given parent item. """
-        column_mapping = self.get_logical_column_mapping()
-        for row in rows.values:
-            # first standard item is empty to avoid having parent string in the child row
-            item_row = [QStandardItem("")]
-            for item in row[1:]:
-                item_row.append(QStandardItem(item))
-            status_tip = self.create_status_tip(row, column_mapping)
-            self.set_item_row_status_tip(status_tip, item_row)
-            parent.appendRow(item_row)
-
-    def append_tree_rows(self, header_df: pd.DataFrame) -> None:
-        """ Add rows for a tree like view. """
-        grouped = header_df.groupby(by=[header_df.columns[0]])
-        for parent, df in grouped:
-            if len(df.index) == 1:
-                self.append_rows(df)
-            else:
-                parent_item = QStandardItem(parent)
-                parent_item.setDragEnabled(False)
-                self.invisibleRootItem().appendRow(parent_item)
-                self.append_child_rows(parent_item, df)
-
-    def create_status_tip(
-        self, row_display_data: List[str], column_mapping: Dict[str, int]
-    ) -> str:
-        """ Create status tip string. """
-        key = row_display_data[column_mapping[KEY_LEVEL]]
-        type_ = row_display_data[column_mapping[TYPE_LEVEL]] if not self.is_simple else None
-        proxy_units = row_display_data[column_mapping[PROXY_UNITS_LEVEL]]
-        if type_ is not None:
-            status_tip = f"{key} | {type_} | {proxy_units}"
-        else:
-            status_tip = f"{key} | {proxy_units}"
-        return status_tip
-
-    def set_row_status_tip(
-        self, status_tip: str, row_number: int, parent_index: Optional[QModelIndex] = None
-    ) -> None:
-        """ Set status tip on each item in row. """
-        parent_index = parent_index if parent_index else QModelIndex()
-        for column_number in range(self.columnCount()):
-            index = self.index(row_number, column_number, parent_index)
-            item = self.itemFromIndex(index)
-            item.setStatusTip(status_tip)
-
-    def set_row_text_as_status_tip(self):
-        """ Apply status tip for each row in the model. """
-        column_mapping = self.get_logical_column_mapping()
-        for i in range(self.rowCount()):
-            if self.is_tree_node_row(row_number=i):
-                index = self.index(i, 0)
-                for j in range(self.rowCount(index)):
-                    row_display_data = self.get_row_display_data(j, index)
-                    status_tip = self.create_status_tip(row_display_data, column_mapping)
-                    self.set_row_status_tip(status_tip, j, index)
-            else:
-                row_display_data = self.get_row_display_data(i)
-                status_tip = self.create_status_tip(row_display_data, column_mapping)
-                self.set_row_status_tip(status_tip, i)
-
-    def process_header_df(
-        self,
-        header_df: pd.DataFrame,
-        rate_to_energy: bool,
-        units_system: str,
-        energy_units: str,
-        power_units: str,
-    ) -> pd.DataFrame:
-        """ Process variables header DataFrame to be compatible with treeview model. """
-        # id and table data are not required
-        header_df = header_df.drop([ID_LEVEL, TABLE_LEVEL], axis=1)
-
-        # add proxy units - these will be visible on ui
-        header_df[PROXY_UNITS_LEVEL] = self.create_proxy_units_column(
-            source_units=header_df[UNITS_LEVEL],
-            rate_to_energy=rate_to_energy,
-            units_system=units_system,
-            energy_units=energy_units,
-            power_units=power_units,
-        )
-        if self.tree_node:
-            # tree column needs to be first
-            new_columns = header_df.columns.tolist()
-            new_columns.insert(0, new_columns.pop(new_columns.index(self.tree_node)))
-            header_df = header_df.loc[:, new_columns]
-        return header_df
-
-    def set_column_header_item_data(self, header_data: List[str]):
-        """ Assign names to the horizontal header. """
-        names = {
-            KEY_LEVEL: "key",
-            TYPE_LEVEL: "type",
-            UNITS_LEVEL: "source units",
-            PROXY_UNITS_LEVEL: "units",
-        }
-        for i, data in enumerate(header_data):
-            item = QStandardItem()
-            item.setData(data, Qt.UserRole)
-            item.setData(names[data], Qt.DisplayRole)
-            self.setHorizontalHeaderItem(i, item)
-
-    def populate_model(
-        self,
-        header_df: pd.DataFrame,
-        tree_node: Optional[str] = None,
-        rate_to_energy: bool = False,
-        units_system: str = "SI",
-        energy_units: str = "J",
-        power_units: str = "W",
-    ) -> None:
-        """  Create a model and set up its appearance. """
-        # make sure that model is empty
-        if self.rowCount() > 0:
-            self.clear()
-
-        # tree node data is always None for 'Simple' views
-        self.tree_node = tree_node if not self.is_simple else None
-        self.rate_to_energy = rate_to_energy
-        self.units_system = units_system
-        self.energy_units = energy_units
-        self.power_units = power_units
-        self.dirty = False
-        header_df = self.process_header_df(
-            header_df,
-            rate_to_energy=rate_to_energy,
-            units_system=units_system,
-            energy_units=energy_units,
-            power_units=power_units,
-        )
-        self.set_column_header_item_data(header_df.columns.tolist())
-        if self.tree_node:
-            self.append_tree_rows(header_df)
-        else:
-            self.append_rows(header_df)
-
-    def create_conversion_look_up_table(
-        self,
-        source_units: pd.Series,
-        rate_to_energy: bool = False,
-        units_system: str = "SI",
-        energy_units: str = "J",
-        power_units: str = "W",
-    ) -> Optional[Dict[str, str]]:
-        proxy_units = self.create_proxy_units_column(
-            source_units,
-            rate_to_energy=rate_to_energy,
-            units_system=units_system,
-            energy_units=energy_units,
-            power_units=power_units,
-        )
-        df = pd.concat([source_units, proxy_units], axis=1)
-        # create look up dictionary with source units as keys and proxy units as values
-        df.drop_duplicates(inplace=True)
-        df = df.loc[df[UNITS_LEVEL] != df[PROXY_UNITS_LEVEL], :]
-        if not df.empty:
-            df.set_index(UNITS_LEVEL, inplace=True)
-            return df.loc[:, PROXY_UNITS_LEVEL].to_dict()
-
-    def update_proxy_units_parent_item(
-        self, row_number: int, conversion_look_up: Dict[str, str],
-    ) -> None:
-        """ Update proxy units parent item accordingly to conversion lok up. """
-        parent_index = self.index(row_number, 0)
-        first_child_row_data = self.get_row_display_data_mapping(0, parent_index)
-        source_units = first_child_row_data[UNITS_LEVEL]
-        proxy_units = conversion_look_up.get(source_units, source_units)
-        proxy_units_item = self.item(row_number, 0)
-        proxy_units_item.setData(proxy_units, Qt.DisplayRole)
-
-    def update_proxy_units_parent_column(self, conversion_look_up: Dict[str, str]):
-        """ Update proxy units parent column accordingly to conversion look up. """
-        for i in range(self.rowCount()):
-            if self.is_tree_node_row(row_number=i):
-                self.update_proxy_units_parent_item(i, conversion_look_up)
-            else:
-                self.update_proxy_units_item(i, 0, conversion_look_up, QModelIndex())
-
-    def update_proxy_units_item(
-        self,
-        row_number: int,
-        column_number: int,
-        conversion_look_up: Dict[str, str],
-        parent_index: QModelIndex,
-    ) -> None:
-        """ Update proxy units item accordingly to conversion pairs and source units. """
-        row_mapping = self.get_row_display_data_mapping(row_number, parent_index)
-        source_units = row_mapping[UNITS_LEVEL]
-        proxy_units_item = self.itemFromIndex(
-            self.index(row_number, column_number, parent_index)
-        )
-        proxy_units = conversion_look_up.get(source_units, source_units)
-        proxy_units_item.setData(proxy_units, Qt.DisplayRole)
-
-    def update_proxy_units_column(self, conversion_look_up: Dict[str, str]) -> None:
-        """ Update proxy units column accordingly to conversion pairs and source units. """
-        proxy_units_column_number = self.get_logical_column_number(PROXY_UNITS_LEVEL)
-        for i in range(self.rowCount()):
-            index = self.index(i, 0)
-            if self.hasChildren(index):
-                for j in range(self.rowCount(index)):
-                    self.update_proxy_units_item(
-                        j, proxy_units_column_number, conversion_look_up, index
-                    )
-            else:
-                self.update_proxy_units_item(
-                    i, proxy_units_column_number, conversion_look_up, QModelIndex()
-                )
-
-    def update_proxy_units(
-        self,
-        source_units: pd.Series,
-        rate_to_energy: bool = False,
-        units_system: str = "SI",
-        energy_units: str = "J",
-        power_units: str = "W",
-    ):
-        """ Update proxy units column. """
-        self.rate_to_energy = rate_to_energy
-        self.units_system = units_system
-        self.energy_units = energy_units
-        self.power_units = power_units
-        conversion_look_up = self.create_conversion_look_up_table(
-            source_units, rate_to_energy, units_system, energy_units, power_units
-        )
-        if conversion_look_up:
-            if self.tree_node == PROXY_UNITS_LEVEL:
-                self.update_proxy_units_parent_column(conversion_look_up)
-            else:
-                self.update_proxy_units_column(conversion_look_up)
+SIMPLE = "simple"
+TREE = "tree"
 
 
-class FilterModel(QSortFilterProxyModel):
-    """ Proxy model to be used with 'SimpleModel' model. """
-
+class ViewState:
     def __init__(self):
-        super().__init__()
-        self._filter_tuple = FilterTuple(key="", type="", proxy_units="")
+        self.widths = {SIMPLE: {"fixed": 60,}, TREE: {"fixed": 60, "interactive": 200}}
+        self.header = {
+            SIMPLE: ["key", "proxy_units", "units"],
+            TREE: ["type", "key", "proxy_units", "units"],
+        }
+        self.tree_node = "type"
 
-    @property
-    def filter_tuple(self) -> FilterTuple:
-        return self._filter_tuple
+    def save_interactive_width(self, view_type: str, width: int):
+        """ Store current interactive column width. """
+        self.widths[view_type]["interactive"] = width
 
-    @filter_tuple.setter
-    def filter_tuple(self, filter_tuple: FilterTuple) -> None:
-        self._filter_tuple = filter_tuple
-        self.invalidateFilter()
+    def save_header_order(self, view_type: str, header: Tuple[str, ...]):
+        """ Store current header order. """
+        self.header[view_type] = header
 
-    def data_at_proxy_index(self, proxy_index: QModelIndex) -> VariableData:
-        """ Get item data from source model. """
-        return self.item_at_proxy_index(proxy_index).data(Qt.UserRole)
+    def save_tree_node(self, name: str):
+        """ Store current tree node. """
+        self.tree_node = name
 
-    def item_at_proxy_index(self, proxy_index: QModelIndex) -> QStandardItem:
-        """ Get item from source model. """
-        source_index = self.mapToSource(proxy_index)
-        return self.sourceModel().itemFromIndex(source_index)
+    def get_header(self, view_type: str):
+        return self.header[view_type]
 
-    def map_to_source(self, indexes: List[QModelIndex]) -> List[QModelIndex]:
-        """ Map a list of indexes to the source model. """
-        return [self.mapToSource(ix) for ix in indexes]
+    def get_widths(self, view_type: str):
+        return self.widths[view_type]
 
-    def filter_matches_row(self, row_data_mapping: Dict) -> bool:
-        """ Check if current filter tuple matches row display data. """
-        row_data_to_filter = {k: v for k, v in row_data_mapping.items() if k != UNITS_LEVEL}
-        for field_name, item_text in row_data_to_filter.items():
-            filter_text = self.filter_tuple.__getattribute__(field_name)
-            filter_text = filter_text.strip()
-            if filter_text:
-                if filter_text.lower() not in item_text.lower():
-                    return False
-        return True
-
-    def filterAcceptsRow(self, source_row_number: int, source_parent: QModelIndex) -> bool:
-        """ Set up filtering rules for the model. """
-        if not any(self.filter_tuple):
-            return True
-        # first item can be either parent for 'tree' structure or a normal item
-        # parent rows can be excluded as valid items are displayed due to recursive filter
-        if source_parent.isValid():
-            row_data_mapping = self.sourceModel().get_row_display_data_mapping(
-                source_row_number, source_parent
-            )
-            return self.filter_matches_row(row_data_mapping)
-        return False
-
-    def find_matching_proxy_selection(self, variables: List[VariableData]) -> QItemSelection:
-        """ Check if output variables are available in a new model. """
-        source_selection = self.sourceModel().get_matching_selection(variables)
-        return self.mapSelectionFromSource(source_selection)
-
-    def flags(self, index: QModelIndex) -> None:
-        """ Set item flags. """
-        if self.hasChildren(index):
-            return Qt.ItemIsEnabled | Qt.ItemIsSelectable
-        return Qt.ItemIsEnabled | Qt.ItemIsDragEnabled | Qt.ItemIsSelectable
+    def get_tree_node(self):
+        return self.view_settings["TREE_NODE"]
 
 
 class TreeView(QTreeView):
@@ -584,29 +84,23 @@ class TreeView(QTreeView):
         variables cannot be found in the model.
     itemDoubleClicked
         Is emitted on item double click.
-    viewColumnResized
-        Is emitted when 'interactive' column width changes.
-    viewColumnOrderChanged
-        Is emitted when header column_order changes.
-    viewTreeNodeChanged
+    treeNodeChanged
         Is emitted if the view uses tree structure changes.
 
     """
 
-    SIMPLE = "simple"
-    TREE = "tree"
-
     selectionCleared = Signal()
     selectionPopulated = Signal(list)
     itemDoubleClicked = Signal(VariableData)
-    viewColumnResized = Signal(str, int)
-    viewColumnOrderChanged = Signal(str, tuple)
-    viewTreeNodeChanged = Signal(str)
+    treeNodeChanged = Signal(str)
 
-    def __init__(self, id_: int, models: Dict[str, ViewModel]):
+    def __init__(self, id_: int, models: Dict[str, ViewModel], output_type: str):
         super().__init__()
         self.id_ = id_
         self.models = models
+        self.output_type = output_type
+        self.tree_node = None
+
         self.setRootIsDecorated(True)
         self.setUniformRowHeights(True)
         self.setSortingEnabled(True)
@@ -641,7 +135,6 @@ class TreeView(QTreeView):
         self.header().setFirstSectionMovable(True)
         self.header().sectionMoved.connect(self.on_section_moved)
         self.header().sortIndicatorChanged.connect(self.on_sort_order_changed)
-        self.header().sectionResized.connect(self.on_view_resized)
 
         self.expanded.connect(self.on_item_expanded)
         self.collapsed.connect(self.on_item_collapsed)
@@ -656,7 +149,7 @@ class TreeView(QTreeView):
 
     @property
     def view_type(self) -> str:
-        return self.SIMPLE if self.source_model.is_simple else self.TREE
+        return SIMPLE if self.source_model.is_simple else TREE
 
     @property
     def is_tree(self) -> bool:
@@ -668,6 +161,35 @@ class TreeView(QTreeView):
             return self.source_model.allow_rate_to_energy
         else:
             return True
+
+    @property
+    def selected_variable_data(self) -> List[VariableData]:
+        return self.get_selected_variable_data()
+
+    @property
+    def selected_variables(self) -> List[Variable]:
+        variables = []
+        for variable_data in self.selected_variable_data:
+            variable = (
+                SimpleVariable(
+                    table=self.current_table_name,
+                    key=variable_data.key,
+                    units=variable_data.units,
+                )
+                if self.source_model.is_simple
+                else Variable(
+                    table=self.current_table_name,
+                    key=variable_data.key,
+                    type=variable_data.type,
+                    units=variable_data.units,
+                )
+            )
+            variables.append(variable)
+        return variables
+
+    @property
+    def current_table_name(self) -> str:
+        return self.source_model.name
 
     def mousePressEvent(self, event: QEvent) -> None:
         """ Handle mouse events. """
@@ -793,6 +315,17 @@ class TreeView(QTreeView):
             self.header().setSectionResizeMode(interactive, QHeaderView.Interactive)
             self.header().resizeSection(interactive, widths["interactive"])
 
+    def get_widths(self) -> Dict[str, int]:
+        """ Get current column interactive and fixed widths. """
+        widths = {}
+        for i in range(self.header().count()):
+            if not self.header().isSectionHidden(i):
+                if self.header().sectionResizeMode(i) == QHeaderView.Interactive:
+                    widths["interactive"] = self.header().sectionSize(i)
+                elif self.header().sectionResizeMode(i) == QHeaderView.Fixed:
+                    widths["fixed"] = self.header().sectionSize(i)
+        return widths
+
     def show_all_sections(self):
         """ Make all columns visible. """
         for i in range(self.header().count()):
@@ -802,23 +335,10 @@ class TreeView(QTreeView):
         """ Hide section of a given name. """
         self.header().setSectionHidden(self.source_model.get_logical_column_number(data), hide)
 
-    def update_appearance(
-        self,
-        header: Tuple[str, ...] = (TYPE_LEVEL, KEY_LEVEL, PROXY_UNITS_LEVEL, UNITS_LEVEL),
-        widths: Dict[str, int] = None,
-        expanded: Set[str] = None,
-        filter_tuple: FilterTuple = FilterTuple("", "", ""),
-        selected: Optional[List[VariableData]] = None,
-        scroll_pos: Optional[int] = None,
-        scroll_to: Optional[VariableData] = None,
-        hide_source_units: bool = False,
+    def set_appearance(
+        self, header: Tuple[str, ...], widths: Dict[str, int], hide_source_units: bool = False,
     ) -> None:
         """ Update the model appearance to be consistent with last view. """
-        # filter expands all items so it's not required to use expanded set
-        if any(filter_tuple) and filter_tuple != self.proxy_model.filter_tuple:
-            self.filter_view(filter_tuple)
-        elif expanded:
-            self.expand_items(expanded)
         # handle custom units column visibility, need to show all
         # as switching between simple and tree view may cause that
         # another section will be hidden
@@ -838,35 +358,21 @@ class TreeView(QTreeView):
         else:
             self.setRootIsDecorated(False)
         # clear selections to avoid having selected items from previous selection
-        self.deselect_all_variables()
-        if selected:
-            self.select_variables(selected)
-        # scroll takes precedence over scrollbar position
-        if scroll_to:
-            self.scroll_to(scroll_to)
-        elif scroll_pos is not None:
-            # check explicitly to avoid skipping '0' position
-            self.update_scrollbar_position(scroll_pos)
 
-    def set_model(self, table_name: str) -> None:
+    def set_model(self, table_name: str, **kwargs) -> None:
         """ Assign new model. """
         model = self.models[table_name]
+        model.populate_model(tree_node=self.tree_node, **kwargs)
         with SignalBlocker(self.verticalScrollBar()):
             self.proxy_model.setSourceModel(model)
 
-    def set_and_update_model(self, header_df: pd.DataFrame, table_name: str, **kwargs) -> None:
-        model = self.models[table_name]
-        model.populate_model(header_df, **kwargs)
-        with SignalBlocker(self.verticalScrollBar()):
-            self.proxy_model.setSourceModel(model)
+    def update_model(self, **kwargs) -> None:
+        """ Update tree view model. """
+        self.source_model.populate_model(tree_node=self.tree_node, **kwargs)
 
-    def update_model(self, header_df: pd.DataFrame, **kwargs) -> None:
+    def update_units(self, **kwargs) -> None:
         """ Update tree viw model. """
-        self.source_model.populate_model(header_df, **kwargs)
-
-    def update_units(self, source_units: pd.Series, **kwargs) -> None:
-        """ Update tree viw model. """
-        self.source_model.update_proxy_units(source_units, **kwargs)
+        self.source_model.update_proxy_units(**kwargs)
 
     def on_item_expanded(self, proxy_index: QModelIndex):
         if self.proxy_model.hasChildren(proxy_index):
@@ -884,8 +390,9 @@ class TreeView(QTreeView):
 
     def on_view_resized(self, log_ix: int, _, new_size: int) -> None:
         """ Store interactive section width in the main app. """
+        # TODO remove this
         if self.header().sectionResizeMode(log_ix) == self.header().Interactive:
-            self.viewColumnResized.emit(self.view_type, new_size)
+            self.shared_properties.save_interactive_width(self.view_type, new_size)
 
     def tree_node_changed(self, old_visual_ix: int, new_visual_ix: int) -> bool:
         """ Check if tree node column changed. """
@@ -893,10 +400,9 @@ class TreeView(QTreeView):
 
     def on_section_moved(self, _logical_ix, old_visual_ix: int, new_visual_ix: int) -> None:
         """ Handle updating the model when column order changes. """
-        names = self.get_visual_column_data()
-        self.viewColumnOrderChanged.emit(self.view_type, names)
         if self.tree_node_changed(old_visual_ix, new_visual_ix):
-            self.viewTreeNodeChanged.emit(names[0])
+            self.tree_node = self.get_visual_column_data()[0]
+            self.treeNodeChanged.emit()
             # automatically sort first column based on last sort update
             self.header().setSortIndicator(0, self.proxy_model.sortOrder())
 
@@ -1000,3 +506,80 @@ class TreeView(QTreeView):
             self.selectionPopulated.emit(variable_data)
         else:
             self.selectionCleared.emit()
+
+
+class ViewMask:
+    _cached = defaultdict(lambda: defaultdict(dict))
+    _default = {
+        "widths": {SIMPLE: {"fixed": 60,}, TREE: {"fixed": 60, "interactive": 200}},
+        "header": {
+            SIMPLE: ["key", "proxy_units", "units"],
+            TREE: ["type", "key", "proxy_units", "units"],
+        },
+    }
+
+    def __init__(self, treeview: TreeView, filter_tuple: FilterTuple, hide_source_units: bool):
+        self.treeview = treeview
+        self.old_model = treeview.source_model
+        self.filter_tuple = filter_tuple
+        self.hide_source_units = hide_source_units
+
+        self.old_widths = None
+        self.old_header = None
+        self.old_selected = None
+
+    def __enter__(self):
+        if self.old_model is not None:
+            self.old_widths = self.treeview.get_widths()
+            self.old_header = self.treeview.get_visual_column_data()
+            self.old_selected = self.treeview.get_selected_variable_data()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        is_similar = self.treeview.source_model.is_similar(self.old_model, rows_diff=0.05)
+        if is_similar:
+            expanded = self.old_model.expanded
+            scroll_position = self.old_model.scroll_position
+            widths = self.old_widths
+            header = self.old_header
+            selected = self.old_selected
+        else:
+            expanded = self.treeview.source_model.expanded
+            scroll_position = self.treeview.source_model.scroll_position
+            widths = self.get_cached_property("widths")
+            header = self.get_cached_property("header")
+            selected = self.treeview.get_selected_variable_data()
+
+        self.update_item_visibility(expanded, scroll_position)
+        self.treeview.deselect_all_variables()
+        if selected:
+            self.treeview.select_variables(selected)
+        self.treeview.set_appearance(header, widths, self.hide_source_units)
+        self.set_cached_property("widths", self.treeview.get_widths())
+        self.set_cached_property("header", self.treeview.get_visual_column_data())
+
+    def get_cached_property(self, key: str) -> Any:
+        """ Retrieve given property, returns default if not yet cached."""
+        try:
+            val = self._cached[self.treeview.output_type][key][self.treeview.view_type]
+        except KeyError:
+            val = self._default[key][self.treeview.view_type]
+        return val
+
+    def set_cached_property(self, property: str, value: Any) -> None:
+        self._cached[self.treeview.output_type][property][self.treeview.view_type] = value
+
+    def update_item_visibility(self, expanded: Set[str], scroll_position: int):
+        """ Show, expand items and scroll to previous position. """
+        if (
+            any(self.filter_tuple)
+            and self.filter_tuple != self.treeview.proxy_model.filter_tuple
+        ):
+            self.treeview.filter_view(self.filter_tuple)
+        # filter expands all items so it's not required to use expanded set
+        elif expanded:
+            self.treeview.expand_items(expanded)
+
+        if scroll_position is not None:
+            # check explicitly to avoid skipping '0' position
+            self.treeview.update_scrollbar_position(scroll_position)

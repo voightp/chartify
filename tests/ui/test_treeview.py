@@ -7,7 +7,8 @@ from PySide2.QtWidgets import QHeaderView, QSizePolicy
 from esofile_reader import EsoFile, GenericFile
 from esofile_reader.df.level_names import UNITS_LEVEL
 
-from chartify.ui.treeview import TreeView, ViewModel, FilterModel
+from chartify.ui.treeview import TreeView
+from chartify.ui.treeview_model import ViewModel, FilterModel
 from chartify.utils.utils import VariableData, FilterTuple
 from tests import ROOT
 
@@ -79,9 +80,7 @@ def tree_view(qtbot, hourly_df, daily_df, hourly_df_simple, daily_df_simple):
     tree_view.setFixedWidth(WIDTH)
     tree_view.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
     tree_view.set_and_update_model(header_df=hourly_df, table_name="hourly", tree_node="type")
-    tree_view.update_appearance(
-        widths={"interactive": 200, "fixed": 70}, hide_source_units=True
-    )
+    tree_view.set_appearance(widths={"interactive": 200, "fixed": 70}, hide_source_units=True)
     tree_view.show()
     qtbot.addWidget(tree_view)
     return tree_view
@@ -183,7 +182,7 @@ def test_initial_view_appearance_hidden_source(tree_view: TreeView):
 
 def test_initial_view_appearance_simple_hidden_source(tree_view: TreeView):
     tree_view.set_model("daily-simple")
-    tree_view.update_appearance(
+    tree_view.set_appearance(
         widths={"fixed": 70}, header=("key", "proxy_units", "units"), hide_source_units=True
     )
     assert tree_view.header().sectionSize(0) == 330
@@ -243,7 +242,7 @@ def test_resize_header_hide_source_units(tree_view: TreeView, hourly_df: pd.Data
 
 def test_on_tree_node_changed_build_tree(qtbot, tree_view: TreeView):
     assert tree_view.get_visual_column_data() == ("type", "key", "proxy_units", "units")
-    with qtbot.wait_signal(tree_view.viewTreeNodeChanged, timeout=1000):
+    with qtbot.wait_signal(tree_view.treeNodeChanged, timeout=1000):
         tree_view.header().moveSection(2, 0)
         assert tree_view.get_visual_column_data() == ("proxy_units", "type", "key", "units")
         assert tree_view.header().sortIndicatorOrder() == Qt.AscendingOrder
@@ -251,7 +250,7 @@ def test_on_tree_node_changed_build_tree(qtbot, tree_view: TreeView):
 
 def test_on_tree_node_changed_dont_build_tree(qtbot, tree_view: TreeView):
     assert tree_view.get_visual_column_data() == ("type", "key", "proxy_units", "units")
-    with qtbot.assertNotEmitted(tree_view.viewTreeNodeChanged):
+    with qtbot.assertNotEmitted(tree_view.treeNodeChanged):
         tree_view.header().moveSection(2, 1)
 
 
@@ -272,7 +271,7 @@ def test_on_section_moved_rebuild(qtbot, tree_view: TreeView, hourly_df: pd.Data
     def test_header(view_type, header):
         return view_type == "tree" and header == ("key", "proxy_units", "type", "units")
 
-    signals = [(tree_view.viewColumnOrderChanged, "0"), (tree_view.viewTreeNodeChanged, "1")]
+    signals = [(tree_view.viewColumnOrderChanged, "0"), (tree_view.treeNodeChanged, "1")]
     callbacks = [test_header, None]
     with qtbot.wait_signals(signals=signals, check_params_cbs=callbacks):
         tree_view.header().moveSection(0, 2)
@@ -513,7 +512,7 @@ def test_update_view_model_appearance(qtbot, tree_view: TreeView, daily_df: pd.D
 
     widths = {"interactive": 150, "fixed": 50}
     expanded = {"Fan Electric Power", "Heating Coil Heating Rate"}
-    tree_view.update_appearance(header=header, widths=widths, expanded=expanded)
+    tree_view.set_appearance(header=header, widths=widths, expanded=expanded)
     assert tree_view.header().sectionSize(tree_view.header().logicalIndex(0)) == 150
     assert tree_view.header().sectionSize(tree_view.header().logicalIndex(1)) == 50
     assert tree_view.header().sectionSize(tree_view.header().logicalIndex(2)) == 150

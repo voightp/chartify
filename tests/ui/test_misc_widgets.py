@@ -5,7 +5,8 @@ from PySide2.QtCore import QCoreApplication, Qt, QMimeData, QUrl
 from PySide2.QtGui import QDragEnterEvent, QDragLeaveEvent, QDropEvent
 from PySide2.QtWidgets import QWidget
 
-from chartify.ui.misc_widgets import TabWidget, DropFrame
+from chartify.ui.tab_widget import TabWidget
+from chartify.ui.drop_frame import DropFrame
 from tests import ROOT
 
 
@@ -22,11 +23,11 @@ class TestTabWidget:
         assert tab_widget.tabsClosable()
         assert tab_widget.isMovable()
         assert tab_widget.tabPosition() == TabWidget.North
-        assert tab_widget.drop_btn.objectName() == "dropButton"
-        assert tab_widget.drop_btn.text() == "Choose a file or drag it here!"
+        assert tab_widget.tab_wgt_button.objectName() == "dropButton"
+        assert tab_widget.tab_wgt_button.text() == "Choose a file or drag it here!"
 
     def test_is_empty(self, tab_widget: TabWidget):
-        assert tab_widget.drop_btn.isVisible()
+        assert tab_widget.tab_wgt_button.isVisible()
         assert tab_widget.is_empty()
 
     def test_get_all_children(self, tab_widget: TabWidget):
@@ -50,7 +51,7 @@ class TestTabWidget:
         tab_widget.add_tab(wgt, "test widget")
         assert tab_widget.widget(0) == wgt
         assert tab_widget.tabText(0) == "test widget"
-        assert not tab_widget.drop_btn.isVisible()
+        assert not tab_widget.tab_wgt_button.isVisible()
 
     def test_close_tab_invisible_button(self, tab_widget: TabWidget):
         widgets = []
@@ -60,13 +61,13 @@ class TestTabWidget:
             widgets.append(wgt)
         tab_widget.removeTab(0)
         assert not tab_widget.widget(2)
-        assert not tab_widget.drop_btn.isVisible()
+        assert not tab_widget.tab_wgt_button.isVisible()
 
     def test_close_tab_visible_button(self, tab_widget: TabWidget):
         wgt = QWidget(tab_widget)
         tab_widget.add_tab(wgt, "test widget")
         tab_widget.removeTab(0)
-        assert tab_widget.drop_btn.isVisible()
+        assert tab_widget.tab_wgt_button.isVisible()
 
 
 class TestDropFrame:

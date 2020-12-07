@@ -33,3 +33,15 @@ def refresh_css(func):
         return result
 
     return wrapper
+
+
+def print_args(func):
+    def wrapper(*args, **kwargs):
+        print("FUNCTION " + func.__name__)
+        print("called with args: ", end="")
+        print(*args)
+        print("called with kwargs: ", end="")
+        print(**kwargs)
+        return func(*args, **kwargs)
+
+    return wrapper

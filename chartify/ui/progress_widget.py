@@ -236,7 +236,7 @@ class ProgressWidget(QFrame):
             self.setProperty("failed", self.file_ref.failed)
 
     def update_status(self) -> None:
-        """ Update button tooltip. """
+        """ Update tab_wgt_button tooltip. """
         self.file_btn.status_label = (
             f"File: {self.file_ref.file_path}" f"\nPhase: {self.file_ref.status}"
         )
@@ -254,7 +254,7 @@ class ProgressWidget(QFrame):
         self.progress_bar.setValue(self.file_ref.value)
 
     def set_enabled(self) -> None:
-        """ Control button state. """
+        """ Control tab_wgt_button state. """
         self.file_btn.setEnabled(self.file_ref.failed)
 
     def update_all_attributes(self) -> None:

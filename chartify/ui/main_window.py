@@ -1,8 +1,9 @@
 import ctypes
+import shutil
 from functools import partial
 from pathlib import Path
 from typing import Optional, Tuple, List, Dict, Union
-import shutil
+
 from PySide2.QtCore import QSize, Qt, QCoreApplication, Signal, QPoint, QTimer
 from PySide2.QtGui import QIcon, QKeySequence, QColor
 from PySide2.QtWebEngineWidgets import QWebEngineView
@@ -10,7 +11,6 @@ from PySide2.QtWidgets import (
     QWidget,
     QSplitter,
     QHBoxLayout,
-    QVBoxLayout,
     QToolButton,
     QAction,
     QFileDialog,
@@ -22,20 +22,26 @@ from PySide2.QtWidgets import (
     QLabel,
     QLineEdit,
     QSpacerItem,
+    QVBoxLayout,
+    QStackedWidget,
 )
 from esofile_reader import Variable
 from esofile_reader.convertor import all_rate_or_energy
 from esofile_reader.df.level_names import *
+from esofile_reader.pqt.parquet_file import ParquetFile
 from esofile_reader.pqt.parquet_storage import ParquetStorage
 from esofile_reader.typehints import VariableType
 
 from chartify.settings import Settings
 from chartify.ui.buttons import MenuButton
 from chartify.ui.dialogs import ConfirmationDialog, SingleInputDialog, DoubleInputDialog
-from chartify.ui.misc_widgets import DropFrame, TabWidget
+from chartify.ui.drop_frame import DropFrame
 from chartify.ui.progress_widget import ProgressContainer
+from chartify.ui.tab_widget import TabWidget
 from chartify.ui.toolbar import Toolbar
-from chartify.ui.treeview import TreeView, ViewModel
+from chartify.ui.treeview import TreeView, ViewMask
+from chartify.ui.treeview_model import ViewModel
+from chartify.ui.widget_functions import print_args
 from chartify.utils.css_theme import Palette, CssParser
 from chartify.utils.icon_painter import Pixmap, filled_circle_pixmap
 from chartify.utils.utils import VariableData, FilterTuple
@@ -53,14 +59,12 @@ class MainWindow(QMainWindow):
     tabChanged = Signal(int)
     treeNodeUpdated = Signal(str)
     selectionChanged = Signal(list)
-    updateModelRequested = Signal()
-    setModelRequested = Signal()
+    variableRenameRequested = Signal(TreeView, VariableData)
+    variableRemoveRequested = Signal(TreeView, list)
+    aggregationRequested = Signal(str, TreeView, list)
     fileProcessingRequested = Signal(list)
     syncFileProcessingRequested = Signal(list)
     fileRenameRequested = Signal(int, int)
-    variableRenameRequested = Signal(VariableData)
-    variableRemoveRequested = Signal()
-    aggregationRequested = Signal(str)
     fileRemoveRequested = Signal(int)
     appCloseRequested = Signal()
 
@@ -89,14 +93,14 @@ class MainWindow(QMainWindow):
         self.mean_act.setEnabled(False)
         self.collapse_all_act = QAction("Collapse All", self)
         self.collapse_all_act.setShortcut(QKeySequence("Ctrl+Shift+E"))
-        self.collapse_all_act.setEnabled(bool(Settings.TREE_NODE))
+        # self.collapse_all_act.setEnabled(bool(Settings.TREE_NODE))
         self.expand_all_act = QAction("Expand All", self)
         self.expand_all_act.setShortcut(QKeySequence("Ctrl+E"))
-        self.expand_all_act.setEnabled(bool(Settings.TREE_NODE))
+        # self.expand_all_act.setEnabled(bool(Settings.TREE_NODE))
         self.tree_act = QAction("Tree", self)
         self.tree_act.setShortcut(QKeySequence("Ctrl+T"))
         self.tree_act.setCheckable(True)
-        self.tree_act.setChecked(bool(Settings.TREE_NODE))
+        # self.tree_act.setChecked(bool(Settings.TREE_NODE))
         self.save_act = QAction("Save", self)
         self.save_act.setShortcut(QKeySequence("Ctrl+S"))
         self.save_as_act = QAction("Save as", self)
@@ -156,17 +160,34 @@ class MainWindow(QMainWindow):
             self.left_main_layout.addWidget(self.view_wgt)
 
         # ~~~~ Left hand Tab widget  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.tab_wgt = TabWidget(self.view_wgt)
-        self.tab_wgt.setMinimumWidth(400)
-        self.view_layout.addWidget(self.tab_wgt)
+        self.tab_stacked_widget = QStackedWidget(self)
+        self.tab_stacked_widget.setMinimumWidth(400)
+        self.view_layout.addWidget(self.tab_stacked_widget)
 
-        self.tab_wgt1 = TabWidget(self.view_wgt)
-        self.tab_wgt1.setMinimumWidth(400)
-        self.view_layout.addWidget(self.tab_wgt)
+        self.drop_button = QToolButton()
+        self.drop_button.setObjectName("dropButton")
+        self.drop_button.setText("Choose a file or drag it here!")
+        self.drop_button.clicked.connect(self.load_files_from_fs)
 
-        self.tab_wgt1 = TabWidget(self.view_wgt)
-        self.tab_wgt1.setMinimumWidth(400)
-        self.view_layout.addWidget(self.tab_wgt)
+        self.drop_button_totals = QToolButton()
+        self.drop_button_totals.setObjectName("dropButton")
+        self.drop_button_totals.setText("Choose a file or drag it here!")
+        self.drop_button_totals.clicked.connect(self.load_files_from_fs)
+
+        self.diff_button = QToolButton()
+        self.diff_button.setObjectName("diffButton")
+        self.diff_button.setText("Click here to create difference file!")
+        self.diff_button.clicked.connect(self.create_diff_file)
+
+        self.standard_tab_wgt = TabWidget(self.view_wgt, self.drop_button)
+        self.totals_tab_wgt = TabWidget(self.view_wgt, self.drop_button_totals)
+        self.diff_tab_wgt = TabWidget(self.view_wgt, self.diff_button)
+
+        self.tab_stacked_widget.addWidget(self.standard_tab_wgt)
+        self.tab_stacked_widget.addWidget(self.totals_tab_wgt)
+        self.tab_stacked_widget.addWidget(self.diff_tab_wgt)
+
+        self.tab_stacked_widget.setCurrentIndex(Settings.OUTPUTS_INDEX)
 
         # ~~~~ Left hand Tab Tools  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.view_tools = QFrame(self.view_wgt)
@@ -343,9 +364,6 @@ class MainWindow(QMainWindow):
         self.load_css_and_icons()
         self.central_splitter.setSizes(Settings.SPLIT)
 
-        # ~~~~ Tree view appearance ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.view_settings = {TreeView.SIMPLE: Settings.SIMPLE, TreeView.TREE: Settings.TREE}
-
         # ~~~~ Connect main ui user actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.connect_ui_signals()
         self.connect_tab_widget_signals()
@@ -353,14 +371,21 @@ class MainWindow(QMainWindow):
         self.connect_toolbar_signals()
 
     @property
-    def current_view(self) -> TreeView:
-        """ Currently selected outputs file. """
-        return self.tab_wgt.currentWidget()
+    def current_tab_widget(self) -> TabWidget:
+        """ Currently displayed tab widget. """
+        return self.tab_stacked_widget.currentWidget()
 
     @property
-    def all_views(self):
+    def current_view(self) -> TreeView:
+        """ Currently selected outputs file. """
+        return self.current_tab_widget.currentWidget()
+
+    @property
+    def all_current_views(self):
         """ All tabs content. """
-        return [self.tab_wgt.widget(i) for i in range(self.tab_wgt.count())]
+        return [
+            self.current_tab_widget.widget(i) for i in range(self.current_tab_widget.count())
+        ]
 
     def closeEvent(self, event):
         """ Shutdown all the background stuff. """
@@ -377,11 +402,11 @@ class MainWindow(QMainWindow):
     def keyPressEvent(self, event):
         """ Manage keyboard events. """
         if event.key() == Qt.Key_Escape:
-            if not self.tab_wgt.is_empty():
+            if not self.current_tab_widget.is_empty():
                 self.current_view.deselect_all_variables()
         elif event.key() == Qt.Key_Delete:
             if self.hasFocus():
-                self.variableRemoveRequested.emit()
+                self.variableRemoveRequested.emit(self.current_view)
 
     def load_icons(self):
         """ Load application icons. """
@@ -400,9 +425,13 @@ class MainWindow(QMainWindow):
         self.close_all_act.setIcon(QIcon(Pixmap(Path(r, "remove.png"), *c1)))
         self.load_file_act.setIcon(QIcon(Pixmap(Path(r, "add_file.png"), *c1)))
 
-        self.tab_wgt.drop_btn.setIcon(Pixmap(Path(r, "drop_file.png"), *c1))
-        self.tab_wgt.drop_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
-        self.tab_wgt.drop_btn.setIconSize(QSize(50, 50))
+        self.drop_button.setIcon(Pixmap(Path(r, "drop_file.png"), *c1))
+        self.drop_button.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
+        self.drop_button.setIconSize(Settings.ICON_LARGE_SIZE)
+
+        self.drop_button_totals.setIcon(Pixmap(Path(r, "drop_file.png"), *c1))
+        self.drop_button_totals.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
+        self.drop_button_totals.setIconSize(Settings.ICON_LARGE_SIZE)
 
         icon = QIcon()
         icon.addPixmap(Pixmap(Path(r, "sigma.png"), *c1), QIcon.Normal, QIcon.Off)
@@ -468,36 +497,58 @@ class MainWindow(QMainWindow):
 
     def rename_tab(self, index: int, name: str):
         """ Set new tab name. """
-        self.v.tab_wgt.setTabText(index, name)
+        self.current_tab_widget.setTabText(index, name)
 
-    def add_new_tab(self, id_: int, name: str, models: Dict[str, ViewModel]):
+    def on_tree_node_changed(self):
+        # TODO Connect actions
+        pass
+
+    def on_item_double_clicked(self):
+        pass
+
+    def on_remove_variables_triggered(self):
+        pass
+
+    def on_sum_action_triggered(self):
+        pass
+
+    def on_mean_action_triggered(self):
+        pass
+
+    @print_args
+    def add_new_tab(self, id_: int, name: str, file_type: str, models: Dict[str, ViewModel]):
         """ Add file on the UI. """
+        if file_type == ParquetFile.TOTALS:
+            output_type = Settings.OUTPUT_TYPES[2]
+            tab_widget = self.totals_tab_wgt
+        elif file_type == ParquetFile.DIFF:
+            output_type = Settings.OUTPUT_TYPES[1]
+            tab_widget = self.diff_tab_wgt
+        else:
+            output_type = Settings.OUTPUT_TYPES[0]
+            tab_widget = self.standard_tab_wgt
         # create an empty 'View' widget - the data will be
         # automatically populated on 'onTabChanged' signal
-        view = TreeView(id_, models)
+        view = TreeView(id_, models, output_type)
         view.selectionCleared.connect(self.on_selection_cleared)
         view.selectionPopulated.connect(self.on_selection_populated)
-        view.viewColumnResized.connect(self.on_view_header_resized)
-        view.viewColumnOrderChanged.connect(self.on_view_header_changed)
-        view.viewTreeNodeChanged.connect(self.on_tree_node_changed)
-        view.itemDoubleClicked.connect(self.variableRenameRequested.emit)
-
-        # add the new view into tab widget
-        self.tab_wgt.add_tab(view, name)
+        view.treeNodeChanged.connect(self.on_tree_node_changed)
+        view.itemDoubleClicked.connect(self.on_item_double_clicked)
+        tab_widget.add_tab(view, name)
 
         # enable all eso file results btn if there's multiple files
-        if self.tab_wgt.count() > 1:
+        if self.current_tab_widget.count() > 1:
             self.toolbar.all_files_toggle.setEnabled(True)
             self.close_all_act.setEnabled(True)
 
     def expand_all(self):
         """ Expand all tree view items. """
-        if not self.tab_wgt.is_empty():
+        if not self.current_tab_widget.is_empty():
             self.current_view.expandAll()
 
     def collapse_all(self):
         """ Collapse all tree view items. """
-        if not self.tab_wgt.is_empty():
+        if not self.current_tab_widget.is_empty():
             self.current_view.collapseAll()
 
     def save_storage_to_fs(self) -> Optional[Path]:
@@ -514,7 +565,7 @@ class MainWindow(QMainWindow):
 
     def load_files_from_paths_synchronously(self, paths: List[Union[str, Path]]):
         """ Load results from given paths.  """
-        Settings.LOAD_PATH = str(Path(paths[0]).parent)
+        Settings.LOAD_PATH = Path(paths[0]).parent
         self.syncFileProcessingRequested.emit(paths)
 
     def load_files_from_paths(self, paths: List[Path]):
@@ -524,11 +575,12 @@ class MainWindow(QMainWindow):
 
     def load_files_from_fs(self):
         """ Let user select files to processed from filesystem. """
-        dir_ = str(Settings.LOAD_PATH) if isinstance(Settings.LOAD_PATH, Path) else None
+        dir_ = str(Settings.LOAD_PATH) if Settings.LOAD_PATH else None
+        extensions_str = " ".join(["*" + ext for ext in Settings.EXTENSIONS])
         file_paths, _ = QFileDialog.getOpenFileNames(
             parent=self,
             caption="Load Project / Eso File",
-            filter="FILES (*.csv *.xlsx *.eso *.cfs)",
+            filter=f"FILES ({extensions_str})",
             dir=dir_,
         )
         if file_paths:
@@ -568,19 +620,6 @@ class MainWindow(QMainWindow):
         self.mean_act.setEnabled(False)
         self.selectionChanged.emit([])
 
-    def on_tree_node_changed(self, name: str):
-        """ Update model when tree node changes. """
-        Settings.TREE_NODE = name
-        self.updateModelRequested.emit()
-
-    def on_view_header_resized(self, view_type: str, width: int):
-        """ store current interactive column width. """
-        self.view_settings[view_type]["widths"]["interactive"] = width
-
-    def on_view_header_changed(self, view_type: str, header: Tuple[str, ...]):
-        """ Store current header order. """
-        self.view_settings[view_type]["header"] = header
-
     def on_splitter_moved(self):
         """ Store current splitter position. """
         Settings.SPLIT = self.central_splitter.sizes()
@@ -596,9 +635,9 @@ class MainWindow(QMainWindow):
         self.tree_act.toggled.connect(self.on_tree_act_checked)
         self.collapse_all_act.triggered.connect(self.collapse_all)
         self.expand_all_act.triggered.connect(self.expand_all)
-        self.remove_variables_act.triggered.connect(self.variableRemoveRequested.emit)
-        self.sum_act.triggered.connect(partial(self.aggregationRequested.emit, "sum"))
-        self.mean_act.triggered.connect(partial(self.aggregationRequested.emit, "mean"))
+        self.remove_variables_act.triggered.connect(self.on_remove_variables_triggered)
+        self.sum_act.triggered.connect(self.on_sum_action_triggered)
+        self.mean_act.triggered.connect(self.on_mean_action_triggered)
 
     def get_filter_tuple(self):
         """ Retrieve filter inputs from ui. """
@@ -608,51 +647,14 @@ class MainWindow(QMainWindow):
             proxy_units=self.units_line_edit.text(),
         )
 
-    def update_view_visual(
-        self,
-        selected: Optional[List[VariableData]] = None,
-        scroll_to: Optional[VariableData] = None,
-        old_model: Optional[ViewModel] = None,
-        hide_source_units: bool = False,
-    ):
-        """ update visual appearance of the view to be consistent with a previous one. """
-        if old_model is not None and old_model.is_similar(
-            self.current_view.source_model, rows_diff=0.05
-        ):
-            scroll_pos = old_model.scroll_position
-            expanded = old_model.expanded
-        else:
-            scroll_pos = self.current_view.source_model.scroll_position
-            expanded = self.current_view.source_model.expanded
-        self.current_view.update_appearance(
-            **self.view_settings[self.current_view.view_type],
-            filter_tuple=self.get_filter_tuple(),
-            expanded=expanded,
-            selected=selected,
-            scroll_pos=scroll_pos,
-            scroll_to=scroll_to,
-            hide_source_units=hide_source_units,
-        )
+    @print_args
+    def on_tab_widget_change_requested(self, index: int) -> None:
+        """ Show tab widget corresponding to the given radio button. """
+        self.tab_stacked_widget.setCurrentIndex(index)
+        tab_widget = self.tab_stacked_widget.currentWidget()
+        self.on_tab_changed(tab_widget.currentIndex())
 
-    def on_table_change_requested(self, table_name: Optional[str]):
-        """ Change table on a current model. """
-        Settings.TABLE_NAME = table_name
-        if table_name is not None:
-            new_model = self.current_view.models[table_name]
-            if self.current_view.source_model == new_model:
-                # file changed and but table does not need to be changed
-                self.updateModelRequested.emit()
-            else:
-                self.setModelRequested.emit()
-
-            # slots are on a same thread so following is called synchronously
-            # enable or disable applicable buttons
-            allow_tree = not new_model.is_simple
-            self.tree_act.setEnabled(allow_tree)
-            self.expand_all_act.setEnabled(allow_tree)
-            self.collapse_all_act.setEnabled(allow_tree)
-            self.toolbar.enable_rate_to_energy(new_model.allow_rate_to_energy)
-
+    @print_args
     def on_tab_changed(self, index: int) -> None:
         """ Update view when tabChanged event is fired. """
         if index == -1:
@@ -660,8 +662,7 @@ class MainWindow(QMainWindow):
             Settings.CURRENT_FILE_ID = None
             # update toolbar buttons availability
             self.remove_variables_act.setEnabled(False)
-            self.toolbar.all_files_btn.setEnabled(False)
-            self.toolbar.totals_btn.setEnabled(False)
+            self.toolbar.all_files_toggle.setEnabled(False)
             self.toolbar.rate_energy_btn.setEnabled(True)
             # self.toolbar.clear_group(self.toolbar.table_group)
             table_names = []
@@ -685,23 +686,46 @@ class MainWindow(QMainWindow):
         # TODO handle totals button
         self.on_table_change_requested(table_name)
 
+    @print_args
+    def on_table_change_requested(self, table_name: Optional[str]):
+        """ Change table on a current model. """
+        Settings.TABLE_NAME = table_name
+        if table_name is not None:
+            new_model = self.current_view.models[table_name]
+            with ViewMask(
+                self.current_view, self.get_filter_tuple(), Settings.HIDE_SOURCE_UNITS
+            ):
+                if self.current_view.source_model == new_model:
+                    # file changed and but table does not need to be changed
+                    self.current_view.update_model(**Settings.all_units_dictionary())
+                else:
+                    self.current_view.set_model(table_name, **Settings.all_units_dictionary())
+
+            # slots are on a same thread so following is called synchronously
+            # enable or disable applicable buttons
+            allow_tree = not new_model.is_simple
+            self.tree_act.setEnabled(allow_tree)
+            self.expand_all_act.setEnabled(allow_tree)
+            self.collapse_all_act.setEnabled(allow_tree)
+            self.toolbar.enable_rate_to_energy(new_model.allow_rate_to_energy)
+
     def on_tab_bar_double_clicked(self, tab_index: int):
-        id_ = self.tab_wgt.widget(tab_index).id_
+        id_ = self.current_tab_widget.widget(tab_index).id_
         self.fileRenameRequested.emit(tab_index, id_)
 
     def on_tab_closed(self):
         """ Update the interface when number of tabs changes. """
-        if self.tab_wgt.count() <= 1:
-            self.toolbar.all_files_btn.setEnabled(False)
+        if self.current_tab_widget.count() <= 1:
+            self.toolbar.all_files_toggle.setEnabled(False)
             self.close_all_act.setEnabled(False)
 
     def connect_tab_widget_signals(self):
         # ~~~~ Tab Signals ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.tab_wgt.tabCloseRequested.connect(self.fileRemoveRequested.emit)
-        self.tab_wgt.tabClosed.connect(self.on_tab_closed)
-        self.tab_wgt.currentChanged.connect(self.on_tab_changed)
-        self.tab_wgt.tabBarDoubleClicked.connect(self.on_tab_bar_double_clicked)
-        self.tab_wgt.drop_btn.clicked.connect(self.load_files_from_fs)
+        for tab_widget in [self.standard_tab_wgt, self.totals_tab_wgt, self.diff_tab_wgt]:
+            tab_widget.tabCloseRequested.connect(self.fileRemoveRequested.emit)
+            tab_widget.tabClosed.connect(self.on_tab_closed)
+            tab_widget.currentChanged.connect(self.on_tab_changed)
+            tab_widget.tabBarDoubleClicked.connect(self.on_tab_bar_double_clicked)
 
     def on_totals_checked(self, checked: bool):
         """ Request view update when totals requested. """
@@ -716,7 +740,7 @@ class MainWindow(QMainWindow):
 
     def on_rate_energy_btn_checked(self, checked: bool):
         Settings.RATE_TO_ENERGY = checked
-        self.updateModelRequested.emit()
+        self.current_view.update_units(**Settings.all_units_dictionary())
 
     def on_source_units_toggled(self, checked: bool):
         Settings.HIDE_SOURCE_UNITS = not checked
@@ -731,23 +755,23 @@ class MainWindow(QMainWindow):
         Settings.UNITS_SYSTEM = units_system
         # model could have been changed prior to custom units toggle
         # so rate to energy conversion may not be applicable
-        if self.tab_wgt.is_empty() or self.current_view.allow_rate_to_energy:
+        if self.current_tab_widget.is_empty() or self.current_view.allow_rate_to_energy:
             self.toolbar.enable_rate_to_energy(True)
         else:
             self.toolbar.rate_energy_btn.setEnabled(False)
             rate_to_energy = False
         Settings.RATE_TO_ENERGY = rate_to_energy
-        self.updateModelRequested.emit()
+        self.current_view.update_units(**Settings.all_units_dictionary())
 
     def on_energy_units_changed(self, act: QAction):
         if act.data() != self.toolbar.energy_btn.data():
             Settings.ENERGY_UNITS = act.data()
-            self.updateModelRequested.emit()
+            self.current_view.update_units(**Settings.all_units_dictionary())
 
     def on_power_units_changed(self, act: QAction):
         if act.data() != self.toolbar.power_btn.data():
             Settings.POWER_UNITS = act.data()
-            self.updateModelRequested.emit()
+            self.current_view.update_units(**Settings.all_units_dictionary())
 
     def on_units_system_changed(self, act: QAction):
         if act.data() != self.toolbar.units_system_button.data():
@@ -755,13 +779,14 @@ class MainWindow(QMainWindow):
             self.toolbar.filter_energy_power_units(act.data())
             Settings.POWER_UNITS = self.toolbar.power_btn.data()
             Settings.ENERGY_UNITS = self.toolbar.energy_btn.data()
-            self.updateModelRequested.emit()
+            self.current_view.update_units(**Settings.all_units_dictionary())
 
     def connect_toolbar_signals(self):
         # ~~~~ Toolbar Signals ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.toolbar.totals_btn.toggled.connect(self.on_totals_checked)
+        self.toolbar.totals_outputs_btn.toggled.connect(self.on_totals_checked)
         self.toolbar.all_files_toggle.stateChanged.connect(self.on_all_files_toggled)
         self.toolbar.tableChangeRequested.connect(self.on_table_change_requested)
+        self.toolbar.tabWidgetChangeRequested.connect(self.on_tab_widget_change_requested)
         self.toolbar.customUnitsToggled.connect(self.on_custom_units_toggled)
         self.toolbar.source_units_toggle.stateChanged.connect(self.on_source_units_toggled)
         self.toolbar.rate_energy_btn.toggled.connect(self.on_rate_energy_btn_checked)
@@ -772,12 +797,14 @@ class MainWindow(QMainWindow):
     def on_tree_act_checked(self, checked: bool):
         """ Update view when view type is changed. """
         if checked:
-            Settings.TREE_NODE = self.view_settings[TreeView.TREE]["header"][0]
+            name = self.current_view.get_visual_column_data()[0]
         else:
-            Settings.TREE_NODE = None
+            name = None
         self.collapse_all_act.setEnabled(checked)
         self.expand_all_act.setEnabled(checked)
-        self.updateModelRequested.emit()
+        self.current_view.tree_node = name
+        with ViewMask(self.current_view, self.get_filter_tuple(), Settings.HIDE_SOURCE_UNITS):
+            self.current_view.update_model(**Settings.all_units_dictionary())
 
     def on_text_edited(self):
         """ Delay firing a text edited event. """
@@ -785,7 +812,7 @@ class MainWindow(QMainWindow):
 
     def on_filter_timeout(self):
         """ Apply a filter when the filter text is edited. """
-        if not self.tab_wgt.is_empty():
+        if not self.current_tab_widget.is_empty():
             self.current_view.filter_view(self.get_filter_tuple())
 
     def connect_view_tools_signals(self):
@@ -879,3 +906,7 @@ class MainWindow(QMainWindow):
         """ Confirm delete file. . """
         dialog = ConfirmationDialog(self, f"Delete file {name}?")
         return dialog.exec_() == 1
+
+    def create_diff_file(self):
+        # TODO implement new dialog
+        pass

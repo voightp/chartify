@@ -15,7 +15,7 @@ from chartify.ui.widget_functions import refresh_css
 
 
 class TitledButton(QToolButton):
-    """ A custom button to include a top left title label.  """
+    """ A custom tab_wgt_button to include a top left title label.  """
 
     def __init__(self, text, parent):
         super().__init__(parent)
@@ -55,7 +55,7 @@ class TitledButton(QToolButton):
 
 
 class ToggleButton(QFrame):
-    """ A custom button to represent a toggle button.
+    """ A custom tab_wgt_button to represent a toggle tab_wgt_button.
 
     The appearance is handled by CSS. Default object name is 'toggleButton'
     ('toggleButtonContainer' for parent frame) and the appearance changes
@@ -92,7 +92,7 @@ class ToggleButton(QFrame):
         self.stateChanged.emit(bool(val))
 
     def isChecked(self) -> bool:
-        """ Get the current state of toggle button. """
+        """ Get the current state of toggle tab_wgt_button. """
         return bool(self.slider.value())
 
     def isEnabled(self) -> bool:
@@ -100,7 +100,7 @@ class ToggleButton(QFrame):
         return self.slider.isEnabled()
 
     def setText(self, text: str) -> None:
-        """ Set toggle button label. """
+        """ Set toggle tab_wgt_button label. """
         self.label = QLabel(self)
         self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
         self.label.setText(text)
@@ -110,13 +110,13 @@ class ToggleButton(QFrame):
 
     @refresh_css
     def setChecked(self, checked: bool) -> None:
-        """ Set toggle button checked. """
+        """ Set toggle tab_wgt_button checked. """
         self.slider.setValue(int(checked))
         self.slider.setProperty("isChecked", True if checked else "")
 
     @refresh_css
     def setEnabled(self, enabled: bool) -> None:
-        """ Enable or disable the button. """
+        """ Enable or disable the tab_wgt_button. """
         self.slider.setEnabled(enabled)
         if enabled:
             self.slider.setProperty("isChecked", True if self.isChecked() else "")
@@ -127,7 +127,7 @@ class ToggleButton(QFrame):
 
 
 class MenuButton(QToolButton):
-    """ A button to mimic 'Action' behaviour.
+    """ A tab_wgt_button to mimic 'Action' behaviour.
 
     This is in place to allow resizing the
     icon as QAction does not allow that.
@@ -142,7 +142,7 @@ class MenuButton(QToolButton):
 
 
 class StatusButton(QToolButton):
-    """  A button which can display some information on hover. """
+    """  A tab_wgt_button which can display some information on hover. """
 
     def __init__(self, parent):
         super().__init__(parent)

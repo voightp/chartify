@@ -33,6 +33,9 @@ class Settings:
     ICON_MEDIUM_SIZE = QSize(40, 40)
     ICON_LARGE_SIZE = QSize(60, 60)
 
+    OUTPUT_TYPES = ["STANDARD", "DIFFERENCE", "TOTALS"]
+    OUTPUTS_INDEX = None
+
     PALETTE = None
 
     CURRENT_FILE_ID = None
@@ -48,17 +51,13 @@ class Settings:
 
     TABLE_NAME = None
     ALL_FILES = None
-    TOTALS = None
-    TREE_NODE = None
+
     HIDE_SOURCE_UNITS = None
 
     SIZE = None
     POSITION = None
     MIRRORED = None
     SPLIT = None
-
-    SIMPLE = None
-    TREE = None
 
     _EXCLUDE = [
         "_EXCLUDE",
@@ -74,16 +73,16 @@ class Settings:
         "ICON_LARGE_SIZE",
         "SETTINGS_PATH",
         "APP_TEMP_DIR",
-        "APP_TEMP_NAME",
+        "OUTPUT_TYPES",
     ]
 
     @classmethod
-    def attribute_dict(cls):
+    def _attribute_dict(cls):
         attrs = [a for a in dir(cls) if not a.startswith("__")]
         return {a: getattr(cls, a) for a in attrs if not callable(getattr(cls, a))}
 
     @classmethod
-    def units_dict(cls):
+    def all_units_dictionary(cls):
         return {
             "energy_units": cls.ENERGY_UNITS,
             "power_units": cls.POWER_UNITS,
@@ -94,7 +93,7 @@ class Settings:
     @classmethod
     def as_str(cls):
         s = "Current Settings:"
-        for k, v in cls.attribute_dict().items():
+        for k, v in cls._attribute_dict().items():
             s += f"\n\t{k}: '{v}'"
         return s
 
@@ -118,6 +117,6 @@ class Settings:
             root = cls.SETTINGS_PATH.parent
             Path.mkdir(root, exist_ok=True)
             path = cls.SETTINGS_PATH
-        attrs = {k: v for k, v in cls.attribute_dict().items() if k not in cls._EXCLUDE}
+        attrs = {k: v for k, v in cls._attribute_dict().items() if k not in cls._EXCLUDE}
         with open(path, "w") as f:
             json.dump(attrs, f)
