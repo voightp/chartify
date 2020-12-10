@@ -28,7 +28,6 @@ from PySide2.QtWidgets import (
 from esofile_reader import Variable
 from esofile_reader.convertor import all_rate_or_energy
 from esofile_reader.df.level_names import *
-from esofile_reader.pqt.parquet_file import ParquetFile
 from esofile_reader.pqt.parquet_storage import ParquetStorage
 from esofile_reader.typehints import VariableType
 
@@ -381,11 +380,19 @@ class MainWindow(QMainWindow):
         return self.current_tab_widget.currentWidget()
 
     @property
-    def all_current_views(self):
+    def current_model(self) -> ViewModel:
+        return self.current_view.source_model
+
+    @property
+    def all_current_views(self) -> List[TreeView]:
         """ All tabs content. """
         return [
             self.current_tab_widget.widget(i) for i in range(self.current_tab_widget.count())
         ]
+
+    @property
+    def tab_widgets(self) -> List[TabWidget]:
+        return [self.standard_tab_wgt, self.totals_tab_wgt, self.diff_tab_wgt]
 
     def closeEvent(self, event):
         """ Shutdown all the background stuff. """
@@ -495,10 +502,6 @@ class MainWindow(QMainWindow):
         Settings.MIRRORED = not Settings.MIRRORED
         Settings.SPLIT = self.central_splitter.sizes()
 
-    def rename_tab(self, index: int, name: str):
-        """ Set new tab name. """
-        self.current_tab_widget.setTabText(index, name)
-
     def on_tree_node_changed(self):
         # TODO Connect actions
         pass
@@ -516,27 +519,22 @@ class MainWindow(QMainWindow):
         pass
 
     @print_args
-    def add_new_tab(self, id_: int, name: str, file_type: str, models: Dict[str, ViewModel]):
-        """ Add file on the UI. """
-        if file_type == ParquetFile.TOTALS:
-            output_type = Settings.OUTPUT_TYPES[2]
-            tab_widget = self.totals_tab_wgt
-        elif file_type == ParquetFile.DIFF:
-            output_type = Settings.OUTPUT_TYPES[1]
-            tab_widget = self.diff_tab_wgt
-        else:
-            output_type = Settings.OUTPUT_TYPES[0]
-            tab_widget = self.standard_tab_wgt
-        # create an empty 'View' widget - the data will be
-        # automatically populated on 'onTabChanged' signal
+    def add_treeview(self, id_: int, name: str, output_type: str, models: Dict[str, ViewModel]):
+        """ Add processed data into tab widget corresponding to file type. """
+        output_types = {
+            Settings.OUTPUT_TYPES[0]: self.standard_tab_wgt,
+            Settings.OUTPUT_TYPES[1]: self.totals_tab_wgt,
+            Settings.OUTPUT_TYPES[2]: self.diff_tab_wgt,
+        }
+        tab_widget = output_types[output_type]
+
         view = TreeView(id_, models, output_type)
         view.selectionCleared.connect(self.on_selection_cleared)
         view.selectionPopulated.connect(self.on_selection_populated)
         view.treeNodeChanged.connect(self.on_tree_node_changed)
         view.itemDoubleClicked.connect(self.on_item_double_clicked)
-        tab_widget.add_tab(view, name)
+        tab_widget.addTab(view, name)
 
-        # enable all eso file results btn if there's multiple files
         if self.current_tab_widget.count() > 1:
             self.toolbar.all_files_toggle.setEnabled(True)
             self.close_all_act.setEnabled(True)
@@ -602,8 +600,7 @@ class MainWindow(QMainWindow):
         if len(variables) > 1:
             units = [var.units for var in variables]
             if len(set(units)) == 1 or (
-                all_rate_or_energy(units)
-                and self.current_view.source_model.allow_rate_to_energy
+                all_rate_or_energy(units) and self.current_model.allow_rate_to_energy
             ):
                 self.sum_act.setEnabled(True)
                 self.mean_act.setEnabled(True)
@@ -648,84 +645,121 @@ class MainWindow(QMainWindow):
         )
 
     @print_args
-    def on_tab_widget_change_requested(self, index: int) -> None:
+    def on_stacked_widget_change_requested(self, index: int) -> None:
         """ Show tab widget corresponding to the given radio button. """
         self.tab_stacked_widget.setCurrentIndex(index)
-        tab_widget = self.tab_stacked_widget.currentWidget()
-        self.on_tab_changed(tab_widget.currentIndex())
+        Settings.OUTPUTS_INDEX = index
 
     @print_args
-    def on_tab_changed(self, index: int) -> None:
-        """ Update view when tabChanged event is fired. """
-        if index == -1:
-            # there aren't any widgets available
-            Settings.CURRENT_FILE_ID = None
-            # update toolbar buttons availability
-            self.remove_variables_act.setEnabled(False)
-            self.toolbar.all_files_toggle.setEnabled(False)
-            self.toolbar.rate_energy_btn.setEnabled(True)
-            # self.toolbar.clear_group(self.toolbar.table_group)
-            table_names = []
-            table_name = None
+    def _on_first_tab_added(self, treeview: TreeView):
+        table_names = treeview.table_names
+        table_name = table_names[0]
+        with ViewMask(treeview):
+            treeview.set_model(table_name, **Settings.all_units_dictionary())
+
+    @print_args
+    def _on_all_tabs_closed(self):
+        self.toolbar.all_files_toggle.setEnabled(False)
+        self.close_all_act.setEnabled(False)
+
+    @print_args
+    def _on_tab_changed(self, previous_treeview: TreeView, treeview: TreeView):
+        if previous_treeview.current_table_name in treeview.table_names:
+            table_name = treeview.previous_treeview
         else:
-            Settings.CURRENT_FILE_ID = self.current_view.id_
-            # model keys represent available table names
-            table_names = list(self.current_view.models.keys())
-            if Settings.TABLE_NAME in table_names:
-                # leave previously set table if available on new model
-                table_name = Settings.TABLE_NAME
+            if treeview.current_table_name:
+                table_name = treeview.current_table_name
             else:
-                if self.current_view.source_model is None:
-                    # model has not been initialized on a current view
-                    table_name = table_names[0]
-                else:
-                    # leave table set previously on a current view
-                    table_name = self.current_view.source_model.name
-            # table buttons are always cleared and created again
-        self.toolbar.update_table_buttons(table_names=table_names, selected=table_name)
-        # TODO handle totals button
-        self.on_table_change_requested(table_name)
+                table_name = treeview.table_names[0]
+        with ViewMask(treeview, ref_treeview=previous_treeview):
+            self.change_table(treeview, table_name)
 
     @print_args
-    def on_table_change_requested(self, table_name: Optional[str]):
-        """ Change table on a current model. """
-        Settings.TABLE_NAME = table_name
-        if table_name is not None:
-            new_model = self.current_view.models[table_name]
-            with ViewMask(
-                self.current_view, self.get_filter_tuple(), Settings.HIDE_SOURCE_UNITS
-            ):
-                if self.current_view.source_model == new_model:
-                    # file changed and but table does not need to be changed
-                    self.current_view.update_model(**Settings.all_units_dictionary())
+    def after_tab_changed(self, tab_widget: TabWidget, tab_index: int):
+        if tab_widget is self.current_tab_widget:
+            if tab_index == -1:
+                self.remove_variables_act.setEnabled(False)
+                self.toolbar.all_files_toggle.setEnabled(False)
+                self.toolbar.rate_energy_btn.setEnabled(True)
+            else:
+                self.toolbar.update_table_buttons(
+                    table_names=self.current_view.table_names, selected=self.current_model.name
+                )
+
+    @print_args
+    def after_table_changed(self):
+        """ Update toolbar actions to match current table selection. """
+        Settings.TABLE_NAME = self.current_model.name
+        allow_tree = not self.current_model.is_simple
+        self.tree_act.setEnabled(allow_tree)
+        self.expand_all_act.setEnabled(allow_tree)
+        self.collapse_all_act.setEnabled(allow_tree)
+        self.toolbar.enable_rate_to_energy(self.current_model.allow_rate_to_energy)
+
+    @print_args
+    def on_tab_changed(self, tab_widget: TabWidget, previous_index: int, index: int) -> None:
+        if tab_widget is self.current_tab_widget:
+            if index == -1:
+                self._on_all_tabs_closed()
+                Settings.CURRENT_FILE_ID = None
+            else:
+                current_treeview = tab_widget.widget(index)
+                Settings.CURRENT_FILE_ID = current_treeview.id_
+                if previous_index == -1:
+                    self._on_first_tab_added(current_treeview)
                 else:
-                    self.current_view.set_model(table_name, **Settings.all_units_dictionary())
+                    previous_treeview = tab_widget.widget(previous_index)
+                    self._on_tab_changed(current_treeview, previous_treeview)
+            self.after_tab_changed(tab_widget, tab_widget)
 
-            # slots are on a same thread so following is called synchronously
-            # enable or disable applicable buttons
-            allow_tree = not new_model.is_simple
-            self.tree_act.setEnabled(allow_tree)
-            self.expand_all_act.setEnabled(allow_tree)
-            self.collapse_all_act.setEnabled(allow_tree)
-            self.toolbar.enable_rate_to_energy(new_model.allow_rate_to_energy)
+    @print_args
+    def change_table(self, treeview: TreeView, table_name: str):
+        new_model = treeview.models[table_name]
+        if treeview.source_model is new_model:
+            # file changed and but table does not need to be changed
+            treeview.update_model(**Settings.all_units_dictionary())
+        else:
+            treeview.set_model(table_name, **Settings.all_units_dictionary())
 
-    def on_tab_bar_double_clicked(self, tab_index: int):
-        id_ = self.current_tab_widget.widget(tab_index).id_
-        self.fileRenameRequested.emit(tab_index, id_)
+    @print_args
+    def on_table_change_requested(self, table_name: str):
+        """ Change table on a current model. """
+        with ViewMask(self.current_view, old_model=self.current_view.source_model):
+            self.change_table(self.current_view, table_name)
 
-    def on_tab_closed(self):
-        """ Update the interface when number of tabs changes. """
-        if self.current_tab_widget.count() <= 1:
-            self.toolbar.all_files_toggle.setEnabled(False)
-            self.close_all_act.setEnabled(False)
+    def get_all_tab_names(self):
+        names = []
+        for tab_widget in self.tab_widgets:
+            for i in range(tab_widget.count()):
+                names.append(tab_widget.tabText(i))
+        return names
+
+    @print_args
+    def on_tab_bar_double_clicked(self, tab_widget: TabWidget, tab_index: int):
+        name = tab_widget.tabText(tab_index)
+        names = self.get_all_tab_names()
+        names.remove(name)
+        new_name = self.confirm_rename_file(name, names)
+        if new_name is not None:
+            tab_widget.setTabText(tab_index, new_name)
+            self.fileRenameRequested.emit(id_, new_name)
+
+    @print_args
+    def on_tab_close_requested(self, tab_widget: TabWidget, tab_index: int):
+        treeview = tab_widget.widget(tab_index)
+        name = tab_widget.tabText(tab_index)
+        res = self.confirm_delete_file(name)
+        if res:
+            tab_widget.removeTab(tab_index)
+            treeview.deleteLater()
+            self.fileRemoveRequested.emit(treeview.id_)
 
     def connect_tab_widget_signals(self):
         # ~~~~ Tab Signals ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        for tab_widget in [self.standard_tab_wgt, self.totals_tab_wgt, self.diff_tab_wgt]:
-            tab_widget.tabCloseRequested.connect(self.fileRemoveRequested.emit)
-            tab_widget.tabClosed.connect(self.on_tab_closed)
-            tab_widget.currentChanged.connect(self.on_tab_changed)
-            tab_widget.tabBarDoubleClicked.connect(self.on_tab_bar_double_clicked)
+        for tab_widget in self.tab_widgets:
+            tab_widget.closeTabRequested.connect(self.on_tab_close_requested)
+            tab_widget.currentTabChanged.connect(self.on_tab_changed)
+            tab_widget.tabRenameRequested.connect(self.on_tab_bar_double_clicked)
 
     def on_totals_checked(self, checked: bool):
         """ Request view update when totals requested. """
@@ -786,7 +820,7 @@ class MainWindow(QMainWindow):
         self.toolbar.totals_outputs_btn.toggled.connect(self.on_totals_checked)
         self.toolbar.all_files_toggle.stateChanged.connect(self.on_all_files_toggled)
         self.toolbar.tableChangeRequested.connect(self.on_table_change_requested)
-        self.toolbar.tabWidgetChangeRequested.connect(self.on_tab_widget_change_requested)
+        self.toolbar.tabWidgetChangeRequested.connect(self.on_stacked_widget_change_requested)
         self.toolbar.customUnitsToggled.connect(self.on_custom_units_toggled)
         self.toolbar.source_units_toggle.stateChanged.connect(self.on_source_units_toggled)
         self.toolbar.rate_energy_btn.toggled.connect(self.on_rate_energy_btn_checked)
@@ -803,7 +837,7 @@ class MainWindow(QMainWindow):
         self.collapse_all_act.setEnabled(checked)
         self.expand_all_act.setEnabled(checked)
         self.current_view.tree_node = name
-        with ViewMask(self.current_view, self.get_filter_tuple(), Settings.HIDE_SOURCE_UNITS):
+        with ViewMask(self.current_view, old_model=self.current_view.source_model):
             self.current_view.update_model(**Settings.all_units_dictionary())
 
     def on_text_edited(self):

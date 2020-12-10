@@ -157,16 +157,19 @@ class AppController:
 
     def on_file_loaded(self, file: ParquetFile, models: Dict[str, ViewModel]) -> None:
         """ Add results file into 'tab' widget. """
-        # make sure that file name is unique
         names = self.m.get_all_file_names()
         name = get_str_identifier(file.file_name, names)
         file.rename(name)
 
-        # store file reference in model
         self.m.storage.files[file.id_] = file
 
-        # add new tab into tab widget
-        self.v.add_new_tab(file.id_, name, file.file_type, models)
+        output_types = {
+            ParquetFile.TOTALS: Settings.OUTPUT_TYPES[2],
+            ParquetFile.DIFF: Settings.OUTPUT_TYPES[1],
+        }
+        output_type = output_types.get(file.file_type, Settings.OUTPUT_TYPES[0])
+
+        self.v.add_treeview(file.id_, name, output_type, models)
 
     def apply_async(self, id_: int, func: Callable, *args, **kwargs) -> Any:
         """ A wrapper to apply functions to current views. """
@@ -278,23 +281,11 @@ class AppController:
                     selected=[new_variable_data], scroll_to=new_variable_data,
                 )
 
-    def on_file_rename_requested(self, tab_index: int, id_: int) -> None:
+    def on_file_rename_requested(self, id_: int, name: str) -> None:
         """ Update file name. """
-        name = self.m.get_file_name(id_)
-        other_names = self.m.get_other_file_names()
-        new_name = self.v.confirm_rename_file(name, other_names)
-        if new_name is not None:
-            self.v.rename_tab(tab_index, name)
-            self.m.rename_file(id_, new_name)
+        self.m.rename_file(id_, name)
 
-    def on_file_remove_requested(self, tab_index: int) -> None:
+    def on_file_remove_requested(self, id_: int) -> None:
         """ Delete file from the database. """
-        treeview = self.v.current_tab_widget.widget(tab_index)
-        id_ = treeview.id_
-        file_name = self.m.get_file(id_).file_name
-        res = self.v.confirm_delete_file(file_name)
-        if res:
-            treeview.deleteLater()
-            self.m.delete_file(id_)
-            self.ids.remove(id_)
-            self.v.current_tab_widget.removeTab(tab_index)
+        self.m.delete_file(id_)
+        self.ids.remove(id_)

@@ -36,7 +36,7 @@ def mw(qtbot, tmp_path):
 @pytest.fixture
 def populated_mw(mw: MainWindow, eso_file: EsoFile):
     models = ViewModel.models_from_file(eso_file, tree_node="type")
-    mw.add_new_tab(0, "dummy", models)
+    mw.add_treeview(0, "dummy", models)
     mw.on_tab_changed(0)
     mw.current_view.set_model("daily")
     return mw
@@ -197,13 +197,13 @@ def test_mirror_layout(mw: MainWindow):
 
 def test_add_new_tab(mw: MainWindow, eso_file: EsoFile):
     models = ViewModel.models_from_file(eso_file)
-    mw.add_new_tab(0, "test", models)
+    mw.add_treeview(0, "test", models)
     assert mw.standard_tab_wgt.widget(0) == mw.current_view
     assert not mw.toolbar.all_files_btn.isEnabled()
     assert not mw.close_all_act.isEnabled()
 
     models = ViewModel.models_from_file(eso_file)
-    mw.add_new_tab(0, "test", models)
+    mw.add_treeview(0, "test", models)
     assert mw.standard_tab_wgt.widget(0) == mw.current_view
     assert mw.toolbar.all_files_btn.isEnabled()
     assert mw.close_all_act.isEnabled()
@@ -413,7 +413,7 @@ def test_get_filter_tuple(qtbot, mw: MainWindow):
 
 
 @pytest.mark.parametrize(
-    "similar,old_pos, current_pos,expected_pos,old_expanded,current_expanded,expected_expanded",
+    "similar,old_pos, current_pos,expected_pos,ref_expanded,current_expanded,expected_expanded",
     [
         (True, 123, 321, 123, {"A", "B"}, {"C", "D"}, {"A", "B"}),
         (False, 123, 321, 321, {"A", "B"}, {"C", "D"}, {"C", "D"}),
@@ -488,7 +488,7 @@ def test_on_table_change_requested_same_table(qtbot, populated_mw: MainWindow):
 def test_on_tab_changed(populated_mw: MainWindow, eso_file: EsoFile):
     models = ViewModel.models_from_file(eso_file, tree_node="type")
     models.pop("runperiod")  # delete so models are not identical
-    populated_mw.add_new_tab(1, "new file", models)
+    populated_mw.add_treeview(1, "new file", models)
     with patch("chartify.ui.main_window.Settings") as mock_settings:
         mock_settings.TABLE_NAME = "daily"
         populated_mw.standard_tab_wgt.setCurrentIndex(1)
@@ -501,7 +501,7 @@ def test_on_tab_changed(populated_mw: MainWindow, eso_file: EsoFile):
 def test_on_tab_changed_fresh(mw: MainWindow, eso_file: EsoFile):
     models = ViewModel.models_from_file(eso_file, tree_node="type")
     with patch("chartify.ui.main_window.Settings") as mock_settings:
-        mw.add_new_tab(0, "new file", models)
+        mw.add_treeview(0, "new file", models)
         mock_settings.TABLE_NAME = "hourly"
         assert mock_settings.CURRENT_FILE_ID == 0
         assert mock_settings.TABLE_NAME == "hourly"
@@ -536,7 +536,7 @@ def test_on_tab_closed(populated_mw: MainWindow):
 
 def test_connect_tab_widget_close_requested(qtbot, mw: MainWindow):
     with qtbot.wait_signal(mw.fileRemoveRequested, check_params_cb=lambda x: x == 123):
-        mw.standard_tab_wgt.tabCloseRequested.emit(123)
+        mw.standard_tab_wgt.closeTabRequested.emit(123)
 
 
 def test_connect_tab_widget_current_changed(qtbot, mw: MainWindow):
@@ -547,12 +547,12 @@ def test_connect_tab_widget_current_changed(qtbot, mw: MainWindow):
 
 def test_connect_tab_widget_tab_double_clicked(qtbot, mw: MainWindow):
     with patch("chartify.ui.main_window.MainWindow.on_tab_bar_double_clicked") as func_mock:
-        mw.standard_tab_wgt.tabBarDoubleClicked.emit(123)
+        mw.standard_tab_wgt.tabRenameRequested.emit(123)
         func_mock.assert_called_once_with(123)
 
 
 def test_connect_tab_widget_tab_closed(qtbot, mw: MainWindow):
-    with patch("chartify.ui.main_window.MainWindow.on_tab_closed") as func_mock:
+    with patch("chartify.ui.main_window.MainWindow.on_all_tabs_closed") as func_mock:
         mw.standard_tab_wgt.tabClosed.emit(123)
         func_mock.assert_called_once_with()
 

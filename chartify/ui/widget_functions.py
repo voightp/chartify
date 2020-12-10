@@ -42,6 +42,7 @@ def print_args(func):
         print(*args)
         print("called with kwargs: ", end="")
         print(**kwargs)
+        print()
         return func(*args, **kwargs)
 
     return wrapper

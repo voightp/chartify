@@ -15,12 +15,10 @@ class EsoFileWatcher(QThread):
 
     def run(self):
         while True:
-            files = self.file_queue.get()
+            file = self.file_queue.get()
             # create ModelViews outside main application loop
-            # totals file may be 'None' so it needs to be skipped
-            for file in list(filter(None, files)):
-                models = ViewModel.models_from_file(file)
-                self.file_loaded.emit(file, models)
+            models = ViewModel.models_from_file(file)
+            self.file_loaded.emit(file, models)
 
 
 class IterWorker(QRunnable):

@@ -3,19 +3,19 @@ import traceback
 import uuid
 from multiprocessing import Lock
 from pathlib import Path
-from typing import List, Tuple
+from typing import List
 
-from esofile_reader.exceptions import NoResults
 from esofile_reader import GenericFile
 from esofile_reader.exceptions import IncompleteFile, BlankLineError, InvalidLineSyntax
 from esofile_reader.pqt.parquet_file import ParquetFile, ParquetFrame
+from esofile_reader.typehints import ResultsFileType
 
 from chartify.utils.progress_logging import UiLogger
 
 
 def store_file(
     results_file: GenericFile, workdir: Path, logger: UiLogger, ids: List[int], lock: Lock,
-) -> Tuple[int, ParquetFile]:
+) -> ParquetFile:
     """ Store results file as 'ParquetFile'. """
     ParquetFrame.MAX_N_COLUMNS = 2000
     with logger.log_task(f"Store file {results_file.file_name}"):
@@ -29,13 +29,13 @@ def store_file(
             ids.append(id_)
         logger.log_section("writing parquets")
         file = ParquetFile.from_results_file(id_, results_file, pardir=workdir, logger=logger)
-    return id_, file
+    return file
 
 
 def load_file(
     path: Path, workdir: Path, progress_queue, file_queue, ids: List[int], lock: Lock
 ) -> None:
-    """ Process and store eso file. """
+    """ Process and store given results file. """
     logger_id = str(uuid.uuid1())
     logger = UiLogger(path.name, path, logger_id, progress_queue)
     try:
@@ -52,28 +52,27 @@ def load_file(
                     f"Cannot process file '{path}'. Unexpected file type: {suffix}!"
                 )
 
-            for f in files if isinstance(files, list) else [files]:
-                id1, file1 = store_file(
-                    results_file=f, workdir=workdir, logger=logger, ids=ids, lock=lock
-                )
-                try:
-                    totals_file = GenericFile.from_totals(file1, logger=logger)
-                    id2, file2 = store_file(
-                        results_file=totals_file,
-                        workdir=workdir,
-                        logger=logger,
-                        ids=ids,
-                        lock=lock,
-                    )
-                    # assign new buddy attribute to link totals with original file
-                    file2.buddy = file1
-                    file1.buddy = file2
-                except NoResults:
-                    file2 = None
-                    file1.buddy = None
-                file_queue.put((file1, file2))
+            for file in files if isinstance(files, list) else [files]:
+                parquet_file = store_file(file, workdir, logger=logger, ids=ids, lock=lock)
+                file_queue.put(parquet_file)
             logger.done()
 
     except Exception:
         # catch any unexpected generic exception
         logger.log_task_failed(traceback.format_exc())
+
+
+def create_totals_file(
+    file: ResultsFileType, workdir: Path, progress_queue, file_queue, ids: List[int], lock: Lock
+):
+    """ Generate and store totals file."""
+    logger_id = str(uuid.uuid1())
+    logger = UiLogger(file.name, file.file_path, logger_id, progress_queue)
+    totals_file = GenericFile.from_totals(file, logger=logger)
+    parquet_file = store_file(totals_file, workdir, logger=logger, ids=ids, lock=lock)
+
+    # assign new buddy attribute to link totals with original file
+    file.buddy = parquet_file
+    parquet_file.buddy = file
+    file_queue.put(parquet_file)
+    logger.done()

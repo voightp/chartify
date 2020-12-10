@@ -61,6 +61,8 @@ class ViewModel(QStandardItemModel):
         Store current scrollbar position.
     expanded : set of {str}
         Currently expanded items.
+    selected : list if VariableData
+        Currentyl selected items.
     **kwargs
         Key word arguments passed to populate model method.
 
@@ -77,6 +79,7 @@ class ViewModel(QStandardItemModel):
         self.dirty = False
         self.scroll_position = 0
         self.expanded = set()
+        self.selected = []
         self._file_ref = file_ref
         self.populate_model(**kwargs)
 

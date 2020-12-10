@@ -73,10 +73,6 @@ class AppModel(QObject):
         """ Get file name of given file. """
         return self.get_file(id_).file_name
 
-    def get_other_file_names(self) -> List[str]:
-        """ Get all used file names. """
-        return [file.file_name for file in self.get_other_files()]
-
     def get_all_file_names(self) -> List[str]:
         """ Get all used file names. """
         return [file.file_name for file in self.get_all_files()]

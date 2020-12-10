@@ -34,7 +34,7 @@ class TestTabWidget:
         widgets = []
         for i in range(3):
             wgt = QWidget(tab_widget)
-            tab_widget.add_tab(wgt, str(i))
+            tab_widget.addTab(wgt, str(i))
             widgets.append(wgt)
         assert tab_widget.get_all_children() == widgets
 
@@ -42,13 +42,13 @@ class TestTabWidget:
         widgets = []
         for i in range(3):
             wgt = QWidget(tab_widget)
-            tab_widget.add_tab(wgt, str(i))
+            tab_widget.addTab(wgt, str(i))
             widgets.append(wgt)
         assert tab_widget.get_all_child_names() == ["0", "1", "2"]
 
     def test_add_tab(self, tab_widget: TabWidget):
         wgt = QWidget(tab_widget)
-        tab_widget.add_tab(wgt, "test widget")
+        tab_widget.addTab(wgt, "test widget")
         assert tab_widget.widget(0) == wgt
         assert tab_widget.tabText(0) == "test widget"
         assert not tab_widget.tab_wgt_button.isVisible()
@@ -57,7 +57,7 @@ class TestTabWidget:
         widgets = []
         for i in range(3):
             wgt = QWidget(tab_widget)
-            tab_widget.add_tab(wgt, str(i))
+            tab_widget.addTab(wgt, str(i))
             widgets.append(wgt)
         tab_widget.removeTab(0)
         assert not tab_widget.widget(2)
@@ -65,7 +65,7 @@ class TestTabWidget:
 
     def test_close_tab_visible_button(self, tab_widget: TabWidget):
         wgt = QWidget(tab_widget)
-        tab_widget.add_tab(wgt, "test widget")
+        tab_widget.addTab(wgt, "test widget")
         tab_widget.removeTab(0)
         assert tab_widget.tab_wgt_button.isVisible()
 

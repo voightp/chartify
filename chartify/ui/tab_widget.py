@@ -8,29 +8,31 @@ from PySide2.QtWidgets import (
     QToolButton,
 )
 
-from chartify.ui.treeview import TreeView
-
 
 class TabWidget(QTabWidget):
     """ Tab widget which displays information button when empty. """
 
-    tabClosed = Signal(int)
+    allClosed = Signal(QTabWidget)
+    closeTabRequested = Signal(QTabWidget, int)
+    currentTabChanged = Signal(QTabWidget, int, int)
+    tabRenameRequested = Signal(QTabWidget, int)
 
     def __init__(self, parent, button: QToolButton):
         super().__init__(parent)
+        self.tab_wgt_button = button
+        self._previous_index = -1
+
+        layout = QHBoxLayout(self)
+        layout.addWidget(self.tab_wgt_button)
+
         self.setUsesScrollButtons(True)
         self.setTabsClosable(True)
         self.setMovable(True)
         self.setTabPosition(QTabWidget.North)
 
-        layout = QHBoxLayout(self)
-        self.tab_wgt_button = button
-        layout.addWidget(self.tab_wgt_button)
-
-    def tabRemoved(self, index: int) -> None:
-        if self.is_empty():
-            self.tab_wgt_button.setVisible(True)
-        self.tabClosed.emit(index)
+        self.currentChanged.connect(self.on_current_changed)
+        self.tabCloseRequested.connect(lambda x: self.closeTabRequested.emit(self, x))
+        self.tabBarDoubleClicked.connect(lambda x: self.tabRenameRequested.emit(self, x))
 
     def is_empty(self) -> bool:
         """ Check if there's at least one loaded file. """
@@ -42,7 +44,10 @@ class TabWidget(QTabWidget):
     def get_all_child_names(self) -> List[str]:
         return [self.tabText(i) for i in range(self.count())]
 
-    def add_tab(self, tree_view: TreeView, title: str) -> None:
-        if self.is_empty():
+    def on_current_changed(self, index: int) -> None:
+        if index == -1:
+            self.tab_wgt_button.setVisible(True)
+        elif self._previous_index == -1:
             self.tab_wgt_button.setVisible(False)
-        self.addTab(tree_view, title)
+        self.currentTabChanged.emit(self, self._previous_index, index)
+        self._previous_index = index
