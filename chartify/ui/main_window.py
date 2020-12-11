@@ -535,10 +535,6 @@ class MainWindow(QMainWindow):
         view.itemDoubleClicked.connect(self.on_item_double_clicked)
         tab_widget.addTab(view, name)
 
-        if self.current_tab_widget.count() > 1:
-            self.toolbar.all_files_toggle.setEnabled(True)
-            self.close_all_act.setEnabled(True)
-
     def expand_all(self):
         """ Expand all tree view items. """
         if not self.current_tab_widget.is_empty():
@@ -647,60 +643,71 @@ class MainWindow(QMainWindow):
     @print_args
     def on_stacked_widget_change_requested(self, index: int) -> None:
         """ Show tab widget corresponding to the given radio button. """
-        self.tab_stacked_widget.setCurrentIndex(index)
         Settings.OUTPUTS_INDEX = index
+        self.tab_stacked_widget.setCurrentIndex(index)
+        self.update_file_actions()
+        self.update_table_actions()
+        self.update_view_actions()
 
     @print_args
     def _on_first_tab_added(self, treeview: TreeView):
         table_names = treeview.table_names
         table_name = table_names[0]
-        with ViewMask(treeview):
-            treeview.set_model(table_name, **Settings.all_units_dictionary())
-
-    @print_args
-    def _on_all_tabs_closed(self):
-        self.toolbar.all_files_toggle.setEnabled(False)
-        self.close_all_act.setEnabled(False)
+        with ViewMask(treeview) as mask:
+            tree = self.tree_act.isChecked()
+            mask.set_table(table_name, tree, **Settings.all_units_dictionary())
 
     @print_args
     def _on_tab_changed(self, previous_treeview: TreeView, treeview: TreeView):
         if previous_treeview.current_table_name in treeview.table_names:
-            table_name = treeview.previous_treeview
+            table_name = previous_treeview.current_table_name
         else:
             if treeview.current_table_name:
                 table_name = treeview.current_table_name
             else:
                 table_name = treeview.table_names[0]
-        with ViewMask(treeview, ref_treeview=previous_treeview):
-            self.change_table(treeview, table_name)
+        with ViewMask(treeview, ref_treeview=previous_treeview) as mask:
+            tree = self.tree_act.isChecked()
+            mask.set_table(table_name, tree, **Settings.all_units_dictionary())
 
     @print_args
-    def after_tab_changed(self, tab_widget: TabWidget, tab_index: int):
-        if tab_widget is self.current_tab_widget:
-            if tab_index == -1:
-                self.remove_variables_act.setEnabled(False)
-                self.toolbar.all_files_toggle.setEnabled(False)
-                self.toolbar.rate_energy_btn.setEnabled(True)
-            else:
-                self.toolbar.update_table_buttons(
-                    table_names=self.current_view.table_names, selected=self.current_model.name
-                )
+    def update_view_actions(self):
+        if self.current_view is None:
+            self.remove_variables_act.setEnabled(False)
+            self.toolbar.rate_energy_btn.setEnabled(True)
+        else:
+            self.toolbar.update_table_buttons(
+                table_names=self.current_view.table_names, selected=self.current_model.name
+            )
 
     @print_args
-    def after_table_changed(self):
+    def update_file_actions(self):
+        if self.current_tab_widget.count() > 1:
+            self.toolbar.all_files_toggle.setEnabled(True)
+            self.close_all_act.setEnabled(True)
+        else:
+            self.toolbar.all_files_toggle.setEnabled(False)
+            self.close_all_act.setEnabled(False)
+
+    @print_args
+    def update_table_actions(self):
         """ Update toolbar actions to match current table selection. """
-        Settings.TABLE_NAME = self.current_model.name
-        allow_tree = not self.current_model.is_simple
-        self.tree_act.setEnabled(allow_tree)
-        self.expand_all_act.setEnabled(allow_tree)
-        self.collapse_all_act.setEnabled(allow_tree)
-        self.toolbar.enable_rate_to_energy(self.current_model.allow_rate_to_energy)
+        if self.current_view is None:
+            self.tree_act.setEnabled(True)
+            self.expand_all_act.setEnabled(True)
+            self.collapse_all_act.setEnabled(True)
+            self.toolbar.enable_rate_to_energy(True)
+        else:
+            allow_tree = not self.current_model.is_simple
+            self.tree_act.setEnabled(allow_tree)
+            self.expand_all_act.setEnabled(allow_tree)
+            self.collapse_all_act.setEnabled(allow_tree)
+            self.toolbar.enable_rate_to_energy(self.current_model.allow_rate_to_energy)
 
     @print_args
     def on_tab_changed(self, tab_widget: TabWidget, previous_index: int, index: int) -> None:
         if tab_widget is self.current_tab_widget:
             if index == -1:
-                self._on_all_tabs_closed()
                 Settings.CURRENT_FILE_ID = None
             else:
                 current_treeview = tab_widget.widget(index)
@@ -709,23 +716,17 @@ class MainWindow(QMainWindow):
                     self._on_first_tab_added(current_treeview)
                 else:
                     previous_treeview = tab_widget.widget(previous_index)
-                    self._on_tab_changed(current_treeview, previous_treeview)
-            self.after_tab_changed(tab_widget, tab_widget)
-
-    @print_args
-    def change_table(self, treeview: TreeView, table_name: str):
-        new_model = treeview.models[table_name]
-        if treeview.source_model is new_model:
-            # file changed and but table does not need to be changed
-            treeview.update_model(**Settings.all_units_dictionary())
-        else:
-            treeview.set_model(table_name, **Settings.all_units_dictionary())
+                    self._on_tab_changed(previous_treeview, current_treeview)
+            self.update_table_actions()
+            self.update_view_actions()
 
     @print_args
     def on_table_change_requested(self, table_name: str):
         """ Change table on a current model. """
-        with ViewMask(self.current_view, old_model=self.current_view.source_model):
-            self.change_table(self.current_view, table_name)
+        with ViewMask(self.current_view, old_model=self.current_view.source_model) as mask:
+            tree = self.tree_act.isChecked()
+            mask.set_table(table_name, tree, **Settings.all_units_dictionary())
+        self.update_table_actions()
 
     def get_all_tab_names(self):
         names = []
@@ -830,15 +831,11 @@ class MainWindow(QMainWindow):
 
     def on_tree_act_checked(self, checked: bool):
         """ Update view when view type is changed. """
-        if checked:
-            name = self.current_view.get_visual_column_data()[0]
-        else:
-            name = None
         self.collapse_all_act.setEnabled(checked)
         self.expand_all_act.setEnabled(checked)
-        self.current_view.tree_node = name
-        with ViewMask(self.current_view, old_model=self.current_view.source_model):
-            self.current_view.update_model(**Settings.all_units_dictionary())
+        if self.current_view is not None:
+            with ViewMask(self.current_view, old_model=self.current_view.source_model) as mask:
+                mask.update_table(self.tree_act.isChecked(), **Settings.all_units_dictionary())
 
     def on_text_edited(self):
         """ Delay firing a text edited event. """

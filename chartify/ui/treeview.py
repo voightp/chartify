@@ -1,6 +1,6 @@
 import contextlib
 from collections import defaultdict
-from typing import Dict, List, Set, Tuple, Any
+from typing import Dict, List, Set, Tuple, Any, Optional
 
 from PySide2.QtCore import (
     QMimeData,
@@ -67,7 +67,6 @@ class TreeView(QTreeView):
         self.id_ = id_
         self.models = models
         self.output_type = output_type
-        self.tree_node = None
 
         self.setRootIsDecorated(True)
         self.setUniformRowHeights(True)
@@ -345,16 +344,33 @@ class TreeView(QTreeView):
             self.setRootIsDecorated(False)
         # clear selections to avoid having selected items from previous selection
 
-    def set_model(self, table_name: str, **kwargs) -> None:
+    def set_model(
+        self,
+        table_name: str,
+        tree_node: Optional[str],
+        rate_to_energy: bool,
+        units_system: str,
+        energy_units: str,
+        power_units: str,
+    ) -> None:
         """ Assign new model. """
         model = self.models[table_name]
-        model.populate_model(tree_node=self.tree_node, **kwargs)
+        model.populate_model(tree_node, rate_to_energy, units_system, energy_units, power_units)
         with SignalBlocker(self.verticalScrollBar()):
             self.proxy_model.setSourceModel(model)
 
-    def update_model(self, **kwargs) -> None:
+    def update_model(
+        self,
+        tree_node: Optional[str],
+        rate_to_energy: bool,
+        units_system: str,
+        energy_units: str,
+        power_units: str,
+    ) -> None:
         """ Update tree view model. """
-        self.source_model.populate_model(tree_node=self.tree_node, **kwargs)
+        self.source_model.populate_model(
+            tree_node, rate_to_energy, units_system, energy_units, power_units
+        )
 
     def update_units(self, **kwargs) -> None:
         """ Update tree viw model. """
@@ -504,8 +520,8 @@ def cache_properties(func):
         treeview = args[1]
         widths = treeview.get_widths()
         header = treeview.get_visual_column_data()
-        cls.set_cached_property(treeview.output_type, treeview.view_type, "widths", widths)
-        cls.set_cached_property(treeview.output_type, treeview.view_type, "header", header)
+        cls.set_cached_property(treeview, "widths", widths)
+        cls.set_cached_property(treeview, "header", header)
         return res
 
     return wrapper
@@ -531,6 +547,11 @@ class ViewMask:
         self.old_model = old_model
 
     def __enter__(self):
+        if self.ref_treeview:
+            widths = self.ref_treeview.get_widths()
+            header = self.ref_treeview.get_visual_column_data()
+            self.set_cached_property(self.ref_treeview, "widths", widths)
+            self.set_cached_property(self.ref_treeview, "header", header)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -542,27 +563,25 @@ class ViewMask:
             self.set_initial_appearance(self.treeview)
 
     @classmethod
-    def get_cached_property(cls, output_type: str, view_type: str, key: str) -> Any:
+    def get_cached_property(cls, treeview: TreeView, key: str) -> Any:
         """ Retrieve given property, returns default if not yet cached."""
         try:
-            val = cls._cached[output_type][key][view_type]
+            val = cls._cached[treeview.output_type][key][treeview.view_type]
         except KeyError:
-            val = cls._default[key][view_type]
+            val = cls._default[key][treeview.view_type]
         return val
 
     @classmethod
-    def set_cached_property(
-        cls, output_type: str, view_type: str, key: str, value: Any
-    ) -> None:
-        cls._cached[output_type][key][view_type] = value
+    def set_cached_property(cls, treeview: TreeView, key: str, value: Any) -> None:
+        cls._cached[treeview.output_type][key][treeview.view_type] = value
 
     @classmethod
     @cache_properties
     def set_initial_appearance(cls, treeview: TreeView) -> None:
         if any(cls.filter_tuple):
             treeview.filter_view(cls.filter_tuple)
-        widths = cls.get_cached_property(treeview.output_type, treeview.view_type, "widths")
-        header = cls.get_cached_property(treeview.output_type, treeview.view_type, "header")
+        widths = cls.get_cached_property(treeview, "widths")
+        header = cls.get_cached_property(treeview, "header")
         treeview.set_appearance(header, widths, cls.hide_source_units)
 
     @classmethod
@@ -570,12 +589,12 @@ class ViewMask:
     def update_appearance(
         cls,
         treeview: TreeView,
-        widths: Dict[str, int],
-        header: Tuple[str, ...],
         selected: List[VariableData],
         expanded: Set[str],
         scroll_position: int,
     ):
+        widths = cls.get_cached_property(treeview, "widths")
+        header = cls.get_cached_property(treeview, "header")
         treeview.update_viewport(cls.filter_tuple, expanded, scroll_position)
         treeview.set_appearance(header, widths, cls.hide_source_units)
         if selected:
@@ -585,35 +604,42 @@ class ViewMask:
     @classmethod
     def mask_with_another_view(cls, treeview: TreeView, ref_treeview: TreeView,) -> None:
         if treeview.source_model.is_similar(ref_treeview.source_model):
-            widths = ref_treeview.get_widths()
-            header = ref_treeview.get_visual_column_data()
-            selected = ref_treeview.get_selected_variable_data()
+            selected = ref_treeview.source_model.selected
             expanded = ref_treeview.source_model.expanded
             scroll_position = ref_treeview.source_model.scroll_position
         else:
-            widths = cls.get_cached_property(treeview.output_type, treeview.view_type, "widths")
-            header = cls.get_cached_property(treeview.output_type, treeview.view_type, "header")
             selected = treeview.source_model.selected
             expanded = treeview.source_model.expanded
             scroll_position = treeview.source_model.scroll_position
         cls.update_appearance(
-            treeview, widths, header, selected, expanded, scroll_position,
+            treeview, selected, expanded, scroll_position,
         )
 
     @classmethod
     def mask_with_previous_model(cls, treeview: TreeView, old_model: ViewModel,) -> None:
         if treeview.source_model.is_similar(old_model):
-            widths = treeview.get_widths()
-            header = treeview.get_visual_column_data()
             selected = old_model.selected
             expanded = old_model.expanded
             scroll_position = old_model.scroll_position
         else:
-            widths = cls.get_cached_property(treeview.output_type, treeview.view_type, "widths")
-            header = cls.get_cached_property(treeview.output_type, treeview.view_type, "header")
             selected = treeview.get_selected_variable_data()
             expanded = treeview.source_model.expanded
             scroll_position = treeview.source_model.scroll_position
         cls.update_appearance(
-            treeview, widths, header, selected, expanded, scroll_position,
+            treeview, selected, expanded, scroll_position,
         )
+
+    def set_table(self, table_name: str, tree: bool, **kwargs):
+        new_model = self.treeview.models[table_name]
+        if tree and not new_model.is_simple:
+            tree_node = self.get_cached_property(self.treeview, "header")[0]
+        else:
+            tree_node = None
+        self.treeview.set_model(table_name, tree_node=tree_node, **kwargs)
+
+    def update_table(self, tree: bool, **kwargs):
+        if tree and not self.treeview.source_model.is_simple:
+            tree_node = self.get_cached_property(self.treeview, "header")[0]
+        else:
+            tree_node = None
+        self.treeview.update_model(tree_node=tree_node, **kwargs)
