@@ -677,7 +677,7 @@ class MainWindow(QMainWindow):
         if self.current_view is None:
             self.remove_variables_act.setEnabled(False)
             self.toolbar.rate_energy_btn.setEnabled(True)
-            self.toolbar.update_table_buttons(table_names=[], selected=None)
+            self.toolbar.update_table_buttons(table_names=[], selected="")
         else:
             self.toolbar.update_table_buttons(
                 table_names=self.current_view.table_names, selected=self.current_model.name

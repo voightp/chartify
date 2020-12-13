@@ -547,11 +547,12 @@ class ViewMask:
         self.old_model = old_model
 
     def __enter__(self):
-        if self.ref_treeview:
-            widths = self.ref_treeview.get_widths()
-            header = self.ref_treeview.get_visual_column_data()
-            self.set_cached_property(self.ref_treeview, "widths", widths)
-            self.set_cached_property(self.ref_treeview, "header", header)
+        view = self.ref_treeview if self.ref_treeview else self.treeview
+        if view.source_model is not None:
+            widths = view.get_widths()
+            header = view.get_visual_column_data()
+            self.set_cached_property(view, "widths", widths)
+            self.set_cached_property(view, "header", header)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):

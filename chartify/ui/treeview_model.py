@@ -62,13 +62,11 @@ class ViewModel(QStandardItemModel):
     expanded : set of {str}
         Currently expanded items.
     selected : list if VariableData
-        Currentyl selected items.
-    **kwargs
-        Key word arguments passed to populate model method.
+        Currently selected items.
 
     """
 
-    def __init__(self, name: str, file_ref: ResultsFileType, **kwargs):
+    def __init__(self, name: str, file_ref: ResultsFileType):
         super().__init__()
         self.name = name
         self.tree_node = None
@@ -81,14 +79,14 @@ class ViewModel(QStandardItemModel):
         self.expanded = set()
         self.selected = []
         self._file_ref = file_ref
-        self.populate_model(**kwargs)
 
     @classmethod
     def models_from_file(cls, file: ResultsFileType, **kwargs) -> Dict[str, "ViewModel"]:
         """ Process results file to create models. """
         models = {}
         for table_name in file.table_names:
-            models[table_name] = ViewModel(table_name, file, **kwargs)
+            models[table_name] = ViewModel(table_name, file)
+            models[table_name].populate_model(**kwargs)
         return models
 
     @property
