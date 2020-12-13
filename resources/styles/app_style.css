@@ -535,6 +535,11 @@ QTreeView::item:has-children {
     background: PRIMARY_COLOR #10;
 }
 
+QTreeView::item:has-children:selected {
+    background: PRIMARY_COLOR #10;
+    color: PRIMARY_TEXT_COLOR;
+}
+
 QTreeView::branch:has-children {
     padding: 4px;
     background: PRIMARY_COLOR #10;
