@@ -645,6 +645,8 @@ class MainWindow(QMainWindow):
         """ Show tab widget corresponding to the given radio button. """
         Settings.OUTPUTS_INDEX = index
         self.tab_stacked_widget.setCurrentIndex(index)
+        if self.current_view is not None and self.current_model is None:
+            self._on_first_tab_added(self.current_view)
         self.update_file_actions()
         self.update_table_actions()
         self.update_view_actions()
@@ -675,6 +677,7 @@ class MainWindow(QMainWindow):
         if self.current_view is None:
             self.remove_variables_act.setEnabled(False)
             self.toolbar.rate_energy_btn.setEnabled(True)
+            self.toolbar.update_table_buttons(table_names=[], selected=None)
         else:
             self.toolbar.update_table_buttons(
                 table_names=self.current_view.table_names, selected=self.current_model.name
@@ -723,6 +726,7 @@ class MainWindow(QMainWindow):
     @print_args
     def on_table_change_requested(self, table_name: str):
         """ Change table on a current model. """
+        Settings.TABLE_NAME = table_name
         with ViewMask(self.current_view, old_model=self.current_view.source_model) as mask:
             tree = self.tree_act.isChecked()
             mask.set_table(table_name, tree, **Settings.all_units_dictionary())
