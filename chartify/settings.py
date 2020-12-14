@@ -16,7 +16,10 @@ class Settings:
     ROOT = Path(__file__).parents[1]
     URL = "http://127.0.0.1:8080/"
     PALETTE_PATH = str(Path(ROOT, "resources/styles/palettes.json"))
-    CSS_PATH = str(Path(ROOT, "resources/styles/app_style.css"))
+    CSS_PATHS = [
+        Path(ROOT, "resources/styles/app_style.css"),
+        Path(ROOT, "resources/styles/radio.css"),
+    ]
     SOURCE_ICONS_DIR = Path(ROOT, "resources/icons/")
     SETTINGS_PATH = Path(Path.home(), ".chartify", "settings.json")
 
@@ -66,7 +69,7 @@ class Settings:
         "TABLE_NAME",
         "URL",
         "PALETTE_PATH",
-        "CSS_PATH",
+        "CSS_PATHS",
         "SOURCE_ICONS_DIR",
         "ICON_SMALL_SIZE",
         "ICON_MEDIUM_SIZE",

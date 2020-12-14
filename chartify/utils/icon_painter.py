@@ -66,7 +66,7 @@ def text_to_pixmap(text: str, font: QFont, color: QColor, size: QSize = None) ->
     return pix
 
 
-def filled_circle_pixmap(
+def draw_filled_circle_icon(
     size: QSize,
     c1: QColor,
     c2: QColor = None,
@@ -102,6 +102,50 @@ def filled_circle_pixmap(
         p.setBrush(Qt.NoBrush)
         p.setPen(QPen(border_color, border_width))
         p.drawChord(rect, 0, 360 * 16)
+
+    p.end()
+
+    return pix
+
+
+def draw_radio_icon(
+    size: QSize,
+    c1: QColor,
+    border_color: QColor,
+    border_width: int = 1,
+    inner_circle_fraction: float = 0.7,
+    fraction: float = 0.7,
+    checked: bool = True,
+) -> QPixmap:
+    """ Draw a custom radio button pixmap. """
+    pix = QPixmap(size)
+    pix.fill(Qt.transparent)
+
+    p = QPainter(pix)
+    w, h = size.width(), size.height()
+    x = (w - (fraction * w)) / 2
+    y = (h - (fraction * h)) / 2
+    rect_w = w * fraction
+    rect_y = h * fraction
+
+    # draw outer circle
+    outer_rect = QRectF(x, y, rect_w, rect_y)
+    p.setBrush(Qt.NoBrush)
+    p.setPen(QPen(border_color, border_width))
+    p.drawEllipse(outer_rect)
+
+    # draw inner circle
+    x = (w - (fraction * inner_circle_fraction * w)) / 2
+    y = (h - (fraction * inner_circle_fraction * h)) / 2
+    rect_w = w * fraction * inner_circle_fraction
+    rect_y = h * fraction * inner_circle_fraction
+
+    if checked:
+        inner_rect = QRectF(x, y, rect_w, rect_y)
+        p.setBrush(Qt.NoBrush)
+        p.setBrush(c1)
+        p.setPen(QPen(Qt.transparent, 0))
+        p.drawEllipse(inner_rect)
 
     p.end()
 

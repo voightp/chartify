@@ -390,12 +390,6 @@ class TreeView(QTreeView):
         """ Store current sorting column_order. """
         self.indicator = (log_ix, order)
 
-    def on_view_resized(self, log_ix: int, _, new_size: int) -> None:
-        """ Store interactive section width in the main app. """
-        # TODO remove this
-        if self.header().sectionResizeMode(log_ix) == self.header().Interactive:
-            self.shared_properties.save_interactive_width(self.view_type, new_size)
-
     def tree_node_changed(self, old_visual_ix: int, new_visual_ix: int) -> bool:
         """ Check if tree node column changed. """
         return self.is_tree and (new_visual_ix == 0 or old_visual_ix == 0)
@@ -403,7 +397,6 @@ class TreeView(QTreeView):
     def on_section_moved(self, _logical_ix, old_visual_ix: int, new_visual_ix: int) -> None:
         """ Handle updating the model when column order changes. """
         if self.tree_node_changed(old_visual_ix, new_visual_ix):
-            self.tree_node = self.get_visual_column_data()[0]
             self.treeNodeChanged.emit()
             # automatically sort first column based on last sort update
             self.header().setSortIndicator(0, self.proxy_model.sortOrder())
@@ -561,6 +554,7 @@ class ViewMask:
         elif self.old_model:
             self.mask_with_previous_model(self.treeview, self.old_model)
         else:
+            print(self.treeview.source_model)
             self.set_initial_appearance(self.treeview)
 
     @classmethod
@@ -633,7 +627,7 @@ class ViewMask:
     def set_table(self, table_name: str, tree: bool, **kwargs):
         new_model = self.treeview.models[table_name]
         if tree and not new_model.is_simple:
-            tree_node = self.get_cached_property(self.treeview, "header")[0]
+            tree_node = self._default["header"][TREE][0]
         else:
             tree_node = None
         self.treeview.set_model(table_name, tree_node=tree_node, **kwargs)

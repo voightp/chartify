@@ -42,7 +42,7 @@ from chartify.ui.treeview import TreeView, ViewMask
 from chartify.ui.treeview_model import ViewModel
 from chartify.ui.widget_functions import print_args
 from chartify.utils.css_theme import Palette, CssParser
-from chartify.utils.icon_painter import Pixmap, filled_circle_pixmap
+from chartify.utils.icon_painter import Pixmap, draw_filled_circle_icon
 from chartify.utils.utils import VariableData, FilterTuple
 
 
@@ -92,14 +92,12 @@ class MainWindow(QMainWindow):
         self.mean_act.setEnabled(False)
         self.collapse_all_act = QAction("Collapse All", self)
         self.collapse_all_act.setShortcut(QKeySequence("Ctrl+Shift+E"))
-        # self.collapse_all_act.setEnabled(bool(Settings.TREE_NODE))
         self.expand_all_act = QAction("Expand All", self)
         self.expand_all_act.setShortcut(QKeySequence("Ctrl+E"))
-        # self.expand_all_act.setEnabled(bool(Settings.TREE_NODE))
         self.tree_act = QAction("Tree", self)
         self.tree_act.setShortcut(QKeySequence("Ctrl+T"))
         self.tree_act.setCheckable(True)
-        # self.tree_act.setChecked(bool(Settings.TREE_NODE))
+        self.tree_act.setChecked(True)
         self.save_act = QAction("Save", self)
         self.save_act.setShortcut(QKeySequence("Ctrl+S"))
         self.save_as_act = QAction("Save as", self)
@@ -288,21 +286,7 @@ class MainWindow(QMainWindow):
         Settings.PALETTE = self.palettes[Settings.PALETTE_NAME]
 
         # ~~~~ Scheme button ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        actions = []
-        def_act = None
-        for name, colors in self.palettes.items():
-            act = QAction(name, self)
-            act.triggered.connect(partial(self.on_color_scheme_changed, name))
-            c1 = QColor(*colors.get_color_tuple("SECONDARY_COLOR"))
-            c2 = QColor(*colors.get_color_tuple("BACKGROUND_COLOR"))
-            act.setIcon(
-                filled_circle_pixmap(
-                    Settings.ICON_LARGE_SIZE, c1, c2=c2, border_color=QColor(255, 255, 255)
-                )
-            )
-            actions.append(act)
-            if name == Settings.PALETTE_NAME:
-                def_act = act
+        actions, default_action = self.create_scheme_actions()
 
         menu = QMenu(self)
         menu.setWindowFlags(menu.windowFlags() | Qt.NoDropShadowWindowHint)
@@ -310,7 +294,7 @@ class MainWindow(QMainWindow):
 
         self.scheme_btn = QToolButton(self)
         self.scheme_btn.setPopupMode(QToolButton.InstantPopup)
-        self.scheme_btn.setDefaultAction(def_act)
+        self.scheme_btn.setDefaultAction(default_action)
         self.scheme_btn.setMenu(menu)
         self.scheme_btn.setObjectName("schemeButton")
         self.scheme_btn.triggered.connect(lambda act: self.scheme_btn.setDefaultAction(act))
@@ -415,6 +399,25 @@ class MainWindow(QMainWindow):
             if self.hasFocus():
                 self.variableRemoveRequested.emit(self.current_view)
 
+    def create_scheme_actions(self) -> Tuple[List[QAction], QAction]:
+        """ Create actions to change application color scheme. """
+        actions = []
+        def_act = None
+        for name, colors in self.palettes.items():
+            act = QAction(name, self)
+            act.triggered.connect(partial(self.on_color_scheme_changed, name))
+            c1 = QColor(*colors.get_color_tuple("SECONDARY_COLOR"))
+            c2 = QColor(*colors.get_color_tuple("BACKGROUND_COLOR"))
+            act.setIcon(
+                draw_filled_circle_icon(
+                    Settings.ICON_LARGE_SIZE, c1, c2=c2, border_color=QColor(255, 255, 255)
+                )
+            )
+            actions.append(act)
+            if name == Settings.PALETTE_NAME:
+                def_act = act
+        return actions, def_act
+
     def load_icons(self):
         """ Load application icons. """
         # this sets toolbar icon on win 7
@@ -487,12 +490,12 @@ class MainWindow(QMainWindow):
         """ Update application appearance. """
         icons_dir = self._create_icons_dir(Settings.APP_TEMP_DIR)
         css, icon_paths = CssParser.parse_css_files(
-            [Settings.CSS_PATH], Settings.PALETTE, Settings.SOURCE_ICONS_DIR, icons_dir,
+            Settings.CSS_PATHS, Settings.PALETTE, Settings.SOURCE_ICONS_DIR, icons_dir,
         )
+        self._temp_icons = icon_paths
         # css needs to be cleared to repaint the window properly
         self.setStyleSheet("")
         self.setStyleSheet(css)
-        self._temp_icons = icon_paths
         self.load_icons()
 
     def mirror_layout(self):
@@ -800,7 +803,8 @@ class MainWindow(QMainWindow):
             self.toolbar.rate_energy_btn.setEnabled(False)
             rate_to_energy = False
         Settings.RATE_TO_ENERGY = rate_to_energy
-        self.current_view.update_units(**Settings.all_units_dictionary())
+        if self.current_view:
+            self.current_view.update_units(**Settings.all_units_dictionary())
 
     def on_energy_units_changed(self, act: QAction):
         if act.data() != self.toolbar.energy_btn.data():

@@ -9,13 +9,15 @@ from PySide2.QtWidgets import (
     QFrame,
     QSlider,
     QDialog,
+    QAbstractButton,
+    QWidget,
 )
 
 from chartify.ui.widget_functions import refresh_css
 
 
 class TitledButton(QToolButton):
-    """ A custom tab_wgt_button to include a top left title label.  """
+    """ A custom button to include a top left title label.  """
 
     def __init__(self, text, parent):
         super().__init__(parent)
@@ -55,7 +57,7 @@ class TitledButton(QToolButton):
 
 
 class ToggleButton(QFrame):
-    """ A custom tab_wgt_button to represent a toggle tab_wgt_button.
+    """ A custom button to represent a toggle button.
 
     The appearance is handled by CSS. Default object name is 'toggleButton'
     ('toggleButtonContainer' for parent frame) and the appearance changes
@@ -82,8 +84,12 @@ class ToggleButton(QFrame):
         self.slider.setValue(0)
         self.slider.valueChanged.connect(self.onValueChange)
 
-        self.label = None
+        self.label = QLabel(self)
+        self.label.setAlignment(Qt.AlignLeft | Qt.AlignCenter)
+        self.label.setIndent(0)
 
+        layout.addWidget(self.label)
+        layout.addStretch()
         layout.addWidget(self.slider)
 
     def onValueChange(self, val: int) -> None:
@@ -92,7 +98,7 @@ class ToggleButton(QFrame):
         self.stateChanged.emit(bool(val))
 
     def isChecked(self) -> bool:
-        """ Get the current state of toggle tab_wgt_button. """
+        """ Get the current state of toggle button. """
         return bool(self.slider.value())
 
     def isEnabled(self) -> bool:
@@ -100,23 +106,18 @@ class ToggleButton(QFrame):
         return self.slider.isEnabled()
 
     def setText(self, text: str) -> None:
-        """ Set toggle tab_wgt_button label. """
-        self.label = QLabel(self)
-        self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+        """ Set toggle button label. """
         self.label.setText(text)
-        self.label.setAlignment(Qt.AlignLeft | Qt.AlignBottom)
-        self.label.setIndent(0)
-        self.layout().insertWidget(0, self.label)
 
     @refresh_css
     def setChecked(self, checked: bool) -> None:
-        """ Set toggle tab_wgt_button checked. """
+        """ Set toggle button checked. """
         self.slider.setValue(int(checked))
         self.slider.setProperty("isChecked", True if checked else "")
 
     @refresh_css
     def setEnabled(self, enabled: bool) -> None:
-        """ Enable or disable the tab_wgt_button. """
+        """ Enable or disable the button. """
         self.slider.setEnabled(enabled)
         if enabled:
             self.slider.setProperty("isChecked", True if self.isChecked() else "")
@@ -127,7 +128,7 @@ class ToggleButton(QFrame):
 
 
 class MenuButton(QToolButton):
-    """ A tab_wgt_button to mimic 'Action' behaviour.
+    """ A button to mimic 'Action' behaviour.
 
     This is in place to allow resizing the
     icon as QAction does not allow that.
@@ -180,3 +181,25 @@ class StatusButton(QToolButton):
     def hide_status(self):
         """ Hide status dialog. """
         self.status_dialog.setVisible(False)
+
+
+class LabeledButton(QFrame):
+    def __init__(self, parent: QWidget, button: QAbstractButton, text: str):
+        super().__init__(parent)
+        self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+        button.setParent(self)
+
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+        self.button = button
+        self.label = QLabel(self)
+
+        self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+        self.label.setText(text)
+        self.label.setAlignment(Qt.AlignLeft | Qt.AlignCenter)
+        self.label.setIndent(0)
+
+        layout.addWidget(self.label)
+        layout.addStretch()
+        layout.addWidget(self.button)

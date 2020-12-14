@@ -704,6 +704,15 @@ ToggleButton QSlider::handle:horizontal {
     margin: 0 -4px;
 }
 
+LabeledButton {
+    margin: 2px;
+}
+
+LabeledButton QLabel {
+    font-size: 11px;
+    text-transform: uppercase;
+}
+
 QDialog {
     border: 1px solid PRIMARY_COLOR;
     background: SURFACE_COLOR;

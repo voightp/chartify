@@ -16,7 +16,7 @@ from PySide2.QtWidgets import (
 )
 
 from chartify.settings import Settings
-from chartify.ui.buttons import TitledButton, ToggleButton
+from chartify.ui.buttons import TitledButton, ToggleButton, LabeledButton
 
 
 class Toolbar(QFrame):
@@ -57,29 +57,29 @@ class Toolbar(QFrame):
         self.outputs_button_group = QButtonGroup(self)
         self.outputs_button_group.idClicked.connect(self.on_outputs_toggle_toggled)
 
-        self.standard_outputs_btn = QRadioButton(self.outputs_group)
-        self.standard_outputs_btn.setText("standard")
+        self.standard_outputs_btn = QRadioButton()
         self.standard_outputs_btn.setChecked(Settings.OUTPUTS_INDEX == 0)
         self.outputs_button_group.addButton(self.standard_outputs_btn, 0)
-        outputs_group_layout.addWidget(self.standard_outputs_btn)
+        standard_labeled_btn = LabeledButton(
+            self.outputs_group, self.standard_outputs_btn, "standard"
+        )
+        outputs_group_layout.addWidget(standard_labeled_btn)
 
         self.totals_outputs_btn = QRadioButton(self.outputs_group)
-        self.totals_outputs_btn.setText("totals")
         self.totals_outputs_btn.setChecked(Settings.OUTPUTS_INDEX == 1)
         self.outputs_button_group.addButton(self.totals_outputs_btn, 1)
-        outputs_group_layout.addWidget(self.totals_outputs_btn)
+        totals_labeled_btn = LabeledButton(
+            self.outputs_group, self.totals_outputs_btn, "totals"
+        )
+        outputs_group_layout.addWidget(totals_labeled_btn)
 
         self.diff_outputs_btn = QRadioButton(self.outputs_group)
-        self.diff_outputs_btn.setText("difference")
-        self.totals_outputs_btn.setChecked(Settings.OUTPUTS_INDEX == 2)
+        self.diff_outputs_btn.setChecked(Settings.OUTPUTS_INDEX == 2)
         self.outputs_button_group.addButton(self.diff_outputs_btn, 2)
-        outputs_group_layout.addWidget(self.diff_outputs_btn)
-
-        self.all_files_toggle = ToggleButton(self.outputs_group)
-        self.all_files_toggle.setText("All files")
-        self.all_files_toggle.setChecked(Settings.ALL_FILES)
-        self.all_files_toggle.setEnabled(False)
-        outputs_group_layout.addWidget(self.all_files_toggle)
+        diff_labeled_btn = LabeledButton(
+            self.outputs_group, self.diff_outputs_btn, "difference"
+        )
+        outputs_group_layout.addWidget(diff_labeled_btn)
 
         self.layout.addWidget(self.outputs_group)
 
@@ -145,6 +145,14 @@ class Toolbar(QFrame):
         units_group_layout.addWidget(self.custom_units_toggle, 2, 0, 1, 2)
         units_group_layout.addWidget(self.source_units_toggle, 3, 0, 1, 2)
         self.layout.addWidget(self.units_group)
+
+        self.layout.addStretch()
+
+        self.all_files_toggle = ToggleButton(self)
+        self.all_files_toggle.setText("All files")
+        self.all_files_toggle.setChecked(Settings.ALL_FILES)
+        self.all_files_toggle.setEnabled(True)
+        self.layout.addWidget(self.all_files_toggle)
 
     @staticmethod
     def clear_group(group):
@@ -238,7 +246,7 @@ class Toolbar(QFrame):
         self.filter_energy_power_units(Settings.UNITS_SYSTEM)
 
     def enable_rate_to_energy(self, can_convert: bool):
-        """ Enable or disable rate to energy tab_wgt_button. """
+        """ Enable or disable rate to energy button. """
         if self.custom_units_toggle.isChecked():
             self.rate_energy_btn.setEnabled(can_convert)
         else:
