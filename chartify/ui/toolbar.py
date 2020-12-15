@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Dict, Union
 
 from PySide2.QtCore import Qt, Signal
 from PySide2.QtWidgets import (
@@ -180,14 +180,6 @@ class Toolbar(QFrame):
         for btn, ix in zip(widgets, ixs):
             group.layout().addWidget(btn, *ix)
 
-    def all_files_requested(self):
-        """ Check if results from all eso files are requested. """
-        return self.all_files_btn.isChecked() and self.all_files_btn.isEnabled()
-
-    def totals_requested(self):
-        """ Check if results from all eso files are requested. """
-        return self.totals_outputs_btn.isChecked()
-
     def set_up_units(self):
         """ Set up units options. """
 
@@ -317,3 +309,12 @@ class Toolbar(QFrame):
     def on_outputs_toggle_toggled(self, index: int):
         """ Request tab widget display corresponding to toggle button. """
         self.tabWidgetChangeRequested.emit(index)
+
+    def get_current_units(self) -> Dict[str, Union[str, bool]]:
+        """ Gather all units related settings. """
+        return {
+            "energy_units": self.energy_btn.data(),
+            "power_units": self.power_btn.data(),
+            "units_system": self.units_system_button.data(),
+            "rate_to_energy": self.rate_energy_btn.isChecked(),
+        }

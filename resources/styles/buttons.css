@@ -168,8 +168,8 @@ QToolButton#schemeButton::menu-indicator {
 
 /* ~~~~~ TOGGLE ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
-ToggleButton {
-    margin: 2px;
+ToggleButton#toggleButton {
+    margin: 4px 0px 4px 4px;
 }
 
 ToggleButton QLabel {
@@ -210,8 +210,8 @@ ToggleButton QSlider::handle:horizontal {
 
 /* ~~~~~ BUTTON LABEL ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
-LabeledButton {
-    margin: 2px;
+LabeledButton#labeledButton {
+    margin: 4px 0px 4px 4px;
 }
 
 LabeledButton QLabel {

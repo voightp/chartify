@@ -73,6 +73,7 @@ class ToggleButton(QFrame):
     def __init__(self, parent):
         super().__init__(parent)
         self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+        self.setObjectName("toggleButton")
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -186,6 +187,7 @@ class StatusButton(QToolButton):
 class LabeledButton(QFrame):
     def __init__(self, parent: QWidget, button: QAbstractButton, text: str):
         super().__init__(parent)
+        self.setObjectName("labeledButton")
         self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
         button.setParent(self)
 

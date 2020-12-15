@@ -798,9 +798,14 @@ class MainWindow(QMainWindow):
         # this does not have an impact on the UI
         Settings.ALL_FILES = checked
 
+    def update_units(self) -> None:
+        """ Update units on a current view if current tab widget contains one. """
+        if self.current_view:
+            self.current_view.update_units(**self.toolbar.get_current_units())
+
     def on_rate_energy_btn_checked(self, checked: bool):
         Settings.RATE_TO_ENERGY = checked
-        self.current_view.update_units(**Settings.all_units_dictionary())
+        self.update_units()
 
     def on_source_units_toggled(self, checked: bool):
         Settings.SHOW_SOURCE_UNITS = checked
@@ -821,18 +826,17 @@ class MainWindow(QMainWindow):
             self.toolbar.rate_energy_btn.setEnabled(False)
             rate_to_energy = False
         Settings.RATE_TO_ENERGY = rate_to_energy
-        if self.current_view:
-            self.current_view.update_units(**Settings.all_units_dictionary())
+        self.update_units()
 
     def on_energy_units_changed(self, act: QAction):
         if act.data() != self.toolbar.energy_btn.data():
             Settings.ENERGY_UNITS = act.data()
-            self.current_view.update_units(**Settings.all_units_dictionary())
+            self.update_units()
 
     def on_power_units_changed(self, act: QAction):
         if act.data() != self.toolbar.power_btn.data():
             Settings.POWER_UNITS = act.data()
-            self.current_view.update_units(**Settings.all_units_dictionary())
+            self.update_units()
 
     def on_units_system_changed(self, act: QAction):
         if act.data() != self.toolbar.units_system_button.data():
@@ -840,7 +844,7 @@ class MainWindow(QMainWindow):
             self.toolbar.filter_energy_power_units(act.data())
             Settings.POWER_UNITS = self.toolbar.power_btn.data()
             Settings.ENERGY_UNITS = self.toolbar.energy_btn.data()
-            self.current_view.update_units(**Settings.all_units_dictionary())
+            self.update_units()
 
     def connect_toolbar_signals(self):
         # ~~~~ Toolbar Signals ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
