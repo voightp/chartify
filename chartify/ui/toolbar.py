@@ -128,7 +128,7 @@ class Toolbar(QFrame):
         self.custom_units_toggle.stateChanged.connect(self.custom_units_toggled)
         self.source_units_toggle = ToggleButton(self.units_group)
         self.source_units_toggle.setText("Source")
-        self.source_units_toggle.setChecked(not Settings.HIDE_SOURCE_UNITS)
+        self.source_units_toggle.setChecked(Settings.SHOW_SOURCE_UNITS)
         self.energy_btn = TitledButton("energy", self.units_group)
         self.power_btn = TitledButton("power", self.units_group)
         self.units_system_button = TitledButton("system", self.units_group)

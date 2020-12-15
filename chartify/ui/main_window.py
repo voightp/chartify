@@ -635,6 +635,10 @@ class MainWindow(QMainWindow):
         self.sum_act.triggered.connect(self.on_sum_action_triggered)
         self.mean_act.triggered.connect(self.on_mean_action_triggered)
 
+    def show_source_units(self) -> bool:
+        """ Check if source units should be visible. """
+        return self.toolbar.source_units_toggle.isChecked()
+
     def get_filter_tuple(self):
         """ Retrieve filter inputs from ui. """
         return FilterTuple(
@@ -658,7 +662,11 @@ class MainWindow(QMainWindow):
     def _on_first_tab_added(self, treeview: TreeView):
         table_names = treeview.table_names
         table_name = table_names[0]
-        with ViewMask(treeview) as mask:
+        with ViewMask(
+            treeview,
+            filter_tuple=self.get_filter_tuple(),
+            show_source_units=self.show_source_units(),
+        ) as mask:
             tree = self.tree_act.isChecked()
             mask.set_table(table_name, tree, **Settings.all_units_dictionary())
 
@@ -671,7 +679,12 @@ class MainWindow(QMainWindow):
                 table_name = treeview.current_table_name
             else:
                 table_name = treeview.table_names[0]
-        with ViewMask(treeview, ref_treeview=previous_treeview) as mask:
+        with ViewMask(
+            treeview,
+            ref_treeview=previous_treeview,
+            filter_tuple=self.get_filter_tuple(),
+            show_source_units=self.show_source_units(),
+        ) as mask:
             tree = self.tree_act.isChecked()
             mask.set_table(table_name, tree, **Settings.all_units_dictionary())
 
@@ -730,7 +743,12 @@ class MainWindow(QMainWindow):
     def on_table_change_requested(self, table_name: str):
         """ Change table on a current model. """
         Settings.TABLE_NAME = table_name
-        with ViewMask(self.current_view, old_model=self.current_view.source_model) as mask:
+        with ViewMask(
+            self.current_view,
+            old_model=self.current_view.source_model,
+            filter_tuple=self.get_filter_tuple(),
+            show_source_units=self.show_source_units(),
+        ) as mask:
             tree = self.tree_act.isChecked()
             mask.set_table(table_name, tree, **Settings.all_units_dictionary())
         self.update_table_actions()
@@ -785,7 +803,7 @@ class MainWindow(QMainWindow):
         self.current_view.update_units(**Settings.all_units_dictionary())
 
     def on_source_units_toggled(self, checked: bool):
-        Settings.HIDE_SOURCE_UNITS = not checked
+        Settings.SHOW_SOURCE_UNITS = checked
         if self.current_view:
             self.current_view.hide_section(UNITS_LEVEL, not checked)
 
@@ -842,7 +860,12 @@ class MainWindow(QMainWindow):
         self.collapse_all_act.setEnabled(checked)
         self.expand_all_act.setEnabled(checked)
         if self.current_view is not None:
-            with ViewMask(self.current_view, old_model=self.current_view.source_model) as mask:
+            with ViewMask(
+                self.current_view,
+                old_model=self.current_view.source_model,
+                filter_tuple=self.get_filter_tuple(),
+                show_source_units=self.show_source_units(),
+            ) as mask:
                 mask.update_table(self.tree_act.isChecked(), **Settings.all_units_dictionary())
 
     def on_text_edited(self):
@@ -851,8 +874,9 @@ class MainWindow(QMainWindow):
 
     def on_filter_timeout(self):
         """ Apply a filter when the filter text is edited. """
+        filter_tuple = self.get_filter_tuple()
         if not self.current_tab_widget.is_empty():
-            self.current_view.filter_view(self.get_filter_tuple())
+            self.current_view.filter_view(filter_tuple)
 
     def connect_view_tools_signals(self):
         # ~~~~ Filter actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

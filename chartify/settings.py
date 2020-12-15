@@ -55,7 +55,7 @@ class Settings:
     TABLE_NAME = None
     ALL_FILES = None
 
-    HIDE_SOURCE_UNITS = None
+    SHOW_SOURCE_UNITS = None
 
     SIZE = None
     POSITION = None

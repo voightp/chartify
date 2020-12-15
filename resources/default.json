@@ -16,6 +16,6 @@
   "SI_POWER_UNITS": ["W", "kW", "MW"],
   "UNITS_SYSTEM": "SI",
   "SPLIT": [540, 654],
-  "HIDE_SOURCE_UNITS": false,
+  "SHOW_SOURCE_UNITS": false,
   "OUTPUTS_INDEX": 0
 }
