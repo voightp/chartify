@@ -1,0 +1,7 @@
+/* ~~~~~ LINE EDIT ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
+
+LineEdit, QLineEdit {
+    border: 0px solid transparent;
+    background-color: SURFACE_COLOR;
+    border-radius: 2px;
+}

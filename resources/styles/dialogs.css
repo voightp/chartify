@@ -1,0 +1,59 @@
+/* ~~~~~ DIALOGS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
+
+QDialog {
+    border: 1px solid PRIMARY_COLOR;
+    background: SURFACE_COLOR;
+    min-width: 320;
+}
+
+QDialog QLabel {
+    padding: 0px 0px 0px 10px;
+    font-weight: normal;
+}
+
+QDialog QLabel#dialogTitle {
+    padding: 10px 16px 10px 10px;
+    margin: 0px 5px 5px 5px;
+    border-bottom: 1px solid SECONDARY_COLOR;
+    font-weight: bold;
+}
+
+QDialog QLineEdit {
+    border: 1px solid PRIMARY_COLOR;
+}
+
+QDialog QTextEdit {
+    background-color: transparent;
+    font-style: italic;
+    margin: 5px;
+    margin-bottom: 0px;
+    padding: 6px;
+    padding-bottom: 0px;
+}
+
+#okButton, #rejectButton {
+    border: 0px solid transparent;
+    background: transparent;
+    width: 16px;
+    height: 16px;
+    margin: 4px 0px;
+}
+
+QDialogButtonBox #okButton {
+    image: URL(check.png) #PRIMARY_COLOR;
+}
+
+QDialogButtonBox #rejectButton {
+    image: URL(remove.png) #PRIMARY_COLOR;
+    margin-right: 4px;
+}
+
+QDialogButtonBox #okButton:hover {
+    image: URL(check.png) #OK_COLOR;
+    background: transparent;
+}
+
+QDialogButtonBox #rejectButton:hover {
+    image: URL(remove.png) #ERROR_COLOR;
+    background: transparent;
+}

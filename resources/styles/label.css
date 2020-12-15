@@ -1,0 +1,11 @@
+/* ~~~~~ LABEL ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
+
+QLabel {
+    background: transparent;
+}
+
+QLabel#filterIcon {
+    image: URL(filter_list.png) #SECONDARY_TEXT_COLOR;
+    min-width: 20px;
+    min-height: 20px;
+}

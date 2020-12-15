@@ -1,0 +1,72 @@
+/* ~~~~~ PROGRESS WIDGET ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
+
+ProgressWidget {
+    border-right: 1px solid PRIMARY_COLOR #50;
+    padding-right: 8px;
+    padding-left: 2px;
+}
+
+SummaryWidget QProgressBar {
+    background: OK_COLOR #40;
+    border: 0px solid transparent;
+    min-height: 2px;
+}
+
+SummaryWidget QProgressBar::chunk {
+    background: OK_COLOR;
+    width: 1px;
+}
+
+SummaryWidget QLabel {
+    font-size: 11px;
+}
+
+ProgressWidget QLabel {
+    font-size: 11px;
+}
+
+ProgressWidget QProgressBar {
+    background: OK_COLOR #40;
+    border: 0px solid transparent;
+    min-height: 2px;
+}
+
+ProgressWidget QProgressBar::chunk {
+    background: OK_COLOR;
+    width: 1px;
+}
+
+ProgressWidget[failed=true] QProgressBar {
+       background: ERROR_COLOR #20;
+}
+
+ProgressWidget[failed=true] QProgressBar::chunk {
+    background: ERROR_COLOR;
+}
+
+ProgressWidget StatusButton {
+    image: URL(file.png) #PRIMARY_COLOR;
+    margin: 0px;
+    padding: 0px;
+    border: 0px solid transparent;
+    background: transparent;
+    width: 15px;
+    height: 15px;
+}
+
+ProgressWidget[failed=true] StatusButton {
+    image: URL(remove_file.png) #ERROR_COLOR;
+}
+
+#statusLabel {
+    font-size: 11px;
+    background-color: SURFACE_COLOR;
+    border: 0px solid PRIMARY_COLOR;
+    padding: 0px;
+    margin: 5;
+}
+
+ProgressWidget[failed=true] QLabel {
+    font-size: 11px;
+    color: ERROR_COLOR;
+}

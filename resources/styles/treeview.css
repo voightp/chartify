@@ -1,0 +1,85 @@
+/* ~~~~~ TREEVIEW ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
+
+QHeaderView::section {
+    font-size: 12px;
+    background-color: transparent;
+    margin-left: 3px;
+    margin-right: 3px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    margin-bottom: 5px;
+    border: 0px solid transparent;
+    border-bottom: 1px solid SECONDARY_COLOR;
+}
+
+QHeaderView::section:checked {
+
+}
+
+/* style the sort indicator */
+QHeaderView::down-arrow {
+    color: PRIMARY_TEXT_COLOR;
+    image: URL(expand_less.png) #PRIMARY_COLOR;
+    width: 12px;
+    height: 12px;
+    subcontrol-position: right;
+    subcontrol-origin: margin;
+}
+
+QHeaderView::up-arrow {
+    color: PRIMARY_TEXT_COLOR;
+    image: URL(expand_more.png) #PRIMARY_COLOR;
+    width: 12px;
+    height: 12px;
+}
+
+QTreeView {
+    show-decoration-selected: 0;
+}
+
+QTreeView::item {
+    border: 1px solid PRIMARY_COLOR #50;
+    border-top-color: transparent;
+    border-bottom-color: transparent;
+    border-left-color: transparent;
+}
+
+QTreeView::item:hover {
+    background: SECONDARY_COLOR #20;
+}
+
+QTreeView::item:selected {
+    color: SECONDARY_TEXT_COLOR;
+    background: SECONDARY_COLOR;
+}
+
+QTreeView::item:selected:active {
+    background: SECONDARY_COLOR;
+}
+
+QTreeView::item:selected:!active {
+    background: SECONDARY_COLOR;
+    border-right: transparent;
+}
+
+QTreeView::item:has-children {
+    background: PRIMARY_COLOR #10;
+}
+
+QTreeView::item:has-children:selected {
+    background: PRIMARY_COLOR #10;
+    color: PRIMARY_TEXT_COLOR;
+}
+
+QTreeView::branch:has-children {
+    padding: 4px;
+    background: PRIMARY_COLOR #10;
+}
+
+QTreeView::branch:has-children:closed {
+    image: URL(plus.png) #PRIMARY_TEXT_COLOR;
+}
+
+QTreeView::branch:has-children:open {
+    image: URL(minus.png) #PRIMARY_TEXT_COLOR;
+}

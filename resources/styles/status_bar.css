@@ -1,0 +1,11 @@
+/* ~~~~~ STATUS BAR ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
+
+QStatusBar {
+    background: SURFACE_COLOR;
+    border-radius: 0px;
+}
+
+QStatusBar::item {
+    border: 0px solid transparent;
+}
+

@@ -1,0 +1,45 @@
+/* ~~~~~ MENU ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
+
+QMenu {
+    border: 1px solid PRIMARY_COLOR;
+    background: SURFACE_COLOR;
+    margin: 0px;
+}
+
+QMenu::icon {
+    margin: 0px;
+    padding: 0px 5px;
+}
+
+QMenu::item {
+    background-color: SURFACE_COLOR;
+    padding: 10px 24px 10px 30px;
+    border: 1px solid transparent;
+}
+
+QMenu#contextMenu::item {
+    padding-left: 15px;
+}
+
+QMenu::item:selected {
+    background: SECONDARY_COLOR #15;
+}
+
+QMenu::item:checked {
+    background-color: SECONDARY_COLOR;
+    color: SECONDARY_TEXT_COLOR;
+}
+
+QMenu::item:disabled {
+    color: PRIMARY_COLOR #50;
+}
+
+QMenu::indicator {
+    width: 12px;
+    height: 12px;
+    padding-left: 6px;
+}
+
+QMenu::indicator:non-exclusive:checked {
+    image: URL(check.png) #SECONDARY_TEXT_COLOR;
+}

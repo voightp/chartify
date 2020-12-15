@@ -490,7 +490,7 @@ class MainWindow(QMainWindow):
         """ Update application appearance. """
         icons_dir = self._create_icons_dir(Settings.APP_TEMP_DIR)
         css, icon_paths = CssParser.parse_css_files(
-            Settings.CSS_PATHS, Settings.PALETTE, Settings.SOURCE_ICONS_DIR, icons_dir,
+            Settings.CSS_DIR, Settings.PALETTE, Settings.SOURCE_ICONS_DIR, icons_dir,
         )
         self._temp_icons = icon_paths
         # css needs to be cleared to repaint the window properly

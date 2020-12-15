@@ -1,0 +1,68 @@
+/* ~~~~~ SCROLLBAR ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
+
+QScrollBar:vertical {
+    background: SURFACE_COLOR;
+    width: 6px;
+    margin: 0px;
+    border: 0px solid transparent;
+}
+
+QScrollBar:horizontal {
+    background: SURFACE_COLOR;
+    height: 6px;
+    margin: 0px;
+}
+
+QScrollBar::add-page, QScrollBar::sub-page {
+    background: transparent;
+}
+
+QScrollBar::up-arrow:vertical, QScrollBar::down-arrow:vertical {
+    border: 0px solid transparent;
+    width: 0px;
+    height: 0px;
+    background: transparent;
+}
+
+QScrollBar::right-arrow:horizontal, QScrollBar::left-arrow:horizontal {
+    border: 0px solid transparent;
+    width: 0px;
+    height: 0px;
+    background: transparent;
+}
+
+QScrollBar::handle:vertical, QScrollBar::handle:horizontal {
+    background-color: SECONDARY_COLOR;
+}
+
+QScrollBar::add-line:vertical {
+    border: 0px solid transparent;
+    background-color: transparent;
+    height: 10px;
+}
+
+QScrollBar::add-line:horizontal {
+    border: 0px solid transparent;
+    background-color: transparent;
+    width: 10px;
+}
+
+QScrollBar::add-line:pressed {
+    background: SECONDARY_COLOR #50;
+}
+
+QScrollBar::sub-line:vertical {
+    border: 0px solid transparent;
+    background-color: transparent;
+    height: 10px;
+}
+
+QScrollBar::sub-line:horizontal {
+    border: 0px solid transparent;
+    background-color: transparent;
+    width: 10px;
+}
+
+QScrollBar::sub-line:pressed {
+    background: SECONDARY_COLOR;
+}

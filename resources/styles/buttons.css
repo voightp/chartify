@@ -1,0 +1,221 @@
+/* ~~~~~ TOOL BUTTONS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
+
+QToolButton {
+    width: 50px;
+    height: 40px;
+    border: 1px solid PRIMARY_COLOR;
+    background-color: transparent;
+    color: PRIMARY_TEXT_COLOR;
+    font-size: 10px;
+    margin: 2px;
+}
+
+QToolButton:checked {
+    background-color: SECONDARY_COLOR #70;
+    border-color: SECONDARY_COLOR;
+    color: SECONDARY_TEXT_COLOR;
+    font-weight: bold;
+}
+
+QToolButton:hover:checked {
+    background-color: SECONDARY_COLOR #70;
+    border-color: SECONDARY_COLOR;
+}
+
+QToolButton:disabled {
+    border-color: PRIMARY_COLOR #50;
+    background-color: transparent;
+    color: PRIMARY_COLOR #50;
+    border-style: dashed;
+}
+
+QToolButton:hover {
+    background-color: SECONDARY_COLOR #10;
+    border-color: SECONDARY_COLOR;
+}
+
+QToolButton#swapButton {
+    margin: 0px;
+    border: 0px;
+    background: transparent;
+    image: URL(swap.png) #PRIMARY_COLOR;
+    width: 20px;
+    height: 20px;
+}
+
+#collapseButton, #expandButton, #treeButton {
+    width: 23;
+    height: 18;
+    border: 1px solid SECONDARY_TEXT_COLOR;
+    background: transparent;
+    margin: 1px;
+}
+
+#collapseButton:disabled, #expandButton:disabled, #treeButton:disabled {
+    border-color: SECONDARY_TEXT_COLOR #50;
+}
+
+#collapseButton:hover, #expandButton:hover, #treeButton:hover {
+    background-color: SECONDARY_TEXT_COLOR #15;
+}
+
+
+QToolButton#dropButton {
+    background: transparent;
+    border: none;
+    height: 100px;
+    width: 150px;
+    font-size: 11px;
+}
+
+QToolButton#dropButton:hover {
+    background: transparent;
+}
+
+/* ~~~~~ MENU BUTTON ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
+
+MenuButton {
+    border: 0px;
+    margin: 0px;
+    width: 36px;
+    height: 36px;
+    icon-size: 25px;
+}
+
+MenuButton:hover {
+    background: transparent;
+}
+
+MenuButton#settingsButton {
+    height: 60px;
+    width: 60px;
+}
+
+MenuButton::menu-indicator {
+    image: url(transparent.png);
+    margin: 3px;
+    width: 10px;
+    height: 10px;
+}
+
+/* ~~~~~ TITLED BUTTON ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
+
+TitledButton {
+    font-size: 13px;
+}
+
+TitledButton::menu-indicator {
+    image: URL(expand_more.png) #PRIMARY_COLOR;
+    margin: 1px;
+    width: 12px;
+    height: 12px;
+}
+
+TitledButton:checked {
+    background-color: transparent;
+    border-color: PRIMARY_COLOR;
+    color: PRIMARY_TEXT_COLOR;
+    font-weight: normal;
+}
+
+TitledButton:disabled {
+    border-color: PRIMARY_COLOR #50;
+    background-color: transparent;
+    color: PRIMARY_COLOR #50;
+    border-style: dashed;
+}
+
+TitledButton:checked:hover {
+    border-color: PRIMARY_COLOR;
+    background-color: transparent;
+}
+
+TitledButton QLabel {
+    font-size: 9px;
+    background: transparent;
+}
+
+TitledButton QLabel:disabled {
+    color: PRIMARY_COLOR #50;
+}
+
+/* ~~~~~ SCHEME BUTTON ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
+
+QToolButton#schemeButton {
+    margin: 0px;
+    padding: 0px;
+    border: 0px solid transparent;
+    background: transparent;
+    width: 20px;
+    height: 20px;
+}
+
+QToolButton#schemeButton:hover {
+    background: transparent;
+}
+
+QToolButton#schemeButton QMenu {
+    border: 1px solid PRIMARY_COLOR;
+    margin: 0px;
+}
+
+QToolButton#schemeButton::menu-indicator {
+    image: url(transparent.png);
+    margin: 0px;
+    width: 0px;
+    height: 0px;
+}
+
+/* ~~~~~ TOGGLE ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
+
+ToggleButton {
+    margin: 2px;
+}
+
+ToggleButton QLabel {
+    font-size: 11px;
+    text-transform: uppercase;
+}
+
+ToggleButton QSlider {
+    margin: 0px 2px 0px 0px;
+    padding: 2px 5px;
+    height: 11px;
+    max-width: 14px;
+    background: PRIMARY_COLOR #50;
+    border-radius: 7px;
+    border: 0px solid transparent;
+}
+
+ToggleButton QSlider[isChecked=true] {
+    background: SECONDARY_COLOR;
+}
+
+ToggleButton QSlider[isEnabled=false] {
+    opacity: 0.5;
+    background: PRIMARY_COLOR #50;
+}
+
+ToggleButton QSlider::groove:horizontal {
+    background: transparent;
+}
+
+ToggleButton QSlider::handle:horizontal {
+    height: 5px;
+    width: 11px;
+    border-radius: 5px;
+    background: SURFACE_COLOR;
+    margin: 0 -4px;
+}
+
+/* ~~~~~ BUTTON LABEL ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
+
+LabeledButton {
+    margin: 2px;
+}
+
+LabeledButton QLabel {
+    font-size: 11px;
+    text-transform: uppercase;
+}
+

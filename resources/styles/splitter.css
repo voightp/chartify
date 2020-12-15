@@ -1,0 +1,16 @@
+/* ~~~~~ SPLITTER ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
+
+QSplitter::handle {
+    height: 6px;
+    background-color: SURFACE_COLOR;
+    image: URL(dots.png) #BACKGROUND_COLOR;
+}
+
+/* workaround to repaint handle */
+QSplitterHandle:hover {
+
+}
+
+QSplitter::handle:horizontal:hover {
+    image: URL(dots.png) #SECONDARY_COLOR;
+}

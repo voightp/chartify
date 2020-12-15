@@ -230,12 +230,16 @@ class CssParser:
     @classmethod
     def parse_css_files(
         cls,
-        css_paths: List[Path],
+        css_paths_or_dir: Union[Path, List[Path]],
         palette: Palette,
         source_icons_dir: Path,
         dest_icons_dir: Path,
     ) -> Tuple[str, List[str]]:
         """ Read and parse given css paths. """
+        if isinstance(css_paths_or_dir, list):
+            css_paths = css_paths_or_dir
+        else:
+            css_paths = [path for path in css_paths_or_dir.iterdir() if path.suffix == ".css"]
         all_css = ""
         all_icon_paths = []
         for path in css_paths:

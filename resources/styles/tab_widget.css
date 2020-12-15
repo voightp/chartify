@@ -1,0 +1,104 @@
+/* ~~~~~ TAB WIDGET ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
+
+QTabWidget::tab-bar {
+
+}
+
+QTabWidget::pane {
+    margin: 0px;
+    padding: 0px;
+    border: 0px solid transparent;
+    background-color: SURFACE_COLOR;
+}
+
+QTabBar::tab {
+    color: SECONDARY_TEXT_COLOR;
+    border-top-left-radius: 0px;
+    border-top-right-radius: 0px;
+    padding: 10px 10px;
+    border-right: 2px solid SURFACE_COLOR;
+    border-top: 0px solid transparent;
+}
+
+QTabBar::tab:selected {
+    background: SURFACE_COLOR;
+    color: PRIMARY_TEXT_COLOR;
+    margin-left: 0px;
+    margin-right: 0px;
+    border-top: 0px solid SECONDARY_COLOR;
+    border-right: 2px solid transparent;
+}
+
+QTabBar::tab:selected:hover {
+    background: SURFACE_COLOR;
+}
+
+QTabBar::tab:hover {
+    background: SURFACE_COLOR #15;
+}
+
+
+QTabBar::tab:selected {
+
+}
+
+QTabBar::close-button {
+    image: URL(remove.png) #SECONDARY_TEXT_COLOR;
+}
+
+QTabBar::close-button:selected {
+    image: URL(remove.png) #PRIMARY_COLOR;
+}
+
+QTabBar::close-button:hover {
+    image: URL(remove.png) #ERROR_COLOR;
+}
+
+QTabBar::tab:first:selected {
+
+}
+
+QTabBar::tab:last:selected {
+
+}
+
+QTabBar::tab:only-one {
+
+}
+
+QTabBar QToolButton {
+    border: 1px solid SECONDARY_TEXT_COLOR;
+    background: BACKGROUND_COLOR;
+    margin: 2px;
+}
+
+QTabBar QToolButton:hover {
+    background-color: BACKGROUND_COLOR;
+    border: 1px solid SECONDARY_TEXT_COLOR;
+}
+
+QTabBar QToolButton:disabled {
+    border: transparent;
+    background: transparent;
+    color: transparent;
+}
+
+QTabBar::scroller {
+    width: 60px;
+}
+
+QTabBar QToolButton::left-arrow {
+    image: URL(chevron_left.png) #SECONDARY_TEXT_COLOR;
+}
+
+QTabBar QToolButton::left-arrow:disabled {
+    image: url(transparent.png);
+}
+
+QTabBar QToolButton::right-arrow {
+    image: URL(chevron_right.png) #SECONDARY_TEXT_COLOR;
+}
+
+QTabBar QToolButton::right-arrow:disabled {
+    image: url(transparent.png);
+}
