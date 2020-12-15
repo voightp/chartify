@@ -505,9 +505,19 @@ class MainWindow(QMainWindow):
         Settings.MIRRORED = not Settings.MIRRORED
         Settings.SPLIT = self.central_splitter.sizes()
 
+    def update_model(self):
+        """ Force update current model. """
+        with ViewMask(
+            self.current_view,
+            old_model=self.current_view.source_model,
+            filter_tuple=self.get_filter_tuple(),
+            show_source_units=self.show_source_units(),
+        ) as mask:
+            mask.update_table(self.tree_act.isChecked(), **self.toolbar.get_current_units())
+        self.update_table_actions()
+
     def on_tree_node_changed(self):
-        # TODO Connect actions
-        pass
+        self.update_model()
 
     def on_item_double_clicked(self):
         pass
@@ -668,7 +678,7 @@ class MainWindow(QMainWindow):
             show_source_units=self.show_source_units(),
         ) as mask:
             tree = self.tree_act.isChecked()
-            mask.set_table(table_name, tree, **Settings.all_units_dictionary())
+            mask.set_table(table_name, tree, **self.toolbar.get_current_units())
 
     @print_args
     def _on_tab_changed(self, previous_treeview: TreeView, treeview: TreeView):

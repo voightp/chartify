@@ -1,5 +1,4 @@
 import contextlib
-from collections import defaultdict
 from typing import Dict, List, Set, Tuple, Any, Optional
 
 from PySide2.QtCore import (
@@ -60,7 +59,7 @@ class TreeView(QTreeView):
     selectionCleared = Signal()
     selectionPopulated = Signal(list)
     itemDoubleClicked = Signal(VariableData)
-    treeNodeChanged = Signal(str)
+    treeNodeChanged = Signal()
 
     def __init__(self, id_: int, models: Dict[str, ViewModel], output_type: str):
         super().__init__()
@@ -521,12 +520,27 @@ def cache_properties(func):
 
 
 class ViewMask:
-    _cached = defaultdict(lambda: defaultdict(dict))
-    _default = {
-        "widths": {SIMPLE: {"fixed": 60,}, TREE: {"fixed": 60, "interactive": 200}},
-        "header": {
-            SIMPLE: ("key", "proxy_units", "units"),
-            TREE: ("type", "key", "proxy_units", "units"),
+    _cached = {
+        "STANDARD": {
+            "widths": {SIMPLE: {"fixed": 60,}, TREE: {"fixed": 60, "interactive": 200}},
+            "header": {
+                SIMPLE: ("key", "proxy_units", "units"),
+                TREE: ("type", "key", "proxy_units", "units"),
+            },
+        },
+        "TOTALS": {
+            "widths": {SIMPLE: {"fixed": 60,}, TREE: {"fixed": 60, "interactive": 200}},
+            "header": {
+                SIMPLE: ("key", "proxy_units", "units"),
+                TREE: ("type", "key", "proxy_units", "units"),
+            },
+        },
+        "DIFFERENCE": {
+            "widths": {SIMPLE: {"fixed": 60,}, TREE: {"fixed": 60, "interactive": 200}},
+            "header": {
+                SIMPLE: ("key", "proxy_units", "units"),
+                TREE: ("type", "key", "proxy_units", "units"),
+            },
         },
     }
 
@@ -559,17 +573,12 @@ class ViewMask:
         elif self.old_model:
             self.mask_with_previous_model(self.treeview, self.old_model)
         else:
-            print(self.treeview.source_model)
             self.set_initial_appearance(self.treeview)
 
     @classmethod
     def get_cached_property(cls, treeview: TreeView, key: str) -> Any:
         """ Retrieve given property, returns default if not yet cached."""
-        try:
-            val = cls._cached[treeview.output_type][key][treeview.view_type]
-        except KeyError:
-            val = cls._default[key][treeview.view_type]
-        return val
+        return cls._cached[treeview.output_type][key][treeview.view_type]
 
     @classmethod
     def set_cached_property(cls, treeview: TreeView, key: str, value: Any) -> None:
@@ -626,7 +635,7 @@ class ViewMask:
     def set_table(self, table_name: str, tree: bool, **kwargs):
         new_model = self.treeview.models[table_name]
         if tree and not new_model.is_simple:
-            tree_node = self._default["header"][TREE][0]
+            tree_node = self._cached[self.treeview.output_type]["header"][TREE][0]
         else:
             tree_node = None
         self.treeview.set_model(table_name, tree_node=tree_node, **kwargs)
