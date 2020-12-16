@@ -58,8 +58,8 @@ class TreeView(QTreeView):
 
     selectionCleared = Signal()
     selectionPopulated = Signal(list)
-    itemDoubleClicked = Signal(VariableData)
-    treeNodeChanged = Signal()
+    itemDoubleClicked = Signal(QTreeView, VariableData)
+    treeNodeChanged = Signal(QTreeView)
 
     def __init__(self, id_: int, models: Dict[str, ViewModel], output_type: str):
         super().__init__()
@@ -412,7 +412,7 @@ class TreeView(QTreeView):
             row_variable_data = self.source_model.get_row_variable_data(
                 row_number, source_index.parent()
             )
-            self.itemDoubleClicked.emit(row_variable_data)
+            self.itemDoubleClicked.emit(self, row_variable_data)
 
     def select_all_children(self, source_index: QModelIndex) -> None:
         """ Select all children of the parent row. """

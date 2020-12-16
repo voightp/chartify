@@ -505,22 +505,40 @@ class MainWindow(QMainWindow):
         Settings.MIRRORED = not Settings.MIRRORED
         Settings.SPLIT = self.central_splitter.sizes()
 
-    def update_model(self):
+    def update_model(self, treeview: TreeView) -> None:
         """ Force update current model. """
         with ViewMask(
-            self.current_view,
-            old_model=self.current_view.source_model,
+            treeview,
+            old_model=treeview.source_model,
             filter_tuple=self.get_filter_tuple(),
             show_source_units=self.show_source_units(),
         ) as mask:
             mask.update_table(self.tree_act.isChecked(), **self.toolbar.get_current_units())
         self.update_table_actions()
 
-    def on_tree_node_changed(self):
-        self.update_model()
+    def on_tree_node_changed(self, treeview: TreeView) -> None:
+        self.update_model(treeview)
 
-    def on_item_double_clicked(self):
-        pass
+    def on_item_double_clicked(self, treeview: TreeView, variable_data: VariableData) -> None:
+        old_type = variable_data.type
+        old_key = variable_data.key
+        res = self.confirm_rename_variable(old_key, old_type)
+        if res:
+            new_key, new_type = res
+            if (new_type != old_type and new_type is not None) or new_key != old_key:
+                new_variable = self.apply_async(
+                    Settings.CURRENT_FILE_ID,
+                    self._update_variable_name,
+                    new_type,
+                    new_key,
+                    variable_data,
+                )
+                new_variable_data = VariableData(
+                    key=new_variable.key,
+                    type=new_variable.type if isinstance(new_variable, Variable) else None,
+                    units=new_variable.units,
+                )
+                self.update_view_model(scroll_to=new_variable_data)
 
     def on_remove_variables_triggered(self):
         pass
