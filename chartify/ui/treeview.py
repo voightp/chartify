@@ -109,12 +109,7 @@ class TreeView(QTreeView):
 
         self.expanded.connect(self.on_item_expanded)
         self.collapsed.connect(self.on_item_collapsed)
-        self.entered.connect(self.update_status_tip)
-
-    def update_status_tip(self, proxy_index: QModelIndex) -> None:
-        """ Set status tip for currently hovered item. """
-        source_index = self.proxy_model.mapToSource(proxy_index)
-        self.source_model.set_current_status_tip(source_index)
+        self.entered.connect(self.on_item_entered)
 
     @property
     def source_model(self) -> ViewModel:
@@ -382,6 +377,11 @@ class TreeView(QTreeView):
         with contextlib.suppress(KeyError):
             name = self.proxy_model.data(proxy_index)
             self.source_model.expanded.remove(name)
+
+    def on_item_entered(self, proxy_index: QModelIndex) -> None:
+        """ Set status tip for currently hovered item. """
+        source_index = self.proxy_model.mapToSource(proxy_index)
+        self.source_model.set_current_status_tip(source_index)
 
     def on_sort_order_changed(self, log_ix: int, order: Qt.SortOrder) -> None:
         """ Store current sorting column_order. """
