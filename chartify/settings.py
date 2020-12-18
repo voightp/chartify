@@ -83,7 +83,7 @@ class Settings:
         return {a: getattr(cls, a) for a in attrs if not callable(getattr(cls, a))}
 
     @classmethod
-    def all_units_dictionary(cls):
+    def get_units(cls):
         return {
             "energy_units": cls.ENERGY_UNITS,
             "power_units": cls.POWER_UNITS,

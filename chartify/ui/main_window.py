@@ -2,9 +2,9 @@ import ctypes
 import shutil
 from functools import partial
 from pathlib import Path
-from typing import Optional, Tuple, List, Dict, Union
+from typing import Optional, Tuple, List, Dict, Union, Set
 
-from PySide2.QtCore import QSize, Qt, QCoreApplication, Signal, QPoint, QTimer
+from PySide2.QtCore import QSize, Qt, QCoreApplication, Signal, QPoint, QTimer, QModelIndex
 from PySide2.QtGui import QIcon, QKeySequence, QColor
 from PySide2.QtWebEngineWidgets import QWebEngineView
 from PySide2.QtWidgets import (
@@ -513,32 +513,38 @@ class MainWindow(QMainWindow):
             filter_tuple=self.get_filter_tuple(),
             show_source_units=self.show_source_units(),
         ) as mask:
-            mask.update_table(self.tree_act.isChecked(), **self.toolbar.get_current_units())
+            mask.update_table(self.tree_act.isChecked(), **Settings.get_units())
         self.update_table_actions()
 
     def on_tree_node_changed(self, treeview: TreeView) -> None:
         self.update_model(treeview)
 
-    def on_item_double_clicked(self, treeview: TreeView, variable_data: VariableData) -> None:
-        old_type = variable_data.type
+    def on_item_double_clicked(
+        self,
+        treeview: TreeView,
+        row: int,
+        parent_index: Optional[QModelIndex],
+        variable_data: VariableData,
+    ) -> None:
         old_key = variable_data.key
-        res = self.confirm_rename_variable(old_key, old_type)
-        if res:
-            new_key, new_type = res
-            if (new_type != old_type and new_type is not None) or new_key != old_key:
-                new_variable = self.apply_async(
-                    Settings.CURRENT_FILE_ID,
-                    self._update_variable_name,
-                    new_type,
-                    new_key,
-                    variable_data,
-                )
-                new_variable_data = VariableData(
-                    key=new_variable.key,
-                    type=new_variable.type if isinstance(new_variable, Variable) else None,
-                    units=new_variable.units,
-                )
-                self.update_view_model(scroll_to=new_variable_data)
+        key_blocker = set(treeview.source_model.get_column_data(KEY_LEVEL))
+        key_blocker.remove(old_key)
+        if treeview.source_model.is_simple:
+            res = self.confirm_rename_simple_variable(old_key, key_blocker)
+        else:
+            old_type = variable_data.type
+            type_blocker = set(treeview.source_model.get_column_data(TYPE_LEVEL))
+            type_blocker.remove(old_type)
+            res = self.confirm_rename_variable(old_key, old_type, key_blocker, type_blocker)
+
+        if res is not None:
+            key = res if treeview.source_model.is_simple else res[0]
+            type_ = None if treeview.source_model.is_simple else res[1]
+            units = variable_data.units
+            new_variable_data = VariableData(key=key, type=type_, units=units)
+            treeview.source_model.set_row_variable_data(
+                new_variable_data, variable_data, row, parent_index
+            )
 
     def on_remove_variables_triggered(self):
         pass
@@ -696,7 +702,7 @@ class MainWindow(QMainWindow):
             show_source_units=self.show_source_units(),
         ) as mask:
             tree = self.tree_act.isChecked()
-            mask.set_table(table_name, tree, **self.toolbar.get_current_units())
+            mask.set_table(table_name, tree, **Settings.get_units())
 
     @print_args
     def _on_tab_changed(self, previous_treeview: TreeView, treeview: TreeView):
@@ -714,7 +720,7 @@ class MainWindow(QMainWindow):
             show_source_units=self.show_source_units(),
         ) as mask:
             tree = self.tree_act.isChecked()
-            mask.set_table(table_name, tree, **Settings.all_units_dictionary())
+            mask.set_table(table_name, tree, **Settings.get_units())
 
     @print_args
     def update_view_actions(self):
@@ -778,7 +784,7 @@ class MainWindow(QMainWindow):
             show_source_units=self.show_source_units(),
         ) as mask:
             tree = self.tree_act.isChecked()
-            mask.set_table(table_name, tree, **Settings.all_units_dictionary())
+            mask.set_table(table_name, tree, **Settings.get_units())
         self.update_table_actions()
 
     def get_all_tab_names(self):
@@ -791,7 +797,7 @@ class MainWindow(QMainWindow):
     @print_args
     def on_tab_bar_double_clicked(self, tab_widget: TabWidget, tab_index: int):
         name = tab_widget.tabText(tab_index)
-        names = self.get_all_tab_names()
+        names = set(self.get_all_tab_names())
         names.remove(name)
         new_name = self.confirm_rename_file(name, names)
         if new_name is not None:
@@ -829,7 +835,7 @@ class MainWindow(QMainWindow):
     def update_units(self) -> None:
         """ Update units on a current view if current tab widget contains one. """
         if self.current_view:
-            self.current_view.update_units(**self.toolbar.get_current_units())
+            self.current_view.update_units(**Settings.get_units())
 
     def on_rate_energy_btn_checked(self, checked: bool):
         Settings.RATE_TO_ENERGY = checked
@@ -898,7 +904,7 @@ class MainWindow(QMainWindow):
                 filter_tuple=self.get_filter_tuple(),
                 show_source_units=self.show_source_units(),
             ) as mask:
-                mask.update_table(self.tree_act.isChecked(), **Settings.all_units_dictionary())
+                mask.update_table(self.tree_act.isChecked(), **Settings.get_units())
 
     def on_text_edited(self):
         """ Delay firing a text edited event. """
@@ -917,7 +923,7 @@ class MainWindow(QMainWindow):
         self.units_line_edit.textEdited.connect(self.on_text_edited)
         self.timer.timeout.connect(self.on_filter_timeout)
 
-    def confirm_rename_file(self, name: str, other_names: List[str]) -> Optional[str]:
+    def confirm_rename_file(self, name: str, other_names: Set[str]) -> Optional[str]:
         """ Rename file on a tab identified by the given index. """
         dialog = SingleInputDialog(
             self,
@@ -940,27 +946,33 @@ class MainWindow(QMainWindow):
         dialog = ConfirmationDialog(self, text, det_text=inf_text)
         return dialog.exec_() == 1
 
+    def confirm_rename_simple_variable(self, key: str, blocker: Set[str]) -> Optional[str]:
+        dialog = SingleInputDialog(
+            self,
+            title="Rename variable:",
+            input1_name="Key",
+            input1_text=key,
+            input1_blocker=blocker,
+        )
+        if dialog.exec_() == 1:
+            return dialog.input1_text
+
     def confirm_rename_variable(
-        self, key: str, type_: Optional[str]
-    ) -> Optional[Tuple[str, Optional[str]]]:
+        self, key: str, type_: str, key_blocker: Set[str], type_blocker: Set[str]
+    ) -> Optional[Tuple[str, str]]:
         """ Rename given variable. """
-        if type_ is None:
-            dialog = SingleInputDialog(
-                self, title="Rename variable:", input1_name="Key", input1_text=key,
-            )
-            if dialog.exec_() == 1:
-                return dialog.input1_text, None
-        else:
-            dialog = DoubleInputDialog(
-                self,
-                title="Rename variable:",
-                input1_name="Key",
-                input1_text=key,
-                input2_name="Type",
-                input2_text=type_,
-            )
-            if dialog.exec_() == 1:
-                return dialog.input1_text, dialog.input2_text
+        dialog = DoubleInputDialog(
+            self,
+            title="Rename variable:",
+            input1_name="Key",
+            input1_text=key,
+            input1_blocker=key_blocker,
+            input2_name="Type",
+            input2_text=type_,
+            input2_blocker=type_blocker,
+        )
+        if dialog.exec_() == 1:
+            return dialog.input1_text, dialog.input2_text
 
     def confirm_aggregate_variables(
         self, variables: List[VariableType], func_name: str

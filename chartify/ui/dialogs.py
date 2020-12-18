@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Set
 
 from PySide2.QtCore import Qt
 from PySide2.QtWidgets import (
@@ -82,7 +82,7 @@ class SingleInputDialog(BaseTwoButtonDialog):
         title: str,
         input1_name: str,
         input1_text: str,
-        input1_blocker: Optional[List[str]] = None,
+        input1_blocker: Optional[Set[str]] = None,
     ):
         super().__init__(parent, title)
         form = QWidget(self)
@@ -117,8 +117,8 @@ class DoubleInputDialog(SingleInputDialog):
         input1_text: str,
         input2_name: str,
         input2_text: str,
-        input1_blocker: Optional[List[str]] = None,
-        input2_blocker: Optional[List[str]] = None,
+        input1_blocker: Optional[Set[str]] = None,
+        input2_blocker: Optional[Set[str]] = None,
     ):
         super().__init__(parent, title, input1_name, input1_text, input1_blocker)
         self.input2_blocker = input2_blocker if input2_blocker else []

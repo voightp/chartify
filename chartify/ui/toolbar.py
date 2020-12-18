@@ -1,4 +1,4 @@
-from typing import List, Dict, Union
+from typing import List
 
 from PySide2.QtCore import Qt, Signal
 from PySide2.QtWidgets import (
@@ -309,12 +309,3 @@ class Toolbar(QFrame):
     def on_outputs_toggle_toggled(self, index: int):
         """ Request tab widget display corresponding to toggle button. """
         self.tabWidgetChangeRequested.emit(index)
-
-    def get_current_units(self) -> Dict[str, Union[str, bool]]:
-        """ Gather all units related settings. """
-        return {
-            "energy_units": self.energy_btn.data(),
-            "power_units": self.power_btn.data(),
-            "units_system": self.units_system_button.data(),
-            "rate_to_energy": self.rate_energy_btn.isChecked(),
-        }
