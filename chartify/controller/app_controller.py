@@ -94,7 +94,7 @@ class AppController:
         self.v.fileProcessingRequested.connect(self.on_file_processing_requested)
         self.v.syncFileProcessingRequested.connect(self.on_sync_file_processing_requested)
         self.v.fileRenameRequested.connect(self.on_file_rename_requested)
-        self.v.variableRenameRequested.connect(self.on_variable_rename_requested)
+        # self.v.variableRenameRequested.connect(self.on_variable_rename_requested)
         self.v.variableRemoveRequested.connect(self.on_variable_remove_requested)
         self.v.aggregationRequested.connect(self.on_aggregation_requested)
         self.v.fileRemoveRequested.connect(self.on_file_remove_requested)
@@ -132,7 +132,7 @@ class AppController:
 
     def update_view_model(self, view: TreeView, scroll_to: Optional[VariableData] = None):
         """ Force update of a given model. """
-        view.update_model(**Settings.all_units_dictionary())
+        view.update_model(**Settings.get_units())
         self.v.update_view_visual(view, scroll_to=scroll_to)
 
     def on_file_processing_requested(self, paths: List[Path]) -> None:
@@ -192,15 +192,6 @@ class AppController:
         return val
 
     @staticmethod
-    def _update_variable_name(
-        file: ResultsFileType, variable_name: str, key_name: str, variable: VariableType
-    ) -> VariableType:
-        """ Rename given 'Variable'. """
-        # TODO handle None returned
-        _, var = file.rename_variable(variable, variable_name, key_name)
-        return var
-
-    @staticmethod
     def _delete_variables(file: ResultsFileType, variables: List[VariableType]) -> None:
         """ Hide or remove selected variables. """
         # TODO return True or False
@@ -220,28 +211,6 @@ class AppController:
         if res:
             var_id, var = res
             return var
-
-    def on_variable_rename_requested(self, variable_data: VariableData) -> None:
-        """ Overwrite variable name. """
-        old_type = variable_data.type
-        old_key = variable_data.key
-        res = self.v.confirm_rename_variable(old_key, old_type)
-        if res:
-            new_key, new_type = res
-            if (new_type != old_type and new_type is not None) or new_key != old_key:
-                new_variable = self.apply_async(
-                    Settings.CURRENT_FILE_ID,
-                    self._update_variable_name,
-                    new_type,
-                    new_key,
-                    variable_data,
-                )
-                new_variable_data = VariableData(
-                    key=new_variable.key,
-                    type=new_variable.type if isinstance(new_variable, Variable) else None,
-                    units=new_variable.units,
-                )
-                self.update_view_model(scroll_to=new_variable_data)
 
     def on_variable_remove_requested(
         self, view: TreeView, variable_data: List[VariableData]

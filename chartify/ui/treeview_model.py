@@ -17,11 +17,32 @@ from esofile_reader.df.level_names import (
     ID_LEVEL,
     TABLE_LEVEL,
 )
-from esofile_reader.typehints import ResultsFileType
+from esofile_reader.typehints import ResultsFileType, Variable, SimpleVariable
 
 from chartify.utils.utils import VariableData, FilterTuple
 
 PROXY_UNITS_LEVEL = "proxy_units"
+
+
+def convert_variable_data_to_variable(variable_data: VariableData, table_name: str):
+    return (
+        SimpleVariable(table=table_name, key=variable_data.key, units=variable_data.units,)
+        if variable_data.type is None
+        else Variable(
+            table=table_name,
+            key=variable_data.key,
+            type=variable_data.type,
+            units=variable_data.units,
+        )
+    )
+
+
+class ViewItem(QStandardItem):
+    def __init__(self):
+        super(ViewItem, self).__init__()
+
+    def enterEvent(self):
+        pass
 
 
 class ViewModel(QStandardItemModel):
@@ -40,10 +61,6 @@ class ViewModel(QStandardItemModel):
     ----------
     name : str
         A name of the original table.
-    is_simple : bool
-        Check if model includes 'type' column.
-    allow_rate_to_energy : bool
-        Define if model can convert rate to energy.
     tree_node : str
         Current tree column node, may be 'None' for
         plain table structure.
@@ -63,6 +80,8 @@ class ViewModel(QStandardItemModel):
         Currently expanded items.
     selected : list if VariableData
         Currently selected items.
+    _file_ref : ResultFileType
+        A reference to source file.
 
     """
 
@@ -101,6 +120,10 @@ class ViewModel(QStandardItemModel):
     def header_df(self) -> pd.DataFrame:
         return self._file_ref.get_header_df(self.name)
 
+    def get_column_data(self, column: str) -> List[str]:
+        """ Get all column items. """
+        return self.header_df.loc[:, column]
+
     @staticmethod
     def create_proxy_units_column(
         source_units: pd.Series,
@@ -138,6 +161,18 @@ class ViewModel(QStandardItemModel):
                 if item.hasChildren():
                     count += item.rowCount()
         return count
+
+    def delete_row(self, row: int, parent_index: Optional[QModelIndex]) -> None:
+        """ Delete given row from model. """
+        pass
+
+    def add_row(self, variable_data: VariableData) -> None:
+        """ Add row to the model. """
+        pass
+
+    def update_row(self, row: int, parent_index: Optional[QModelIndex]) -> None:
+        """ Set new variable data at given row. """
+        pass
 
     def is_tree_node_row(self, row_number: int) -> bool:
         """ Check if the row is a parent row. """
@@ -202,6 +237,52 @@ class ViewModel(QStandardItemModel):
         if self.tree_node and self.tree_node != PROXY_UNITS_LEVEL:
             return {v.__getattribute__(self.tree_node) for v in variables}
 
+    def variable_tree_node_text_changed(
+        self, variable_data: VariableData, old_variable_data: [VariableData]
+    ) -> bool:
+        """ Check if text of the 'tree' columns has changed. """
+        name = variable_data.__getattribute__(self.tree_node)
+        old_name = old_variable_data.__getattribute__(self.tree_node)
+        return name == old_name
+
+    def set_row_variable_data(
+        self,
+        variable_data: VariableData,
+        old_variable_data: VariableData,
+        row: int,
+        parent_index: Optional[QModelIndex],
+    ) -> None:
+        """ Update given row data. """
+        old_variable = convert_variable_data_to_variable(old_variable_data, self.name)
+        self._file_ref.rename_variable(old_variable, variable_data.key, variable_data.type)
+
+        key_column = self.get_logical_column_number(KEY_LEVEL)
+        key_index = self.index(row, key_column, parent_index)
+        key_item = self.itemFromIndex(key_index)
+        key_item.setText(variable_data.key)
+        if not self.is_simple:
+            type_column = self.get_logical_column_number(TYPE_LEVEL)
+            type_index = self.index(row, type_column, parent_index)
+            type_item = self.itemFromIndex(type_index)
+            type_item.setText(variable_data.type)
+
+        items = [self.itemFromIndex(self.index(row, i)) for i in range(self.columnCount())]
+
+        if self.tree_node is not None:
+            items[0].setText("")
+
+        if self.variable_tree_node_text_changed(variable_data, old_variable_data):
+            pass
+        else:
+            pass
+
+    def update_row_variable_data(
+        self, variable_data: VariableData, new_variable_data: VariableData,
+    ) -> None:
+        """ Update row identified by VariableData. """
+        selection = self.get_matching_selection([variable_data])
+        print(selection)
+
     def get_matching_selection(self, variables: List[VariableData]) -> QItemSelection:
         """ Find selection matching given list of variables. """
 
@@ -247,31 +328,19 @@ class ViewModel(QStandardItemModel):
                 similar = self.tree_node == other_model.tree_node and abs(diff) <= rows_diff
         return similar
 
-    @staticmethod
-    def set_item_row_status_tip(status_tip: str, item_row: List[QStandardItem]) -> None:
-        """ Set status tip on each item in row. """
-        for item in item_row:
-            item.setStatusTip(status_tip)
-
     def append_rows(self, rows: pd.DataFrame) -> None:
         """ Append rows to the root item. """
-        column_mapping = self.get_logical_column_mapping()
         for row in rows.values:
             item_row = [QStandardItem(item) for item in row]
-            status_tip = self.create_status_tip(row, column_mapping)
-            self.set_item_row_status_tip(status_tip, item_row)
             self.invisibleRootItem().appendRow(item_row)
 
     def append_child_rows(self, parent: QStandardItem, rows: pd.DataFrame) -> None:
         """ Append rows to given parent item. """
-        column_mapping = self.get_logical_column_mapping()
         for row in rows.values:
             # first standard item is empty to avoid having parent string in the child row
             item_row = [QStandardItem("")]
             for item in row[1:]:
                 item_row.append(QStandardItem(item))
-            status_tip = self.create_status_tip(row, column_mapping)
-            self.set_item_row_status_tip(status_tip, item_row)
             parent.appendRow(item_row)
 
     def append_tree_rows(self, header_df: pd.DataFrame) -> None:
@@ -286,43 +355,18 @@ class ViewModel(QStandardItemModel):
                 self.invisibleRootItem().appendRow(parent_item)
                 self.append_child_rows(parent_item, df)
 
-    def create_status_tip(
+    def create_status_tip_from_row(
         self, row_display_data: List[str], column_mapping: Dict[str, int]
     ) -> str:
-        """ Create status tip string. """
+        """ Create status tip string from row text. """
         key = row_display_data[column_mapping[KEY_LEVEL]]
         type_ = row_display_data[column_mapping[TYPE_LEVEL]] if not self.is_simple else None
         proxy_units = row_display_data[column_mapping[PROXY_UNITS_LEVEL]]
-        if type_ is not None:
-            status_tip = f"{key} | {type_} | {proxy_units}"
-        else:
+        if type_ is None:
             status_tip = f"{key} | {proxy_units}"
+        else:
+            status_tip = f"{key} | {type_} | {proxy_units}"
         return status_tip
-
-    def set_row_status_tip(
-        self, status_tip: str, row_number: int, parent_index: Optional[QModelIndex] = None
-    ) -> None:
-        """ Set status tip on each item in row. """
-        parent_index = parent_index if parent_index else QModelIndex()
-        for column_number in range(self.columnCount()):
-            index = self.index(row_number, column_number, parent_index)
-            item = self.itemFromIndex(index)
-            item.setStatusTip(status_tip)
-
-    def set_row_text_as_status_tip(self):
-        """ Apply status tip for each row in the model. """
-        column_mapping = self.get_logical_column_mapping()
-        for i in range(self.rowCount()):
-            if self.is_tree_node_row(row_number=i):
-                index = self.index(i, 0)
-                for j in range(self.rowCount(index)):
-                    row_display_data = self.get_row_display_data(j, index)
-                    status_tip = self.create_status_tip(row_display_data, column_mapping)
-                    self.set_row_status_tip(status_tip, j, index)
-            else:
-                row_display_data = self.get_row_display_data(i)
-                status_tip = self.create_status_tip(row_display_data, column_mapping)
-                self.set_row_status_tip(status_tip, i)
 
     def create_tree_compatible_header_df(
         self, rate_to_energy: bool, units_system: str, energy_units: str, power_units: str,
@@ -486,6 +530,16 @@ class ViewModel(QStandardItemModel):
                 self.update_proxy_units_parent_column(conversion_look_up)
             else:
                 self.update_proxy_units_column(conversion_look_up)
+
+    def set_current_status_tip(self, index: QModelIndex) -> None:
+        if not self.hasChildren(index):
+            row = index.row()
+            parent = index.parent()
+            display_data = self.get_row_display_data(row, parent)
+            column_mapping = self.get_logical_column_mapping()
+            status_tip = self.create_status_tip_from_row(display_data, column_mapping)
+            item = self.itemFromIndex(index)
+            item.setStatusTip(status_tip)
 
 
 class FilterModel(QSortFilterProxyModel):

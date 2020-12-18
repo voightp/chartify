@@ -1,5 +1,5 @@
 import contextlib
-from typing import Dict, List, Set, Tuple, Any, Optional
+from typing import Dict, List, Set, Tuple, Any, Optional, Union
 
 from PySide2.QtCore import (
     QMimeData,
@@ -15,7 +15,12 @@ from PySide2.QtWidgets import QTreeView, QAbstractItemView, QHeaderView
 from esofile_reader.df.level_names import *
 from esofile_reader.typehints import Variable, SimpleVariable
 
-from chartify.ui.treeview_model import ViewModel, FilterModel, PROXY_UNITS_LEVEL
+from chartify.ui.treeview_model import (
+    ViewModel,
+    FilterModel,
+    PROXY_UNITS_LEVEL,
+    convert_variable_data_to_variable,
+)
 from chartify.ui.widget_functions import SignalBlocker
 from chartify.utils.utils import (
     FilterTuple,
@@ -104,6 +109,12 @@ class TreeView(QTreeView):
 
         self.expanded.connect(self.on_item_expanded)
         self.collapsed.connect(self.on_item_collapsed)
+        self.entered.connect(self.update_status_tip)
+
+    def update_status_tip(self, proxy_index: QModelIndex) -> None:
+        """ Set status tip for currently hovered item. """
+        source_index = self.proxy_model.mapToSource(proxy_index)
+        self.source_model.set_current_status_tip(source_index)
 
     @property
     def source_model(self) -> ViewModel:
@@ -133,23 +144,10 @@ class TreeView(QTreeView):
         return self.get_selected_variable_data()
 
     @property
-    def selected_variables(self) -> List[Variable]:
+    def selected_variables(self) -> List[Union[Variable, SimpleVariable]]:
         variables = []
         for variable_data in self.selected_variable_data:
-            variable = (
-                SimpleVariable(
-                    table=self.current_table_name,
-                    key=variable_data.key,
-                    units=variable_data.units,
-                )
-                if self.source_model.is_simple
-                else Variable(
-                    table=self.current_table_name,
-                    key=variable_data.key,
-                    type=variable_data.type,
-                    units=variable_data.units,
-                )
-            )
+            variable = convert_variable_data_to_variable(variable_data, self.current_table_name)
             variables.append(variable)
         return variables
 
@@ -396,7 +394,7 @@ class TreeView(QTreeView):
     def on_section_moved(self, _logical_ix, old_visual_ix: int, new_visual_ix: int) -> None:
         """ Handle updating the model when column order changes. """
         if self.tree_node_changed(old_visual_ix, new_visual_ix):
-            self.treeNodeChanged.emit()
+            self.treeNodeChanged.emit(self)
             # automatically sort first column based on last sort update
             self.header().setSortIndicator(0, self.proxy_model.sortOrder())
 
@@ -409,10 +407,9 @@ class TreeView(QTreeView):
         source_index = self.proxy_model.mapToSource(proxy_index)
         if not self.source_model.hasChildren(source_index):
             row_number = source_index.row()
-            row_variable_data = self.source_model.get_row_variable_data(
-                row_number, source_index.parent()
-            )
-            self.itemDoubleClicked.emit(self, row_variable_data)
+            parent = source_index.parent()
+            variable_data = self.source_model.get_row_variable_data(row_number, parent)
+            self.itemDoubleClicked.emit(self.source_model, row_number, parent, variable_data)
 
     def select_all_children(self, source_index: QModelIndex) -> None:
         """ Select all children of the parent row. """
