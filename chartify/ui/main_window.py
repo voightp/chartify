@@ -542,9 +542,9 @@ class MainWindow(QMainWindow):
             type_ = None if treeview.source_model.is_simple else res[1]
             units = variable_data.units
             new_variable_data = VariableData(key=key, type=type_, units=units)
-            treeview.source_model.set_row_variable_data(
-                new_variable_data, variable_data, row, parent_index
-            )
+            treeview.source_model.update_variable(row, parent_index, new_variable_data)
+            treeview.select_variables([new_variable_data])
+            treeview.scroll_to(new_variable_data)
 
     def on_remove_variables_triggered(self):
         pass

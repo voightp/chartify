@@ -63,7 +63,7 @@ class TreeView(QTreeView):
 
     selectionCleared = Signal()
     selectionPopulated = Signal(list)
-    itemDoubleClicked = Signal(QTreeView, VariableData)
+    itemDoubleClicked = Signal(QTreeView, int, QModelIndex, VariableData)
     treeNodeChanged = Signal(QTreeView)
 
     def __init__(self, id_: int, models: Dict[str, ViewModel], output_type: str):
@@ -224,9 +224,9 @@ class TreeView(QTreeView):
         self.proxy_model.sort(indicator_column, order)
         self.header().setSortIndicator(indicator_column, order)
 
-    def scroll_to(self, vd: VariableData) -> None:
+    def scroll_to(self, variable_data: VariableData) -> None:
         """ Scroll to the given variable. """
-        proxy_selection = self.proxy_model.find_matching_proxy_selection([vd])
+        proxy_selection = self.proxy_model.find_matching_proxy_selection([variable_data])
         if proxy_selection:
             self.scrollTo(proxy_selection.indexes()[0])
 
@@ -409,7 +409,7 @@ class TreeView(QTreeView):
             row_number = source_index.row()
             parent = source_index.parent()
             variable_data = self.source_model.get_row_variable_data(row_number, parent)
-            self.itemDoubleClicked.emit(self.source_model, row_number, parent, variable_data)
+            self.itemDoubleClicked.emit(self, row_number, parent, variable_data)
 
     def select_all_children(self, source_index: QModelIndex) -> None:
         """ Select all children of the parent row. """

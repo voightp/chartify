@@ -162,22 +162,6 @@ class ViewModel(QStandardItemModel):
                     count += item.rowCount()
         return count
 
-    def delete_row(self, row: int, parent_index: Optional[QModelIndex]) -> None:
-        """ Delete given row from model. """
-        pass
-
-    def add_row(self, variable_data: VariableData) -> None:
-        """ Add row to the model. """
-        pass
-
-    def update_row(self, row: int, parent_index: Optional[QModelIndex]) -> None:
-        """ Set new variable data at given row. """
-        pass
-
-    def is_tree_node_row(self, row_number: int) -> bool:
-        """ Check if the row is a parent row. """
-        return self.item(row_number, 0).hasChildren()
-
     def get_display_data_at_index(self, index: QModelIndex):
         """ Get item displayed text. """
         return self.itemFromIndex(index).data(Qt.DisplayRole)
@@ -237,51 +221,9 @@ class ViewModel(QStandardItemModel):
         if self.tree_node and self.tree_node != PROXY_UNITS_LEVEL:
             return {v.__getattribute__(self.tree_node) for v in variables}
 
-    def variable_tree_node_text_changed(
-        self, variable_data: VariableData, old_variable_data: [VariableData]
-    ) -> bool:
-        """ Check if text of the 'tree' columns has changed. """
-        name = variable_data.__getattribute__(self.tree_node)
-        old_name = old_variable_data.__getattribute__(self.tree_node)
-        return name == old_name
-
-    def set_row_variable_data(
-        self,
-        variable_data: VariableData,
-        old_variable_data: VariableData,
-        row: int,
-        parent_index: Optional[QModelIndex],
-    ) -> None:
-        """ Update given row data. """
-        old_variable = convert_variable_data_to_variable(old_variable_data, self.name)
-        self._file_ref.rename_variable(old_variable, variable_data.key, variable_data.type)
-
-        key_column = self.get_logical_column_number(KEY_LEVEL)
-        key_index = self.index(row, key_column, parent_index)
-        key_item = self.itemFromIndex(key_index)
-        key_item.setText(variable_data.key)
-        if not self.is_simple:
-            type_column = self.get_logical_column_number(TYPE_LEVEL)
-            type_index = self.index(row, type_column, parent_index)
-            type_item = self.itemFromIndex(type_index)
-            type_item.setText(variable_data.type)
-
-        items = [self.itemFromIndex(self.index(row, i)) for i in range(self.columnCount())]
-
-        if self.tree_node is not None:
-            items[0].setText("")
-
-        if self.variable_tree_node_text_changed(variable_data, old_variable_data):
-            pass
-        else:
-            pass
-
-    def update_row_variable_data(
-        self, variable_data: VariableData, new_variable_data: VariableData,
-    ) -> None:
-        """ Update row identified by VariableData. """
-        selection = self.get_matching_selection([variable_data])
-        print(selection)
+    def is_tree_node_row(self, row_number: int) -> bool:
+        """ Check if the row is a parent row. """
+        return self.item(row_number, 0).hasChildren()
 
     def get_matching_selection(self, variables: List[VariableData]) -> QItemSelection:
         """ Find selection matching given list of variables. """
@@ -355,10 +297,9 @@ class ViewModel(QStandardItemModel):
                 self.invisibleRootItem().appendRow(parent_item)
                 self.append_child_rows(parent_item, df)
 
-    def create_status_tip_from_row(
-        self, row_display_data: List[str], column_mapping: Dict[str, int]
-    ) -> str:
+    def create_status_tip_from_row(self, row_display_data: List[str]) -> str:
         """ Create status tip string from row text. """
+        column_mapping = self.get_logical_column_mapping()
         key = row_display_data[column_mapping[KEY_LEVEL]]
         type_ = row_display_data[column_mapping[TYPE_LEVEL]] if not self.is_simple else None
         proxy_units = row_display_data[column_mapping[PROXY_UNITS_LEVEL]]
@@ -536,10 +477,90 @@ class ViewModel(QStandardItemModel):
             row = index.row()
             parent = index.parent()
             display_data = self.get_row_display_data(row, parent)
-            column_mapping = self.get_logical_column_mapping()
-            status_tip = self.create_status_tip_from_row(display_data, column_mapping)
+            status_tip = self.create_status_tip_from_row(display_data)
             item = self.itemFromIndex(index)
             item.setStatusTip(status_tip)
+
+    def variable_tree_node_text_changed(
+        self, new_variable_data: VariableData, old_variable_data: [VariableData]
+    ) -> bool:
+        """ Check if text of the 'tree' columns has changed. """
+        name = new_variable_data.__getattribute__(self.tree_node)
+        old_name = old_variable_data.__getattribute__(self.tree_node)
+        return name != old_name
+
+    def _delete_row(self, row: int, parent_index: Optional[QModelIndex]) -> None:
+        """ Delete given row from model. """
+        self.removeRow(row, parent_index)
+
+    def get_row_text(self, variable_data: VariableData) -> List[str]:
+        """ Get variable data attributes ordered following column order. """
+        proxy_units = self.create_proxy_units_column(
+            pd.Series([variable_data.units]),
+            rate_to_energy=self.rate_to_energy,
+            units_system=self.units_system,
+            energy_units=self.energy_units,
+            power_units=self.power_units,
+        ).iloc[0]
+        unordered_items = {**variable_data._asdict(), PROXY_UNITS_LEVEL: proxy_units}
+        if self.is_simple:
+            unordered_items.pop(TYPE_LEVEL)
+        row = [""] * len(unordered_items)
+        for column, index in self.get_logical_column_mapping().items():
+            row[index] = unordered_items[column]
+        return row
+
+    def _append_row(self, variable_data: VariableData) -> None:
+        """ Add row to the model. """
+        row_text = self.get_row_text(variable_data)
+        if self.tree_node is not None:
+            tree_items = self.findItems(row_text[0], flags=Qt.MatchExactly, column=0)
+            if tree_items:
+                parent = tree_items[0]
+                row_text[0] = ""
+                parent.appendRow([QStandardItem(text) for text in row_text])
+            else:
+                self.appendRow([QStandardItem(text) for text in row_text])
+        else:
+            self.appendRow([QStandardItem(text) for text in row_text])
+
+    def _update_row(
+        self, variable_data: VariableData, row: int, parent_index: QModelIndex,
+    ) -> None:
+        """ Set text on the given row. """
+        row_text = self.get_row_text(variable_data)
+        if parent_index.isValid():
+            row_text[0] = ""
+        for i, text in enumerate(row_text):
+            item = self.itemFromIndex(self.index(row, i, parent_index))
+            item.setText(text)
+
+    def update_variable(
+        self, row: int, parent_index: QModelIndex, variable_data: VariableData
+    ) -> None:
+        """ Update row identified by row and parent index. """
+        old_variable_data = self.get_row_variable_data(row, parent_index)
+        if self.tree_node is not None and self.variable_tree_node_text_changed(
+            variable_data, old_variable_data
+        ):
+            self._delete_row(row, parent_index)
+            self._append_row(variable_data)
+        else:
+            self._update_row(variable_data, row, parent_index)
+
+        old_variable = convert_variable_data_to_variable(old_variable_data, self.name)
+        self._file_ref.rename_variable(old_variable, variable_data.key, variable_data.type)
+
+    def update_variable_if_exists(
+        self, variable_data: VariableData, new_variable_data: VariableData,
+    ) -> None:
+        """ Update row identified by VariableData. """
+        indexes = self.get_matching_selection([variable_data]).indexes()
+        if indexes:
+            index = indexes[0]
+            row = index.row()
+            parent = index.parent()
+            self.update_variable(row, parent, new_variable_data)
 
 
 class FilterModel(QSortFilterProxyModel):
