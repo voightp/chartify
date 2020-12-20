@@ -501,6 +501,16 @@ class TreeView(QTreeView):
             self.selectionCleared.emit()
         self.source_model.selected = variable_data
 
+    def get_current_column_data(self, column: str) -> List[str]:
+        """ Get all item text for given column. """
+        return self.source_model.get_column_data(column)
+
+    def update_variable(self, row, parent_index, new_variable_data) -> None:
+        """ Update text of the variable identified by row and index. """
+        self.source_model.update_variable(row, parent_index, new_variable_data)
+        self.select_variables([new_variable_data])
+        self.scroll_to(new_variable_data)
+
 
 def cache_properties(func):
     def wrapper(*args, **kwargs):

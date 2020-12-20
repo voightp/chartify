@@ -38,7 +38,7 @@ from chartify.ui.drop_frame import DropFrame
 from chartify.ui.progress_widget import ProgressContainer
 from chartify.ui.tab_widget import TabWidget
 from chartify.ui.toolbar import Toolbar
-from chartify.ui.treeview import TreeView, ViewMask
+from chartify.ui.treeview import TreeView, ViewMask, SIMPLE
 from chartify.ui.treeview_model import ViewModel
 from chartify.ui.widget_functions import print_args
 from chartify.utils.css_theme import Palette, CssParser
@@ -527,24 +527,22 @@ class MainWindow(QMainWindow):
         variable_data: VariableData,
     ) -> None:
         old_key = variable_data.key
-        key_blocker = set(treeview.source_model.get_column_data(KEY_LEVEL))
+        key_blocker = set(treeview.get_current_column_data(KEY_LEVEL))
         key_blocker.remove(old_key)
         if treeview.source_model.is_simple:
             res = self.confirm_rename_simple_variable(old_key, key_blocker)
         else:
             old_type = variable_data.type
-            type_blocker = set(treeview.source_model.get_column_data(TYPE_LEVEL))
+            type_blocker = set(treeview.get_current_column_data(TYPE_LEVEL))
             type_blocker.remove(old_type)
             res = self.confirm_rename_variable(old_key, old_type, key_blocker, type_blocker)
 
         if res is not None:
-            key = res if treeview.source_model.is_simple else res[0]
-            type_ = None if treeview.source_model.is_simple else res[1]
+            key = res if treeview.view_type == SIMPLE else res[0]
+            type_ = None if treeview.view_type == SIMPLE else res[1]
             units = variable_data.units
             new_variable_data = VariableData(key=key, type=type_, units=units)
-            treeview.source_model.update_variable(row, parent_index, new_variable_data)
-            treeview.select_variables([new_variable_data])
-            treeview.scroll_to(new_variable_data)
+            treeview.update_variable(row, parent_index, new_variable_data)
 
     def on_remove_variables_triggered(self):
         pass
