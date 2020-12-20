@@ -1,3 +1,4 @@
+import contextlib
 import ctypes
 import shutil
 from functools import partial
@@ -56,9 +57,9 @@ class MainWindow(QMainWindow):
     tabChanged = Signal(int)
     treeNodeUpdated = Signal(str)
     selectionChanged = Signal(list)
-    variableRenameRequested = Signal(TreeView, VariableData)
-    variableRemoveRequested = Signal(TreeView, list)
-    aggregationRequested = Signal(str, TreeView, list)
+    variableRenameRequested = Signal(list, VariableData, str, str)
+    variableRemoveRequested = Signal(list, list)
+    aggregationRequested = Signal(list, str, list, str, str)
     fileProcessingRequested = Signal(list)
     syncFileProcessingRequested = Signal(list)
     fileRenameRequested = Signal(int, int)
@@ -394,7 +395,7 @@ class MainWindow(QMainWindow):
             if not self.current_tab_widget.is_empty():
                 self.current_view.deselect_all_variables()
         elif event.key() == Qt.Key_Delete:
-            if self.hasFocus() and self.current_model:
+            if self.hasFocus() and self.current_view and self.current_model:
                 self.remove_variables_act.trigger()
 
     def create_scheme_actions(self) -> Tuple[List[QAction], QAction]:
@@ -503,6 +504,33 @@ class MainWindow(QMainWindow):
         Settings.MIRRORED = not Settings.MIRRORED
         Settings.SPLIT = self.central_splitter.sizes()
 
+    def get_all_treeviews(self) -> List[TreeView]:
+        """ Gather all tree views based on toolbar settings. """
+        if self.toolbar.all_files_toggle.isChecked():
+            treeviews = self.current_tab_widget.get_all_children()
+        else:
+            treeviews = [self.current_view]
+        return treeviews
+
+    def get_all_models(self) -> List[ViewModel]:
+        """ Gather models based on toolbar settings. """
+        models = []
+        if self.toolbar.all_tables_toggle.isChecked():
+            for treeview in self.get_all_treeviews():
+                models.extend(treeview.all_view_models)
+        else:
+            table_name = self.current_view.current_table_name
+            with contextlib.suppress(KeyError):
+                for treeview in self.get_all_treeviews():
+                    models.append(treeview.models[table_name])
+        return models
+
+    def get_all_other_models(self) -> List[ViewModel]:
+        """ Gather models based on toolbar settings. """
+        models = self.get_all_models()
+        models.remove(self.current_model)
+        return models
+
     def update_model(self, treeview: TreeView) -> None:
         """ Force update current model. """
         with ViewMask(
@@ -522,15 +550,15 @@ class MainWindow(QMainWindow):
         treeview: TreeView,
         row: int,
         parent_index: Optional[QModelIndex],
-        variable_data: VariableData,
+        old_variable_data: VariableData,
     ) -> None:
-        old_key = variable_data.key
+        old_key = old_variable_data.key
         key_blocker = set(treeview.get_current_column_data(KEY_LEVEL))
         key_blocker.remove(old_key)
         if treeview.source_model.is_simple:
             res = self.confirm_rename_simple_variable(old_key, key_blocker)
         else:
-            old_type = variable_data.type
+            old_type = old_variable_data.type
             type_blocker = set(treeview.get_current_column_data(TYPE_LEVEL))
             type_blocker.remove(old_type)
             res = self.confirm_rename_variable(old_key, old_type, key_blocker, type_blocker)
@@ -538,17 +566,19 @@ class MainWindow(QMainWindow):
         if res is not None:
             key = res if treeview.view_type == SIMPLE else res[0]
             type_ = None if treeview.view_type == SIMPLE else res[1]
-            units = variable_data.units
+            units = old_variable_data.units
             new_variable_data = VariableData(key=key, type=type_, units=units)
             treeview.update_variable(row, parent_index, new_variable_data)
+            if models := self.get_all_other_models():
+                self.variableRenameRequested.emit(models, old_variable_data, new_variable_data)
 
     def on_remove_variables_triggered(self):
         if selected := self.current_view.get_selected_variable_data():
-            if self.confirm_remove_variables(
-                selected, Settings.ALL_FILES, self.current_tab_widget.name
-            ):
+            if self.confirm_remove_variables(selected):
                 self.current_model.delete_variables(selected)
                 self.on_selection_cleared()
+                if models := self.get_all_other_models():
+                    self.variableRemoveRequested.emit(models, selected)
 
     def on_aggregation_requested(self, func: str) -> None:
         if view_variables := self.current_view.get_selected_variable_data():
@@ -563,6 +593,10 @@ class MainWindow(QMainWindow):
                     new_key = res
                     new_type = None
                 self.current_view.aggregate_variables(view_variables, func, new_key, new_type)
+                if models := self.get_all_other_models():
+                    self.aggregationRequested.emit(
+                        models, func, view_variables, new_key, new_type
+                    )
 
     def on_sum_action_triggered(self):
         self.on_aggregation_requested("sum")
@@ -836,16 +870,13 @@ class MainWindow(QMainWindow):
             tab_widget.currentTabChanged.connect(self.on_tab_changed)
             tab_widget.tabRenameRequested.connect(self.on_tab_bar_double_clicked)
 
-    def on_totals_checked(self, checked: bool):
-        """ Request view update when totals requested. """
-        # TODO handle totals
-        Settings.TOTALS = checked
-
     def on_all_files_toggled(self, checked: bool):
         """ Request view update when totals requested. """
-        # settings does not need to be updated as
-        # this does not have an impact on the UI
         Settings.ALL_FILES = checked
+
+    def on_all_tables_toggled(self, checked: bool):
+        """ Request view update when totals requested. """
+        Settings.ALL_TABLES = checked
 
     def update_units(self) -> None:
         """ Update units on a current view if current tab widget contains one. """
@@ -897,8 +928,8 @@ class MainWindow(QMainWindow):
 
     def connect_toolbar_signals(self):
         # ~~~~ Toolbar Signals ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.toolbar.totals_outputs_btn.toggled.connect(self.on_totals_checked)
         self.toolbar.all_files_toggle.stateChanged.connect(self.on_all_files_toggled)
+        self.toolbar.all_tables_toggle.stateChanged.connect(self.on_all_tables_toggled)
         self.toolbar.tableChangeRequested.connect(self.on_table_change_requested)
         self.toolbar.tabWidgetChangeRequested.connect(self.on_stacked_widget_change_requested)
         self.toolbar.customUnitsToggled.connect(self.on_custom_units_toggled)
@@ -950,23 +981,31 @@ class MainWindow(QMainWindow):
         if dialog.exec_() == 1:
             return dialog.input1_text
 
-    def confirm_remove_variables(
-        self, view_variables: List[VariableData], all_files: bool, file_name: str
-    ) -> bool:
+    def get_files_and_tables_text(self) -> str:
+        """ Get information on function application based on current settings. """
+        table_name = self.current_view.current_table_name
+        file_name = self.current_tab_widget.name
+        if Settings.ALL_FILES and Settings.ALL_TABLES:
+            text = "all files and all tables"
+        elif Settings.ALL_FILES:
+            text = f"table '{table_name}', all files"
+        elif Settings.ALL_TABLES:
+            text = f"all tables, file '{file_name}'"
+        else:
+            text = f"table '{table_name}', file '{file_name}'"
+        return text
+
+    def confirm_remove_variables(self, view_variables: List[VariableData],) -> bool:
         """ Remove selected variables. """
-        files = "all files" if all_files else f"file '{file_name}'"
-        text = f"Delete following variables from {files}: "
+        title = f"Delete following variables from {self.get_files_and_tables_text()}: "
         inf_text = "\n".join([" | ".join(var) for var in view_variables])
-        dialog = ConfirmationDialog(self, text, det_text=inf_text)
+        dialog = ConfirmationDialog(self, title, det_text=inf_text)
         return dialog.exec_() == 1
 
     def confirm_rename_simple_variable(self, key: str, blocker: Set[str]) -> Optional[str]:
+        title = f"Rename variable for {self.get_files_and_tables_text()}:"
         dialog = SingleInputDialog(
-            self,
-            title="Rename variable:",
-            input1_name="Key",
-            input1_text=key,
-            input1_blocker=blocker,
+            self, title=title, input1_name="Key", input1_text=key, input1_blocker=blocker,
         )
         if dialog.exec_() == 1:
             return dialog.input1_text
@@ -975,9 +1014,10 @@ class MainWindow(QMainWindow):
         self, key: str, type_: str, key_blocker: Set[str], type_blocker: Set[str]
     ) -> Optional[Tuple[str, str]]:
         """ Rename given variable. """
+        title = f"Rename variable for {self.get_files_and_tables_text()}:"
         dialog = DoubleInputDialog(
             self,
-            title="Rename variable:",
+            title=title,
             input1_name="Key",
             input1_text=key,
             input1_blocker=key_blocker,
@@ -996,12 +1036,11 @@ class MainWindow(QMainWindow):
         else:
             key = f"Custom Key - {func_name}"
 
-        dialog = SingleInputDialog(
-            self,
-            title="Enter details of the new variable:",
-            input1_name="Key",
-            input1_text=key,
+        title = (
+            f"Calculate {func_name} from selected "
+            f"variables for {self.get_files_and_tables_text()}:"
         )
+        dialog = SingleInputDialog(self, title=title, input1_name="Key", input1_text=key,)
         if dialog.exec_() == 1:
             return dialog.input1_text
 
@@ -1019,9 +1058,13 @@ class MainWindow(QMainWindow):
         else:
             type_ = "Custom Type"
 
+        title = (
+            f"Calculate {func_name} from selected "
+            f"variables for {self.get_files_and_tables_text()}:"
+        )
         dialog = DoubleInputDialog(
             self,
-            title="Enter details of the new variable:",
+            title=title,
             input1_name="Key",
             input1_text=key,
             input2_name="Type",

@@ -154,6 +154,10 @@ class TreeView(QTreeView):
     def current_table_name(self) -> str:
         return self.source_model.name if self.source_model else None
 
+    @property
+    def all_view_models(self) -> List[ViewModel]:
+        return list(self.models.values())
+
     def mousePressEvent(self, event: QEvent) -> None:
         """ Handle mouse events. """
         btn = event.button()

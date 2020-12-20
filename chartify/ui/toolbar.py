@@ -100,19 +100,35 @@ class Toolbar(QFrame):
         tools_layout.setSpacing(0)
         tools_layout.setContentsMargins(0, 0, 0, 0)
         tools_layout.setAlignment(Qt.AlignTop)
+
         self.sum_btn = QToolButton(self.tools_group)
         self.sum_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
         self.sum_btn.setIconSize(Settings.ICON_SMALL_SIZE)
         self.sum_btn.setText("sum")
+        tools_layout.addWidget(self.sum_btn, 0, 0)
         self.mean_btn = QToolButton(self.tools_group)
         self.mean_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
         self.mean_btn.setIconSize(Settings.ICON_SMALL_SIZE)
         self.mean_btn.setText("mean")
+        tools_layout.addWidget(self.mean_btn, 0, 1)
         self.remove_btn = QToolButton(self.tools_group)
         self.remove_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
         self.remove_btn.setIconSize(Settings.ICON_SMALL_SIZE)
         self.remove_btn.setText("remove")
-        self.populate_group(self.tools_group, [self.sum_btn, self.mean_btn, self.remove_btn])
+        tools_layout.addWidget(self.remove_btn, 1, 0)
+
+        self.all_files_toggle = ToggleButton(self)
+        self.all_files_toggle.setText("All files")
+        self.all_files_toggle.setChecked(Settings.ALL_FILES)
+        self.all_files_toggle.setEnabled(True)
+        tools_layout.addWidget(self.all_files_toggle, 2, 0, 1, 2)
+
+        self.all_tables_toggle = ToggleButton(self)
+        self.all_tables_toggle.setText("All tables")
+        self.all_tables_toggle.setChecked(Settings.ALL_TABLES)
+        self.all_tables_toggle.setEnabled(True)
+        tools_layout.addWidget(self.all_tables_toggle, 3, 0, 1, 2)
+
         self.layout.addWidget(self.tools_group)
 
         # ~~~~ Units group ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -147,12 +163,6 @@ class Toolbar(QFrame):
         self.layout.addWidget(self.units_group)
 
         self.layout.addStretch()
-
-        self.all_files_toggle = ToggleButton(self)
-        self.all_files_toggle.setText("All files")
-        self.all_files_toggle.setChecked(Settings.ALL_FILES)
-        self.all_files_toggle.setEnabled(True)
-        self.layout.addWidget(self.all_files_toggle)
 
     @staticmethod
     def clear_group(group):

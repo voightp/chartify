@@ -1,5 +1,6 @@
 {
   "ALL_FILES": false,
+  "ALL_TABLES": false,
   "CUSTOM_UNITS": true,
   "ENERGY_UNITS": "kWh",
   "IP_ENERGY_UNITS": ["Btu", "kBtu", "MBtu"],

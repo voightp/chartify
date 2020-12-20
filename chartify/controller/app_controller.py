@@ -92,9 +92,9 @@ class AppController:
         self.v.fileProcessingRequested.connect(self.on_file_processing_requested)
         self.v.syncFileProcessingRequested.connect(self.on_sync_file_processing_requested)
         self.v.fileRenameRequested.connect(self.on_file_rename_requested)
-        self.v.variableRenameRequested.connect(lambda x: print("IMPLEMENT"))
-        self.v.variableRemoveRequested.connect(lambda x: print("IMPLEMENT"))
-        self.v.aggregationRequested.connect(lambda x: print("IMPLEMENT"))
+        self.v.variableRenameRequested.connect(self.on_variable_rename_requested)
+        self.v.variableRemoveRequested.connect(self.on_variable_remove_requested)
+        self.v.aggregationRequested.connect(self.on_aggregation_requested)
         self.v.fileRemoveRequested.connect(self.on_file_remove_requested)
         self.v.appCloseRequested.connect(self.tear_down)
         self.v.close_all_act.triggered.connect(lambda x: print("IMPLEMENT"))
@@ -197,3 +197,29 @@ class AppController:
         """ Delete file from the database. """
         self.m.delete_file(id_)
         self.ids.remove(id_)
+
+    def on_variable_rename_requested(
+        self,
+        models: List[ViewModel],
+        old_variable_data: VariableData,
+        new_variable_data: VariableData,
+    ) -> None:
+        for model in models:
+            model.update_variable_if_exists(old_variable_data, new_variable_data)
+
+    def on_variable_remove_requested(
+        self, models: List[ViewModel], view_variables: List[VariableData],
+    ):
+        for model in models:
+            model.delete_variables(view_variables)
+
+    def on_aggregation_requested(
+        self,
+        models: List[ViewModel],
+        func: str,
+        view_variables: List[VariableData],
+        new_key: str,
+        new_type: Optional[str],
+    ):
+        for model in models:
+            model.aggregate_variables(view_variables, func, new_key, new_type)
