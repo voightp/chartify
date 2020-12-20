@@ -34,6 +34,10 @@ class TabWidget(QTabWidget):
         self.tabCloseRequested.connect(lambda x: self.closeTabRequested.emit(self, x))
         self.tabBarDoubleClicked.connect(lambda x: self.tabRenameRequested.emit(self, x))
 
+    @property
+    def name(self) -> str:
+        return self.tabText(self.currentIndex())
+
     def is_empty(self) -> bool:
         """ Check if there's at least one loaded file. """
         return self.count() <= 0

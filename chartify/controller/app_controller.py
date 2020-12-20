@@ -213,16 +213,10 @@ class AppController:
             return var
 
     def on_variable_remove_requested(
-        self, view: TreeView, variable_data: List[VariableData]
+        self, views: List[TreeView], variable_data: List[VariableData]
     ) -> None:
         """ Remove variables from a file or all files. """
-        variables = self.m.selected_variables
-        res = self.v.confirm_remove_variables(
-            variables, Settings.ALL_FILES, self.m.current_file.file_name
-        )
-        if res:
-            self.apply_async(Settings.CURRENT_FILE_ID, self._delete_variables, variables)
-            self.update_view_model()
+        pass
 
     def on_aggregation_requested(self, func: Union[str, Callable]) -> None:
         """ Create a new variable using given aggregation function. """

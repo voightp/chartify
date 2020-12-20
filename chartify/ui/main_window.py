@@ -396,8 +396,8 @@ class MainWindow(QMainWindow):
             if not self.current_tab_widget.is_empty():
                 self.current_view.deselect_all_variables()
         elif event.key() == Qt.Key_Delete:
-            if self.hasFocus():
-                self.variableRemoveRequested.emit(self.current_view)
+            if self.hasFocus() and self.current_model:
+                self.remove_variables_act.trigger()
 
     def create_scheme_actions(self) -> Tuple[List[QAction], QAction]:
         """ Create actions to change application color scheme. """
@@ -545,7 +545,12 @@ class MainWindow(QMainWindow):
             treeview.update_variable(row, parent_index, new_variable_data)
 
     def on_remove_variables_triggered(self):
-        pass
+        if selected := self.current_view.get_selected_variable_data():
+            if self.confirm_remove_variables(
+                selected, Settings.ALL_FILES, self.current_tab_widget.name
+            ):
+                self.current_model.delete_variables(selected)
+                self.on_selection_cleared()
 
     def on_sum_action_triggered(self):
         pass
@@ -934,13 +939,12 @@ class MainWindow(QMainWindow):
             return dialog.input1_text
 
     def confirm_remove_variables(
-        self, variables: List[Variable], all_files: bool, file_name: str
+        self, view_variables: List[VariableData], all_files: bool, file_name: str
     ) -> bool:
         """ Remove selected variables. """
         files = "all files" if all_files else f"file '{file_name}'"
         text = f"Delete following variables from {files}: "
-        # ignore table from full variable name
-        inf_text = "\n".join([" | ".join(var[1:]) for var in variables])
+        inf_text = "\n".join([" | ".join(var) for var in view_variables])
         dialog = ConfirmationDialog(self, text, det_text=inf_text)
         return dialog.exec_() == 1
 

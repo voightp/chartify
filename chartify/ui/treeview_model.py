@@ -562,6 +562,18 @@ class ViewModel(QStandardItemModel):
             parent = index.parent()
             self.update_variable(row, parent, new_variable_data)
 
+    def delete_variables(self, view_variables: List[VariableData]) -> None:
+        """ Delete given variables. """
+        variables = [convert_variable_data_to_variable(v, self.name) for v in view_variables]
+        self._file_ref.remove_variables(variables)
+
+        selection = self.get_matching_selection(view_variables)
+        for selection_range in selection:
+            parent = selection_range.parent()
+            self.removeRows(selection_range.top(), selection_range.height(), parent)
+            if parent.isValid() and not self.hasChildren(parent):
+                self.removeRow(parent.row())
+
 
 class FilterModel(QSortFilterProxyModel):
     """ Proxy model to be used with 'SimpleModel' model. """
