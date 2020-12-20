@@ -334,7 +334,6 @@ class TreeView(QTreeView):
             self.setRootIsDecorated(True)
         else:
             self.setRootIsDecorated(False)
-        # clear selections to avoid having selected items from previous selection
 
     def set_model(
         self,
