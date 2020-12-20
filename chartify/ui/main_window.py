@@ -25,11 +25,9 @@ from PySide2.QtWidgets import (
     QVBoxLayout,
     QStackedWidget,
 )
-from esofile_reader import Variable
 from esofile_reader.convertor import all_rate_or_energy
 from esofile_reader.df.level_names import *
 from esofile_reader.pqt.parquet_storage import ParquetStorage
-from esofile_reader.typehints import VariableType
 
 from chartify.settings import Settings
 from chartify.ui.buttons import MenuButton
@@ -39,7 +37,7 @@ from chartify.ui.progress_widget import ProgressContainer
 from chartify.ui.tab_widget import TabWidget
 from chartify.ui.toolbar import Toolbar
 from chartify.ui.treeview import TreeView, ViewMask, SIMPLE
-from chartify.ui.treeview_model import ViewModel
+from chartify.ui.treeview_model import ViewModel, is_variable_attr_identical
 from chartify.ui.widget_functions import print_args
 from chartify.utils.css_theme import Palette, CssParser
 from chartify.utils.icon_painter import Pixmap, draw_filled_circle_icon
@@ -552,11 +550,25 @@ class MainWindow(QMainWindow):
                 self.current_model.delete_variables(selected)
                 self.on_selection_cleared()
 
+    def on_aggregation_requested(self, func: str) -> None:
+        if view_variables := self.current_view.get_selected_variable_data():
+            if self.current_view.view_type == SIMPLE:
+                res = self.confirm_aggregate_simple_variables(view_variables, func)
+            else:
+                res = self.confirm_aggregate_variables(view_variables, func)
+            if res:
+                if isinstance(res, tuple):
+                    new_key, new_type = res
+                else:
+                    new_key = res
+                    new_type = None
+                self.current_view.aggregate_variables(view_variables, func, new_key, new_type)
+
     def on_sum_action_triggered(self):
-        pass
+        self.on_aggregation_requested("sum")
 
     def on_mean_action_triggered(self):
-        pass
+        self.on_aggregation_requested("mean")
 
     @print_args
     def add_treeview(self, id_: int, name: str, output_type: str, models: Dict[str, ViewModel]):
@@ -976,40 +988,47 @@ class MainWindow(QMainWindow):
         if dialog.exec_() == 1:
             return dialog.input1_text, dialog.input2_text
 
-    def confirm_aggregate_variables(
-        self, variables: List[VariableType], func_name: str
-    ) -> Optional[Tuple[str, Optional[str]]]:
-        """ Aggregate variables using given function. """
-        type_ = "Custom Type" if isinstance(variables[0], Variable) else None
-        key = f"Custom Key - {func_name}"
-
-        # let key name be the same as all names are identical
-        if all(map(lambda x: x.key == variables[0].key, variables)):
+    def confirm_aggregate_simple_variables(
+        self, view_variables: List[VariableData], func_name: str
+    ) -> Optional[str]:
+        if is_variable_attr_identical(view_variables, KEY_LEVEL):
             key = f"{variables[0].key} - {func_name}"
-
-        if type_ is None:
-            dialog = SingleInputDialog(
-                self,
-                title="Enter details of the new variable:",
-                input1_name="Key",
-                input1_text=key,
-            )
-            if dialog.exec_() == 1:
-                return dialog.input1_text, None
         else:
-            if all(map(lambda x: x.type == variables[0].type, variables)):
-                # let type be the same as all names are identical
-                type_ = variables[0].type
-            dialog = DoubleInputDialog(
-                self,
-                title="Enter details of the new variable:",
-                input1_name="Key",
-                input1_text=key,
-                input2_name="Type",
-                input2_text=type_,
-            )
-            if dialog.exec_() == 1:
-                return dialog.input1_text, dialog.input2_text
+            key = f"Custom Key - {func_name}"
+
+        dialog = SingleInputDialog(
+            self,
+            title="Enter details of the new variable:",
+            input1_name="Key",
+            input1_text=key,
+        )
+        if dialog.exec_() == 1:
+            return dialog.input1_text
+
+    def confirm_aggregate_variables(
+        self, view_variables: List[VariableData], func_name: str
+    ) -> Optional[Tuple[str, str]]:
+        """ Aggregate variables using given function. """
+        if is_variable_attr_identical(view_variables, KEY_LEVEL):
+            key = f"{view_variables[0].key} - {func_name}"
+        else:
+            key = f"Custom Key - {func_name}"
+
+        if is_variable_attr_identical(view_variables, TYPE_LEVEL):
+            type_ = view_variables[0].type
+        else:
+            type_ = "Custom Type"
+
+        dialog = DoubleInputDialog(
+            self,
+            title="Enter details of the new variable:",
+            input1_name="Key",
+            input1_text=key,
+            input2_name="Type",
+            input2_text=type_,
+        )
+        if dialog.exec_() == 1:
+            return dialog.input1_text, dialog.input2_text
 
     def confirm_delete_file(self, name: str):
         """ Confirm delete file. . """

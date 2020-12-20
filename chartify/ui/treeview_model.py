@@ -1,3 +1,4 @@
+import contextlib
 from typing import Dict, Optional, List, Set
 
 import pandas as pd
@@ -17,16 +18,19 @@ from esofile_reader.df.level_names import (
     ID_LEVEL,
     TABLE_LEVEL,
 )
-from esofile_reader.typehints import ResultsFileType, Variable, SimpleVariable
+from esofile_reader.exceptions import CannotAggregateVariables
+from esofile_reader.typehints import ResultsFileType, Variable, SimpleVariable, VariableType
 
 from chartify.utils.utils import VariableData, FilterTuple
 
 PROXY_UNITS_LEVEL = "proxy_units"
 
 
-def convert_variable_data_to_variable(variable_data: VariableData, table_name: str):
+def convert_variable_data_to_variable(
+    variable_data: VariableData, table_name: str
+) -> VariableType:
     return (
-        SimpleVariable(table=table_name, key=variable_data.key, units=variable_data.units,)
+        SimpleVariable(table=table_name, key=variable_data.key, units=variable_data.units)
         if variable_data.type is None
         else Variable(
             table=table_name,
@@ -37,12 +41,24 @@ def convert_variable_data_to_variable(variable_data: VariableData, table_name: s
     )
 
 
-class ViewItem(QStandardItem):
-    def __init__(self):
-        super(ViewItem, self).__init__()
+def convert_variable_to_view_variable(variable: VariableType) -> VariableData:
+    return VariableData(
+        key=variable.key,
+        type=variable.type if isinstance(variable, Variable) else None,
+        units=variable.units,
+    )
 
-    def enterEvent(self):
-        pass
+
+def convert_view_variables_to_variables(
+    view_variables: List[VariableData], table_name: str
+) -> List[VariableType]:
+    return [convert_variable_data_to_variable(v, table_name) for v in view_variables]
+
+
+def is_variable_attr_identical(view_variables: List[VariableData], attr: str) -> bool:
+    """ Check if all variables use the same attribute text. """
+    first_attr = view_variables[0].__getattribute__(attr)
+    return all(map(lambda x: x.__getattribute__(attr) == first_attr, view_variables))
 
 
 class ViewModel(QStandardItemModel):
@@ -540,16 +556,19 @@ class ViewModel(QStandardItemModel):
     ) -> None:
         """ Update row identified by row and parent index. """
         old_variable_data = self.get_row_variable_data(row, parent_index)
+        old_variable = convert_variable_data_to_variable(old_variable_data, self.name)
+        _, new_variable = self._file_ref.rename_variable(
+            old_variable, variable_data.key, variable_data.type
+        )
+
+        new_variable_data = convert_variable_to_view_variable(new_variable)
         if self.tree_node is not None and self.variable_tree_node_text_changed(
-            variable_data, old_variable_data
+            new_variable_data, old_variable_data
         ):
             self._delete_row(row, parent_index)
-            self._append_row(variable_data)
+            self._append_row(new_variable_data)
         else:
-            self._update_row(variable_data, row, parent_index)
-
-        old_variable = convert_variable_data_to_variable(old_variable_data, self.name)
-        self._file_ref.rename_variable(old_variable, variable_data.key, variable_data.type)
+            self._update_row(new_variable_data, row, parent_index)
 
     def update_variable_if_exists(
         self, variable_data: VariableData, new_variable_data: VariableData,
@@ -564,8 +583,9 @@ class ViewModel(QStandardItemModel):
 
     def delete_variables(self, view_variables: List[VariableData]) -> None:
         """ Delete given variables. """
-        variables = [convert_variable_data_to_variable(v, self.name) for v in view_variables]
-        self._file_ref.remove_variables(variables)
+        self._file_ref.remove_variables(
+            convert_view_variables_to_variables(view_variables, self.name)
+        )
 
         selection = self.get_matching_selection(view_variables)
         for selection_range in selection:
@@ -573,6 +593,21 @@ class ViewModel(QStandardItemModel):
             self.removeRows(selection_range.top(), selection_range.height(), parent)
             if parent.isValid() and not self.hasChildren(parent):
                 self.removeRow(parent.row())
+
+    def aggregate_variables(
+        self,
+        view_variables: List[VariableData],
+        func: str,
+        new_key: str,
+        new_type: Optional[str] = None,
+    ) -> VariableData:
+        """ Aggregate given variables with given function. """
+        variables = convert_view_variables_to_variables(view_variables, self.name)
+        with contextlib.suppress(CannotAggregateVariables):
+            _, variable = self._file_ref.aggregate_variables(variables, func, new_key, new_type)
+            view_variable = convert_variable_to_view_variable(variable)
+            self._append_row(view_variable)
+            return view_variable
 
 
 class FilterModel(QSortFilterProxyModel):

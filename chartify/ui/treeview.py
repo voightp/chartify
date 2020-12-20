@@ -505,9 +505,26 @@ class TreeView(QTreeView):
         """ Get all item text for given column. """
         return self.source_model.get_column_data(column)
 
-    def update_variable(self, row, parent_index, new_variable_data) -> None:
+    def update_variable(
+        self, row: int, parent_index: QModelIndex, new_variable_data: VariableData
+    ) -> None:
         """ Update text of the variable identified by row and index. """
         self.source_model.update_variable(row, parent_index, new_variable_data)
+        self.select_variables([new_variable_data])
+        self.scroll_to(new_variable_data)
+
+    def aggregate_variables(
+        self,
+        view_variables: List[VariableData],
+        func: str,
+        new_key: str,
+        new_type: Optional[str] = None,
+    ) -> None:
+        """ Update text of the variable identified by row and index. """
+        new_variable_data = self.source_model.aggregate_variables(
+            view_variables, func, new_key, new_type
+        )
+        self.deselect_all_variables()
         self.select_variables([new_variable_data])
         self.scroll_to(new_variable_data)
 

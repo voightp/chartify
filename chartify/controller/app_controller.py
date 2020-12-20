@@ -2,12 +2,10 @@ import os
 import shutil
 from multiprocessing import Manager
 from pathlib import Path
-from typing import List, Callable, Union, Any, Dict, Optional
+from typing import List, Callable, Any, Dict, Optional
 
 from PySide2.QtCore import QThreadPool
-from esofile_reader import Variable
 from esofile_reader.pqt.parquet_file import ParquetFile
-from esofile_reader.typehints import VariableType, ResultsFileType
 
 from chartify.controller.file_processing import load_file
 from chartify.controller.wv_controller import WVController
@@ -94,12 +92,12 @@ class AppController:
         self.v.fileProcessingRequested.connect(self.on_file_processing_requested)
         self.v.syncFileProcessingRequested.connect(self.on_sync_file_processing_requested)
         self.v.fileRenameRequested.connect(self.on_file_rename_requested)
-        # self.v.variableRenameRequested.connect(self.on_variable_rename_requested)
-        self.v.variableRemoveRequested.connect(self.on_variable_remove_requested)
-        self.v.aggregationRequested.connect(self.on_aggregation_requested)
+        self.v.variableRenameRequested.connect(lambda x: print("IMPLEMENT"))
+        self.v.variableRemoveRequested.connect(lambda x: print("IMPLEMENT"))
+        self.v.aggregationRequested.connect(lambda x: print("IMPLEMENT"))
         self.v.fileRemoveRequested.connect(self.on_file_remove_requested)
         self.v.appCloseRequested.connect(self.tear_down)
-        self.v.close_all_act.triggered.connect(lambda x: x)
+        self.v.close_all_act.triggered.connect(lambda x: print("IMPLEMENT"))
         self.v.save_act.triggered.connect(self.on_save)
         self.v.save_as_act.triggered.connect(self.on_save_as)
 
@@ -190,59 +188,6 @@ class AppController:
             self.thread_pool.start(w)
 
         return val
-
-    @staticmethod
-    def _delete_variables(file: ResultsFileType, variables: List[VariableType]) -> None:
-        """ Hide or remove selected variables. """
-        # TODO return True or False
-        file.remove_variables(variables)
-
-    @staticmethod
-    def _aggregate_variables(
-        file: ResultsFileType,
-        variables: List[VariableType],
-        key: str,
-        type_: str,
-        func: Union[str, Callable],
-    ) -> tuple:
-        """ Add a new aggregated variable to the file. """
-        # TODO catch CannotAggregate
-        res = file.aggregate_variables(variables, func, key=key, type_=type_)
-        if res:
-            var_id, var = res
-            return var
-
-    def on_variable_remove_requested(
-        self, views: List[TreeView], variable_data: List[VariableData]
-    ) -> None:
-        """ Remove variables from a file or all files. """
-        pass
-
-    def on_aggregation_requested(self, func: Union[str, Callable]) -> None:
-        """ Create a new variable using given aggregation function. """
-        variables = self.m.selected_variables
-        func_name = func if isinstance(func, str) else func.__name__
-        if variables:
-            res = self.v.confirm_aggregate_variables(variables, func_name)
-            if res:
-                new_key, new_type = res
-                new_variable = self.apply_async(
-                    Settings.CURRENT_FILE_ID,
-                    self._aggregate_variables,
-                    variables,
-                    new_key,
-                    new_type,
-                    func,
-                )
-                # proxy units can be 'None' as model will be refreshed
-                new_variable_data = VariableData(
-                    key=new_variable.key,
-                    type=new_variable.type if isinstance(new_variable, Variable) else None,
-                    units=new_variable.units,
-                )
-                self.update_view_model(
-                    selected=[new_variable_data], scroll_to=new_variable_data,
-                )
 
     def on_file_rename_requested(self, id_: int, name: str) -> None:
         """ Update file name. """
