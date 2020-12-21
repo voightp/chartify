@@ -43,9 +43,9 @@ def load_file(
             # progress_thread.failed is called in processing function so suppressed
             # functions do not need to be dealt with explicitly
             suffix = path.suffix
-            if suffix == ".eso" or ".sql":
+            if suffix == ".eso" or suffix == ".sql":
                 files = GenericFile.from_eplus_multienv_file(path, logger=logger)
-            elif suffix == ".xlsx" or ".csv":
+            elif suffix == ".xlsx" or suffix == ".csv":
                 files = GenericFile.from_excel(path, logger=logger)
             else:
                 logger.log_task_failed(

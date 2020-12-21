@@ -111,9 +111,9 @@ class AppController:
         self.progress_thread.status_changed.connect(self.v.progress_container.set_status)
         self.progress_thread.done.connect(self.v.progress_container.remove_file)
 
-    def on_selection_change(self, variable_data: List[tuple]) -> None:
+    def on_selection_change(self, view_variables: List[VariableData]) -> None:
         """ Handle selection update. """
-        out_str = [" | ".join(var) for var in variable_data if var is not None]
+        out_str = [" | ".join([v for v in var if v is not None]) for var in view_variables]
         if out_str:
             print("Selected Variables:\n\t{}".format("\n\t".join(out_str)))
 
