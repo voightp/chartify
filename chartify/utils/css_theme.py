@@ -240,6 +240,7 @@ class CssParser:
             css_paths = css_paths_or_dir
         else:
             css_paths = [path for path in css_paths_or_dir.iterdir() if path.suffix == ".css"]
+        css_paths.sort()
         all_css = ""
         all_icon_paths = []
         for path in css_paths:
