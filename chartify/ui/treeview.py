@@ -15,6 +15,7 @@ from PySide2.QtWidgets import QTreeView, QAbstractItemView, QHeaderView
 from esofile_reader.df.level_names import *
 from esofile_reader.typehints import Variable, SimpleVariable
 
+from chartify.settings import OutputType
 from chartify.ui.treeview_model import (
     ViewModel,
     FilterModel,
@@ -66,7 +67,7 @@ class TreeView(QTreeView):
     itemDoubleClicked = Signal(QTreeView, int, QModelIndex, VariableData)
     treeNodeChanged = Signal(QTreeView)
 
-    def __init__(self, id_: int, models: Dict[str, ViewModel], output_type: str):
+    def __init__(self, id_: int, models: Dict[str, ViewModel], output_type: OutputType):
         super().__init__()
         self.id_ = id_
         self.models = models
@@ -548,21 +549,21 @@ def cache_properties(func):
 
 class ViewMask:
     _cached = {
-        "STANDARD": {
+        OutputType.STANDARD: {
             "widths": {SIMPLE: {"fixed": 60,}, TREE: {"fixed": 60, "interactive": 200}},
             "header": {
                 SIMPLE: ("key", "proxy_units", "units"),
                 TREE: ("type", "key", "proxy_units", "units"),
             },
         },
-        "TOTALS": {
+        OutputType.TOTALS: {
             "widths": {SIMPLE: {"fixed": 60,}, TREE: {"fixed": 60, "interactive": 200}},
             "header": {
                 SIMPLE: ("key", "proxy_units", "units"),
                 TREE: ("type", "key", "proxy_units", "units"),
             },
         },
-        "DIFFERENCE": {
+        OutputType.DIFFERENCE: {
             "widths": {SIMPLE: {"fixed": 60,}, TREE: {"fixed": 60, "interactive": 200}},
             "header": {
                 SIMPLE: ("key", "proxy_units", "units"),

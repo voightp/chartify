@@ -10,7 +10,7 @@ from esofile_reader.pqt.parquet_file import ParquetFile
 from chartify.controller.file_processing import load_file
 from chartify.controller.wv_controller import WVController
 from chartify.model.model import AppModel
-from chartify.settings import Settings
+from chartify.settings import Settings, OutputType
 from chartify.ui.main_window import MainWindow
 from chartify.ui.treeview import TreeView
 from chartify.ui.treeview_model import ViewModel
@@ -162,10 +162,10 @@ class AppController:
         self.m.storage.files[file.id_] = file
 
         output_types = {
-            ParquetFile.TOTALS: Settings.OUTPUT_TYPES[2],
-            ParquetFile.DIFF: Settings.OUTPUT_TYPES[1],
+            ParquetFile.TOTALS: OutputType.TOTALS,
+            ParquetFile.DIFF: OutputType.DIFFERENCE,
         }
-        output_type = output_types.get(file.file_type, Settings.OUTPUT_TYPES[0])
+        output_type = output_types.get(file.file_type, OutputType.STANDARD)
 
         self.v.add_treeview(file.id_, name, output_type, models)
 

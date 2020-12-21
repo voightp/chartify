@@ -30,7 +30,7 @@ from esofile_reader.convertor import all_rate_or_energy
 from esofile_reader.df.level_names import *
 from esofile_reader.pqt.parquet_storage import ParquetStorage
 
-from chartify.settings import Settings
+from chartify.settings import Settings, OutputType
 from chartify.ui.buttons import MenuButton
 from chartify.ui.dialogs import ConfirmationDialog, SingleInputDialog, DoubleInputDialog
 from chartify.ui.drop_frame import DropFrame
@@ -164,10 +164,10 @@ class MainWindow(QMainWindow):
         self.drop_button.setText("Choose a file or drag it here!")
         self.drop_button.clicked.connect(self.load_files_from_fs)
 
-        self.drop_button_totals = QToolButton()
-        self.drop_button_totals.setObjectName("dropButton")
-        self.drop_button_totals.setText("Choose a file or drag it here!")
-        self.drop_button_totals.clicked.connect(self.load_files_from_fs)
+        self.totals_button = QToolButton()
+        self.totals_button.setObjectName("totalsButton")
+        self.totals_button.setText("Choose a file or drag it here!")
+        self.totals_button.clicked.connect(self.create_totals_file())
 
         self.diff_button = QToolButton()
         self.diff_button.setObjectName("diffButton")
@@ -175,14 +175,14 @@ class MainWindow(QMainWindow):
         self.diff_button.clicked.connect(self.create_diff_file)
 
         self.standard_tab_wgt = TabWidget(self.view_wgt, self.drop_button)
-        self.totals_tab_wgt = TabWidget(self.view_wgt, self.drop_button_totals)
+        self.totals_tab_wgt = TabWidget(self.view_wgt, self.totals_button)
         self.diff_tab_wgt = TabWidget(self.view_wgt, self.diff_button)
 
         self.tab_stacked_widget.addWidget(self.standard_tab_wgt)
         self.tab_stacked_widget.addWidget(self.totals_tab_wgt)
         self.tab_stacked_widget.addWidget(self.diff_tab_wgt)
 
-        self.tab_stacked_widget.setCurrentIndex(Settings.OUTPUTS_INDEX)
+        self.tab_stacked_widget.setCurrentIndex(Settings.OUTPUTS_ENUM)
 
         # ~~~~ Left hand Tab Tools  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.view_tools = QFrame(self.view_wgt)
@@ -437,9 +437,9 @@ class MainWindow(QMainWindow):
         self.drop_button.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
         self.drop_button.setIconSize(Settings.ICON_LARGE_SIZE)
 
-        self.drop_button_totals.setIcon(Pixmap(Path(r, "drop_file.png"), *c1))
-        self.drop_button_totals.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
-        self.drop_button_totals.setIconSize(Settings.ICON_LARGE_SIZE)
+        self.totals_button.setIcon(Pixmap(Path(r, "drop_file.png"), *c1))
+        self.totals_button.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
+        self.totals_button.setIconSize(Settings.ICON_LARGE_SIZE)
 
         icon = QIcon()
         icon.addPixmap(Pixmap(Path(r, "sigma.png"), *c1), QIcon.Normal, QIcon.Off)
@@ -603,12 +603,14 @@ class MainWindow(QMainWindow):
     def on_mean_action_triggered(self):
         self.on_aggregation_requested("mean")
 
-    def add_treeview(self, id_: int, name: str, output_type: str, models: Dict[str, ViewModel]):
+    def add_treeview(
+        self, id_: int, name: str, output_type: OutputType, models: Dict[str, ViewModel]
+    ):
         """ Add processed data into tab widget corresponding to file type. """
         output_types = {
-            Settings.OUTPUT_TYPES[0]: self.standard_tab_wgt,
-            Settings.OUTPUT_TYPES[1]: self.totals_tab_wgt,
-            Settings.OUTPUT_TYPES[2]: self.diff_tab_wgt,
+            OutputType.STANDARD: self.standard_tab_wgt,
+            OutputType.TOTALS: self.totals_tab_wgt,
+            OutputType.DIFFERENCE: self.diff_tab_wgt,
         }
         tab_widget = output_types[output_type]
 
@@ -650,6 +652,14 @@ class MainWindow(QMainWindow):
         """ Load results from given paths.  """
         Settings.LOAD_PATH = paths[0].parent
         self.fileProcessingRequested.emit(paths)
+
+    def create_totals_file(self):
+        # TODO implement new dialog
+        pass
+
+    def create_diff_file(self):
+        # TODO implement new dialog
+        pass
 
     def load_files_from_fs(self):
         """ Let user select files to processed from filesystem. """
@@ -730,7 +740,7 @@ class MainWindow(QMainWindow):
 
     def on_stacked_widget_change_requested(self, index: int) -> None:
         """ Show tab widget corresponding to the given radio button. """
-        Settings.OUTPUTS_INDEX = index
+        Settings.OUTPUTS_ENUM = index
         self.tab_stacked_widget.setCurrentIndex(index)
         if self.current_view is not None and self.current_model is None:
             self._on_first_tab_added(self.current_view)
@@ -1065,7 +1075,3 @@ class MainWindow(QMainWindow):
         """ Confirm delete file. . """
         dialog = ConfirmationDialog(self, f"Delete file {name}?")
         return dialog.exec_() == 1
-
-    def create_diff_file(self):
-        # TODO implement new dialog
-        pass

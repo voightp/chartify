@@ -15,7 +15,7 @@ from PySide2.QtWidgets import (
     QButtonGroup,
 )
 
-from chartify.settings import Settings
+from chartify.settings import Settings, OutputType
 from chartify.ui.buttons import TitledButton, ToggleButton, LabeledButton
 
 
@@ -58,7 +58,7 @@ class Toolbar(QFrame):
         self.outputs_button_group.idClicked.connect(self.on_outputs_toggle_toggled)
 
         self.standard_outputs_btn = QRadioButton()
-        self.standard_outputs_btn.setChecked(Settings.OUTPUTS_INDEX == 0)
+        self.standard_outputs_btn.setChecked(Settings.OUTPUTS_ENUM == OutputType.STANDARD.value)
         self.outputs_button_group.addButton(self.standard_outputs_btn, 0)
         standard_labeled_btn = LabeledButton(
             self.outputs_group, self.standard_outputs_btn, "standard"
@@ -66,7 +66,7 @@ class Toolbar(QFrame):
         outputs_group_layout.addWidget(standard_labeled_btn)
 
         self.totals_outputs_btn = QRadioButton(self.outputs_group)
-        self.totals_outputs_btn.setChecked(Settings.OUTPUTS_INDEX == 1)
+        self.totals_outputs_btn.setChecked(Settings.OUTPUTS_ENUM == OutputType.TOTALS.value)
         self.outputs_button_group.addButton(self.totals_outputs_btn, 1)
         totals_labeled_btn = LabeledButton(
             self.outputs_group, self.totals_outputs_btn, "totals"
@@ -74,7 +74,7 @@ class Toolbar(QFrame):
         outputs_group_layout.addWidget(totals_labeled_btn)
 
         self.diff_outputs_btn = QRadioButton(self.outputs_group)
-        self.diff_outputs_btn.setChecked(Settings.OUTPUTS_INDEX == 2)
+        self.diff_outputs_btn.setChecked(Settings.OUTPUTS_ENUM == OutputType.DIFFERENCE.value)
         self.outputs_button_group.addButton(self.diff_outputs_btn, 2)
         diff_labeled_btn = LabeledButton(
             self.outputs_group, self.diff_outputs_btn, "difference"

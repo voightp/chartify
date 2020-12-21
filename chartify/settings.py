@@ -1,9 +1,16 @@
 import json
 import tempfile
+from enum import Enum
 from pathlib import Path
 from typing import Optional
 
 from PySide2.QtCore import QSize
+
+
+class OutputType(Enum):
+    STANDARD = 0
+    TOTALS = 1
+    DIFFERENCE = 2
 
 
 class Settings:
@@ -34,8 +41,7 @@ class Settings:
     ICON_MEDIUM_SIZE = QSize(40, 40)
     ICON_LARGE_SIZE = QSize(60, 60)
 
-    OUTPUT_TYPES = ["STANDARD", "DIFFERENCE", "TOTALS"]
-    OUTPUTS_INDEX = None
+    OUTPUTS_ENUM = None
 
     PALETTE = None
 
@@ -75,7 +81,6 @@ class Settings:
         "ICON_LARGE_SIZE",
         "SETTINGS_PATH",
         "APP_TEMP_DIR",
-        "OUTPUT_TYPES",
     ]
 
     @classmethod
@@ -110,6 +115,8 @@ class Settings:
         with open(path, "r") as f:
             settings = json.load(f)
             for k, v in settings.items():
+                if k not in cls._attribute_dict():
+                    raise AttributeError(f"Unexpected attribute: '{k}'.")
                 setattr(cls, k, v)
 
     @classmethod
