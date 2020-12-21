@@ -379,7 +379,10 @@ class ViewModel(QStandardItemModel):
             self.clear()
 
         # tree node data is always None for 'Simple' views
-        self.tree_node = tree_node if not self.is_simple else None
+        tree_node = tree_node if not self.is_simple else None
+        rate_to_energy = rate_to_energy if self.allow_rate_to_energy else False
+
+        self.tree_node = tree_node
         self.rate_to_energy = rate_to_energy
         self.units_system = units_system
         self.energy_units = energy_units
@@ -485,6 +488,7 @@ class ViewModel(QStandardItemModel):
         power_units: str = "W",
     ):
         """ Update proxy units column. """
+        rate_to_energy = rate_to_energy if self.allow_rate_to_energy else False
         self.rate_to_energy = rate_to_energy
         self.units_system = units_system
         self.energy_units = energy_units
