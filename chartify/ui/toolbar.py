@@ -138,30 +138,36 @@ class Toolbar(QFrame):
         units_group_layout.setSpacing(0)
         units_group_layout.setContentsMargins(0, 0, 0, 0)
         units_group_layout.setAlignment(Qt.AlignTop)
+
         self.custom_units_toggle = ToggleButton(self.units_group)
         self.custom_units_toggle.setText("Custom")
         self.custom_units_toggle.setChecked(Settings.CUSTOM_UNITS)
         self.custom_units_toggle.stateChanged.connect(self.custom_units_toggled)
+        units_group_layout.addWidget(self.custom_units_toggle, 2, 0, 1, 2)
+
         self.source_units_toggle = ToggleButton(self.units_group)
         self.source_units_toggle.setText("Source")
         self.source_units_toggle.setChecked(Settings.SHOW_SOURCE_UNITS)
+        units_group_layout.addWidget(self.source_units_toggle, 3, 0, 1, 2)
+
         self.energy_btn = TitledButton("energy", self.units_group)
+        units_group_layout.addWidget(self.energy_btn, 0, 0, 1, 1)
+
         self.power_btn = TitledButton("power", self.units_group)
+        units_group_layout.addWidget(self.power_btn, 0, 1, 1, 1)
+
         self.units_system_button = TitledButton("system", self.units_group)
+        units_group_layout.addWidget(self.units_system_button, 1, 0, 1, 1)
+
         self.rate_energy_btn = QToolButton(self.units_group)
         self.rate_energy_btn.setCheckable(True)
         self.rate_energy_btn.setObjectName("rateToEnergyBtn")
         self.rate_energy_btn.setText("rate to\n energy")
         self.rate_energy_btn.setChecked(Settings.RATE_TO_ENERGY)
-        self.set_up_units()
-        self.populate_group(
-            self.units_group,
-            [self.energy_btn, self.power_btn, self.units_system_button, self.rate_energy_btn],
-        )
-        units_group_layout.addWidget(self.custom_units_toggle, 2, 0, 1, 2)
-        units_group_layout.addWidget(self.source_units_toggle, 3, 0, 1, 2)
-        self.layout.addWidget(self.units_group)
+        units_group_layout.addWidget(self.rate_energy_btn, 1, 1, 1, 1)
 
+        self.set_up_units()
+        self.layout.addWidget(self.units_group)
         self.layout.addStretch()
 
     @staticmethod
@@ -205,12 +211,6 @@ class Toolbar(QFrame):
             def_act = next(act for act in acts if act.data() == default)
             def_act.setChecked(True)
             return acts, def_act
-
-        # ~~~~ Layout to hold options  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        units_layout = QGridLayout(self.units_group)
-        units_layout.setSpacing(0)
-        units_layout.setContentsMargins(0, 0, 0, 0)
-        units_layout.setAlignment(Qt.AlignLeft)
 
         # ~~~~ Energy units set up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         actions, default_action = create_actions(
