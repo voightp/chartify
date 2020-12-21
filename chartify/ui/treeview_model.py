@@ -180,7 +180,11 @@ class ViewModel(QStandardItemModel):
 
     def get_display_data_at_index(self, index: QModelIndex):
         """ Get item displayed text. """
-        return self.itemFromIndex(index).data(Qt.DisplayRole)
+        if index.parent().isValid():
+            data = self.itemFromIndex(index.parent()).data(Qt.DisplayRole)
+        else:
+            data = self.itemFromIndex(index).data(Qt.DisplayRole)
+        return data
 
     def get_row_display_data(
         self, row_number: int, parent_index: Optional[QModelIndex] = None
@@ -399,7 +403,7 @@ class ViewModel(QStandardItemModel):
         units_system: str = "SI",
         energy_units: str = "J",
         power_units: str = "W",
-    ) -> Optional[Dict[str, str]]:
+    ) -> Dict[str, str]:
         source_units = self.header_df[UNITS_LEVEL]
         proxy_units = self.create_proxy_units_column(
             source_units,
@@ -411,10 +415,8 @@ class ViewModel(QStandardItemModel):
         df = pd.concat([source_units, proxy_units], axis=1)
         # create look up dictionary with source units as keys and proxy units as values
         df.drop_duplicates(inplace=True)
-        df = df.loc[df[UNITS_LEVEL] != df[PROXY_UNITS_LEVEL], :]
-        if not df.empty:
-            df.set_index(UNITS_LEVEL, inplace=True)
-            return df.loc[:, PROXY_UNITS_LEVEL].to_dict()
+        df.set_index(UNITS_LEVEL, inplace=True)
+        return df.loc[:, PROXY_UNITS_LEVEL].to_dict()
 
     def update_proxy_units_parent_item(
         self, row_number: int, conversion_look_up: Dict[str, str],
@@ -437,33 +439,42 @@ class ViewModel(QStandardItemModel):
 
     def update_proxy_units_item(
         self,
-        row_number: int,
-        column_number: int,
+        row: int,
+        proxy_column: int,
+        source_column: int,
         conversion_look_up: Dict[str, str],
         parent_index: QModelIndex,
     ) -> None:
         """ Update proxy units item accordingly to conversion pairs and source units. """
-        row_mapping = self.get_row_display_data_mapping(row_number, parent_index)
-        source_units = row_mapping[UNITS_LEVEL]
-        proxy_units_item = self.itemFromIndex(
-            self.index(row_number, column_number, parent_index)
+        source_units = self.get_display_data_at_index(
+            self.index(row, source_column, parent_index)
         )
+        proxy_units_item = self.itemFromIndex(self.index(row, proxy_column, parent_index))
         proxy_units = conversion_look_up.get(source_units, source_units)
         proxy_units_item.setData(proxy_units, Qt.DisplayRole)
 
     def update_proxy_units_column(self, conversion_look_up: Dict[str, str]) -> None:
         """ Update proxy units column accordingly to conversion pairs and source units. """
         proxy_units_column_number = self.get_logical_column_number(PROXY_UNITS_LEVEL)
+        source_units_column_number = self.get_logical_column_number(UNITS_LEVEL)
         for i in range(self.rowCount()):
             index = self.index(i, 0)
             if self.hasChildren(index):
                 for j in range(self.rowCount(index)):
                     self.update_proxy_units_item(
-                        j, proxy_units_column_number, conversion_look_up, index
+                        j,
+                        proxy_units_column_number,
+                        source_units_column_number,
+                        conversion_look_up,
+                        index,
                     )
             else:
                 self.update_proxy_units_item(
-                    i, proxy_units_column_number, conversion_look_up, QModelIndex()
+                    i,
+                    proxy_units_column_number,
+                    source_units_column_number,
+                    conversion_look_up,
+                    QModelIndex(),
                 )
 
     def update_proxy_units(
@@ -482,11 +493,10 @@ class ViewModel(QStandardItemModel):
         conversion_look_up = self.create_conversion_look_up_table(
             rate_to_energy, units_system, energy_units, power_units
         )
-        if conversion_look_up:
-            if self.tree_node == PROXY_UNITS_LEVEL:
-                self.update_proxy_units_parent_column(conversion_look_up)
-            else:
-                self.update_proxy_units_column(conversion_look_up)
+        if self.tree_node == PROXY_UNITS_LEVEL:
+            self.update_proxy_units_parent_column(conversion_look_up)
+        else:
+            self.update_proxy_units_column(conversion_look_up)
 
     def set_current_status_tip(self, index: QModelIndex) -> None:
         if not self.hasChildren(index):
