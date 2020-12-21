@@ -39,7 +39,6 @@ from chartify.ui.tab_widget import TabWidget
 from chartify.ui.toolbar import Toolbar
 from chartify.ui.treeview import TreeView, ViewMask, SIMPLE
 from chartify.ui.treeview_model import ViewModel, is_variable_attr_identical
-from chartify.ui.widget_functions import print_args
 from chartify.utils.css_theme import Palette, CssParser
 from chartify.utils.icon_painter import Pixmap, draw_filled_circle_icon
 from chartify.utils.utils import VariableData, FilterTuple
@@ -57,7 +56,7 @@ class MainWindow(QMainWindow):
     tabChanged = Signal(int)
     treeNodeUpdated = Signal(str)
     selectionChanged = Signal(list)
-    variableRenameRequested = Signal(list, VariableData, str, str)
+    variableRenameRequested = Signal(list, VariableData, VariableData)
     variableRemoveRequested = Signal(list, list)
     aggregationRequested = Signal(list, str, list, str, str)
     fileProcessingRequested = Signal(list)
@@ -604,7 +603,6 @@ class MainWindow(QMainWindow):
     def on_mean_action_triggered(self):
         self.on_aggregation_requested("mean")
 
-    @print_args
     def add_treeview(self, id_: int, name: str, output_type: str, models: Dict[str, ViewModel]):
         """ Add processed data into tab widget corresponding to file type. """
         output_types = {
@@ -730,7 +728,6 @@ class MainWindow(QMainWindow):
             proxy_units=self.units_line_edit.text(),
         )
 
-    @print_args
     def on_stacked_widget_change_requested(self, index: int) -> None:
         """ Show tab widget corresponding to the given radio button. """
         Settings.OUTPUTS_INDEX = index
@@ -741,7 +738,6 @@ class MainWindow(QMainWindow):
         self.update_table_actions()
         self.update_view_actions()
 
-    @print_args
     def _on_first_tab_added(self, treeview: TreeView):
         table_names = treeview.table_names
         table_name = table_names[0]
@@ -753,7 +749,6 @@ class MainWindow(QMainWindow):
             tree = self.tree_act.isChecked()
             mask.set_table(table_name, tree, **Settings.get_units())
 
-    @print_args
     def _on_tab_changed(self, previous_treeview: TreeView, treeview: TreeView):
         if previous_treeview.current_table_name in treeview.table_names:
             table_name = previous_treeview.current_table_name
@@ -771,7 +766,6 @@ class MainWindow(QMainWindow):
             tree = self.tree_act.isChecked()
             mask.set_table(table_name, tree, **Settings.get_units())
 
-    @print_args
     def update_view_actions(self):
         if self.current_view is None:
             self.remove_variables_act.setEnabled(False)
@@ -782,7 +776,6 @@ class MainWindow(QMainWindow):
                 table_names=self.current_view.table_names, selected=self.current_model.name
             )
 
-    @print_args
     def update_file_actions(self):
         if self.current_tab_widget.count() > 1:
             self.toolbar.all_files_toggle.setEnabled(True)
@@ -791,7 +784,6 @@ class MainWindow(QMainWindow):
             self.toolbar.all_files_toggle.setEnabled(False)
             self.close_all_act.setEnabled(False)
 
-    @print_args
     def update_table_actions(self):
         """ Update toolbar actions to match current table selection. """
         if self.current_view is None:
@@ -806,7 +798,6 @@ class MainWindow(QMainWindow):
             self.collapse_all_act.setEnabled(allow_tree)
             self.toolbar.enable_rate_to_energy(self.current_model.allow_rate_to_energy)
 
-    @print_args
     def on_tab_changed(self, tab_widget: TabWidget, previous_index: int, index: int) -> None:
         if tab_widget is self.current_tab_widget:
             if index == -1:
@@ -822,7 +813,6 @@ class MainWindow(QMainWindow):
             self.update_table_actions()
             self.update_view_actions()
 
-    @print_args
     def on_table_change_requested(self, table_name: str):
         """ Change table on a current model. """
         Settings.TABLE_NAME = table_name
@@ -843,7 +833,6 @@ class MainWindow(QMainWindow):
                 names.append(tab_widget.tabText(i))
         return names
 
-    @print_args
     def on_tab_bar_double_clicked(self, tab_widget: TabWidget, tab_index: int):
         name = tab_widget.tabText(tab_index)
         names = set(self.get_all_tab_names())
@@ -853,7 +842,6 @@ class MainWindow(QMainWindow):
             tab_widget.setTabText(tab_index, new_name)
             self.fileRenameRequested.emit(id_, new_name)
 
-    @print_args
     def on_tab_close_requested(self, tab_widget: TabWidget, tab_index: int):
         treeview = tab_widget.widget(tab_index)
         name = tab_widget.tabText(tab_index)
