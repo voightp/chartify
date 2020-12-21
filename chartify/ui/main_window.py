@@ -37,7 +37,7 @@ from chartify.ui.drop_frame import DropFrame
 from chartify.ui.progress_widget import ProgressContainer
 from chartify.ui.tab_widget import TabWidget
 from chartify.ui.toolbar import Toolbar
-from chartify.ui.treeview import TreeView, ViewMask, SIMPLE
+from chartify.ui.treeview import TreeView, ViewMask, ViewType
 from chartify.ui.treeview_model import ViewModel, is_variable_attr_identical
 from chartify.utils.css_theme import Palette, CssParser
 from chartify.utils.icon_painter import Pixmap, draw_filled_circle_icon
@@ -563,8 +563,8 @@ class MainWindow(QMainWindow):
             res = self.confirm_rename_variable(old_key, old_type, key_blocker, type_blocker)
 
         if res is not None:
-            key = res if treeview.view_type == SIMPLE else res[0]
-            type_ = None if treeview.view_type == SIMPLE else res[1]
+            key = res if treeview.view_type is ViewType.SIMPLE else res[0]
+            type_ = None if treeview.view_type is ViewType.SIMPLE else res[1]
             units = old_variable_data.units
             new_variable_data = VariableData(key=key, type=type_, units=units)
             treeview.update_variable(row, parent_index, new_variable_data)
@@ -581,7 +581,7 @@ class MainWindow(QMainWindow):
 
     def on_aggregation_requested(self, func: str) -> None:
         if view_variables := self.current_view.get_selected_variable_data():
-            if self.current_view.view_type == SIMPLE:
+            if self.current_view.view_type is ViewType.SIMPLE:
                 res = self.confirm_aggregate_simple_variables(view_variables, func)
             else:
                 res = self.confirm_aggregate_variables(view_variables, func)

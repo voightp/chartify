@@ -1,4 +1,5 @@
 import contextlib
+from enum import Enum
 from typing import Dict, List, Set, Tuple, Any, Optional, Union
 
 from PySide2.QtCore import (
@@ -28,8 +29,10 @@ from chartify.utils.utils import (
     VariableData,
 )
 
-SIMPLE = "simple"
-TREE = "tree"
+
+class ViewType(Enum):
+    SIMPLE = "simple"
+    TREE = "tree"
 
 
 class TreeView(QTreeView):
@@ -122,7 +125,7 @@ class TreeView(QTreeView):
 
     @property
     def view_type(self) -> str:
-        return SIMPLE if self.source_model.is_simple else TREE
+        return ViewType.SIMPLE if self.source_model.is_simple else ViewType.TREE
 
     @property
     def is_tree(self) -> bool:
@@ -550,24 +553,33 @@ def cache_properties(func):
 class ViewMask:
     _cached = {
         OutputType.STANDARD: {
-            "widths": {SIMPLE: {"fixed": 60,}, TREE: {"fixed": 60, "interactive": 200}},
+            "widths": {
+                ViewType.SIMPLE: {"fixed": 60,},
+                ViewType.TREE: {"fixed": 60, "interactive": 200},
+            },
             "header": {
-                SIMPLE: ("key", "proxy_units", "units"),
-                TREE: ("type", "key", "proxy_units", "units"),
+                ViewType.SIMPLE: ("key", "proxy_units", "units"),
+                ViewType.TREE: ("type", "key", "proxy_units", "units"),
             },
         },
         OutputType.TOTALS: {
-            "widths": {SIMPLE: {"fixed": 60,}, TREE: {"fixed": 60, "interactive": 200}},
+            "widths": {
+                ViewType.SIMPLE: {"fixed": 60,},
+                ViewType.TREE: {"fixed": 60, "interactive": 200},
+            },
             "header": {
-                SIMPLE: ("key", "proxy_units", "units"),
-                TREE: ("type", "key", "proxy_units", "units"),
+                ViewType.SIMPLE: ("key", "proxy_units", "units"),
+                ViewType.TREE: ("type", "key", "proxy_units", "units"),
             },
         },
         OutputType.DIFFERENCE: {
-            "widths": {SIMPLE: {"fixed": 60,}, TREE: {"fixed": 60, "interactive": 200}},
+            "widths": {
+                ViewType.SIMPLE: {"fixed": 60,},
+                ViewType.TREE: {"fixed": 60, "interactive": 200},
+            },
             "header": {
-                SIMPLE: ("key", "proxy_units", "units"),
-                TREE: ("type", "key", "proxy_units", "units"),
+                ViewType.SIMPLE: ("key", "proxy_units", "units"),
+                ViewType.TREE: ("type", "key", "proxy_units", "units"),
             },
         },
     }
@@ -663,7 +675,7 @@ class ViewMask:
     def set_table(self, table_name: str, tree: bool, **kwargs):
         new_model = self.treeview.models[table_name]
         if tree and not new_model.is_simple:
-            tree_node = self._cached[self.treeview.output_type]["header"][TREE][0]
+            tree_node = self._cached[self.treeview.output_type]["header"][ViewType.TREE][0]
         else:
             tree_node = None
         self.treeview.set_model(table_name, tree_node=tree_node, **kwargs)
