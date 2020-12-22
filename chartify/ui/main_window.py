@@ -477,16 +477,11 @@ class MainWindow(QMainWindow):
         )
         self.expand_all_act.setIcon(icon)
 
-    @staticmethod
-    def _create_icons_dir(parent: Path):
-        icons_dir = Path(parent, "icons")
-        shutil.rmtree(icons_dir, ignore_errors=True)
-        icons_dir.mkdir()
-        return icons_dir
-
     def load_css_and_icons(self) -> None:
         """ Update application appearance. """
-        icons_dir = self._create_icons_dir(Settings.APP_TEMP_DIR)
+        icons_dir = Path(Settings.APP_TEMP_DIR, "icons")
+        shutil.rmtree(icons_dir, ignore_errors=True)
+        icons_dir.mkdir()
         css, icon_paths = CssParser.parse_css_files(
             Settings.CSS_DIR, Settings.PALETTE, Settings.SOURCE_ICONS_DIR, icons_dir,
         )

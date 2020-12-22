@@ -1,10 +1,10 @@
 import pathlib
 import tempfile
 from pathlib import Path
-
+from unittest import mock
 import pytest
 from esofile_reader import GenericFile
-from unittest import mock
+
 from chartify.controller.app_controller import AppController
 from chartify.controller.wv_controller import WVController
 from chartify.model.model import AppModel
@@ -58,35 +58,31 @@ def test_tempdir():
 
 @pytest.fixture(scope="function")
 def pretty_mw(qtbot, test_tempdir):
-    app_tempdir = tempfile.TemporaryDirectory(prefix="chartify")
-    Settings.APP_TEMP_DIR = Path(app_tempdir.name)
-    Settings.load_settings_from_json()
-
-    main_window = MainWindow()
-    model = AppModel()
-    wv_controller = WVController(model, main_window.web_view)
-    AppController(model, main_window, wv_controller)
-    qtbot.add_widget(main_window)
-    main_window.show()
-
-    return main_window
+    with tempfile.TemporaryDirectory(prefix="chartify", dir=test_tempdir) as fix_dir:
+        Settings.APP_TEMP_DIR = Path(fix_dir)
+        Settings.load_settings_from_json()
+        main_window = MainWindow()
+        model = AppModel()
+        wv_controller = WVController(model, main_window.web_view)
+        AppController(model, main_window, wv_controller)
+        qtbot.add_widget(main_window)
+        main_window.show()
+        yield main_window
 
 
 @pytest.fixture(scope="function")
 def app_setup(qtbot, test_tempdir):
-    app_tempdir = tempfile.TemporaryDirectory(prefix="chartify")
-    Settings.APP_TEMP_DIR = Path(app_tempdir.name)
-    Settings.load_settings_from_json()
-
-    with mock.patch("tests.test_main.MainWindow.load_css_and_icons"):
-        main_window = MainWindow()
-        model = AppModel()
-        wv_controller = WVController(model, main_window.web_view)
-        controller = AppController(model, main_window, wv_controller)
-        qtbot.add_widget(main_window)
-        main_window.show()
-
-    return model, main_window, controller
+    with tempfile.TemporaryDirectory(prefix="chartify", dir=test_tempdir) as fix_dir:
+        Settings.APP_TEMP_DIR = Path(fix_dir)
+        Settings.load_settings_from_json()
+        with mock.patch("chartify.ui.main_window.MainWindow.load_css_and_icons"):
+            main_window = MainWindow()
+            model = AppModel()
+            wv_controller = WVController(model, main_window.web_view)
+            controller = AppController(model, main_window, wv_controller)
+            qtbot.add_widget(main_window)
+            main_window.show()
+            yield model, main_window, controller
 
 
 @pytest.fixture(scope="function")
