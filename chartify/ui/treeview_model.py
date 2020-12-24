@@ -180,7 +180,7 @@ class ViewModel(QStandardItemModel):
 
     def get_display_data_at_index(self, index: QModelIndex):
         """ Get item displayed text. """
-        if index.parent().isValid():
+        if index.parent().isValid() and index.column() == 0:
             data = self.itemFromIndex(index.parent()).data(Qt.DisplayRole)
         else:
             data = self.itemFromIndex(index).data(Qt.DisplayRole)

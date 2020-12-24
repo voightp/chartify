@@ -124,7 +124,7 @@ class TreeView(QTreeView):
         return self.model()
 
     @property
-    def view_type(self) -> str:
+    def view_type(self) -> ViewType:
         return ViewType.SIMPLE if self.source_model.is_simple else ViewType.TREE
 
     @property
