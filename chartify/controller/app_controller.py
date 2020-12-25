@@ -2,7 +2,7 @@ import os
 import shutil
 from multiprocessing import Manager
 from pathlib import Path
-from typing import List, Callable, Any, Dict, Optional
+from typing import List, Dict, Optional
 
 from PySide2.QtCore import QThreadPool
 from esofile_reader.pqt.parquet_file import ParquetFile
@@ -12,11 +12,10 @@ from chartify.controller.wv_controller import WVController
 from chartify.model.model import AppModel
 from chartify.settings import Settings, OutputType
 from chartify.ui.main_window import MainWindow
-from chartify.ui.treeview import TreeView
 from chartify.ui.treeview_model import ViewModel
 from chartify.utils.process_utils import create_pool, kill_child_processes
 from chartify.utils.progress_logging import ProgressThread
-from chartify.utils.threads import EsoFileWatcher, IterWorker
+from chartify.utils.threads import EsoFileWatcher
 from chartify.utils.utils import get_str_identifier, VariableData
 
 
@@ -128,11 +127,6 @@ class AppController:
         if path:
             self.m.storage.save_as(path.parent, path.stem)
 
-    def update_view_model(self, view: TreeView, scroll_to: Optional[VariableData] = None):
-        """ Force update of a given model. """
-        view.update_model(**Settings.get_units())
-        self.v.update_view_visual(view, scroll_to=scroll_to)
-
     def on_file_processing_requested(self, paths: List[Path]) -> None:
         """ Load new files. """
         for path in paths:
@@ -169,26 +163,6 @@ class AppController:
 
         self.v.add_treeview(file.id_, name, output_type, models)
 
-    def apply_async(self, id_: int, func: Callable, *args, **kwargs) -> Any:
-        """ A wrapper to apply functions to current views. """
-        file = self.m.get_file(id_)
-        # apply function on the current file
-        val = func(file, *args, **kwargs)
-
-        # make sure that appropriate views will be updated
-        views = self.v.all_current_views if Settings.ALL_FILES else [self.v.current_view]
-        for view in views:
-            # TODO set model dirty flags
-            pass
-
-        # apply function to all other widgets asynchronously
-        if Settings.ALL_FILES:
-            other_files = self.m.get_other_files()
-            w = IterWorker(func, other_files, *args, **kwargs)
-            self.thread_pool.start(w)
-
-        return val
-
     def on_file_rename_requested(self, id_: int, name: str) -> None:
         """ Update file name. """
         self.m.rename_file(id_, name)
@@ -196,7 +170,8 @@ class AppController:
     def on_file_remove_requested(self, id_: int) -> None:
         """ Delete file from the database. """
         self.m.delete_file(id_)
-        self.ids.remove(id_)
+        with self.lock:
+            self.ids.remove(id_)
 
     def on_variable_rename_requested(
         self,
