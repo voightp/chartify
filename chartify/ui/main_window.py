@@ -677,31 +677,6 @@ class MainWindow(QMainWindow):
             self.load_css_and_icons()
             self.paletteUpdated.emit()
 
-    def on_selection_populated(self, variables: List[VariableData]):
-        """ Store current selection in main app. """
-        self.remove_variables_act.setEnabled(True)
-
-        # check if variables can be aggregated
-        if len(variables) > 1:
-            units = [var.units for var in variables]
-            if len(set(units)) == 1 or (
-                all_rate_or_energy(units) and self.current_model.allow_rate_to_energy
-            ):
-                self.sum_act.setEnabled(True)
-                self.mean_act.setEnabled(True)
-        else:
-            self.sum_act.setEnabled(False)
-            self.mean_act.setEnabled(False)
-
-        self.selectionChanged.emit(variables)
-
-    def on_selection_cleared(self):
-        """ Handle behaviour when no variables are selected. """
-        self.remove_variables_act.setEnabled(False)
-        self.sum_act.setEnabled(False)
-        self.mean_act.setEnabled(False)
-        self.selectionChanged.emit([])
-
     def on_splitter_moved(self):
         """ Store current splitter position. """
         Settings.SPLIT = self.central_splitter.sizes()
@@ -742,6 +717,7 @@ class MainWindow(QMainWindow):
         self.update_file_actions()
         self.update_table_actions()
         self.update_view_actions()
+        self.update_selection_actions()
 
     def _on_first_tab_added(self, treeview: TreeView):
         table_names = treeview.table_names
@@ -783,14 +759,12 @@ class MainWindow(QMainWindow):
 
     def update_file_actions(self):
         if self.current_tab_widget.count() > 1:
-            self.toolbar.all_files_toggle.setEnabled(True)
             self.close_all_act.setEnabled(True)
         else:
-            self.toolbar.all_files_toggle.setEnabled(False)
             self.close_all_act.setEnabled(False)
 
     def update_table_actions(self):
-        """ Update toolbar actions to match current table selection. """
+        """ Update toolbar actions to match current table. """
         if self.current_view is None:
             self.tree_act.setEnabled(True)
             self.expand_all_act.setEnabled(True)
@@ -802,6 +776,29 @@ class MainWindow(QMainWindow):
             self.expand_all_act.setEnabled(allow_tree)
             self.collapse_all_act.setEnabled(allow_tree)
             self.toolbar.enable_rate_to_energy(self.current_model.allow_rate_to_energy)
+
+    def update_selection_actions(self):
+        """  Update toolbar actions to match current selection. """
+        if self.current_view is not None and (
+            variables := self.current_view.get_selected_variable_data()
+        ):
+            self.remove_variables_act.setEnabled(True)
+
+            # check if variables can be aggregated
+            if len(variables) > 1:
+                units = [var.units for var in variables]
+                if len(set(units)) == 1 or (
+                    all_rate_or_energy(units) and self.current_model.allow_rate_to_energy
+                ):
+                    self.sum_act.setEnabled(True)
+                    self.mean_act.setEnabled(True)
+            else:
+                self.sum_act.setEnabled(False)
+                self.mean_act.setEnabled(False)
+        else:
+            self.remove_variables_act.setEnabled(False)
+            self.sum_act.setEnabled(False)
+            self.mean_act.setEnabled(False)
 
     def on_tab_changed(self, tab_widget: TabWidget, previous_index: int, index: int) -> None:
         if tab_widget is self.current_tab_widget:
@@ -817,6 +814,7 @@ class MainWindow(QMainWindow):
                     self._on_tab_changed(previous_treeview, current_treeview)
             self.update_table_actions()
             self.update_view_actions()
+            self.update_selection_actions()
 
     def on_table_change_requested(self, table_name: str):
         """ Change table on a current model. """
@@ -830,6 +828,17 @@ class MainWindow(QMainWindow):
             tree = self.tree_act.isChecked()
             mask.set_table(table_name, tree, **Settings.get_units())
         self.update_table_actions()
+        self.update_selection_actions()
+
+    def on_selection_populated(self, variables: List[VariableData]):
+        """ Store current selection in main app. """
+        self.update_selection_actions()
+        self.selectionChanged.emit(variables)
+
+    def on_selection_cleared(self):
+        """ Handle behaviour when no variables are selected. """
+        self.update_selection_actions()
+        self.selectionChanged.emit([])
 
     def get_all_tab_names(self):
         names = []

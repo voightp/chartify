@@ -193,7 +193,7 @@ ToggleButton QSlider[isChecked=true] {
 
 ToggleButton QSlider[isEnabled=false] {
     opacity: 0.5;
-    background: PRIMARY_COLOR #50;
+    background: PRIMARY_COLOR #25;
 }
 
 ToggleButton QSlider::groove:horizontal {

@@ -4,6 +4,10 @@ QLabel {
     background: transparent;
 }
 
+QLabel:disabled {
+    color: PRIMARY_TEXT_COLOR#50;
+}
+
 QLabel#filterIcon {
     image: URL(filter_list.png) #SECONDARY_TEXT_COLOR;
     min-width: 20px;

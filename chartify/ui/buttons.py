@@ -126,6 +126,7 @@ class ToggleButton(QFrame):
         else:
             self.slider.setProperty("isChecked", "")
             self.slider.setProperty("isEnabled", False)
+        self.label.setEnabled(enabled)
 
 
 class MenuButton(QToolButton):

@@ -120,13 +120,11 @@ class Toolbar(QFrame):
         self.all_files_toggle = ToggleButton(self)
         self.all_files_toggle.setText("All files")
         self.all_files_toggle.setChecked(Settings.ALL_FILES)
-        self.all_files_toggle.setEnabled(True)
         tools_layout.addWidget(self.all_files_toggle, 2, 0, 1, 2)
 
         self.all_tables_toggle = ToggleButton(self)
         self.all_tables_toggle.setText("All tables")
         self.all_tables_toggle.setChecked(Settings.ALL_TABLES)
-        self.all_tables_toggle.setEnabled(True)
         tools_layout.addWidget(self.all_tables_toggle, 3, 0, 1, 2)
 
         self.layout.addWidget(self.tools_group)
