@@ -366,13 +366,6 @@ class MainWindow(QMainWindow):
         return self.current_view.source_model
 
     @property
-    def all_current_views(self) -> List[TreeView]:
-        """ All tabs content. """
-        return [
-            self.current_tab_widget.widget(i) for i in range(self.current_tab_widget.count())
-        ]
-
-    @property
     def tab_widgets(self) -> List[TabWidget]:
         return [self.standard_tab_wgt, self.totals_tab_wgt, self.diff_tab_wgt]
 
@@ -384,6 +377,7 @@ class MainWindow(QMainWindow):
         if self._CLOSE_FLAG:
             Settings.SIZE = (self.width(), self.height())
             Settings.POSITION = (self.x(), self.y())
+            Settings.SPLIT = self.central_splitter.sizes()
             event.accept()
         else:
             event.ignore()
@@ -631,11 +625,11 @@ class MainWindow(QMainWindow):
             parent=self,
             caption="Save project",
             filter=f"CFS (*{ParquetStorage.EXT})",
-            dir=Settings.SAVE_PATH,
+            dir=str(Settings.SAVE_PATH) if Settings.SAVE_PATH else None,
         )
         if path:
             path = Path(path)
-            Settings.SAVE_PATH = str(path.parent)
+            Settings.SAVE_PATH = path.parent
             return path
 
     def load_files_from_paths_synchronously(self, paths: List[Union[str, Path]]):
@@ -677,15 +671,10 @@ class MainWindow(QMainWindow):
             self.load_css_and_icons()
             self.paletteUpdated.emit()
 
-    def on_splitter_moved(self):
-        """ Store current splitter position. """
-        Settings.SPLIT = self.central_splitter.sizes()
-
     def connect_ui_signals(self):
         """ Create actions which depend on user actions """
         # ~~~~ Widget Signals ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.left_main_wgt.fileDropped.connect(self.fileProcessingRequested.emit)
-        self.central_splitter.splitterMoved.connect(self.on_splitter_moved)
 
         # ~~~~ Actions Signals ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.load_file_act.triggered.connect(self.load_files_from_fs)
@@ -783,8 +772,6 @@ class MainWindow(QMainWindow):
             variables := self.current_view.get_selected_variable_data()
         ):
             self.remove_variables_act.setEnabled(True)
-
-            # check if variables can be aggregated
             if len(variables) > 1:
                 units = [var.units for var in variables]
                 if len(set(units)) == 1 or (
@@ -873,11 +860,9 @@ class MainWindow(QMainWindow):
             tab_widget.tabRenameRequested.connect(self.on_tab_bar_double_clicked)
 
     def on_all_files_toggled(self, checked: bool):
-        """ Request view update when totals requested. """
         Settings.ALL_FILES = checked
 
     def on_all_tables_toggled(self, checked: bool):
-        """ Request view update when totals requested. """
         Settings.ALL_TABLES = checked
 
     def update_units(self) -> None:
