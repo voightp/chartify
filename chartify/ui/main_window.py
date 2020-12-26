@@ -1019,7 +1019,7 @@ class MainWindow(QMainWindow):
         self, view_variables: List[VariableData], func_name: str
     ) -> Optional[str]:
         if is_variable_attr_identical(view_variables, KEY_LEVEL):
-            key = f"{variables[0].key} - {func_name}"
+            key = f"{view_variables[0].key} - {func_name}"
         else:
             key = f"Custom Key - {func_name}"
 
