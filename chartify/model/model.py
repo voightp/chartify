@@ -3,7 +3,6 @@ from typing import List, Union
 
 import pandas as pd
 from PySide2.QtCore import QObject
-from esofile_reader import get_results
 from esofile_reader.pqt.parquet_file import ParquetFile
 from esofile_reader.pqt.parquet_storage import ParquetStorage
 
@@ -84,26 +83,6 @@ class AppModel(QObject):
     def rename_file(self, id_: int, name: str):
         """ Rename given file. """
         self.storage.files[id_].rename(name)
-
-    def get_results(self, **kwargs) -> pd.DataFrame:
-        """ Get output values for given variables. """
-        if Settings.ALL_FILES:
-            files = self.storage.files.values()
-        else:
-            files = self.storage.files[Settings.CURRENT_FILE_ID]
-
-        args = (files, self.selected_variables)
-        kwargs = {
-            "rate_units": Settings.POWER_UNITS,
-            "energy_units": Settings.ENERGY_UNITS,
-            "add_file_name": "column",
-            "rate_to_energy": Settings.RATE_TO_ENERGY,
-            "include_table_name": True,
-            "include_id": False,
-            **kwargs,
-        }
-
-        return get_results(*args, **kwargs)
 
     def fetch_all_components(self):
         """ Get all components. """

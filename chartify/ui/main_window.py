@@ -5,6 +5,7 @@ from functools import partial
 from pathlib import Path
 from typing import Optional, Tuple, List, Dict, Union, Set
 
+import pandas as pd
 from PySide2.QtCore import QSize, Qt, QCoreApplication, Signal, QPoint, QTimer, QModelIndex
 from PySide2.QtGui import QIcon, QKeySequence, QColor
 from PySide2.QtWebEngineWidgets import QWebEngineView
@@ -378,6 +379,8 @@ class MainWindow(QMainWindow):
             Settings.SIZE = (self.width(), self.height())
             Settings.POSITION = (self.x(), self.y())
             Settings.SPLIT = self.central_splitter.sizes()
+            Settings.ALL_FILES = self.toolbar.all_files_toggle.isChecked()
+            Settings.ALL_TABLES = self.toolbar.all_tables_toggle.isChecked()
             event.accept()
         else:
             event.ignore()
@@ -585,6 +588,16 @@ class MainWindow(QMainWindow):
                     self.aggregationRequested.emit(
                         models, func, view_variables, new_key, new_type
                     )
+
+    def fetch_results(self) -> pd.DataFrame:
+        if view_variables := self.current_view.get_selected_variable_data():
+            models = self.get_all_models()
+            frames = []
+            for model in models:
+                df = model.get_results(view_variables, **Settings.get_units())
+                if df is not None:
+                    frames.append(df)
+            return pd.concat(frames, axis=1, sort=False)
 
     def on_sum_action_triggered(self):
         self.on_aggregation_requested("sum")
@@ -859,12 +872,6 @@ class MainWindow(QMainWindow):
             tab_widget.currentTabChanged.connect(self.on_tab_changed)
             tab_widget.tabRenameRequested.connect(self.on_tab_bar_double_clicked)
 
-    def on_all_files_toggled(self, checked: bool):
-        Settings.ALL_FILES = checked
-
-    def on_all_tables_toggled(self, checked: bool):
-        Settings.ALL_TABLES = checked
-
     def update_units(self) -> None:
         """ Update units on a current view if current tab widget contains one. """
         if self.current_view:
@@ -880,10 +887,10 @@ class MainWindow(QMainWindow):
             self.current_view.hide_section(UNITS_LEVEL, not checked)
 
     def on_custom_units_toggled(
-        self, energy_units: str, power_units: str, units_system: str, rate_to_energy: bool
+        self, energy_units: str, rate_units: str, units_system: str, rate_to_energy: bool
     ):
         Settings.ENERGY_UNITS = energy_units
-        Settings.POWER_UNITS = power_units
+        Settings.RATE_UNITS = rate_units
         Settings.UNITS_SYSTEM = units_system
         # model could have been changed prior to custom units toggle
         # so rate to energy conversion may not be applicable
@@ -902,21 +909,19 @@ class MainWindow(QMainWindow):
 
     def on_power_units_changed(self, act: QAction):
         if act.data() != self.toolbar.power_btn.data():
-            Settings.POWER_UNITS = act.data()
+            Settings.RATE_UNITS = act.data()
             self.update_units()
 
     def on_units_system_changed(self, act: QAction):
         if act.data() != self.toolbar.units_system_button.data():
             Settings.UNITS_SYSTEM = act.data()
             self.toolbar.filter_energy_power_units(act.data())
-            Settings.POWER_UNITS = self.toolbar.power_btn.data()
+            Settings.RATE_UNITS = self.toolbar.power_btn.data()
             Settings.ENERGY_UNITS = self.toolbar.energy_btn.data()
             self.update_units()
 
     def connect_toolbar_signals(self):
         # ~~~~ Toolbar Signals ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.toolbar.all_files_toggle.stateChanged.connect(self.on_all_files_toggled)
-        self.toolbar.all_tables_toggle.stateChanged.connect(self.on_all_tables_toggled)
         self.toolbar.tableChangeRequested.connect(self.on_table_change_requested)
         self.toolbar.tabWidgetChangeRequested.connect(self.on_stacked_widget_change_requested)
         self.toolbar.customUnitsToggled.connect(self.on_custom_units_toggled)
@@ -946,7 +951,7 @@ class MainWindow(QMainWindow):
     def on_filter_timeout(self):
         """ Apply a filter when the filter text is edited. """
         filter_tuple = self.get_filter_tuple()
-        if not self.current_tab_widget.is_empty():
+        if self.current_view is not None:
             self.current_view.filter_view(filter_tuple)
 
     def connect_view_tools_signals(self):
@@ -972,11 +977,13 @@ class MainWindow(QMainWindow):
         """ Get information on function application based on current settings. """
         table_name = self.current_view.current_table_name
         file_name = self.current_tab_widget.name
-        if Settings.ALL_FILES and Settings.ALL_TABLES:
+        all_files = self.toolbar.all_files_toggle.isChecked()
+        all_tables = self.toolbar.all_tables_toggle.isChecked()
+        if all_files and all_tables:
             text = "all files and all tables"
-        elif Settings.ALL_FILES:
+        elif all_files:
             text = f"table '{table_name}', all files"
-        elif Settings.ALL_TABLES:
+        elif all_tables:
             text = f"all tables, file '{file_name}'"
         else:
             text = f"table '{table_name}', file '{file_name}'"

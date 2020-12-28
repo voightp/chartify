@@ -48,7 +48,7 @@ class Settings:
     CURRENT_FILE_ID = None
 
     ENERGY_UNITS = None
-    POWER_UNITS = None
+    RATE_UNITS = None
     UNITS_SYSTEM = None
     RATE_TO_ENERGY = None
     CUSTOM_UNITS = None
@@ -92,7 +92,7 @@ class Settings:
     def get_units(cls):
         return {
             "energy_units": cls.ENERGY_UNITS,
-            "power_units": cls.POWER_UNITS,
+            "rate_units": cls.RATE_UNITS,
             "units_system": cls.UNITS_SYSTEM,
             "rate_to_energy": cls.RATE_TO_ENERGY,
         }

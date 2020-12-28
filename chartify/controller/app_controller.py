@@ -4,6 +4,7 @@ from multiprocessing import Manager
 from pathlib import Path
 from typing import List, Dict, Optional
 
+import pandas as pd
 from PySide2.QtCore import QThreadPool
 from esofile_reader.pqt.parquet_file import ParquetFile
 

@@ -10,6 +10,7 @@ from PySide2.QtCore import (
     QSortFilterProxyModel,
 )
 from PySide2.QtGui import QStandardItemModel, QStandardItem
+from esofile_reader import get_results
 from esofile_reader.convertor import can_convert_rate_to_energy, create_conversion_dict
 from esofile_reader.df.level_names import (
     KEY_LEVEL,
@@ -19,6 +20,7 @@ from esofile_reader.df.level_names import (
     TABLE_LEVEL,
 )
 from esofile_reader.exceptions import CannotAggregateVariables
+from esofile_reader.results_processing.table_formatter import TableFormatter
 from esofile_reader.typehints import ResultsFileType, Variable, SimpleVariable, VariableType
 
 from chartify.utils.utils import VariableData, FilterTuple
@@ -86,7 +88,7 @@ class ViewModel(QStandardItemModel):
         Current view units system {SI, IP}.
     energy_units : str
         Used energy units.
-    power_units : str
+    rate_units : str
         Used power units.
     dirty : bool
         Check if model needs to be updated.
@@ -108,7 +110,7 @@ class ViewModel(QStandardItemModel):
         self.rate_to_energy = False
         self.units_system = "SI"
         self.energy_units = "J"
-        self.power_units = "W"
+        self.rate_units = "W"
         self.dirty = False
         self.scroll_position = 0
         self.expanded = set()
@@ -146,7 +148,7 @@ class ViewModel(QStandardItemModel):
         rate_to_energy: bool,
         units_system: str,
         energy_units: str,
-        power_units: str,
+        rate_units: str,
     ) -> pd.Series:
         """ Convert original units as defined by given parameters. """
         intermediate_units = source_units.copy()
@@ -156,7 +158,7 @@ class ViewModel(QStandardItemModel):
         conversion_dict = create_conversion_dict(
             intermediate_units,
             units_system=units_system,
-            rate_units=power_units,
+            rate_units=rate_units,
             energy_units=energy_units,
         )
         # no units are displayed as dash
@@ -248,6 +250,8 @@ class ViewModel(QStandardItemModel):
     def get_matching_selection(self, variables: List[VariableData]) -> QItemSelection:
         """ Find selection matching given list of variables. """
 
+        # TODO use native functions to find selection
+
         def tree_node_matches():
             if self.tree_node == PROXY_UNITS_LEVEL:
                 # proxy units are not stored in variable data
@@ -330,7 +334,7 @@ class ViewModel(QStandardItemModel):
         return status_tip
 
     def create_tree_compatible_header_df(
-        self, rate_to_energy: bool, units_system: str, energy_units: str, power_units: str,
+        self, rate_to_energy: bool, units_system: str, energy_units: str, rate_units: str,
     ) -> pd.DataFrame:
         """ Process variables header DataFrame to be compatible with treeview model. """
         # id and table data are not required
@@ -342,7 +346,7 @@ class ViewModel(QStandardItemModel):
             rate_to_energy=rate_to_energy,
             units_system=units_system,
             energy_units=energy_units,
-            power_units=power_units,
+            rate_units=rate_units,
         )
         if self.tree_node:
             # tree column needs to be first
@@ -371,9 +375,10 @@ class ViewModel(QStandardItemModel):
         rate_to_energy: bool = False,
         units_system: str = "SI",
         energy_units: str = "J",
-        power_units: str = "W",
+        rate_units: str = "W",
     ) -> None:
         """  Create a model and set up its appearance. """
+        # TODO rename method
         # make sure that model is empty
         if self.rowCount() > 0:
             self.clear()
@@ -386,13 +391,13 @@ class ViewModel(QStandardItemModel):
         self.rate_to_energy = rate_to_energy
         self.units_system = units_system
         self.energy_units = energy_units
-        self.power_units = power_units
+        self.rate_units = rate_units
         self.dirty = False
         header_df = self.create_tree_compatible_header_df(
             rate_to_energy=rate_to_energy,
             units_system=units_system,
             energy_units=energy_units,
-            power_units=power_units,
+            rate_units=rate_units,
         )
         self.set_column_header_item_data(header_df.columns.tolist())
         if self.tree_node:
@@ -405,7 +410,7 @@ class ViewModel(QStandardItemModel):
         rate_to_energy: bool = False,
         units_system: str = "SI",
         energy_units: str = "J",
-        power_units: str = "W",
+        rate_units: str = "W",
     ) -> Dict[str, str]:
         source_units = self.header_df[UNITS_LEVEL]
         proxy_units = self.create_proxy_units_column(
@@ -413,7 +418,7 @@ class ViewModel(QStandardItemModel):
             rate_to_energy=rate_to_energy,
             units_system=units_system,
             energy_units=energy_units,
-            power_units=power_units,
+            rate_units=rate_units,
         )
         df = pd.concat([source_units, proxy_units], axis=1)
         # create look up dictionary with source units as keys and proxy units as values
@@ -485,17 +490,17 @@ class ViewModel(QStandardItemModel):
         rate_to_energy: bool = False,
         units_system: str = "SI",
         energy_units: str = "J",
-        power_units: str = "W",
+        rate_units: str = "W",
     ):
         """ Update proxy units column. """
         rate_to_energy = rate_to_energy if self.allow_rate_to_energy else False
         self.rate_to_energy = rate_to_energy
         self.units_system = units_system
         self.energy_units = energy_units
-        self.power_units = power_units
+        self.rate_units = rate_units
 
         conversion_look_up = self.create_conversion_look_up_table(
-            rate_to_energy, units_system, energy_units, power_units
+            rate_to_energy, units_system, energy_units, rate_units
         )
         if self.tree_node == PROXY_UNITS_LEVEL:
             self.update_proxy_units_parent_column(conversion_look_up)
@@ -530,7 +535,7 @@ class ViewModel(QStandardItemModel):
             rate_to_energy=self.rate_to_energy,
             units_system=self.units_system,
             energy_units=self.energy_units,
-            power_units=self.power_units,
+            rate_units=self.rate_units,
         ).iloc[0]
         unordered_items = {**variable_data._asdict(), PROXY_UNITS_LEVEL: proxy_units}
         if self.is_simple:
@@ -622,6 +627,32 @@ class ViewModel(QStandardItemModel):
             view_variable = convert_variable_to_view_variable(variable)
             self._append_row(view_variable)
             return view_variable
+
+    def get_results(
+        self,
+        view_variables: List[VariableData],
+        units_system: str,
+        rate_units: str,
+        energy_units: str,
+        rate_to_energy: bool,
+    ) -> pd.DataFrame:
+        variables = convert_view_variables_to_variables(view_variables, self.name)
+        formatter = TableFormatter(
+            file_name_position="column",
+            include_table_name=True,
+            include_day=False,
+            include_id=False,
+            timestamp_format="default",
+        )
+        return get_results(
+            self._file_ref,
+            variables,
+            units_system=units_system,
+            rate_units=rate_units,
+            energy_units=energy_units,
+            rate_to_energy=rate_to_energy,
+            table_formatter=formatter,
+        )
 
 
 class FilterModel(QSortFilterProxyModel):

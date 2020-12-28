@@ -435,7 +435,7 @@ def test_set_model(tree_view: TreeView):
     tree_view.set_model("daily")
     assert tree_view.source_model.name == "daily"
     assert tree_view.source_model.energy_units == "J"
-    assert tree_view.source_model.power_units == "W"
+    assert tree_view.source_model.rate_units == "W"
     assert tree_view.source_model.units_system == "SI"
     assert not tree_view.source_model.rate_to_energy
     assert tree_view.source_model.tree_node == "type"
@@ -444,14 +444,14 @@ def test_set_model(tree_view: TreeView):
 def test_set_and_update_model(tree_view: TreeView, daily_df: pd.DataFrame):
     units = {
         "energy_units": "J",
-        "power_units": "MW",
+        "rate_units": "MW",
         "rate_to_energy": True,
         "units_system": "IP",
     }
     tree_view.set_and_update_model(daily_df, "daily", tree_node="key", **units)
     assert tree_view.source_model.name == "daily"
     assert tree_view.source_model.energy_units == "J"
-    assert tree_view.source_model.power_units == "MW"
+    assert tree_view.source_model.rate_units == "MW"
     assert tree_view.source_model.units_system == "IP"
     assert tree_view.source_model.rate_to_energy
     assert tree_view.source_model.tree_node == "key"
@@ -460,14 +460,14 @@ def test_set_and_update_model(tree_view: TreeView, daily_df: pd.DataFrame):
 def test_update_model(tree_view: TreeView, hourly_df: pd.DataFrame):
     units = {
         "energy_units": "J",
-        "power_units": "MW",
+        "rate_units": "MW",
         "rate_to_energy": True,
         "units_system": "IP",
     }
     tree_view.update_model(hourly_df, tree_node="key", **units)
     assert tree_view.source_model.name == "hourly"
     assert tree_view.source_model.energy_units == "J"
-    assert tree_view.source_model.power_units == "MW"
+    assert tree_view.source_model.rate_units == "MW"
     assert tree_view.source_model.units_system == "IP"
     assert tree_view.source_model.rate_to_energy
     assert tree_view.source_model.tree_node == "key"
@@ -476,14 +476,14 @@ def test_update_model(tree_view: TreeView, hourly_df: pd.DataFrame):
 def test_update_units(tree_view: TreeView, hourly_df: pd.DataFrame):
     units = {
         "energy_units": "J",
-        "power_units": "MW",
+        "rate_units": "MW",
         "rate_to_energy": True,
         "units_system": "IP",
     }
     tree_view.update_units(hourly_df[UNITS_LEVEL], **units)
     assert tree_view.source_model.name == "hourly"
     assert tree_view.source_model.energy_units == "J"
-    assert tree_view.source_model.power_units == "MW"
+    assert tree_view.source_model.rate_units == "MW"
     assert tree_view.source_model.units_system == "IP"
     assert tree_view.source_model.rate_to_energy
     assert tree_view.source_model.tree_node == "type"
@@ -492,7 +492,7 @@ def test_update_units(tree_view: TreeView, hourly_df: pd.DataFrame):
 def test_update_units_proxy_tree_node(tree_view: TreeView, hourly_df: pd.DataFrame):
     units = {
         "energy_units": "J",
-        "power_units": "MW",
+        "rate_units": "MW",
         "rate_to_energy": True,
         "units_system": "IP",
     }
@@ -500,7 +500,7 @@ def test_update_units_proxy_tree_node(tree_view: TreeView, hourly_df: pd.DataFra
     tree_view.update_units(hourly_df[UNITS_LEVEL], **units)
     assert tree_view.source_model.name == "hourly"
     assert tree_view.source_model.energy_units == "J"
-    assert tree_view.source_model.power_units == "MW"
+    assert tree_view.source_model.rate_units == "MW"
     assert tree_view.source_model.units_system == "IP"
     assert tree_view.source_model.rate_to_energy
     assert tree_view.source_model.tree_node == "units"

@@ -9,7 +9,7 @@
   "MIRRORED": false,
   "PALETTE_NAME": "default",
   "POSITION": [50, 50],
-  "POWER_UNITS": "kW",
+  "RATE_UNITS": "kW",
   "RATE_TO_ENERGY": false,
   "SAVE_PATH": "",
   "SIZE": [1200, 800],

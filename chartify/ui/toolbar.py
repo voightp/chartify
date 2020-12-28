@@ -33,7 +33,7 @@ class Toolbar(QFrame):
         super().__init__(*args, **kwargs)
         self.temp_settings = {
             "energy_units": Settings.ENERGY_UNITS,
-            "power_units": Settings.POWER_UNITS,
+            "rate_units": Settings.RATE_UNITS,
             "units_system": Settings.UNITS_SYSTEM,
             "rate_to_energy": Settings.RATE_TO_ENERGY,
         }
@@ -223,7 +223,7 @@ class Toolbar(QFrame):
 
         # ~~~~ Power units set up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         items = list(dict.fromkeys(Settings.SI_POWER_UNITS + Settings.IP_POWER_UNITS))
-        actions, default_action = create_actions(items, Settings.POWER_UNITS)
+        actions, default_action = create_actions(items, Settings.RATE_UNITS)
 
         power_menu = QMenu(self)
         power_menu.setWindowFlags(QMenu().windowFlags() | Qt.NoDropShadowWindowHint)
@@ -276,12 +276,12 @@ class Toolbar(QFrame):
             rate_to_energy = False
             # store original settings
             self.temp_settings["energy_units"] = self.energy_btn.data()
-            self.temp_settings["power_units"] = self.power_btn.data()
+            self.temp_settings["rate_units"] = self.power_btn.data()
             self.temp_settings["units_system"] = self.units_system_button.data()
             self.temp_settings["rate_to_energy"] = self.rate_energy_btn.isChecked()
         else:
             energy = self.temp_settings["energy_units"]
-            power = self.temp_settings["power_units"]
+            power = self.temp_settings["rate_units"]
             units_system = self.temp_settings["units_system"]
             rate_to_energy = self.temp_settings["rate_to_energy"]
 

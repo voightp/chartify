@@ -2,6 +2,7 @@ import contextlib
 from enum import Enum
 from typing import Dict, List, Set, Tuple, Any, Optional, Union
 
+import pandas as pd
 from PySide2.QtCore import (
     QMimeData,
     QEvent,
@@ -350,11 +351,11 @@ class TreeView(QTreeView):
         rate_to_energy: bool,
         units_system: str,
         energy_units: str,
-        power_units: str,
+        rate_units: str,
     ) -> None:
         """ Assign new model. """
         model = self.models[table_name]
-        model.populate_model(tree_node, rate_to_energy, units_system, energy_units, power_units)
+        model.populate_model(tree_node, rate_to_energy, units_system, energy_units, rate_units)
         with SignalBlocker(self.verticalScrollBar()):
             self.proxy_model.setSourceModel(model)
 
@@ -364,11 +365,11 @@ class TreeView(QTreeView):
         rate_to_energy: bool,
         units_system: str,
         energy_units: str,
-        power_units: str,
+        rate_units: str,
     ) -> None:
         """ Update tree view model. """
         self.source_model.populate_model(
-            tree_node, rate_to_energy, units_system, energy_units, power_units
+            tree_node, rate_to_energy, units_system, energy_units, rate_units
         )
 
     def update_units(self, **kwargs) -> None:

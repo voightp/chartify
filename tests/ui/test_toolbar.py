@@ -1,6 +1,5 @@
 from unittest.mock import patch
 
-from PySide2.QtCore import Qt
 from PySide2.QtWidgets import QAction
 
 from tests.fixtures import *
@@ -23,12 +22,6 @@ def test_table_change(eso_file_mw, qtbot):
     for button in buttons:
         qtbot.mouseClick(button, Qt.LeftButton)
         assert eso_file_mw.current_model is eso_file_mw.current_view.models[button.text()]
-
-
-def test_table_change_requested(mw):
-    with patch("chartify.ui.main_window.MainWindow.on_table_change_requested") as func_mock:
-        mw.toolbar.tableChangeRequested.emit("test")
-        func_mock.assert_called_once_with("test")
 
 
 def test_on_rate_energy_btn_checked(qtbot, mw):

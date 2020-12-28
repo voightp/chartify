@@ -24,32 +24,32 @@ ESO_FILE_ALL_INTERVALS_PATH = Path(TEST_FILES, "eplusout_all_intervals.eso")
 EXCEL_FILE_PATH = Path(TEST_FILES, "test_excel_results.xlsx")
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="class")
 def excel_file():
     return GenericFile.from_excel(EXCEL_FILE_PATH)
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="class")
 def eso_file1():
     return GenericFile.from_eplus_file(ESO_FILE1_PATH)
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="class")
 def eso_file2():
     return GenericFile.from_eplus_file(ESO_FILE2_PATH)
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="class")
 def eso_file_all_intervals():
     return GenericFile.from_eplus_file(ESO_FILE_ALL_INTERVALS_PATH)
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="class")
 def diff_file(eso_file1, eso_file_all_intervals):
     return GenericFile.from_diff(eso_file1, eso_file_all_intervals)
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="class")
 def totals_file(eso_file1, eso_file_all_intervals):
     return GenericFile.from_totals(eso_file1)
 
