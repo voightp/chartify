@@ -28,6 +28,10 @@ from chartify.utils.utils import VariableData, FilterTuple
 PROXY_UNITS_LEVEL = "proxy_units"
 
 
+def stringify_view_variable(view_variable: VariableData) -> str:
+    return " | ".join([v for v in view_variable if v is not None])
+
+
 def convert_variable_data_to_variable(
     variable_data: VariableData, table_name: str
 ) -> VariableType:
@@ -61,6 +65,12 @@ def is_variable_attr_identical(view_variables: List[VariableData], attr: str) ->
     """ Check if all variables use the same attribute text. """
     first_attr = view_variables[0].__getattribute__(attr)
     return all(map(lambda x: x.__getattribute__(attr) == first_attr, view_variables))
+
+
+class FileModelMismatch(Exception):
+    """ Raised when variable is included in file but not in view or vice versa. """
+
+    pass
 
 
 class ViewModel(QStandardItemModel):
@@ -653,6 +663,23 @@ class ViewModel(QStandardItemModel):
             rate_to_energy=rate_to_energy,
             table_formatter=formatter,
         )
+
+    def variable_exists(self, view_variable: VariableType) -> bool:
+        """ Check if given variable exists in reference model and view. """
+        ui_check = bool(self.get_matching_selection([view_variable]).indexes())
+        variable = convert_variable_data_to_variable(view_variable, self.name)
+        file_check = self._file_ref.search_tree.variable_exists(variable)
+        if ui_check is file_check:
+            return ui_check
+        else:
+            raise FileModelMismatch(
+                f"Variable '{variable}' is included in {'view model' if ui_check else 'file'}"
+                f" but not in  {'file' if ui_check else 'view model'}."
+            )
+
+    def variables_exist(self, view_variables: List[VariableType]) -> List[bool]:
+        """ Check if given variables exists in reference model and view. """
+        return [self.variable_exists(v) for v in view_variables]
 
 
 class FilterModel(QSortFilterProxyModel):

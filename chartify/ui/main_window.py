@@ -39,7 +39,11 @@ from chartify.ui.progress_widget import ProgressContainer
 from chartify.ui.tab_widget import TabWidget
 from chartify.ui.toolbar import Toolbar
 from chartify.ui.treeview import TreeView, ViewMask, ViewType
-from chartify.ui.treeview_model import ViewModel, is_variable_attr_identical
+from chartify.ui.treeview_model import (
+    ViewModel,
+    is_variable_attr_identical,
+    stringify_view_variable,
+)
 from chartify.utils.css_theme import Palette, CssParser
 from chartify.utils.icon_painter import Pixmap, draw_filled_circle_icon
 from chartify.utils.utils import VariableData, FilterTuple
@@ -503,17 +507,21 @@ class MainWindow(QMainWindow):
             treeviews = [self.current_view]
         return treeviews
 
+    def filter_models(self, view_models: List[ViewModel]) -> List[ViewModel]:
+        """ Return models of the same type (SIMPLE, TREE) as the current one. """
+        return [m for m in view_models if m.is_simple is self.current_model.is_simple]
+
     def get_all_models(self) -> List[ViewModel]:
         """ Gather models based on toolbar settings. """
         models = []
         if self.toolbar.all_tables_toggle.isChecked():
             for treeview in self.get_all_treeviews():
-                models.extend(treeview.all_view_models)
+                models.extend(self.filter_models(treeview.all_view_models))
         else:
             table_name = self.current_view.current_table_name
             with contextlib.suppress(KeyError):
                 for treeview in self.get_all_treeviews():
-                    models.append(treeview.models[table_name])
+                    models.extend(self.filter_models([treeview.models[table_name]]))
         return models
 
     def get_all_other_models(self) -> List[ViewModel]:
@@ -710,17 +718,6 @@ class MainWindow(QMainWindow):
             proxy_units=self.units_line_edit.text(),
         )
 
-    def on_stacked_widget_change_requested(self, index: int) -> None:
-        """ Show tab widget corresponding to the given radio button. """
-        Settings.OUTPUTS_ENUM = index
-        self.tab_stacked_widget.setCurrentIndex(index)
-        if self.current_view is not None and self.current_model is None:
-            self._on_first_tab_added(self.current_view)
-        self.update_file_actions()
-        self.update_table_actions()
-        self.update_view_actions()
-        self.update_selection_actions()
-
     def _on_first_tab_added(self, treeview: TreeView):
         table_names = treeview.table_names
         table_name = table_names[0]
@@ -731,6 +728,14 @@ class MainWindow(QMainWindow):
         ) as mask:
             tree = self.tree_act.isChecked()
             mask.set_table(table_name, tree, **Settings.get_units())
+
+    def on_stacked_widget_change_requested(self, index: int) -> None:
+        """ Show tab widget corresponding to the given radio button. """
+        Settings.OUTPUTS_ENUM = index
+        self.tab_stacked_widget.setCurrentIndex(index)
+        if self.current_view is not None and self.current_model is None:
+            self._on_first_tab_added(self.current_view)
+        self.update_toolbar_actions()
 
     def _on_tab_changed(self, previous_treeview: TreeView, treeview: TreeView):
         if previous_treeview.current_table_name in treeview.table_names:
@@ -751,7 +756,6 @@ class MainWindow(QMainWindow):
 
     def update_view_actions(self):
         if self.current_view is None:
-            self.remove_variables_act.setEnabled(False)
             self.toolbar.rate_energy_btn.setEnabled(True)
             self.toolbar.update_table_buttons(table_names=[], selected="")
         else:
@@ -760,7 +764,7 @@ class MainWindow(QMainWindow):
             )
 
     def update_file_actions(self):
-        if self.current_tab_widget.count() > 1:
+        if self.current_tab_widget.count() > 0:
             self.close_all_act.setEnabled(True)
         else:
             self.close_all_act.setEnabled(False)
@@ -800,6 +804,12 @@ class MainWindow(QMainWindow):
             self.sum_act.setEnabled(False)
             self.mean_act.setEnabled(False)
 
+    def update_toolbar_actions(self):
+        self.update_file_actions()
+        self.update_table_actions()
+        self.update_view_actions()
+        self.update_selection_actions()
+
     def on_tab_changed(self, tab_widget: TabWidget, previous_index: int, index: int) -> None:
         if tab_widget is self.current_tab_widget:
             if index == -1:
@@ -812,9 +822,7 @@ class MainWindow(QMainWindow):
                 else:
                     previous_treeview = tab_widget.widget(previous_index)
                     self._on_tab_changed(previous_treeview, current_treeview)
-            self.update_table_actions()
-            self.update_view_actions()
-            self.update_selection_actions()
+            self.update_toolbar_actions()
 
     def on_table_change_requested(self, table_name: str):
         """ Change table on a current model. """
@@ -992,7 +1000,7 @@ class MainWindow(QMainWindow):
     def confirm_remove_variables(self, view_variables: List[VariableData],) -> bool:
         """ Remove selected variables. """
         title = f"Delete following variables from {self.get_files_and_tables_text()}: "
-        inf_text = "\n".join([" | ".join(var) for var in view_variables])
+        inf_text = "\n".join([stringify_view_variable(var) for var in view_variables])
         dialog = ConfirmationDialog(self, title, det_text=inf_text)
         return dialog.exec_() == 1
 

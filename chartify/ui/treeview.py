@@ -2,7 +2,6 @@ import contextlib
 from enum import Enum
 from typing import Dict, List, Set, Tuple, Any, Optional, Union
 
-import pandas as pd
 from PySide2.QtCore import (
     QMimeData,
     QEvent,
