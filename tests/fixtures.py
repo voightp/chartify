@@ -21,7 +21,8 @@ ESO_FILE1_PATH = Path(TEST_FILES, "eplusout1.eso")
 ESO_FILE2_PATH = Path(TEST_FILES, "eplusout2.eso")
 ESO_FILE_INCOMPLETE = Path(TEST_FILES, "eplusout_incomplete.eso")
 ESO_FILE_ALL_INTERVALS_PATH = Path(TEST_FILES, "eplusout_all_intervals.eso")
-EXCEL_FILE_PATH = Path(TEST_FILES, "test_excel_results.xlsx")
+EXCEL_FILE_PATH = Path(TEST_FILES, "various_table_types.xlsx")
+ESO_FILE1_EXCEL_PATH = Path(TEST_FILES, "eplusout.xlsx")
 
 
 @pytest.fixture(scope="class")
@@ -37,6 +38,11 @@ def eso_file1():
 @pytest.fixture(scope="class")
 def eso_file2():
     return GenericFile.from_eplus_file(ESO_FILE2_PATH)
+
+
+@pytest.fixture(scope="class")
+def eso_file_excel():
+    return GenericFile.from_excel(ESO_FILE1_EXCEL_PATH)
 
 
 @pytest.fixture(scope="class")
@@ -90,7 +96,7 @@ def app_setup(qtbot, test_tempdir):
 
 
 @pytest.fixture(scope="function")
-def eso_file_mw(mw, excel_file, eso_file1, totals_file, qtbot):
+def mw_esofile(mw, excel_file, eso_file1, totals_file, qtbot):
     models1 = ViewModel.models_from_file(eso_file1, tree_node="type")
     mw.add_treeview(0, eso_file1.file_name, OutputType.STANDARD, models1)
     models2 = ViewModel.models_from_file(excel_file, tree_node="type")
@@ -101,15 +107,15 @@ def eso_file_mw(mw, excel_file, eso_file1, totals_file, qtbot):
 
 
 @pytest.fixture(scope="function")
-def excel_file_mw(mw, excel_file, eso_file1, totals_file, qtbot):
-    models1 = ViewModel.models_from_file(eso_file1, tree_node="type")
-    mw.add_treeview(0, eso_file1.file_name, OutputType.STANDARD, models1)
-    models2 = ViewModel.models_from_file(excel_file, tree_node="type")
-    mw.add_treeview(1, excel_file.file_name, OutputType.STANDARD, models2)
-    models3 = ViewModel.models_from_file(excel_file, tree_node="type")
-    mw.add_treeview(1, totals_file.file_name, OutputType.TOTALS, models3)
-    mw.current_tab_widget.setCurrentIndex(1)
-    qtbot.mouseClick(mw.toolbar.table_buttons[3], Qt.LeftButton)
+def mw_excel_file(mw_esofile, qtbot):
+    qtbot.mouseClick(mw_esofile.toolbar.table_buttons[3], Qt.LeftButton)
+    return mw
+
+
+@pytest.fixture(scope="function")
+def mw_combined_file(mw, eso_file_excel, qtbot):
+    models1 = ViewModel.models_from_file(eso_file_excel, tree_node="type")
+    mw.add_treeview(0, eso_file_excel.file_name, OutputType.STANDARD, models1)
     return mw
 
 

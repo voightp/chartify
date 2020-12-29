@@ -5,25 +5,6 @@ from PySide2.QtWidgets import QAction
 from tests.fixtures import *
 
 
-def test_output_types(mw, qtbot):
-    expected = [mw.standard_tab_wgt, mw.totals_tab_wgt, mw.diff_tab_wgt]
-    buttons = [
-        mw.toolbar.standard_outputs_btn,
-        mw.toolbar.totals_outputs_btn,
-        mw.toolbar.diff_outputs_btn,
-    ]
-    for i in range(mw.tab_stacked_widget.count()):
-        qtbot.mouseClick(buttons[i], Qt.LeftButton)
-        assert mw.current_tab_widget is expected[i]
-
-
-def test_table_change(eso_file_mw, qtbot):
-    buttons = [btn for btn in eso_file_mw.toolbar.table_buttons]
-    for button in buttons:
-        qtbot.mouseClick(button, Qt.LeftButton)
-        assert eso_file_mw.current_model is eso_file_mw.current_view.models[button.text()]
-
-
 def test_on_rate_energy_btn_checked(qtbot, mw):
     with patch("chartify.ui.main_window.Settings") as mock_settings:
         with qtbot.wait_signal(mw.updateModelRequested):
@@ -41,17 +22,17 @@ def test_on_source_units_toggled(mw):
 
 @pytest.mark.parametrize("allow_rate_to_energy,rate_to_energy", [(True, True), (False, False)])
 def test_on_custom_units_toggled(
-    qtbot, eso_file_mw, allow_rate_to_energy: bool, rate_to_energy: bool
+    qtbot, mw_esofile, allow_rate_to_energy: bool, rate_to_energy: bool
 ):
-    eso_file_mw.current_view.source_model.allow_rate_to_energy = allow_rate_to_energy
+    mw_esofile.current_view.source_model.allow_rate_to_energy = allow_rate_to_energy
     with patch("chartify.ui.main_window.Settings") as mock_settings:
-        with qtbot.wait_signal(eso_file_mw.updateModelRequested):
-            eso_file_mw.on_custom_units_toggled("kBTU", "MW", "IP", True)
+        with qtbot.wait_signal(mw_esofile.updateModelRequested):
+            mw_esofile.on_custom_units_toggled("kBTU", "MW", "IP", True)
             assert mock_settings.ENERGY_UNITS == "kBTU"
             assert mock_settings.POWER_UNITS == "MW"
             assert mock_settings.UNITS_SYSTEM == "IP"
             assert mock_settings.RATE_TO_ENERGY is rate_to_energy
-            assert eso_file_mw.toolbar.rate_energy_btn.isEnabled() is rate_to_energy
+            assert mw_esofile.toolbar.rate_energy_btn.isEnabled() is rate_to_energy
 
 
 def test_on_energy_units_changed(qtbot, mw):
