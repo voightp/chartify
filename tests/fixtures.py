@@ -97,11 +97,11 @@ def app_setup(qtbot, test_tempdir):
 
 @pytest.fixture(scope="function")
 def mw_esofile(mw, excel_file, eso_file1, totals_file, qtbot):
-    models1 = ViewModel.models_from_file(eso_file1, tree_node="type")
+    models1 = ViewModel.models_from_file(eso_file1)
     mw.add_treeview(0, eso_file1.file_name, OutputType.STANDARD, models1)
-    models2 = ViewModel.models_from_file(excel_file, tree_node="type")
+    models2 = ViewModel.models_from_file(excel_file)
     mw.add_treeview(1, excel_file.file_name, OutputType.STANDARD, models2)
-    models3 = ViewModel.models_from_file(excel_file, tree_node="type")
+    models3 = ViewModel.models_from_file(totals_file)
     mw.add_treeview(1, totals_file.file_name, OutputType.TOTALS, models3)
     return mw
 
@@ -114,7 +114,7 @@ def mw_excel_file(mw_esofile, qtbot):
 
 @pytest.fixture(scope="function")
 def mw_combined_file(mw, eso_file_excel, qtbot):
-    models1 = ViewModel.models_from_file(eso_file_excel, tree_node="type")
+    models1 = ViewModel.models_from_file(eso_file_excel)
     mw.add_treeview(0, eso_file_excel.file_name, OutputType.STANDARD, models1)
     return mw
 

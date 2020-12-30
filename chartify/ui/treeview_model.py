@@ -128,12 +128,11 @@ class ViewModel(QStandardItemModel):
         self._file_ref = file_ref
 
     @classmethod
-    def models_from_file(cls, file: ResultsFileType, **kwargs) -> Dict[str, "ViewModel"]:
+    def models_from_file(cls, file: ResultsFileType) -> Dict[str, "ViewModel"]:
         """ Process results file to create models. """
         models = {}
         for table_name in file.table_names:
             models[table_name] = ViewModel(table_name, file)
-            models[table_name].populate_model(**kwargs)
         return models
 
     @property
