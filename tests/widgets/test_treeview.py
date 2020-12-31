@@ -24,7 +24,7 @@ def treeview_test_file(session_treeview_test_file):
     return copy(session_treeview_test_file)
 
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def tree_view(qtbot, treeview_test_file):
     models = ViewModel.models_from_file(treeview_test_file)
     tree_view = TreeView(0, output_type=OutputType.STANDARD, models=models)
@@ -625,3 +625,39 @@ def test_filter_view(qtbot, tree_view: TreeView):
 
     child_index_invalid = tree_view.model().index(1, 0, index0)
     assert child_index_invalid == QModelIndex()
+
+
+@pytest.mark.parametrize(
+    "table, tree_node, rebuild",
+    [
+        ("hourly-simple", "type", False),
+        ("hourly-simple", None, False),
+        ("hourly", None, False),
+        ("hourly", "type", True),
+    ],
+)
+def test_needs_rebuild(tree_view, table, tree_node, rebuild):
+    tree_view.set_model(table, tree_node=None, **default_units)
+    assert tree_view.source_model.needs_rebuild(tree_node) is rebuild
+
+
+@pytest.mark.parametrize(
+    "table, rate, energy, system, rate_to_energy, update",
+    [
+        ("hourly-simple", "J", "W", "SI", True, True),
+        ("hourly-simple", "J", "W", "SI", False, False),
+        ("hourly-simple", "kWh", "W", "SI", False, True),
+        ("hourly", "J", "W", "SI", True, True),
+        ("hourly", "J", "W", "SI", False, False),
+        ("hourly", "J", "kW", "SI", False, True),
+        ("hourly", "J", "W", "IP", False, True),
+        ("hourly", "kWh", "W", "SI", False, True),
+        ("monthly-no-ndays", "J", "W", "SI", True, False),
+    ],
+)
+def test_needs_units_update(tree_view, table, rate, energy, system, rate_to_energy, update):
+    tree_view.set_model(table, tree_node=None, **default_units)
+    needs_update = tree_view.source_model.needs_units_update(
+        rate, energy, system, rate_to_energy
+    )
+    assert needs_update is update
