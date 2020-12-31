@@ -100,8 +100,6 @@ class ViewModel(QStandardItemModel):
         Used energy units.
     rate_units : str
         Used power units.
-    dirty : bool
-        Check if model needs to be updated.
     scroll_position : int
         Store current scrollbar position.
     expanded : set of {str}
@@ -121,7 +119,6 @@ class ViewModel(QStandardItemModel):
         self.units_system = "SI"
         self.energy_units = "J"
         self.rate_units = "W"
-        self.dirty = False
         self.scroll_position = 0
         self.expanded = set()
         self.selected = []
@@ -427,7 +424,6 @@ class ViewModel(QStandardItemModel):
         self.units_system = units_system
         self.energy_units = energy_units
         self.rate_units = rate_units
-        self.dirty = False
         header_df = self.create_tree_compatible_header_df(
             rate_to_energy=rate_to_energy,
             units_system=units_system,
