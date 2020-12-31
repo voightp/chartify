@@ -22,7 +22,7 @@ ESO_FILE2_PATH = Path(TEST_FILES, "eplusout2.eso")
 ESO_FILE_INCOMPLETE = Path(TEST_FILES, "eplusout_incomplete.eso")
 ESO_FILE_ALL_INTERVALS_PATH = Path(TEST_FILES, "eplusout_all_intervals.eso")
 EXCEL_FILE_PATH = Path(TEST_FILES, "various_table_types.xlsx")
-ESO_FILE1_EXCEL_PATH = Path(TEST_FILES, "eplusout.xlsx")
+ESO_FILE_EXCEL_PATH = Path(TEST_FILES, "eplusout.xlsx")
 
 
 @pytest.fixture(scope="class")
@@ -42,7 +42,7 @@ def eso_file2():
 
 @pytest.fixture(scope="class")
 def eso_file_excel():
-    return GenericFile.from_excel(ESO_FILE1_EXCEL_PATH)
+    return GenericFile.from_excel(ESO_FILE_EXCEL_PATH)
 
 
 @pytest.fixture(scope="class")
@@ -96,19 +96,20 @@ def app_setup(qtbot, test_tempdir):
 
 
 @pytest.fixture(scope="function")
-def mw_esofile(mw, excel_file, eso_file1, totals_file, qtbot):
-    models1 = ViewModel.models_from_file(eso_file1)
-    mw.add_treeview(0, eso_file1.file_name, OutputType.STANDARD, models1)
-    models2 = ViewModel.models_from_file(excel_file)
-    mw.add_treeview(1, excel_file.file_name, OutputType.STANDARD, models2)
+def mw_esofile(mw, eso_file_all_intervals, eso_file1, totals_file, qtbot):
+    models1 = ViewModel.models_from_file(eso_file_all_intervals)
+    mw.add_treeview(0, eso_file_all_intervals.file_name, OutputType.STANDARD, models1)
+    models2 = ViewModel.models_from_file(eso_file1)
+    mw.add_treeview(1, eso_file1.file_name, OutputType.STANDARD, models2)
     models3 = ViewModel.models_from_file(totals_file)
-    mw.add_treeview(1, totals_file.file_name, OutputType.TOTALS, models3)
+    mw.add_treeview(2, totals_file.file_name, OutputType.TOTALS, models3)
     return mw
 
 
 @pytest.fixture(scope="function")
 def mw_excel_file(mw_esofile, qtbot):
-    qtbot.mouseClick(mw_esofile.toolbar.table_buttons[3], Qt.LeftButton)
+    mw_esofile.standard_tab_wgt.setCurrentIndex(1)
+    qtbot.mouseClick(mw_esofile.toolbar.table_buttons[0], Qt.LeftButton)
     return mw
 
 

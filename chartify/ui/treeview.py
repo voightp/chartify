@@ -354,9 +354,20 @@ class TreeView(QTreeView):
     ) -> None:
         """ Assign new model. """
         model = self.models[table_name]
-        model.populate_model(tree_node, rate_to_energy, units_system, energy_units, rate_units)
+        model.update(tree_node, rate_to_energy, units_system, energy_units, rate_units)
         with SignalBlocker(self.verticalScrollBar()):
             self.proxy_model.setSourceModel(model)
+
+    def change_model(self, table_name: str) -> None:
+        """ Set new model with current settings. """
+        self.set_model(
+            table_name,
+            tree_node=self.source_model.tree_node,
+            rate_to_energy=self.source_model.rate_to_energy,
+            units_system=self.source_model.units_system,
+            energy_units=self.source_model.energy_units,
+            rate_units=self.source_model.rate_units,
+        )
 
     def update_model(
         self,
@@ -367,7 +378,7 @@ class TreeView(QTreeView):
         rate_units: str,
     ) -> None:
         """ Update tree view model. """
-        self.source_model.populate_model(
+        self.source_model.update(
             tree_node, rate_to_energy, units_system, energy_units, rate_units
         )
 

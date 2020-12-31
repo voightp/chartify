@@ -1,86 +1,37 @@
-from pathlib import Path
+from copy import copy
 
-import pandas as pd
-import pytest
-from PySide2.QtCore import Qt, QModelIndex
-from PySide2.QtWidgets import QHeaderView, QSizePolicy
-from esofile_reader import EsoFile, GenericFile
+from PySide2.QtCore import QModelIndex
+from PySide2.QtWidgets import QHeaderView
 from esofile_reader.df.level_names import UNITS_LEVEL
 
-from chartify.ui.treeview import TreeView
-from chartify.ui.treeview_model import ViewModel, FilterModel
+from chartify.ui.treeview import TreeView, ViewMask, ViewType
+from chartify.ui.treeview_model import FilterModel
 from chartify.utils.utils import VariableData, FilterTuple
-from tests import ROOT
+from tests.fixtures import *
 
 WIDTH = 402
 
-
-@pytest.fixture(scope="module")
-def eso_file():
-    return EsoFile.from_path(Path(ROOT, "eso_files", "eplusout1.eso"))
+default_units = dict(energy_units="J", rate_units="W", units_system="SI", rate_to_energy=False)
 
 
-@pytest.fixture(scope="module")
-def excel_file():
-    return GenericFile.from_excel(Path(ROOT, "eso_files", "simple_view.xlsx"))
+@pytest.fixture(scope="session")
+def session_treeview_test_file():
+    return GenericFile.from_excel(ESO_FILE_EXCEL_PATH)
 
 
-@pytest.fixture
-def hourly_df(eso_file):
-    return eso_file.get_header_df("hourly").copy()
+@pytest.fixture(scope="function")
+def treeview_test_file(session_treeview_test_file):
+    return copy(session_treeview_test_file)
 
 
 @pytest.fixture
-def daily_df(eso_file):
-    return eso_file.get_header_df("daily").copy()
-
-
-@pytest.fixture
-def hourly_df_simple(excel_file):
-    return excel_file.get_header_df("hourly-simple").copy()
-
-
-@pytest.fixture
-def daily_df_simple(excel_file):
-    return excel_file.get_header_df("daily-simple").copy()
-
-
-@pytest.fixture
-def tree_view(qtbot, hourly_df, daily_df, hourly_df_simple, daily_df_simple):
-    hourly_model = ViewModel(
-        "hourly", hourly_df, is_simple=False, allow_rate_to_energy=False, tree_node="type"
-    )
-    daily_model = ViewModel(
-        "daily", daily_df, is_simple=False, allow_rate_to_energy=True, tree_node="type"
-    )
-    hourly_model_simple = ViewModel(
-        "hourly-simple",
-        hourly_df_simple,
-        is_simple=True,
-        allow_rate_to_energy=False,
-        tree_node=None,
-    )
-    daily_model_simple = ViewModel(
-        "daily-simple",
-        daily_df_simple,
-        is_simple=True,
-        allow_rate_to_energy=True,
-        tree_node=None,
-    )
-    tree_view = TreeView(
-        0,
-        {
-            "hourly": hourly_model,
-            "daily": daily_model,
-            "hourly-simple": hourly_model_simple,
-            "daily-simple": daily_model_simple,
-        },
-    )
-    tree_view.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Expanding)
+def tree_view(qtbot, treeview_test_file):
+    models = ViewModel.models_from_file(treeview_test_file)
+    tree_view = TreeView(0, output_type=OutputType.STANDARD, models=models)
     tree_view.setFixedWidth(WIDTH)
     tree_view.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-    tree_view.set_and_update_model(header_df=hourly_df, table_name="hourly", tree_node="type")
-    tree_view.set_appearance(widths={"interactive": 200, "fixed": 70}, hide_source_units=True)
+    with ViewMask(tree_view, show_source_units=False):
+        tree_view.set_model("hourly", "type", **default_units)
     tree_view.show()
     qtbot.addWidget(tree_view)
     return tree_view
@@ -104,7 +55,18 @@ def test_init_tree_view(tree_view: TreeView):
     assert tree_view.focusPolicy() == Qt.NoFocus
 
     assert tree_view.id_ == 0
-    assert list(tree_view.models.keys()) == ["hourly", "daily", "hourly-simple", "daily-simple"]
+    assert list(tree_view.models.keys()) == [
+        "hourly-simple",
+        "daily-simple",
+        "monthly-simple",
+        "runperiod-simple",
+        "hourly",
+        "daily",
+        "monthly",
+        "runperiod",
+        "monthly-no-ndays",
+    ]
+    assert tree_view.output_type == OutputType.STANDARD
 
     assert tree_view.proxy_model.sortCaseSensitivity() == Qt.CaseInsensitive
     assert tree_view.proxy_model.isRecursiveFilteringEnabled()
@@ -114,14 +76,13 @@ def test_init_tree_view(tree_view: TreeView):
 @pytest.mark.parametrize(
     "table,view_type,is_tree,rate_to_energy",
     [
-        ("hourly", "tree", True, False),
-        ("daily", "tree", True, True),
-        ("hourly-simple", "simple", False, False),
-        ("daily-simple", "simple", False, True),
+        ("hourly", ViewType.TREE, True, True),
+        ("monthly-no-ndays", ViewType.TREE, True, False),
+        ("daily-simple", ViewType.SIMPLE, False, True),
     ],
 )
 def test_view_properties(tree_view: TreeView, table, view_type, is_tree, rate_to_energy):
-    tree_view.set_model(table)
+    tree_view.change_model(table)
     assert isinstance(tree_view.source_model, ViewModel)
     assert isinstance(tree_view.proxy_model, FilterModel)
     assert tree_view.view_type == view_type
@@ -141,14 +102,14 @@ def test_view_properties(tree_view: TreeView, table, view_type, is_tree, rate_to
 def test_model_rows(
     qtbot, tree_view: TreeView, table, row_count, source_row_count, total_row_count
 ):
-    tree_view.set_model(table)
+    tree_view.change_model(table)
     assert tree_view.model().rowCount() == row_count
     assert tree_view.model().sourceModel().rowCount() == source_row_count
     assert tree_view.model().sourceModel().count_rows() == total_row_count
 
 
-def test_simple_model_note_stays_none(tree_view: TreeView, daily_df_simple: pd.DataFrame):
-    tree_view.set_and_update_model(daily_df_simple, "daily-simple", tree_node="key")
+def test_simple_model_node_stays_none(tree_view: TreeView):
+    tree_view.change_model("daily-simple")
     assert tree_view.source_model.tree_node is None
 
 
@@ -167,9 +128,9 @@ def test_first_column_spanned(tree_view: TreeView):
 
 def test_initial_view_appearance_hidden_source(tree_view: TreeView):
     assert tree_view.header().sectionSize(0) == 200
-    assert tree_view.header().sectionSize(1) == 130
+    assert tree_view.header().sectionSize(1) == 140
     assert tree_view.header().sectionSize(2) == 0
-    assert tree_view.header().sectionSize(3) == 70
+    assert tree_view.header().sectionSize(3) == 60
 
     assert not tree_view.header().stretchLastSection()
     assert tree_view.header().sectionResizeMode(0) == QHeaderView.Interactive
@@ -181,10 +142,11 @@ def test_initial_view_appearance_hidden_source(tree_view: TreeView):
 
 
 def test_initial_view_appearance_simple_hidden_source(tree_view: TreeView):
-    tree_view.set_model("daily-simple")
+    tree_view.set_model("daily-simple", "key", **default_units)
     tree_view.set_appearance(
-        widths={"fixed": 70}, header=("key", "proxy_units", "units"), hide_source_units=True
+        widths={"fixed": 70}, header=("key", "proxy_units", "units"), show_source_units=False
     )
+
     assert tree_view.header().sectionSize(0) == 330
     assert tree_view.header().sectionSize(1) == 0
     assert tree_view.header().sectionSize(2) == 70
@@ -197,19 +159,19 @@ def test_initial_view_appearance_simple_hidden_source(tree_view: TreeView):
     assert tree_view.header().sortIndicatorOrder() == Qt.AscendingOrder
 
 
-def test_build_plain_view(qtbot, tree_view: TreeView, hourly_df: pd.DataFrame):
-    tree_view.update_model(header_df=hourly_df, tree_node=None)
+def test_build_plain_view(qtbot, tree_view: TreeView):
+    tree_view.update_model(tree_node=None, **default_units)
 
     assert tree_view.model().rowCount() == 77
     assert tree_view.model().sourceModel().rowCount() == 77
 
     assert tree_view.source_model.name == "hourly"
     assert not tree_view.is_tree
-    assert not tree_view.allow_rate_to_energy
+    assert tree_view.allow_rate_to_energy
 
 
-def test_first_column_not_spanned(tree_view: TreeView, hourly_df: pd.DataFrame):
-    tree_view.update_model(header_df=hourly_df, tree_node=None)
+def test_first_column_not_spanned(tree_view: TreeView):
+    tree_view.update_model(tree_node=None, **default_units)
     proxy_model = tree_view.model()
     for i in range(proxy_model.rowCount()):
         index = proxy_model.index(i, 0)
@@ -220,8 +182,8 @@ def test_first_column_not_spanned(tree_view: TreeView, hourly_df: pd.DataFrame):
             assert not tree_view.isFirstColumnSpanned(i, tree_view.rootIndex())
 
 
-def test_resize_header_show_source_units(qtbot, tree_view: TreeView, hourly_df: pd.DataFrame):
-    tree_view.update_model(header_df=hourly_df, tree_node=None)
+def test_resize_header_show_source_units(qtbot, tree_view: TreeView):
+    tree_view.update_model(tree_node=None, **default_units)
     tree_view.hide_section(UNITS_LEVEL, False)
     tree_view.set_header_resize_mode({"interactive": 150, "fixed": 100})
     assert tree_view.header().sectionSize(0) == 150
@@ -230,8 +192,8 @@ def test_resize_header_show_source_units(qtbot, tree_view: TreeView, hourly_df: 
     assert tree_view.header().sectionSize(3) == 100
 
 
-def test_resize_header_hide_source_units(tree_view: TreeView, hourly_df: pd.DataFrame):
-    tree_view.update_model(header_df=hourly_df, tree_node=None)
+def test_resize_header_hide_source_units(tree_view: TreeView):
+    tree_view.update_model(tree_node=None, **default_units)
     tree_view.hide_section(UNITS_LEVEL, True)
     tree_view.set_header_resize_mode({"interactive": 250, "fixed": 100})
     assert tree_view.header().sectionSize(0) == 250
@@ -254,36 +216,11 @@ def test_on_tree_node_changed_dont_build_tree(qtbot, tree_view: TreeView):
         tree_view.header().moveSection(2, 1)
 
 
-def test_on_view_resized(qtbot, tree_view: TreeView, hourly_df: pd.DataFrame):
-    def test_size(view_type, width):
-        return view_type == "tree" and width == 125
+def test_on_section_moved_rebuild(qtbot, tree_view: TreeView):
+    def cb(treeview):
+        return treeview
 
-    with qtbot.wait_signal(tree_view.viewColumnResized, check_params_cb=test_size):
-        tree_view.header().resizeSection(0, 125)
-
-
-def test_on_view_resized_stretch(qtbot, tree_view: TreeView, hourly_df: pd.DataFrame):
-    with qtbot.assertNotEmitted(tree_view.viewColumnResized):
-        tree_view.header().resizeSection(1, 125)
-
-
-def test_on_section_moved_rebuild(qtbot, tree_view: TreeView, hourly_df: pd.DataFrame):
-    def test_header(view_type, header):
-        return view_type == "tree" and header == ("key", "proxy_units", "type", "units")
-
-    signals = [(tree_view.viewColumnOrderChanged, "0"), (tree_view.treeNodeChanged, "1")]
-    callbacks = [test_header, None]
-    with qtbot.wait_signals(signals=signals, check_params_cbs=callbacks):
-        tree_view.header().moveSection(0, 2)
-
-
-def test_on_section_moved_plain_view(qtbot, tree_view: TreeView, hourly_df: pd.DataFrame):
-    def test_header(view_type, header):
-        return view_type == "tree" and header == ("key", "proxy_units", "type", "units")
-
-    tree_view.update_model(header_df=hourly_df, tree_node=None)
-    tree_view.reorder_columns(("type", "key", "proxy_units", "units"))
-    with qtbot.wait_signal(tree_view.viewColumnOrderChanged, check_params_cb=test_header):
+    with qtbot.wait_signal(tree_view.treeNodeChanged, check_params_cb=cb):
         tree_view.header().moveSection(0, 2)
 
 
@@ -293,26 +230,58 @@ def test_on_slider_moved(tree_view: TreeView):
 
 
 @pytest.mark.parametrize(
-    "table,test_data",
+    "table,test_data, test_row, parent_row",
     [
-        ("hourly", VariableData("BOILER", "Boiler Gas Rate", "W")),
-        ("daily", VariableData("BOILER", "Boiler Gas Rate", "W")),
-        ("hourly-simple", VariableData("Boiler Gas Rate", None, "W")),
-        ("daily-simple", VariableData("Boiler Gas Rate", None, "W")),
+        ("hourly", VariableData("BOILER", "Boiler Gas Rate", "W"), 1, None),
+        ("daily", VariableData("BOILER", "Boiler Gas Rate", "W"), 1, None),
+        ("hourly-simple", VariableData("Boiler Gas Rate", None, "W"), 36, None),
+        ("daily-simple", VariableData("Boiler Gas Rate", None, "W"), 36, None),
     ],
 )
-def test_on_double_clicked(qtbot, tree_view: TreeView, table, test_data):
-    tree_view.set_model(table)
+def test_on_double_clicked(qtbot, tree_view: TreeView, table, test_data, test_row, parent_row):
+    tree_view.change_model(table)
 
-    def variable_data(data):
-        return test_data == data
+    def cb(treeview, row, parent, variable_data):
+        test_parent_index = (
+            treeview.source_model.index(parent_row, 0)
+            if parent_row is not None
+            else QModelIndex()
+        )
+        assert row == test_row
+        assert treeview is tree_view
+        assert parent == test_parent_index
+        assert variable_data == test_data
+        return True
 
     point = tree_view.visualRect(tree_view.model().index(1, 0)).center()
     # need to move mouse to hover over view
     qtbot.mouseMove(tree_view.viewport(), pos=point)
-    signals = [tree_view.doubleClicked, tree_view.itemDoubleClicked]
-    callbacks = [None, variable_data]
-    with qtbot.wait_signals(signals, check_params_cbs=callbacks):
+    with qtbot.wait_signal(tree_view.itemDoubleClicked, check_params_cb=cb):
+        # need to click first as single double click would emit only pressed signal
+        qtbot.mouseClick(tree_view.viewport(), Qt.LeftButton, pos=point)
+        qtbot.mouseDClick(tree_view.viewport(), Qt.LeftButton, pos=point)
+
+
+def test_on_double_clicked_child(qtbot, tree_view: TreeView):
+    tree_view.expandAll()
+
+    def cb(treeview, row, parent, variable_data):
+        assert row == 0
+        assert treeview is tree_view
+        assert parent == treeview.source_model.index(7, 0)
+        assert variable_data == VariableData(
+            "BLOCK1:ZONEB FAN COIL UNIT COOLING COIL", "Cooling Coil Sensible Cooling Rate", "W"
+        )
+        return True
+
+    parent_item = tree_view.source_model.findItems(
+        "Cooling Coil Sensible Cooling Rate", column=0
+    )[0]
+    parent_index = tree_view.source_model.indexFromItem(parent_item)
+    proxy_parent = tree_view.proxy_model.mapFromSource(parent_index)
+    point = tree_view.visualRect(tree_view.model().index(0, 1, parent=proxy_parent)).center()
+    qtbot.mouseMove(tree_view.viewport(), pos=point)
+    with qtbot.wait_signal(tree_view.itemDoubleClicked, check_params_cb=cb):
         # need to click first as single double click would emit only pressed signal
         qtbot.mouseClick(tree_view.viewport(), Qt.LeftButton, pos=point)
         qtbot.mouseDClick(tree_view.viewport(), Qt.LeftButton, pos=point)
@@ -332,9 +301,7 @@ def test_on_double_clicked_parent(qtbot, tree_view: TreeView):
     assert tree_view.isExpanded(index)
 
 
-def test_select_all_children_expanded_parent(
-    qtbot, tree_view: TreeView, hourly_df: pd.DataFrame
-):
+def test_select_all_children_expanded_parent(qtbot, tree_view: TreeView):
     index = tree_view.model().index(7, 0)
     point = tree_view.visualRect(index).center()
     # need to move mouse to hover over view
@@ -374,7 +341,7 @@ def test_select_all_children_expanded_parent(
     ],
 )
 def test_on_pressed(qtbot, tree_view: TreeView, table, test_data):
-    tree_view.set_model(table)
+    tree_view.change_model(table)
 
     def variable_data(vd):
         return vd == [test_data]
@@ -390,7 +357,7 @@ def test_on_pressed(qtbot, tree_view: TreeView, table, test_data):
         qtbot.mousePress(tree_view.viewport(), Qt.LeftButton, pos=point)
 
 
-def test_on_pressed_collapsed_parent(qtbot, tree_view: TreeView, hourly_df: pd.DataFrame):
+def test_on_pressed_collapsed_parent(qtbot, tree_view: TreeView):
     def variable_data1(index):
         data = tree_view.model().data(index)
         return data == "Cooling Coil Sensible Cooling Rate"
@@ -431,8 +398,8 @@ def test_get_visual_ixs(tree_view: TreeView):
     }
 
 
-def test_set_model(tree_view: TreeView):
-    tree_view.set_model("daily")
+def test_change_model(tree_view: TreeView):
+    tree_view.change_model("daily")
     assert tree_view.source_model.name == "daily"
     assert tree_view.source_model.energy_units == "J"
     assert tree_view.source_model.rate_units == "W"
@@ -441,14 +408,14 @@ def test_set_model(tree_view: TreeView):
     assert tree_view.source_model.tree_node == "type"
 
 
-def test_set_and_update_model(tree_view: TreeView, daily_df: pd.DataFrame):
+def test_set_and_update_model(tree_view: TreeView):
     units = {
         "energy_units": "J",
         "rate_units": "MW",
         "rate_to_energy": True,
         "units_system": "IP",
     }
-    tree_view.set_and_update_model(daily_df, "daily", tree_node="key", **units)
+    tree_view.set_model("daily", tree_node="key", **units)
     assert tree_view.source_model.name == "daily"
     assert tree_view.source_model.energy_units == "J"
     assert tree_view.source_model.rate_units == "MW"
@@ -457,14 +424,14 @@ def test_set_and_update_model(tree_view: TreeView, daily_df: pd.DataFrame):
     assert tree_view.source_model.tree_node == "key"
 
 
-def test_update_model(tree_view: TreeView, hourly_df: pd.DataFrame):
+def test_update_model(tree_view: TreeView):
     units = {
         "energy_units": "J",
         "rate_units": "MW",
         "rate_to_energy": True,
         "units_system": "IP",
     }
-    tree_view.update_model(hourly_df, tree_node="key", **units)
+    tree_view.update_model(tree_node="key", **units)
     assert tree_view.source_model.name == "hourly"
     assert tree_view.source_model.energy_units == "J"
     assert tree_view.source_model.rate_units == "MW"
@@ -473,14 +440,14 @@ def test_update_model(tree_view: TreeView, hourly_df: pd.DataFrame):
     assert tree_view.source_model.tree_node == "key"
 
 
-def test_update_units(tree_view: TreeView, hourly_df: pd.DataFrame):
+def test_update_units(tree_view: TreeView,):
     units = {
         "energy_units": "J",
         "rate_units": "MW",
         "rate_to_energy": True,
         "units_system": "IP",
     }
-    tree_view.update_units(hourly_df[UNITS_LEVEL], **units)
+    tree_view.update_units(**units)
     assert tree_view.source_model.name == "hourly"
     assert tree_view.source_model.energy_units == "J"
     assert tree_view.source_model.rate_units == "MW"
@@ -489,30 +456,33 @@ def test_update_units(tree_view: TreeView, hourly_df: pd.DataFrame):
     assert tree_view.source_model.tree_node == "type"
 
 
-def test_update_units_proxy_tree_node(tree_view: TreeView, hourly_df: pd.DataFrame):
+def test_update_units_proxy_tree_node(tree_view: TreeView):
     units = {
         "energy_units": "J",
         "rate_units": "MW",
         "rate_to_energy": True,
         "units_system": "IP",
     }
-    tree_view.update_model(hourly_df, tree_node="units")
-    tree_view.update_units(hourly_df[UNITS_LEVEL], **units)
+    tree_view.update_units(**units)
     assert tree_view.source_model.name == "hourly"
     assert tree_view.source_model.energy_units == "J"
     assert tree_view.source_model.rate_units == "MW"
     assert tree_view.source_model.units_system == "IP"
     assert tree_view.source_model.rate_to_energy
-    assert tree_view.source_model.tree_node == "units"
+    assert tree_view.source_model.tree_node == "type"
 
 
-def test_update_view_model_appearance(qtbot, tree_view: TreeView, daily_df: pd.DataFrame):
+def test_update_view_model_appearance(qtbot, tree_view: TreeView):
     header = ("type", "proxy_units", "key", "units")
-    tree_view.set_and_update_model(daily_df, "daily", tree_node="type")
+    ViewMask.set_cached_property(tree_view, "header", header)
+    with ViewMask(tree_view, show_source_units=True):
+        tree_view.set_model("daily", tree_node="type", **default_units)
 
     widths = {"interactive": 150, "fixed": 50}
     expanded = {"Fan Electric Power", "Heating Coil Heating Rate"}
-    tree_view.set_appearance(header=header, widths=widths, expanded=expanded)
+    tree_view.set_appearance(header=header, widths=widths, show_source_units=True)
+    tree_view.expand_items(expanded)
+
     assert tree_view.header().sectionSize(tree_view.header().logicalIndex(0)) == 150
     assert tree_view.header().sectionSize(tree_view.header().logicalIndex(1)) == 50
     assert tree_view.header().sectionSize(tree_view.header().logicalIndex(2)) == 150
@@ -524,7 +494,7 @@ def test_update_view_model_appearance(qtbot, tree_view: TreeView, daily_df: pd.D
     assert tree_view.isExpanded(tree_view.model().index(13, 0))
 
 
-def test_scroll_to(qtbot, tree_view: TreeView, hourly_df: pd.DataFrame):
+def test_scroll_to(qtbot, tree_view: TreeView):
     v = VariableData("BLOCK1:ZONEA", "Zone Infiltration Air Change Rate", "ach")
     with qtbot.wait_signal(tree_view.verticalScrollBar().valueChanged):
         tree_view.scroll_to(v)
@@ -551,7 +521,7 @@ def test_scroll_to(qtbot, tree_view: TreeView, hourly_df: pd.DataFrame):
     ],
 )
 def test_deselect_variables(qtbot, tree_view: TreeView, table, test_data):
-    tree_view.set_model(table)
+    tree_view.change_model(table)
     tree_view.select_variables(test_data)
     with qtbot.wait_signal(tree_view.selectionCleared):
         tree_view.deselect_all_variables()
@@ -578,7 +548,7 @@ def test_deselect_variables(qtbot, tree_view: TreeView, table, test_data):
     ],
 )
 def test_select_variables(qtbot, tree_view: TreeView, table, test_data):
-    tree_view.set_model(table)
+    tree_view.change_model(table)
 
     def cb(variable_data):
         return set(test_data) == set(variable_data)
@@ -587,7 +557,7 @@ def test_select_variables(qtbot, tree_view: TreeView, table, test_data):
         tree_view.select_variables(test_data)
 
 
-def test_on_collapsed(qtbot, tree_view: TreeView, hourly_df: pd.DataFrame):
+def test_on_collapsed(qtbot, tree_view: TreeView):
     index = tree_view.model().index(7, 0)
     tree_view.expand(index)
     point = tree_view.visualRect(index).center()
@@ -605,7 +575,7 @@ def test_on_collapsed(qtbot, tree_view: TreeView, hourly_df: pd.DataFrame):
     assert not tree_view.isExpanded(index)
 
 
-def test_on_expanded(qtbot, tree_view: TreeView, eso_file: EsoFile):
+def test_on_expanded(qtbot, tree_view: TreeView):
     index = tree_view.model().index(7, 0)
     point = tree_view.visualRect(index).center()
     # need to move mouse to hover over view
@@ -622,8 +592,8 @@ def test_on_expanded(qtbot, tree_view: TreeView, eso_file: EsoFile):
     assert tree_view.isExpanded(index)
 
 
-def test_filter_view(qtbot, tree_view: TreeView, daily_df: pd.DataFrame):
-    tree_view.set_and_update_model(daily_df, "daily", tree_node="type")
+def test_filter_view(qtbot, tree_view: TreeView):
+    tree_view.change_model("daily")
     tree_view.filter_view(FilterTuple(key="block1:zonea", type="temperature", proxy_units=""))
 
     assert tree_view.model().rowCount() == 3

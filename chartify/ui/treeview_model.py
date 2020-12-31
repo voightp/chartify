@@ -147,37 +147,13 @@ class ViewModel(QStandardItemModel):
     def header_df(self) -> pd.DataFrame:
         return self._file_ref.get_header_df(self.name)
 
+    @property
+    def initialized(self) -> bool:
+        return self.columnCount() != 0
+
     def get_column_data(self, column: str) -> List[str]:
         """ Get all column items. """
         return self.header_df.loc[:, column]
-
-    @staticmethod
-    def create_proxy_units_column(
-        source_units: pd.Series,
-        rate_to_energy: bool,
-        units_system: str,
-        energy_units: str,
-        rate_units: str,
-    ) -> pd.Series:
-        """ Convert original units as defined by given parameters. """
-        intermediate_units = source_units.copy()
-        if rate_to_energy:
-            intermediate_units[intermediate_units == "W"] = "J"
-            intermediate_units[intermediate_units == "W/m2"] = "J/m2"
-        conversion_dict = create_conversion_dict(
-            intermediate_units,
-            units_system=units_system,
-            rate_units=rate_units,
-            energy_units=energy_units,
-        )
-        # no units are displayed as dash
-        conversion_dict[""] = ("-", 1)
-        proxy_units = intermediate_units.copy()
-        proxy_units.name = PROXY_UNITS_LEVEL
-        # populate proxy column with new units
-        for old, v in conversion_dict.items():
-            proxy_units.loc[intermediate_units == old] = v[0]
-        return proxy_units
 
     def count_rows(self) -> int:
         """ Calculate total number of rows (including child rows). """
@@ -188,6 +164,29 @@ class ViewModel(QStandardItemModel):
                 if item.hasChildren():
                     count += item.rowCount()
         return count
+
+    def needs_rebuild(self, tree_node: Optional[str]) -> bool:
+        """ Check if the model needs full update. """
+        required = True
+        if self.initialized:
+            if self.is_simple:
+                required = False
+            else:
+                required = self.tree_node != tree_node
+        return required
+
+    def needs_units_update(
+        self, energy_units: str, rate_units: str, units_system: str, rate_to_energy: bool
+    ) -> bool:
+        """ Check if the model needs to update units. """
+        return any(
+            [
+                self.energy_units != energy_units,
+                self.rate_units != rate_units,
+                self.units_system != units_system,
+                (self.rate_to_energy != rate_to_energy) if self.allow_rate_to_energy else False,
+            ]
+        )
 
     def get_display_data_at_index(self, index: QModelIndex):
         """ Get item displayed text. """
@@ -342,6 +341,34 @@ class ViewModel(QStandardItemModel):
             status_tip = f"{key} | {type_} | {proxy_units}"
         return status_tip
 
+    @staticmethod
+    def create_proxy_units_column(
+        source_units: pd.Series,
+        rate_to_energy: bool,
+        units_system: str,
+        energy_units: str,
+        rate_units: str,
+    ) -> pd.Series:
+        """ Convert original units as defined by given parameters. """
+        intermediate_units = source_units.copy()
+        if rate_to_energy:
+            intermediate_units[intermediate_units == "W"] = "J"
+            intermediate_units[intermediate_units == "W/m2"] = "J/m2"
+        conversion_dict = create_conversion_dict(
+            intermediate_units,
+            units_system=units_system,
+            rate_units=rate_units,
+            energy_units=energy_units,
+        )
+        # no units are displayed as dash
+        conversion_dict[""] = ("-", 1)
+        proxy_units = intermediate_units.copy()
+        proxy_units.name = PROXY_UNITS_LEVEL
+        # populate proxy column with new units
+        for old, v in conversion_dict.items():
+            proxy_units.loc[intermediate_units == old] = v[0]
+        return proxy_units
+
     def create_tree_compatible_header_df(
         self, rate_to_energy: bool, units_system: str, energy_units: str, rate_units: str,
     ) -> pd.DataFrame:
@@ -378,7 +405,7 @@ class ViewModel(QStandardItemModel):
             item.setData(names[data], Qt.DisplayRole)
             self.setHorizontalHeaderItem(i, item)
 
-    def populate_model(
+    def rebuild_model(
         self,
         tree_node: Optional[str] = None,
         rate_to_energy: bool = False,
@@ -387,7 +414,6 @@ class ViewModel(QStandardItemModel):
         rate_units: str = "W",
     ) -> None:
         """  Create a model and set up its appearance. """
-        # TODO rename method
         # make sure that model is empty
         if self.rowCount() > 0:
             self.clear()
@@ -413,6 +439,26 @@ class ViewModel(QStandardItemModel):
             self.append_tree_rows(header_df)
         else:
             self.append_rows(header_df)
+
+    def update(
+        self,
+        tree_node: Optional[str],
+        rate_to_energy: bool,
+        units_system: str,
+        energy_units: str,
+        rate_units: str,
+    ):
+        """ Update the model based on given settings. """
+        units_kwargs = dict(
+            rate_to_energy=rate_to_energy,
+            units_system=units_system,
+            energy_units=energy_units,
+            rate_units=rate_units,
+        )
+        if self.needs_rebuild(tree_node):
+            self.rebuild_model(tree_node, **units_kwargs)
+        elif self.needs_units_update(**units_kwargs):
+            self.update_proxy_units(**units_kwargs)
 
     def create_conversion_look_up_table(
         self,
