@@ -9,7 +9,7 @@ from chartify.utils.icon_painter import (
     draw_filled_circle_icon,
     combine_colors,
 )
-from tests import ROOT
+from tests.fixtures import ROOT
 
 
 class TestPixmap:

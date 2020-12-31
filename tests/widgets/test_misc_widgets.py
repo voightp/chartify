@@ -3,17 +3,18 @@ from pathlib import Path
 import pytest
 from PySide2.QtCore import QCoreApplication, Qt, QMimeData, QUrl
 from PySide2.QtGui import QDragEnterEvent, QDragLeaveEvent, QDropEvent
-from PySide2.QtWidgets import QWidget
+from PySide2.QtWidgets import QWidget, QToolButton
 
 from chartify.ui.tab_widget import TabWidget
 from chartify.ui.drop_frame import DropFrame
-from tests import ROOT
+from tests.fixtures import ROOT
 
 
 class TestTabWidget:
     @pytest.fixture()
     def tab_widget(self, qtbot):
-        tab_widget = TabWidget(None)
+        button = QToolButton()
+        tab_widget = TabWidget(None, button)
         tab_widget.show()
         qtbot.add_widget(tab_widget)
         return tab_widget

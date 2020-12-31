@@ -12,7 +12,7 @@ from chartify.ui.buttons import (
     MenuButton,
 )
 from chartify.utils.icon_painter import Pixmap
-from tests import ROOT
+from tests.fixtures import ROOT
 
 
 @pytest.fixture(scope="module")
