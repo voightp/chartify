@@ -28,6 +28,7 @@ class Toolbar(QFrame):
     tabWidgetChangeRequested = Signal(int)
     tableChangeRequested = Signal(str)
     customUnitsToggled = Signal(str, str, str, bool)
+    unitsChanged = Signal(str, str, str, bool)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -151,8 +152,8 @@ class Toolbar(QFrame):
         self.energy_btn = TitledButton("energy", self.units_group)
         units_group_layout.addWidget(self.energy_btn, 0, 0, 1, 1)
 
-        self.power_btn = TitledButton("power", self.units_group)
-        units_group_layout.addWidget(self.power_btn, 0, 1, 1, 1)
+        self.rate_btn = TitledButton("power", self.units_group)
+        units_group_layout.addWidget(self.rate_btn, 0, 1, 1, 1)
 
         self.units_system_button = TitledButton("system", self.units_group)
         units_group_layout.addWidget(self.units_system_button, 1, 0, 1, 1)
@@ -167,6 +168,11 @@ class Toolbar(QFrame):
         self.set_up_units()
         self.layout.addWidget(self.units_group)
         self.layout.addStretch()
+
+        self.rate_energy_btn.toggled.connect(self.request_units_update)
+        self.energy_btn.menu().triggered.connect(self.on_energy_units_changed)
+        self.rate_btn.menu().triggered.connect(self.on_power_units_changed)
+        self.units_system_button.menu().triggered.connect(self.on_units_system_changed)
 
     @staticmethod
     def clear_group(group):
@@ -229,8 +235,8 @@ class Toolbar(QFrame):
         power_menu.setWindowFlags(QMenu().windowFlags() | Qt.NoDropShadowWindowHint)
         power_menu.addActions(actions)
 
-        self.power_btn.setMenu(power_menu)
-        self.power_btn.setDefaultAction(default_action)
+        self.rate_btn.setMenu(power_menu)
+        self.rate_btn.setDefaultAction(default_action)
 
         # ~~~~ Units system set up ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         actions, default_action = create_actions(["SI", "IP"], Settings.UNITS_SYSTEM)
@@ -276,7 +282,7 @@ class Toolbar(QFrame):
             rate_to_energy = False
             # store original settings
             self.temp_settings["energy_units"] = self.energy_btn.data()
-            self.temp_settings["rate_units"] = self.power_btn.data()
+            self.temp_settings["rate_units"] = self.rate_btn.data()
             self.temp_settings["units_system"] = self.units_system_button.data()
             self.temp_settings["rate_to_energy"] = self.rate_energy_btn.isChecked()
         else:
@@ -286,16 +292,17 @@ class Toolbar(QFrame):
             rate_to_energy = self.temp_settings["rate_to_energy"]
 
         self.energy_btn.set_action(energy)
-        self.power_btn.set_action(power)
+        self.rate_btn.set_action(power)
         self.units_system_button.set_action(units_system)
         self.rate_energy_btn.setChecked(rate_to_energy)
 
         self.energy_btn.setEnabled(checked)
-        self.power_btn.setEnabled(checked)
+        self.rate_btn.setEnabled(checked)
         self.units_system_button.setEnabled(checked)
         self.rate_energy_btn.setEnabled(checked)
 
         self.customUnitsToggled.emit(energy, power, units_system, rate_to_energy)
+        self.unitsChanged.emit(energy, power, units_system, self.rate_energy_btn.isChecked())
 
     def filter_energy_power_units(self, units_system: str):
         """ Handle displaying allowed units for given units system. """
@@ -307,7 +314,7 @@ class Toolbar(QFrame):
             pw_acts = Settings.SI_POWER_UNITS
         # SI and IP use different energy and power units
         self.energy_btn.filter_visible_actions(en_acts)
-        self.power_btn.filter_visible_actions(pw_acts)
+        self.rate_btn.filter_visible_actions(pw_acts)
 
     def on_table_button_clicked(self):
         """ Request view update when interval changes. """
@@ -317,3 +324,27 @@ class Toolbar(QFrame):
     def on_outputs_toggle_toggled(self, index: int):
         """ Request tab widget display corresponding to toggle button. """
         self.tabWidgetChangeRequested.emit(index)
+
+    def request_units_update(self):
+        self.unitsChanged.emit(
+            self.energy_btn.defaultAction().data(),
+            self.rate_btn.defaultAction().data(),
+            self.units_system_button.defaultAction().data(),
+            self.rate_energy_btn.isChecked(),
+        )
+
+    def on_energy_units_changed(self, act: QAction):
+        if act.data() != self.energy_btn.data():
+            self.energy_btn.setDefaultAction(act)
+            self.request_units_update()
+
+    def on_power_units_changed(self, act: QAction):
+        if act.data() != self.rate_btn.data():
+            self.rate_btn.setDefaultAction(act)
+            self.request_units_update()
+
+    def on_units_system_changed(self, act: QAction):
+        if act.data() != self.units_system_button.data():
+            self.units_system_button.setDefaultAction(act)
+            self.filter_energy_power_units(act.data())
+            self.request_units_update()

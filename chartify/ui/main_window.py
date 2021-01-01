@@ -880,64 +880,36 @@ class MainWindow(QMainWindow):
             tab_widget.currentTabChanged.connect(self.on_tab_changed)
             tab_widget.tabRenameRequested.connect(self.on_tab_bar_double_clicked)
 
-    def update_units(self) -> None:
-        """ Update units on a current view if current tab widget contains one. """
-        if self.current_view:
-            self.current_view.update_units(**Settings.get_units())
-
-    def on_rate_energy_btn_checked(self, checked: bool):
-        Settings.RATE_TO_ENERGY = checked
-        self.update_units()
-
     def on_source_units_toggled(self, checked: bool):
         Settings.SHOW_SOURCE_UNITS = checked
         if self.current_view:
             self.current_view.hide_section(UNITS_LEVEL, not checked)
 
-    def on_custom_units_toggled(
+    def on_units_changed(
         self, energy_units: str, rate_units: str, units_system: str, rate_to_energy: bool
-    ):
+    ) -> None:
         Settings.ENERGY_UNITS = energy_units
         Settings.RATE_UNITS = rate_units
         Settings.UNITS_SYSTEM = units_system
+        Settings.RATE_TO_ENERGY = rate_to_energy
+        if self.current_view:
+            self.current_view.update_units(**Settings.get_units())
+
+    def on_custom_units_toggled(self) -> None:
         # model could have been changed prior to custom units toggle
         # so rate to energy conversion may not be applicable
         if self.current_tab_widget.is_empty() or self.current_view.allow_rate_to_energy:
             self.toolbar.enable_rate_to_energy(True)
         else:
             self.toolbar.rate_energy_btn.setEnabled(False)
-            rate_to_energy = False
-        Settings.RATE_TO_ENERGY = rate_to_energy
-        self.update_units()
-
-    def on_energy_units_changed(self, act: QAction):
-        if act.data() != self.toolbar.energy_btn.data():
-            Settings.ENERGY_UNITS = act.data()
-            self.update_units()
-
-    def on_power_units_changed(self, act: QAction):
-        if act.data() != self.toolbar.power_btn.data():
-            Settings.RATE_UNITS = act.data()
-            self.update_units()
-
-    def on_units_system_changed(self, act: QAction):
-        if act.data() != self.toolbar.units_system_button.data():
-            Settings.UNITS_SYSTEM = act.data()
-            self.toolbar.filter_energy_power_units(act.data())
-            Settings.RATE_UNITS = self.toolbar.power_btn.data()
-            Settings.ENERGY_UNITS = self.toolbar.energy_btn.data()
-            self.update_units()
 
     def connect_toolbar_signals(self):
         # ~~~~ Toolbar Signals ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.toolbar.tableChangeRequested.connect(self.on_table_change_requested)
         self.toolbar.tabWidgetChangeRequested.connect(self.on_stacked_widget_change_requested)
         self.toolbar.customUnitsToggled.connect(self.on_custom_units_toggled)
+        self.toolbar.unitsChanged.connect(self.on_units_changed)
         self.toolbar.source_units_toggle.stateChanged.connect(self.on_source_units_toggled)
-        self.toolbar.rate_energy_btn.toggled.connect(self.on_rate_energy_btn_checked)
-        self.toolbar.energy_btn.menu().triggered.connect(self.on_energy_units_changed)
-        self.toolbar.power_btn.menu().triggered.connect(self.on_power_units_changed)
-        self.toolbar.units_system_button.menu().triggered.connect(self.on_units_system_changed)
 
     def on_tree_act_checked(self, checked: bool):
         """ Update view when view type is changed. """

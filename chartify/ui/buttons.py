@@ -27,7 +27,6 @@ class TitledButton(QToolButton):
         self.title = QLabel(text, self)
         self.title.move(QPoint(4, 2))
         self.title.setAttribute(Qt.WA_TransparentForMouseEvents)
-        self.triggered.connect(lambda act: self.setDefaultAction(act))
 
     def setEnabled(self, enabled: bool) -> None:
         super().setEnabled(enabled)
