@@ -93,7 +93,8 @@ class TestToggleButton:
         assert button.slider.minimum() == 0
         assert button.slider.maximum() == 1
         assert button.slider.value() == 0
-        assert not button.label
+        assert button.label.alignment() == Qt.AlignLeft | Qt.AlignCenter
+        assert button.label.indent() == 0
 
     def test_button_signal(self, qtbot, button: ToggleButton):
         signals = [button.slider.valueChanged, button.stateChanged]

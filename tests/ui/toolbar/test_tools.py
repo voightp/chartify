@@ -5,6 +5,13 @@ from chartify.utils.utils import VariableData
 from tests.fixtures import *
 
 
+@pytest.fixture(scope="function")
+def mw_esofile1(mw_esofile, qtbot):
+    mw_esofile.standard_tab_wgt.setCurrentIndex(1)
+    qtbot.mouseClick(mw_esofile.toolbar.table_buttons[0], Qt.LeftButton)
+    return mw_esofile
+
+
 @pytest.mark.parametrize("confirmed,expected", [(0, None), (1, "test")])
 def test_confirm_rename_file(mw, confirmed: int, expected: Optional[str]):
     with patch("chartify.ui.main_window.SingleInputDialog") as dialog:
@@ -32,23 +39,23 @@ class TestRemoveVariable:
         VariableData("Gas:Facility", None, "J"),
     ]
 
-    def test_confirm_remove_variables(self, qtbot, mw_esofile):
-        mw_esofile.current_view.select_variables(self.VARIABLES)
+    def test_confirm_remove_variables(self, qtbot, mw_esofile1):
+        mw_esofile1.current_view.select_variables(self.VARIABLES)
         with patch("chartify.ui.main_window.ConfirmationDialog") as dialog:
             instance = dialog.return_value
             instance.exec_.return_value = True
-            qtbot.mouseClick(mw_esofile.toolbar.remove_btn, Qt.LeftButton)
+            qtbot.mouseClick(mw_esofile1.toolbar.remove_btn, Qt.LeftButton)
             dialog.assert_called_once_with(
-                mw_esofile,
+                mw_esofile1,
                 "Delete following variables from table 'hourly', file 'eplusout1': ",
                 det_text="HW LOOP SUPPLY PUMP | Pump Electric Power | W\nCHW LOOP SUPPLY PUMP | Pump Electric Power | W",
             )
 
     @pytest.mark.depends(on="test_confirm_remove_variables")
-    def test_remove_variable(self, qtbot, mw_esofile):
-        exist = mw_esofile.current_view.source_model.variables_exist(self.VARIABLES)
+    def test_remove_variable(self, qtbot, mw_esofile1):
+        exist = mw_esofile1.current_view.source_model.variables_exist(self.VARIABLES)
         assert not any(exist)
-        assert not mw_esofile.current_view.get_selected_variable_data()
+        assert not mw_esofile1.current_view.get_selected_variable_data()
 
     def test_confirm_remove_variables_simple(self, qtbot, mw_combined_file):
         mw_combined_file.current_view.select_variables(self.SIMPLE_VARIABLES)
@@ -71,12 +78,10 @@ class TestRemoveVariable:
         assert not mw_combined_file.current_view.get_selected_variable_data()
 
 
-class TestRenameVariable:
+class TestRenameSimpleVariable:
     NEW_SIMPLE_VARIABLE = VariableData("foo", None, "J")
-    NEW_VARIABLE = VariableData("foo", "bar", "%")
 
     def test_confirm_rename_variable_simple(self, qtbot, mw_excel_file):
-        mw_excel_file.on_table_change_requested("daily")
         with patch("chartify.ui.main_window.SingleInputDialog") as dialog:
             instance = dialog.return_value
             instance.exec_.return_value = 1
@@ -110,22 +115,34 @@ class TestRenameVariable:
         )
         assert df.shape == (365, 1)
 
-    def test_confirm_rename_variable(self, qtbot, mw_excel_file):
-        mw_excel_file.on_table_change_requested("hourly")
+
+class TestRenameVariable:
+    NEW_VARIABLE = VariableData("foo", "bar", "kgWater/kgDryAir")
+
+    @pytest.fixture(autouse=True)
+    def mw_excel_file_hourly(self, mw_excel_file, qtbot):
+        qtbot.mouseClick(mw_excel_file.toolbar.table_buttons[6], Qt.LeftButton)
+        return mw_excel_file
+
+    def test_confirm_rename_variable(self, qtbot, mw_excel_file_hourly):
         with patch("chartify.ui.main_window.DoubleInputDialog") as dialog:
             instance = dialog.return_value
             instance.exec_.return_value = 1
             instance.input1_text = "foo"
             instance.input2_text = "bar"
-            point = mw_excel_file.current_view.visualRect(
-                mw_excel_file.current_view.model().index(1, 0)
+            point = mw_excel_file_hourly.current_view.visualRect(
+                mw_excel_file_hourly.current_view.model().index(1, 0)
             ).center()
             # need to move mouse to hover over view
-            qtbot.mouseMove(mw_excel_file.current_view.viewport(), pos=point)
-            qtbot.mouseClick(mw_excel_file.current_view.viewport(), Qt.LeftButton, pos=point)
-            qtbot.mouseDClick(mw_excel_file.current_view.viewport(), Qt.LeftButton, pos=point)
+            qtbot.mouseMove(mw_excel_file_hourly.current_view.viewport(), pos=point)
+            qtbot.mouseClick(
+                mw_excel_file_hourly.current_view.viewport(), Qt.LeftButton, pos=point
+            )
+            qtbot.mouseDClick(
+                mw_excel_file_hourly.current_view.viewport(), Qt.LeftButton, pos=point
+            )
             dialog.assert_called_once_with(
-                mw_excel_file,
+                mw_excel_file_hourly,
                 title="Rename variable for table 'hourly', file 'various_table_types':",
                 input1_name="Key",
                 input1_text="BLOCK1:ZONE1",
@@ -139,16 +156,16 @@ class TestRenameVariable:
                 },
             )
 
-        @pytest.mark.depends(on="test_confirm_rename_variable_simple")
-        def test_rename_variable_ui(self, qtbot, mw_esofile):
-            assert mw_esofile.current_model.variable_exists(self.NEW_SIMPLE_VARIABLE)
+    @pytest.mark.depends(on="test_confirm_rename_variable")
+    def test_rename_variable_ui(self, qtbot, mw_excel_file_hourly):
+        assert mw_excel_file_hourly.current_model.variable_exists(self.NEW_VARIABLE)
 
-        @pytest.mark.depends(on="test_confirm_rename_variable_simple")
-        def test_rename_variable_file(self, qtbot, mw_esofile):
-            df = mw_esofile.current_model.get_results(
-                [self.NEW_VARIABLE], **Settings.get_units()
-            )
-            assert df.shape == (4392, 1)
+    @pytest.mark.depends(on="test_confirm_rename_variable")
+    def test_rename_variable_file(self, qtbot, mw_excel_file_hourly):
+        df = mw_excel_file_hourly.current_model.get_results(
+            [self.NEW_VARIABLE], **Settings.get_units()
+        )
+        assert df.shape == (8760, 1)
 
 
 class TestAggregate:
@@ -173,18 +190,18 @@ class TestAggregate:
             ),
         ],
     )
-    def test_confirm_aggregate_variables(self, qtbot, mw_esofile, variables, text1, text2):
-        mw_esofile.current_view.select_variables(variables)
+    def test_confirm_aggregate_variables(self, qtbot, mw_esofile1, variables, text1, text2):
+        mw_esofile1.current_view.select_variables(variables)
         with patch("chartify.ui.main_window.DoubleInputDialog") as dialog:
             instance = dialog.return_value
             instance.exec_.return_value = 1
             instance.input1_text = "foo"
             instance.input2_text = "bar"
-            qtbot.mouseClick(mw_esofile.toolbar.mean_btn, Qt.LeftButton)
+            qtbot.mouseClick(mw_esofile1.toolbar.mean_btn, Qt.LeftButton)
             dialog.assert_called_once_with(
-                mw_esofile,
+                mw_esofile1,
                 title=f"Calculate mean from selected "
-                f"variables for {mw_esofile.get_files_and_tables_text()}:",
+                f"variables for {mw_esofile1.get_files_and_tables_text()}:",
                 input1_name="Key",
                 input1_text=text1,
                 input2_name="Type",
@@ -192,12 +209,12 @@ class TestAggregate:
             )
 
     @pytest.mark.depends(on="test_confirm_aggregate_variables")
-    def test_aggregate_variables(self, qtbot, mw_esofile):
+    def test_aggregate_variables(self, qtbot, mw_esofile1):
         variables = [VariableData("foo", "bar", "W"), VariableData("foo (1)", "bar", "W")]
-        mw_esofile.current_view.select_variables(variables)
-        df = mw_esofile.fetch_results()
+        mw_esofile1.current_view.select_variables(variables)
+        df = mw_esofile1.fetch_results()
         assert df.shape == (4392, 2)
-        assert mw_esofile.current_model.variables_exist(variables)
+        assert mw_esofile1.current_model.variables_exist(variables)
 
 
 class TestAggregateSimple:
@@ -254,17 +271,17 @@ class TestAllFilesTables:
         VariableData("Gas:Facility", None, "J"),
     ]
 
-    def test_confirm_remove_variables(self, qtbot, mw_esofile):
-        mw_esofile.toolbar.all_files_toggle.setChecked(True)
-        mw_esofile.toolbar.all_tables_toggle.setChecked(True)
-        mw_esofile.current_view.select_variables(self.VARIABLES)
+    def test_confirm_remove_variables(self, qtbot, mw_esofile1):
+        mw_esofile1.toolbar.all_files_toggle.setChecked(True)
+        mw_esofile1.toolbar.all_tables_toggle.setChecked(True)
+        mw_esofile1.current_view.select_variables(self.VARIABLES)
         with patch("chartify.ui.main_window.ConfirmationDialog") as dialog:
             instance = dialog.return_value
             instance.exec_.return_value = True
-            qtbot.mouseClick(mw_esofile.toolbar.remove_btn, Qt.LeftButton)
+            qtbot.mouseClick(mw_esofile1.toolbar.remove_btn, Qt.LeftButton)
             dialog.assert_called_once_with(
-                mw_esofile,
-                f"Delete following variables from {mw_esofile.get_files_and_tables_text()}: ",
+                mw_esofile1,
+                f"Delete following variables from {mw_esofile1.get_files_and_tables_text()}: ",
                 det_text="HW LOOP SUPPLY PUMP | Pump Electric Power | W\nCHW LOOP SUPPLY PUMP | Pump Electric Power | W",
             )
 

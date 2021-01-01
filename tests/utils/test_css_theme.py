@@ -82,18 +82,20 @@ def test_parse_color_invalid(color):
 @pytest.fixture(scope="module")
 def palette():
     # reduce colors for test purposes
+    old_colors = Palette.COLORS
     Palette.COLORS = [
         "PRIMARY_COLOR",
         "PRIMARY_TEXT_COLOR",
         "SECONDARY_COLOR",
         "SECONDARY_TEXT_COLOR",
     ]
-    return Palette(
+    yield Palette(
         "test palette",
         default_color=(100, 100, 100),
         PRIMARY_COLOR=(255, 255, 255),
         PRIMARY_TEXT_COLOR=(0, 0, 0),
     )
+    Palette.COLORS = old_colors
 
 
 class TestPalette:

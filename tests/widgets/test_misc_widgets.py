@@ -14,6 +14,7 @@ class TestTabWidget:
     @pytest.fixture()
     def tab_widget(self, qtbot):
         button = QToolButton()
+        button.setObjectName("dropButton")
         tab_widget = TabWidget(None, button)
         tab_widget.show()
         qtbot.add_widget(tab_widget)
@@ -25,7 +26,6 @@ class TestTabWidget:
         assert tab_widget.isMovable()
         assert tab_widget.tabPosition() == TabWidget.North
         assert tab_widget.tab_wgt_button.objectName() == "dropButton"
-        assert tab_widget.tab_wgt_button.text() == "Choose a file or drag it here!"
 
     def test_is_empty(self, tab_widget: TabWidget):
         assert tab_widget.tab_wgt_button.isVisible()

@@ -17,7 +17,7 @@ def test_tab_widgets(mw):
 
 @pytest.mark.parametrize(
     "all_files, all_tables, n_models",
-    [(True, True, 14), (False, True, 4), (True, False, 2), (False, False, 1)],
+    [(True, True, 10), (False, True, 6), (True, False, 1), (False, False, 1)],
 )
 def test_get_all_models(all_files, all_tables, n_models, mw_esofile):
     mw_esofile.toolbar.all_files_toggle.setChecked(all_files)

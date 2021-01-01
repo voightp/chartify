@@ -1,6 +1,6 @@
 from unittest.mock import patch
 
-from PySide2.QtCore import QMargins, Qt, QSize, QPoint
+from PySide2.QtCore import QMargins, QSize, QPoint
 from PySide2.QtGui import QKeySequence
 from PySide2.QtWidgets import QSizePolicy
 
@@ -190,10 +190,3 @@ def test_on_color_scheme_changed(qtbot, mw):
             mw.on_color_scheme_changed("monochrome")
             assert mock_settings.PALETTE == mw.palettes["monochrome"]
             assert mock_settings.PALETTE_NAME == "monochrome"
-
-
-def test_on_splitter_moved(qtbot, pretty_mw):
-    with patch("chartify.ui.main_window.Settings") as mock_settings:
-        pretty_mw.central_splitter.setSizes([530, 664])
-        pretty_mw.on_splitter_moved()  # this is only triggered with manual interaction
-        assert mock_settings.SPLIT == [530, 664]

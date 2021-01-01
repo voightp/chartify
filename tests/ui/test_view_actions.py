@@ -14,7 +14,7 @@ def test_expand_all_empty(qtbot, mw):
 def test_expand_all(qtbot, mw_esofile):
     mw_esofile.on_table_change_requested("daily")
     qtbot.mouseClick(mw_esofile.expand_all_btn, Qt.LeftButton)
-    assert len(mw_esofile.current_view.source_model.expanded) == 28
+    assert len(mw_esofile.current_view.source_model.expanded) == 4
 
 
 def test_collapse_all_empty(qtbot, mw):

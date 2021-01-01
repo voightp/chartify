@@ -5,6 +5,7 @@ from unittest import mock
 
 import pytest
 from PySide2.QtCore import Qt
+from PySide2.QtWidgets import QAction
 from esofile_reader import GenericFile
 
 from chartify.controller.app_controller import AppController
@@ -71,6 +72,7 @@ def pretty_mw(qtbot, test_tempdir):
     with tempfile.TemporaryDirectory(prefix="chartify", dir=test_tempdir) as fix_dir:
         Settings.APP_TEMP_DIR = Path(fix_dir)
         Settings.load_settings_from_json()
+        print(Settings.as_str())
         main_window = MainWindow()
         model = AppModel()
         wv_controller = WVController(model, main_window.web_view)
@@ -86,13 +88,15 @@ def app_setup(qtbot, test_tempdir):
         Settings.APP_TEMP_DIR = Path(fix_dir)
         Settings.load_settings_from_json()
         with mock.patch("chartify.ui.main_window.MainWindow.load_css_and_icons"):
-            main_window = MainWindow()
-            model = AppModel()
-            wv_controller = WVController(model, main_window.web_view)
-            controller = AppController(model, main_window, wv_controller)
-            qtbot.add_widget(main_window)
-            main_window.show()
-            yield model, main_window, controller
+            with mock.patch("chartify.ui.main_window.MainWindow.create_scheme_actions") as func:
+                func.return_value = ([QAction()], QAction())
+                main_window = MainWindow()
+                model = AppModel()
+                wv_controller = WVController(model, main_window.web_view)
+                controller = AppController(model, main_window, wv_controller)
+                qtbot.add_widget(main_window)
+                main_window.show()
+                yield model, main_window, controller
 
 
 @pytest.fixture(scope="function")
@@ -107,9 +111,10 @@ def mw_esofile(mw, eso_file_all_intervals, eso_file1, totals_file, qtbot):
 
 
 @pytest.fixture(scope="function")
-def mw_excel_file(mw_esofile, qtbot):
-    mw_esofile.standard_tab_wgt.setCurrentIndex(1)
-    qtbot.mouseClick(mw_esofile.toolbar.table_buttons[0], Qt.LeftButton)
+def mw_excel_file(mw, excel_file, qtbot):
+    models1 = ViewModel.models_from_file(excel_file)
+    mw.add_treeview(0, excel_file.file_name, OutputType.STANDARD, models1)
+    mw.on_table_change_requested("daily")
     return mw
 
 
