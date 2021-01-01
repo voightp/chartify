@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Dict, Union
 
 from PySide2.QtCore import Qt, Signal
 from PySide2.QtWidgets import (
@@ -27,12 +27,12 @@ class Toolbar(QFrame):
 
     tabWidgetChangeRequested = Signal(int)
     tableChangeRequested = Signal(str)
-    customUnitsToggled = Signal(str, str, str, bool)
+    customUnitsToggled = Signal()
     unitsChanged = Signal(str, str, str, bool)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.temp_settings = {
+        self.temp_units = {
             "energy_units": Settings.ENERGY_UNITS,
             "rate_units": Settings.RATE_UNITS,
             "units_system": Settings.UNITS_SYSTEM,
@@ -174,6 +174,16 @@ class Toolbar(QFrame):
         self.rate_btn.menu().triggered.connect(self.on_power_units_changed)
         self.units_system_button.menu().triggered.connect(self.on_units_system_changed)
 
+    @property
+    def current_units(self) -> Dict[str, Union[bool, str]]:
+        rate_to_energy = self.rate_energy_btn.isChecked() and self.rate_energy_btn.isEnabled()
+        return {
+            "energy_units": self.energy_btn.data(),
+            "rate_units": self.rate_btn.data(),
+            "units_system": self.units_system_button.data(),
+            "rate_to_energy": rate_to_energy,
+        }
+
     @staticmethod
     def clear_group(group):
         """ Delete all widgets from given group. """
@@ -281,15 +291,15 @@ class Toolbar(QFrame):
             units_system = "SI"
             rate_to_energy = False
             # store original settings
-            self.temp_settings["energy_units"] = self.energy_btn.data()
-            self.temp_settings["rate_units"] = self.rate_btn.data()
-            self.temp_settings["units_system"] = self.units_system_button.data()
-            self.temp_settings["rate_to_energy"] = self.rate_energy_btn.isChecked()
+            self.temp_units["energy_units"] = self.energy_btn.data()
+            self.temp_units["rate_units"] = self.rate_btn.data()
+            self.temp_units["units_system"] = self.units_system_button.data()
+            self.temp_units["rate_to_energy"] = self.rate_energy_btn.isChecked()
         else:
-            energy = self.temp_settings["energy_units"]
-            power = self.temp_settings["rate_units"]
-            units_system = self.temp_settings["units_system"]
-            rate_to_energy = self.temp_settings["rate_to_energy"]
+            energy = self.temp_units["energy_units"]
+            power = self.temp_units["rate_units"]
+            units_system = self.temp_units["units_system"]
+            rate_to_energy = self.temp_units["rate_to_energy"]
 
         self.energy_btn.set_action(energy)
         self.rate_btn.set_action(power)
@@ -301,7 +311,7 @@ class Toolbar(QFrame):
         self.units_system_button.setEnabled(checked)
         self.rate_energy_btn.setEnabled(checked)
 
-        self.customUnitsToggled.emit(energy, power, units_system, rate_to_energy)
+        self.customUnitsToggled.emit()
         self.unitsChanged.emit(energy, power, units_system, self.rate_energy_btn.isChecked())
 
     def filter_energy_power_units(self, units_system: str):

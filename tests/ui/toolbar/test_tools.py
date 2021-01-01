@@ -111,7 +111,7 @@ class TestRenameSimpleVariable:
     @pytest.mark.depends(on="test_confirm_rename_variable_simple")
     def test_rename_simple_variable_file(self, qtbot, mw_excel_file):
         df = mw_excel_file.current_model.get_results(
-            [self.NEW_SIMPLE_VARIABLE], **Settings.get_units()
+            [self.NEW_SIMPLE_VARIABLE], **mw_excel_file.toolbar.current_units()
         )
         assert df.shape == (365, 1)
 
@@ -163,7 +163,7 @@ class TestRenameVariable:
     @pytest.mark.depends(on="test_confirm_rename_variable")
     def test_rename_variable_file(self, qtbot, mw_excel_file_hourly):
         df = mw_excel_file_hourly.current_model.get_results(
-            [self.NEW_VARIABLE], **Settings.get_units()
+            [self.NEW_VARIABLE], **mw_excel_file_hourly.toolbar.current_units
         )
         assert df.shape == (8760, 1)
 

@@ -538,7 +538,7 @@ class MainWindow(QMainWindow):
             filter_tuple=self.get_filter_tuple(),
             show_source_units=self.show_source_units(),
         ) as mask:
-            mask.update_table(self.tree_act.isChecked(), **Settings.get_units())
+            mask.update_table(self.tree_act.isChecked(), **self.toolbar.current_units)
         self.update_table_actions()
 
     def on_tree_node_changed(self, treeview: TreeView) -> None:
@@ -602,7 +602,7 @@ class MainWindow(QMainWindow):
             models = self.get_all_models()
             frames = []
             for model in models:
-                df = model.get_results(view_variables, **Settings.get_units())
+                df = model.get_results(view_variables, **self.toolbar.current_units)
                 if df is not None:
                     frames.append(df)
             return pd.concat(frames, axis=1, sort=False)
@@ -727,7 +727,7 @@ class MainWindow(QMainWindow):
             show_source_units=self.show_source_units(),
         ) as mask:
             tree = self.tree_act.isChecked()
-            mask.set_table(table_name, tree, **Settings.get_units())
+            mask.set_table(table_name, tree, **self.toolbar.current_units)
 
     def on_stacked_widget_change_requested(self, index: int) -> None:
         """ Show tab widget corresponding to the given radio button. """
@@ -752,7 +752,7 @@ class MainWindow(QMainWindow):
             show_source_units=self.show_source_units(),
         ) as mask:
             tree = self.tree_act.isChecked()
-            mask.set_table(table_name, tree, **Settings.get_units())
+            mask.set_table(table_name, tree, **self.toolbar.current_units)
 
     def update_view_actions(self):
         if self.current_view is None:
@@ -782,6 +782,10 @@ class MainWindow(QMainWindow):
             self.expand_all_act.setEnabled(allow_tree)
             self.collapse_all_act.setEnabled(allow_tree)
             self.toolbar.enable_rate_to_energy(self.current_model.allow_rate_to_energy)
+        Settings.RATE_TO_ENERGY = (
+            self.toolbar.rate_energy_btn.isChecked()
+            and self.toolbar.rate_energy_btn.isEnabled()
+        )
 
     def update_selection_actions(self):
         """  Update toolbar actions to match current selection. """
@@ -834,7 +838,7 @@ class MainWindow(QMainWindow):
             show_source_units=self.show_source_units(),
         ) as mask:
             tree = self.tree_act.isChecked()
-            mask.set_table(table_name, tree, **Settings.get_units())
+            mask.set_table(table_name, tree, **self.toolbar.current_units)
         self.update_table_actions()
         self.update_selection_actions()
 
@@ -893,7 +897,7 @@ class MainWindow(QMainWindow):
         Settings.UNITS_SYSTEM = units_system
         Settings.RATE_TO_ENERGY = rate_to_energy
         if self.current_view:
-            self.current_view.update_units(**Settings.get_units())
+            self.current_view.update_units(**self.toolbar.current_units)
 
     def on_custom_units_toggled(self) -> None:
         # model could have been changed prior to custom units toggle
@@ -922,7 +926,7 @@ class MainWindow(QMainWindow):
                 filter_tuple=self.get_filter_tuple(),
                 show_source_units=self.show_source_units(),
             ) as mask:
-                mask.update_table(self.tree_act.isChecked(), **Settings.get_units())
+                mask.update_table(self.tree_act.isChecked(), **self.toolbar.current_units)
 
     def on_text_edited(self):
         """ Delay firing a text edited event. """
