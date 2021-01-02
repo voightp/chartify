@@ -12,7 +12,6 @@ from PySide2.QtWidgets import (
 class TabWidget(QTabWidget):
     """ Tab widget which displays information button when empty. """
 
-    allClosed = Signal(QTabWidget)
     closeTabRequested = Signal(QTabWidget, int)
     currentTabChanged = Signal(QTabWidget, int, int)
     tabRenameRequested = Signal(QTabWidget, int)
@@ -39,7 +38,6 @@ class TabWidget(QTabWidget):
         return self.tabText(self.currentIndex())
 
     def is_empty(self) -> bool:
-        """ Check if there's at least one loaded file. """
         return self.count() <= 0
 
     def get_all_children(self) -> List[QWidget]:
@@ -55,3 +53,12 @@ class TabWidget(QTabWidget):
             self.tab_wgt_button.setVisible(False)
         self.currentTabChanged.emit(self, self._previous_index, index)
         self._previous_index = index
+
+    def set_next_tab(self):
+        if self.count() == 1:
+            next_index = -1
+        elif self.currentIndex() == 0:
+            next_index = 1
+        else:
+            next_index = self.currentIndex() - 1
+        self.setCurrentIndex(next_index)

@@ -718,27 +718,21 @@ class MainWindow(QMainWindow):
             proxy_units=self.units_line_edit.text(),
         )
 
-    def _on_first_tab_added(self, treeview: TreeView):
-        table_names = treeview.table_names
-        table_name = table_names[0]
-        with ViewMask(
-            treeview,
-            filter_tuple=self.get_filter_tuple(),
-            show_source_units=self.show_source_units(),
-        ) as mask:
-            tree = self.tree_act.isChecked()
-            mask.set_table(table_name, tree, **self.toolbar.current_units)
-
     def on_stacked_widget_change_requested(self, index: int) -> None:
         """ Show tab widget corresponding to the given radio button. """
         Settings.OUTPUTS_ENUM = index
         self.tab_stacked_widget.setCurrentIndex(index)
         if self.current_view is not None and self.current_model is None:
-            self._on_first_tab_added(self.current_view)
+            self.handle_tab_change(self.current_view)
         self.update_toolbar_actions()
 
-    def _on_tab_changed(self, previous_treeview: TreeView, treeview: TreeView):
-        if previous_treeview.current_table_name in treeview.table_names:
+    def handle_tab_change(
+        self, treeview: TreeView, previous_treeview: Optional[TreeView] = None
+    ) -> None:
+        if (
+            previous_treeview is not None
+            and previous_treeview.current_table_name in treeview.table_names
+        ):
             table_name = previous_treeview.current_table_name
         else:
             if treeview.current_table_name:
@@ -751,8 +745,7 @@ class MainWindow(QMainWindow):
             filter_tuple=self.get_filter_tuple(),
             show_source_units=self.show_source_units(),
         ) as mask:
-            tree = self.tree_act.isChecked()
-            mask.set_table(table_name, tree, **self.toolbar.current_units)
+            mask.set_table(table_name, self.tree_act.isChecked(), **self.toolbar.current_units)
 
     def update_view_actions(self):
         if self.current_view is None:
@@ -820,12 +813,9 @@ class MainWindow(QMainWindow):
                 Settings.CURRENT_FILE_ID = None
             else:
                 current_treeview = tab_widget.widget(index)
+                previous_treeview = tab_widget.widget(previous_index)
                 Settings.CURRENT_FILE_ID = current_treeview.id_
-                if previous_index == -1:
-                    self._on_first_tab_added(current_treeview)
-                else:
-                    previous_treeview = tab_widget.widget(previous_index)
-                    self._on_tab_changed(previous_treeview, current_treeview)
+                self.handle_tab_change(current_treeview, previous_treeview)
             self.update_toolbar_actions()
 
     def on_table_change_requested(self, table_name: str):
@@ -873,6 +863,8 @@ class MainWindow(QMainWindow):
         name = tab_widget.tabText(tab_index)
         res = self.confirm_delete_file(name)
         if res:
+            if treeview is self.current_view:
+                self.current_tab_widget.set_next_tab()
             tab_widget.removeTab(tab_index)
             treeview.deleteLater()
             self.fileRemoveRequested.emit(treeview.id_)
