@@ -35,7 +35,6 @@ def test_check_energy_btn_update(qtbot, mw):
 
     with qtbot.wait_signal(mw.toolbar.unitsChanged, check_params_cb=cb):
         mw.toolbar.energy_btn.menu().actions()[0].trigger()
-    assert Settings.ENERGY_UNITS == "Wh"
 
 
 def test_check_rate_btn_update(qtbot, mw):
@@ -44,7 +43,6 @@ def test_check_rate_btn_update(qtbot, mw):
 
     with qtbot.wait_signal(mw.toolbar.unitsChanged, check_params_cb=cb):
         mw.toolbar.rate_btn.menu().actions()[0].trigger()
-    assert Settings.RATE_UNITS == "W"
 
 
 def test_check_units_system_btn_update(qtbot, mw):
@@ -53,7 +51,6 @@ def test_check_units_system_btn_update(qtbot, mw):
 
     with qtbot.wait_signal(mw.toolbar.unitsChanged, check_params_cb=cb):
         mw.toolbar.units_system_button.menu().actions()[1].trigger()
-    assert Settings.UNITS_SYSTEM == "IP"
 
 
 def test_check_rate_to_energy_btn_update(qtbot, mw):
@@ -62,7 +59,6 @@ def test_check_rate_to_energy_btn_update(qtbot, mw):
 
     with qtbot.wait_signal(mw.toolbar.unitsChanged, check_params_cb=cb):
         qtbot.mouseClick(mw.toolbar.rate_energy_btn, Qt.LeftButton)
-    assert Settings.RATE_TO_ENERGY is True
 
 
 def test_cached_units(qtbot, mw):

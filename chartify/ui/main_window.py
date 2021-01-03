@@ -385,6 +385,12 @@ class MainWindow(QMainWindow):
             Settings.SPLIT = self.central_splitter.sizes()
             Settings.ALL_FILES = self.toolbar.all_files_toggle.isChecked()
             Settings.ALL_TABLES = self.toolbar.all_tables_toggle.isChecked()
+            Settings.ENERGY_UNITS = self.toolbar.energy_btn.data()
+            Settings.RATE_UNITS = self.toolbar.rate_btn.data()
+            Settings.UNITS_SYSTEM = self.toolbar.units_system_button.data()
+            Settings.RATE_TO_ENERGY = self.toolbar.rate_energy_btn.isChecked()
+            # TODO enable once main window polished
+            # Settings.save_settings_to_json()
             event.accept()
         else:
             event.ignore()
@@ -884,10 +890,6 @@ class MainWindow(QMainWindow):
     def on_units_changed(
         self, energy_units: str, rate_units: str, units_system: str, rate_to_energy: bool
     ) -> None:
-        Settings.ENERGY_UNITS = energy_units
-        Settings.RATE_UNITS = rate_units
-        Settings.UNITS_SYSTEM = units_system
-        Settings.RATE_TO_ENERGY = rate_to_energy
         if self.current_view:
             self.current_view.update_units(**self.toolbar.current_units)
 

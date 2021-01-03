@@ -71,9 +71,6 @@ class AppController:
 
     def tear_down(self) -> None:
         """ Clean up application resources. """
-        # TODO enable once main window polished
-        # Settings.save_settings_to_json()
-
         shutil.rmtree(Settings.APP_TEMP_DIR, ignore_errors=True)
 
         self.watcher.terminate()
