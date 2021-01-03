@@ -676,7 +676,7 @@ class ViewMask:
             expanded = old_model.expanded
             scroll_position = old_model.scroll_position
         else:
-            selected = treeview.get_selected_variable_data()
+            selected = treeview.source_model.selected
             expanded = treeview.source_model.expanded
             scroll_position = treeview.source_model.scroll_position
         self.update_appearance(
