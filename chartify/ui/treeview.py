@@ -292,10 +292,10 @@ class TreeView(QTreeView):
         for i in range(self.header().count()):
             if not self.header().isSectionHidden(i):
                 if self.header().sectionResizeMode(i) == QHeaderView.Interactive:
-                    widths["interaive"] = self.header().sectionSize(i)
+                    widths["interactive"] = self.header().sectionSize(i)
                 elif self.header().sectionResizeMode(i) == QHeaderView.Fixed:
                     widths["fixed"] = self.header().sectionSize(i)
-        return widthsct
+        return widths
 
     def show_all_sections(self):
         """ Make all columns visible. """
