@@ -785,10 +785,6 @@ class MainWindow(QMainWindow):
             self.expand_all_act.setEnabled(allow_tree)
             self.collapse_all_act.setEnabled(allow_tree)
             self.toolbar.enable_rate_to_energy(self.current_model.allow_rate_to_energy)
-        Settings.RATE_TO_ENERGY = (
-            self.toolbar.rate_energy_btn.isChecked()
-            and self.toolbar.rate_energy_btn.isEnabled()
-        )
 
     def update_selection_actions(self):
         """  Update toolbar actions to match current selection. """
