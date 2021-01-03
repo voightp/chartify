@@ -60,11 +60,11 @@ QToolButton#swapButton {
 }
 
 
-QToolButton#dropButton {
+#dropButton, #totalsButton, #diffButton {
     background: transparent;
     border: none;
     height: 100px;
-    width: 150px;
+    width: 200px;
     font-size: 11px;
 }
 

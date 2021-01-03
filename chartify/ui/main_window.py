@@ -166,17 +166,17 @@ class MainWindow(QMainWindow):
 
         self.drop_button = QToolButton()
         self.drop_button.setObjectName("dropButton")
-        self.drop_button.setText("Choose a file or drag it here!")
+        self.drop_button.setText("Choose a file or drag it here...")
         self.drop_button.clicked.connect(self.load_files_from_fs)
 
         self.totals_button = QToolButton()
         self.totals_button.setObjectName("totalsButton")
-        self.totals_button.setText("Choose a file or drag it here!")
+        self.totals_button.setText("Click here to create a totals file...")
         self.totals_button.clicked.connect(self.create_totals_file())
 
         self.diff_button = QToolButton()
         self.diff_button.setObjectName("diffButton")
-        self.diff_button.setText("Click here to create difference file!")
+        self.diff_button.setText("Click here to create a difference file...")
         self.diff_button.clicked.connect(self.create_diff_file)
 
         self.standard_tab_wgt = TabWidget(self.view_wgt, self.drop_button)
@@ -444,9 +444,13 @@ class MainWindow(QMainWindow):
         self.drop_button.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
         self.drop_button.setIconSize(Settings.ICON_LARGE_SIZE)
 
-        self.totals_button.setIcon(Pixmap(Path(r, "drop_file.png"), *c1))
+        self.totals_button.setIcon(Pixmap(Path(r, "add_file.png"), *c1))
         self.totals_button.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
         self.totals_button.setIconSize(Settings.ICON_LARGE_SIZE)
+
+        self.diff_button.setIcon(Pixmap(Path(r, "add_file.png"), *c1))
+        self.diff_button.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
+        self.diff_button.setIconSize(Settings.ICON_LARGE_SIZE)
 
         icon = QIcon()
         icon.addPixmap(Pixmap(Path(r, "sigma.png"), *c1), QIcon.Normal, QIcon.Off)
