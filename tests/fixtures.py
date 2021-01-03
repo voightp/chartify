@@ -100,13 +100,31 @@ def app_setup(qtbot, test_tempdir):
 
 
 @pytest.fixture(scope="function")
-def mw_esofile(mw, eso_file_all_intervals, eso_file1, totals_file, qtbot):
+def model(app_setup):
+    return app_setup[0]
+
+
+@pytest.fixture(scope="function")
+def mw(app_setup):
+    return app_setup[1]
+
+
+@pytest.fixture(scope="function")
+def controller(app_setup):
+    return app_setup[2]
+
+
+@pytest.fixture(scope="function")
+def mw_esofile(mw, model, eso_file_all_intervals, eso_file1, totals_file, qtbot):
     models1 = ViewModel.models_from_file(eso_file_all_intervals)
     mw.add_treeview(0, eso_file_all_intervals.file_name, OutputType.STANDARD, models1)
+    model.storage.files[0] = eso_file_all_intervals
     models2 = ViewModel.models_from_file(eso_file1)
     mw.add_treeview(1, eso_file1.file_name, OutputType.STANDARD, models2)
+    model.storage.files[1] = eso_file1
     models3 = ViewModel.models_from_file(totals_file)
     mw.add_treeview(2, totals_file.file_name, OutputType.TOTALS, models3)
+    model.storage.files[2] = eso_file1
     return mw
 
 
@@ -123,18 +141,3 @@ def mw_combined_file(mw, eso_file_excel, qtbot):
     models1 = ViewModel.models_from_file(eso_file_excel)
     mw.add_treeview(0, eso_file_excel.file_name, OutputType.STANDARD, models1)
     return mw
-
-
-@pytest.fixture(scope="function")
-def model(app_setup):
-    return app_setup[0]
-
-
-@pytest.fixture(scope="function")
-def mw(app_setup):
-    return app_setup[1]
-
-
-@pytest.fixture(scope="function")
-def controller(app_setup):
-    return app_setup[2]

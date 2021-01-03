@@ -66,7 +66,7 @@ class MainWindow(QMainWindow):
     aggregationRequested = Signal(list, str, list, str, str)
     fileProcessingRequested = Signal(list)
     syncFileProcessingRequested = Signal(list)
-    fileRenameRequested = Signal(int, int)
+    fileRenameRequested = Signal(int, str)
     fileRemoveRequested = Signal(int)
     appCloseRequested = Signal()
 
@@ -861,6 +861,7 @@ class MainWindow(QMainWindow):
         names.remove(name)
         new_name = self.confirm_rename_file(name, names)
         if new_name is not None:
+            id_ = tab_widget.widget(tab_index).id_
             tab_widget.setTabText(tab_index, new_name)
             self.fileRenameRequested.emit(id_, new_name)
 
