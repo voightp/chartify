@@ -272,5 +272,8 @@ class TestRenameFile:
 
 
 def test_remove_file(mw_esofile, model):
-    mw_esofile.standard_tab_wgt.closeTabRequested.emit(mw_esofile.standard_tab_wgt, 1)
-    print(model.storage.files)
+    with patch("chartify.ui.main_window.ConfirmationDialog") as dialog:
+        instance = dialog.return_value
+        instance.exec_.return_value = 1
+        mw_esofile.standard_tab_wgt.closeTabRequested.emit(mw_esofile.standard_tab_wgt, 1)
+    assert 1 not in model.storage.files

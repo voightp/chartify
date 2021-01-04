@@ -873,8 +873,8 @@ class MainWindow(QMainWindow):
             if treeview is self.current_view:
                 self.current_tab_widget.set_next_tab()
             tab_widget.removeTab(tab_index)
-            treeview.deleteLater()
             self.fileRemoveRequested.emit(treeview.id_)
+            treeview.deleteLater()
 
     def connect_tab_widget_signals(self):
         # ~~~~ Tab Signals ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

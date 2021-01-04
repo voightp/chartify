@@ -1,18 +1,19 @@
 import pathlib
 import tempfile
+from copy import copy
 from pathlib import Path
 from unittest import mock
 
 import pytest
 from PySide2.QtWidgets import QAction
 from esofile_reader import GenericFile
+from esofile_reader.pqt.parquet_storage import ParquetStorage
 
 from chartify.controller.app_controller import AppController
 from chartify.controller.wv_controller import WVController
 from chartify.model.model import AppModel
-from chartify.settings import Settings, OutputType
+from chartify.settings import Settings
 from chartify.ui.main_window import MainWindow
-from chartify.ui.treeview_model import ViewModel
 
 ROOT = pathlib.Path(__file__).parent
 TEST_FILES = Path(ROOT, "eso_files")
@@ -31,54 +32,100 @@ def test_tempdir():
         yield tempdir
 
 
-@pytest.fixture(scope="class")
-def excel_file():
+@pytest.fixture(scope="session")
+def session_excel_file():
     return GenericFile.from_excel(EXCEL_FILE_PATH)
 
 
-@pytest.fixture(scope="class")
-def eso_file1():
+@pytest.fixture(scope="session")
+def session_eso_file1():
     return GenericFile.from_eplus_file(ESO_FILE1_PATH)
 
 
-@pytest.fixture(scope="class")
-def eso_file2():
+@pytest.fixture(scope="session")
+def session_eso_file2():
     return GenericFile.from_eplus_file(ESO_FILE2_PATH)
 
 
-@pytest.fixture(scope="class")
-def eso_file_excel():
+@pytest.fixture(scope="session")
+def session_eso_file_excel():
     return GenericFile.from_excel(ESO_FILE_EXCEL_PATH)
 
 
-@pytest.fixture(scope="class")
-def eso_file_all_intervals():
+@pytest.fixture(scope="session")
+def session_eso_file_all_intervals():
     return GenericFile.from_eplus_file(ESO_FILE_ALL_INTERVALS_PATH)
 
 
-@pytest.fixture(scope="class")
-def diff_file(eso_file1, eso_file_all_intervals):
+@pytest.fixture(scope="session")
+def session_diff_file(eso_file1, eso_file_all_intervals):
     return GenericFile.from_diff(eso_file1, eso_file_all_intervals)
 
 
-@pytest.fixture(scope="class")
-def totals_file(eso_file1, eso_file_all_intervals):
-    return GenericFile.from_totals(eso_file1)
+@pytest.fixture(scope="session")
+def session_totals_file(session_eso_file1):
+    return GenericFile.from_totals(session_eso_file1)
 
 
 @pytest.fixture(scope="class")
-def parquet_eso_file_storage():
-    pass
+def excel_file(session_excel_file):
+    return copy(session_excel_file)
 
 
 @pytest.fixture(scope="class")
-def parquet_excel_file_storage():
-    pass
+def eso_file1(session_eso_file1):
+    return copy(session_eso_file1)
 
 
 @pytest.fixture(scope="class")
-def parquet_combined_file_storage():
-    pass
+def eso_file2(session_eso_file2):
+    return copy(session_eso_file2)
+
+
+@pytest.fixture(scope="class")
+def eso_file_excel(session_eso_file_excel):
+    return copy(session_eso_file_excel)
+
+
+@pytest.fixture(scope="class")
+def eso_file_all_intervals(session_eso_file_all_intervals):
+    return copy(session_eso_file_all_intervals)
+
+
+@pytest.fixture(scope="class")
+def diff_file(session_diff_file):
+    return copy(session_diff_file)
+
+
+@pytest.fixture(scope="class")
+def totals_file(session_totals_file):
+    return copy(session_totals_file)
+
+
+@pytest.fixture(scope="class")
+def parquet_eso_file_storage(eso_file_all_intervals, eso_file1, totals_file):
+    storage = ParquetStorage()
+    storage.store_file(eso_file_all_intervals)
+    storage.store_file(eso_file1)
+    storage.store_file(totals_file)
+    yield storage
+    del storage
+
+
+@pytest.fixture(scope="class")
+def parquet_excel_file_storage(excel_file):
+    storage = ParquetStorage()
+    storage.store_file(excel_file)
+    yield storage
+    del storage
+
+
+@pytest.fixture(scope="class")
+def parquet_combined_file_storage(eso_file_excel):
+    storage = ParquetStorage()
+    storage.store_file(eso_file_excel)
+    yield storage
+    del storage
 
 
 @pytest.fixture(scope="function")
@@ -128,29 +175,28 @@ def controller(app_setup):
 
 
 @pytest.fixture(scope="function")
-def mw_esofile(mw, model, eso_file_all_intervals, eso_file1, totals_file, qtbot):
-    models1 = ViewModel.models_from_file(eso_file_all_intervals)
-    mw.add_treeview(0, eso_file_all_intervals.file_name, OutputType.STANDARD, models1)
-    model.storage.files[0] = eso_file_all_intervals
-    models2 = ViewModel.models_from_file(eso_file1)
-    mw.add_treeview(1, eso_file1.file_name, OutputType.STANDARD, models2)
-    model.storage.files[1] = eso_file1
-    models3 = ViewModel.models_from_file(totals_file)
-    mw.add_treeview(2, totals_file.file_name, OutputType.TOTALS, models3)
-    model.storage.files[2] = eso_file1
+def mw_esofile(mw, controller, model, parquet_eso_file_storage, qtbot):
+    mw.storage = parquet_eso_file_storage
+    for file in parquet_eso_file_storage.files.values():
+        controller.on_file_loaded(file)
+        controller.ids.append(file.id_)
     return mw
 
 
 @pytest.fixture(scope="function")
-def mw_excel_file(mw, excel_file, qtbot):
-    models1 = ViewModel.models_from_file(excel_file)
-    mw.add_treeview(0, excel_file.file_name, OutputType.STANDARD, models1)
+def mw_excel_file(mw, controller, parquet_excel_file_storage, qtbot):
+    mw.storage = parquet_excel_file_storage
+    for file in parquet_excel_file_storage.files.values():
+        controller.on_file_loaded(file)
+        controller.ids.append(file.id_)
     mw.on_table_change_requested("daily")
     return mw
 
 
 @pytest.fixture(scope="function")
-def mw_combined_file(mw, eso_file_excel, qtbot):
-    models1 = ViewModel.models_from_file(eso_file_excel)
-    mw.add_treeview(0, eso_file_excel.file_name, OutputType.STANDARD, models1)
+def mw_combined_file(mw, controller, parquet_combined_file_storage, qtbot):
+    mw.storage = parquet_excel_file_storage
+    for file in parquet_combined_file_storage.files.values():
+        controller.on_file_loaded(file)
+        controller.ids.append(file.id_)
     return mw
