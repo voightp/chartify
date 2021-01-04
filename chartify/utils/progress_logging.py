@@ -2,6 +2,7 @@ from contextlib import contextmanager
 from multiprocessing import Queue
 from pathlib import Path
 from typing import Union
+from uuid import uuid1
 
 from PySide2.QtCore import QThread, Signal
 from esofile_reader.processing.progress_logger import BaseLogger, INFO
@@ -16,10 +17,10 @@ SET_PENDING = 5
 
 
 class UiLogger(BaseLogger):
-    def __init__(self, name: str, path: Path, logger_id: str, progress_queue: Queue):
+    def __init__(self, name: str, path: Path, progress_queue: Queue):
         super().__init__(name, level=INFO)
         self.path = path
-        self.logger_id = logger_id
+        self.logger_id = str(uuid1())
         self.progress_queue = progress_queue
         self._put_to_queue(NEW_FILE, name, path)
 

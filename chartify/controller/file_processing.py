@@ -36,8 +36,7 @@ def load_file(
     path: Path, workdir: Path, progress_queue, file_queue, ids: List[int], lock: Lock
 ) -> None:
     """ Process and store given results file. """
-    logger_id = str(uuid.uuid1())
-    logger = UiLogger(path.name, path, logger_id, progress_queue)
+    logger = UiLogger(path.name, path, progress_queue)
     try:
         with contextlib.suppress(IncompleteFile, BlankLineError, InvalidLineSyntax):
             # progress_thread.failed is called in processing function so suppressed
@@ -66,8 +65,7 @@ def create_totals_file(
     file: ResultsFileType, workdir: Path, progress_queue, file_queue, ids: List[int], lock: Lock
 ):
     """ Generate and store totals file."""
-    logger_id = str(uuid.uuid1())
-    logger = UiLogger(file.name, file.file_path, logger_id, progress_queue)
+    logger = UiLogger(file.name, file.file_path, progress_queue)
     totals_file = GenericFile.from_totals(file, logger=logger)
     parquet_file = store_file(totals_file, workdir, logger=logger, ids=ids, lock=lock)
 
