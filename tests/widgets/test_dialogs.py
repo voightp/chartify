@@ -12,7 +12,7 @@ from chartify.ui.dialogs import (
     DoubleInputDialog,
 )
 from chartify.utils.icon_painter import Pixmap
-from tests.fixtures import ROOT
+from tests.conftest import ROOT
 
 
 @pytest.fixture(scope="module")

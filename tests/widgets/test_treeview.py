@@ -1,13 +1,16 @@
 from copy import copy
 
-from PySide2.QtCore import QModelIndex
+import pytest
+from PySide2.QtCore import QModelIndex, Qt
 from PySide2.QtWidgets import QHeaderView
+from esofile_reader import GenericFile
 from esofile_reader.df.level_names import UNITS_LEVEL
 
+from chartify.settings import OutputType
 from chartify.ui.treeview import TreeView, ViewMask, ViewType
-from chartify.ui.treeview_model import FilterModel
+from chartify.ui.treeview_model import FilterModel, ViewModel
 from chartify.utils.utils import VariableData, FilterTuple
-from tests.fixtures import *
+from tests.conftest import ESO_FILE_EXCEL_PATH
 
 WIDTH = 402
 

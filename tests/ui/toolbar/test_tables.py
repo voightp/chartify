@@ -1,4 +1,4 @@
-from tests.fixtures import *
+from PySide2.QtCore import Qt
 
 
 def test_table_change(qtbot, mw_combined_file):

@@ -1,8 +1,10 @@
 from typing import Optional
 from unittest.mock import patch
 
+import pytest
+from PySide2.QtCore import Qt
+
 from chartify.utils.utils import VariableData
-from tests.fixtures import *
 
 
 @pytest.fixture(scope="function")

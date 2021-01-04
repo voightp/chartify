@@ -1,4 +1,4 @@
-from tests.fixtures import *
+from PySide2.QtCore import Qt
 
 
 def test_output_types(qtbot, mw):

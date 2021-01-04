@@ -13,7 +13,7 @@ from chartify.utils.css_theme import (
     string_rgb,
     InvalidUrlLine,
 )
-from tests.fixtures import ROOT
+from tests.conftest import ROOT
 
 
 def test_parse_color_tuple():

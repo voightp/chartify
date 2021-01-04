@@ -1,4 +1,7 @@
-from tests.fixtures import *
+from PySide2.QtCore import Qt
+
+from chartify.settings import Settings, OutputType
+from chartify.ui.treeview_model import ViewModel
 
 
 def test_on_tab_changed_first_tab(qtbot, mw, eso_file1):

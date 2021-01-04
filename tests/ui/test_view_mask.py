@@ -6,7 +6,7 @@ from PySide2.QtWidgets import QAction
 from esofile_reader import Variable, SimpleVariable, EsoFile
 
 from chartify.utils.utils import FilterTuple, VariableData
-from tests.fixtures import *
+from tests.conftest import *
 
 
 @pytest.mark.parametrize(

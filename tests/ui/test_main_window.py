@@ -1,10 +1,13 @@
+from pathlib import Path
 from unittest.mock import patch
 
-from PySide2.QtCore import QMargins, QSize, QPoint
+import pytest
+from PySide2.QtCore import QMargins, QSize, QPoint, Qt
 from PySide2.QtGui import QKeySequence
 from PySide2.QtWidgets import QSizePolicy
 
-from tests.fixtures import *
+from chartify.settings import Settings
+from chartify.ui.main_window import MainWindow
 
 
 def test_init_main_window(qtbot, pretty_mw: MainWindow):
@@ -187,10 +190,6 @@ def test_empty_current_view(mw):
     assert mw.current_view is None
 
 
-def test_empty_current_model(mw):
-    assert mw.current_model is None
-
-
 def test_tab_widgets(mw):
     assert mw.tab_widgets == [mw.standard_tab_wgt, mw.totals_tab_wgt, mw.diff_tab_wgt]
 
@@ -214,8 +213,8 @@ def test_get_all_models_filter_applied(qtbot, table_n, all_tables, n_models, mw_
     assert n_models == len(mw_combined_file.get_all_models())
 
 
-def test_all_other_models(mw):
-    assert mw.current_model not in mw.get_all_other_models()
+def test_all_other_models(mw_combined_file):
+    assert mw_combined_file.current_model not in mw_combined_file.get_all_other_models()
 
 
 def test_save_storage_to_fs(mw):
@@ -272,7 +271,6 @@ class TestRenameFile:
         assert mw_esofile.current_model._file_ref.file_name == "foo"
 
 
-def test_on_tab_closed(mw_esofile):
-    mw_esofile.standard_tab_wgt.removeTab(0)
-    assert not mw_esofile.toolbar.all_files_btn.isEnabled()
-    assert not mw_esofile.close_all_act.isEnabled()
+def test_remove_file(mw_esofile, model):
+    mw_esofile.standard_tab_wgt.closeTabRequested.emit(mw_esofile.standard_tab_wgt, 1)
+    print(model.storage.files)

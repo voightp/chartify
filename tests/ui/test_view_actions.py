@@ -1,7 +1,9 @@
 from unittest.mock import patch
 
+import pytest
+from PySide2.QtCore import Qt
+
 from chartify.utils.utils import FilterTuple
-from tests.fixtures import *
 
 
 def test_expand_all_empty(qtbot, mw):

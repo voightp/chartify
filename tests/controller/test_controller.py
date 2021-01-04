@@ -1,4 +1,4 @@
-from tests.fixtures import *
+from tests.conftest import *
 
 
 def test_load_standard_file(mw):

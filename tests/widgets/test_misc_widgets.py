@@ -7,7 +7,7 @@ from PySide2.QtWidgets import QWidget, QToolButton
 
 from chartify.ui.tab_widget import TabWidget
 from chartify.ui.drop_frame import DropFrame
-from tests.fixtures import ROOT
+from tests.conftest import ROOT
 
 
 class TestTabWidget:

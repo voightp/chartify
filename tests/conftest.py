@@ -4,7 +4,6 @@ from pathlib import Path
 from unittest import mock
 
 import pytest
-from PySide2.QtCore import Qt
 from PySide2.QtWidgets import QAction
 from esofile_reader import GenericFile
 
@@ -24,6 +23,12 @@ ESO_FILE_INCOMPLETE = Path(TEST_FILES, "eplusout_incomplete.eso")
 ESO_FILE_ALL_INTERVALS_PATH = Path(TEST_FILES, "eplusout_all_intervals.eso")
 EXCEL_FILE_PATH = Path(TEST_FILES, "various_table_types.xlsx")
 ESO_FILE_EXCEL_PATH = Path(TEST_FILES, "eplusout.xlsx")
+
+
+@pytest.fixture(scope="session")
+def test_tempdir():
+    with tempfile.TemporaryDirectory(dir=ROOT) as tempdir:
+        yield tempdir
 
 
 @pytest.fixture(scope="class")
@@ -61,10 +66,19 @@ def totals_file(eso_file1, eso_file_all_intervals):
     return GenericFile.from_totals(eso_file1)
 
 
-@pytest.fixture(scope="session")
-def test_tempdir():
-    with tempfile.TemporaryDirectory(dir=ROOT) as tempdir:
-        yield tempdir
+@pytest.fixture(scope="class")
+def parquet_eso_file_storage():
+    pass
+
+
+@pytest.fixture(scope="class")
+def parquet_excel_file_storage():
+    pass
+
+
+@pytest.fixture(scope="class")
+def parquet_combined_file_storage():
+    pass
 
 
 @pytest.fixture(scope="function")
@@ -72,7 +86,6 @@ def pretty_mw(qtbot, test_tempdir):
     with tempfile.TemporaryDirectory(prefix="chartify", dir=test_tempdir) as fix_dir:
         Settings.APP_TEMP_DIR = Path(fix_dir)
         Settings.load_settings_from_json()
-        print(Settings.as_str())
         main_window = MainWindow()
         model = AppModel()
         wv_controller = WVController(model, main_window.web_view)
