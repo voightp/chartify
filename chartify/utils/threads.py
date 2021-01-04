@@ -6,7 +6,7 @@ from chartify.ui.treeview_model import ViewModel
 
 # noinspection PyUnresolvedReferences
 class EsoFileWatcher(QThread):
-    file_loaded = Signal(ParquetFile, dict)
+    file_loaded = Signal(ParquetFile)
     all_loaded = Signal(str)
 
     def __init__(self, file_queue):
@@ -16,9 +16,7 @@ class EsoFileWatcher(QThread):
     def run(self):
         while True:
             file = self.file_queue.get()
-            # create ModelViews outside main application loop
-            models = ViewModel.models_from_file(file)
-            self.file_loaded.emit(file, models)
+            self.file_loaded.emit(file)
 
 
 class IterWorker(QRunnable):

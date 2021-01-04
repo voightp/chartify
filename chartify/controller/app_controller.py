@@ -145,7 +145,7 @@ class AppController:
                 path, self.m.workdir, self.progress_queue, self.file_queue, self.ids, self.lock,
             )
 
-    def on_file_loaded(self, file: ParquetFile, models: Dict[str, ViewModel]) -> None:
+    def on_file_loaded(self, file: ParquetFile) -> None:
         """ Add results file into 'tab' widget. """
         names = self.m.get_all_file_names()
         name = get_str_identifier(file.file_name, names)
@@ -158,6 +158,7 @@ class AppController:
             ParquetFile.DIFF: OutputType.DIFFERENCE,
         }
         output_type = output_types.get(file.file_type, OutputType.STANDARD)
+        models = ViewModel.models_from_file(file)
 
         self.v.add_treeview(file.id_, name, output_type, models)
 
