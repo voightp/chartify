@@ -1,11 +1,11 @@
+from contextlib import contextmanager
+
 from PySide2.QtCore import QThread, Signal, QRunnable
 from esofile_reader.pqt.parquet_file import ParquetFile
 
-from chartify.ui.treeview_model import ViewModel
-
 
 # noinspection PyUnresolvedReferences
-class EsoFileWatcher(QThread):
+class FileWatcher(QThread):
     file_loaded = Signal(ParquetFile)
     all_loaded = Signal(str)
 
@@ -17,6 +17,15 @@ class EsoFileWatcher(QThread):
         while True:
             file = self.file_queue.get()
             self.file_loaded.emit(file)
+
+
+@contextmanager
+def suspend_watcher(main_window, thread: FileWatcher) -> None:
+    queue = thread.file_queue
+    thread.quit()
+    yield
+    main_window.watcher = FileWatcher(queue)
+    main_window.watcher.start()
 
 
 class IterWorker(QRunnable):

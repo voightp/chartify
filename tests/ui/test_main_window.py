@@ -217,37 +217,39 @@ def test_all_other_models(mw_combined_file):
     assert mw_combined_file.current_model not in mw_combined_file.get_all_other_models()
 
 
-def test_save_storage_to_fs(mw):
-    with patch("chartify.ui.main_window.QFileDialog") as qdialog:
-        with patch("chartify.ui.main_window.Settings") as mock_settings:
-            mock_settings.SAVE_PATH = "save/path"
-            qdialog.getSaveFileName.return_value = ("some/dummy/path/file.abc", ".abc")
-            mw.save_storage_to_fs()
+class TestSaveLoad:
+    @pytest.fixture(scope="class")
+    def save_path(self, test_tempdir):
+        return Path(test_tempdir, "test.cfs")
+
+    def test_save_storage_to_fs(self, mw_combined_file, save_path):
+        with patch("chartify.ui.main_window.QFileDialog") as qdialog:
+            Settings.SAVE_PATH = "save/path"
+            qdialog.getSaveFileName.return_value = (str(save_path), ".cfs")
+            mw_combined_file.save_storage_to_fs()
             qdialog.getSaveFileName.assert_called_with(
-                parent=mw, caption="Save project", filter="CFS (*.cfs)", dir="save/path"
+                parent=mw_combined_file,
+                caption="Save project",
+                filter="CFS (*.cfs)",
+                dir="save/path",
             )
-            path = mw.save_storage_to_fs()
-            assert mock_settings.SAVE_PATH == "some\\dummy\\path"
-            assert path == Path("some/dummy/path/file.abc")
+            assert Settings.SAVE_PATH == save_path.parent
 
+    @pytest.mark.depends(on="test_save_storage_to_fs")
+    def test_file_saved(self, save_path):
+        assert save_path.exists()
 
-def test_load_files_from_fs(qtbot, mw):
-    def cb(paths):
-        return paths == [Path("some/dummy/path/file.abc")]
-
-    with patch("chartify.ui.main_window.QFileDialog") as qdialog:
-        with patch("chartify.ui.main_window.Settings.LOAD_PATH") as mock_path:
-            with qtbot.wait_signal(mw.fileProcessingRequested, check_params_cb=cb):
-                qdialog.getOpenFileNames.return_value = (["some/dummy/path/file.abc"], ".abc")
-                mock_path = Path("load/path")
-                mw.load_files_from_fs()
-                qdialog.getOpenFileNames.assert_called_with(
-                    parent=mw,
-                    caption="Load Project / Eso File",
-                    filter="FILES (*.csv *.xlsx *.eso *.cfs)",
-                    dir="load\\path",
-                )
-                assert mock_path == Path("some/dummy/path")
+    @pytest.mark.depends(on="test_save_storage_to_fs")
+    def test_load_files_from_fs(self, qtbot, mw, save_path):
+        with patch("chartify.ui.main_window.QFileDialog") as qdialog:
+            qdialog.getOpenFileNames.return_value = ([str(save_path)], ".cfs")
+            mw.load_files_from_fs()
+            qdialog.getOpenFileNames.assert_called_with(
+                parent=mw,
+                caption="Load Project / Eso File",
+                filter="FILES (*.csv *.xlsx *.eso *.cfs)",
+                dir=str(save_path),
+            )
 
 
 class TestRenameFile:

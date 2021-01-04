@@ -2,9 +2,8 @@ import os
 import shutil
 from multiprocessing import Manager
 from pathlib import Path
-from typing import List, Dict, Optional
+from typing import List, Optional
 
-import pandas as pd
 from PySide2.QtCore import QThreadPool
 from esofile_reader.pqt.parquet_file import ParquetFile
 
@@ -15,8 +14,8 @@ from chartify.settings import Settings, OutputType
 from chartify.ui.main_window import MainWindow
 from chartify.ui.treeview_model import ViewModel
 from chartify.utils.process_utils import create_pool, kill_child_processes
-from chartify.utils.progress_logging import ProgressThread
-from chartify.utils.threads import EsoFileWatcher
+from chartify.utils.progress_logging import ProgressThread, UiLogger
+from chartify.utils.threads import FileWatcher, suspend_watcher
 from chartify.utils.utils import get_str_identifier, VariableData
 
 
@@ -52,7 +51,7 @@ class AppController:
         self.file_queue = self.manager.Queue()
 
         # ~~~~ Monitoring threads ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.watcher = EsoFileWatcher(self.file_queue)
+        self.watcher = FileWatcher(self.file_queue)
         self.watcher.file_loaded.connect(self.on_file_loaded)
         self.watcher.start()
 
@@ -114,16 +113,23 @@ class AppController:
         if out_str:
             print("Selected Variables:\n\t{}".format("\n\t".join(out_str)))
 
-    def on_save(self):
+    def save_project(self, path: Path) -> None:
+        with suspend_watcher(self, self.watcher):
+            logger = UiLogger(path.stem, path, self.progress_queue)
+            with logger.log_task(f"save file {path.stem}"):
+                self.m.save_to_zip(path, logger)
+
+    def on_save(self) -> None:
         if not self.m.storage.path:
             self.on_save_as()
         else:
-            self.m.storage.save()
+            self.save_project(self.m.path)
 
-    def on_save_as(self):
+    def on_save_as(self) -> None:
         path = self.v.save_storage_to_fs()
         if path:
-            self.m.storage.save_as(path.parent, path.stem)
+            self.m.path = path
+            self.save_project(path)
 
     def on_file_processing_requested(self, paths: List[Path]) -> None:
         """ Load new files. """
