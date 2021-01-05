@@ -30,7 +30,7 @@ class Settings:
 
     APP_TEMP_DIR = Path(tempfile.gettempdir(), "chartify")
 
-    EXTENSIONS = [".eso", ".xlsx", ".csv"]
+    EXTENSIONS = [".csv", ".xlsx", ".eso", ".cfs"]
 
     IP_ENERGY_UNITS = ["Btu", "kBbtu", "MBtu"]
     IP_POWER_UNITS = ["Btu/h", "kBtu/h", "MBtu/h", "W"]

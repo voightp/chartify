@@ -222,7 +222,7 @@ class TestSaveLoad:
     def save_path(self, test_tempdir):
         return Path(test_tempdir, "test.cfs")
 
-    def test_save_storage_to_fs(self, mw_combined_file, save_path):
+    def test_save_storage_to_fs_dialog(self, mw_combined_file, save_path):
         with patch("chartify.ui.main_window.QFileDialog") as qdialog:
             Settings.SAVE_PATH = "save/path"
             qdialog.getSaveFileName.return_value = (str(save_path), ".cfs")
@@ -235,12 +235,8 @@ class TestSaveLoad:
             )
             assert Settings.SAVE_PATH == save_path.parent
 
-    @pytest.mark.depends(on="test_save_storage_to_fs")
-    def test_file_saved(self, save_path):
-        assert save_path.exists()
-
-    @pytest.mark.depends(on="test_save_storage_to_fs")
-    def test_load_files_from_fs(self, qtbot, mw, save_path):
+    def test_load_files_from_fs_dialog(self, qtbot, mw, save_path):
+        Settings.LOAD_PATH = "load/path"
         with patch("chartify.ui.main_window.QFileDialog") as qdialog:
             qdialog.getOpenFileNames.return_value = ([str(save_path)], ".cfs")
             mw.load_files_from_fs()
@@ -248,7 +244,7 @@ class TestSaveLoad:
                 parent=mw,
                 caption="Load Project / Eso File",
                 filter="FILES (*.csv *.xlsx *.eso *.cfs)",
-                dir=str(save_path),
+                dir="load/path",
             )
 
 
