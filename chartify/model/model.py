@@ -26,7 +26,7 @@ class AppModel(QObject):
     def __init__(self):
         super().__init__()
         # ~~~~ File Database ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.storage = ParquetStorage(path=Path(Settings.APP_TEMP_DIR, "storage"))
+        self.storage = ParquetStorage(workdir=Path(Settings.APP_TEMP_DIR, "storage"))
 
         # ~~~~ WebView Database ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.wv_database = {"trace_data": [], "traces": [], "components": [], "items": {}}
