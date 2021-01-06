@@ -22,13 +22,13 @@ def test_init_main_window(qtbot, pretty_mw: MainWindow):
 
     assert mw.left_main_layout.itemAt(0).widget() == mw.toolbar
     assert mw.left_main_layout.itemAt(1).widget() == mw.view_wgt
-    assert mw.view_layout.itemAt(0).widget() == mw.tab_stacked_widget
+    assert mw.view_layout.itemAt(0).widget() == mw.output_stacked_widget
     assert mw.view_layout.itemAt(1).widget() == mw.view_tools
 
-    assert mw.tab_stacked_widget.layout().itemAt(0).widget() == mw.standard_tab_wgt
-    assert mw.tab_stacked_widget.layout().itemAt(1).widget() == mw.totals_tab_wgt
-    assert mw.tab_stacked_widget.layout().itemAt(2).widget() == mw.diff_tab_wgt
-    assert mw.tab_stacked_widget.currentIndex() == 0
+    assert mw.output_stacked_widget.layout().itemAt(0).widget() == mw.standard_tab_wgt
+    assert mw.output_stacked_widget.layout().itemAt(1).widget() == mw.totals_tab_wgt
+    assert mw.output_stacked_widget.layout().itemAt(2).widget() == mw.diff_tab_wgt
+    assert mw.output_stacked_widget.currentIndex() == 0
 
     assert mw.drop_button.parentWidget() == mw.standard_tab_wgt
     assert mw.totals_button.parentWidget() == mw.totals_tab_wgt
@@ -148,7 +148,7 @@ def test_init_main_window(qtbot, pretty_mw: MainWindow):
     assert mw.mini_menu_layout.itemAt(1).widget() == mw.save_btn
     assert mw.mini_menu_layout.itemAt(2).widget() == mw.about_btn
 
-    assert mw.tab_stacked_widget.minimumWidth() == 400
+    assert mw.output_stacked_widget.minimumWidth() == 400
     assert mw.main_chart_widget.minimumWidth() == 600
     assert mw.central_splitter.sizes() == Settings.SPLIT
 

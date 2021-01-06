@@ -78,9 +78,6 @@ class ViewModel(QStandardItemModel):
 
     Model can show up to four columns 'key', 'type', units' and
     'source units'. 'Type' column is optional.
-    The 'VariableData' named tuple containing variable information
-    is stored as 'UserData' on the first item in row (only for
-    'child' items when tree structure is applied).
 
     Tree items which would only have one child are automatically
     treated as plain table rows.
@@ -100,12 +97,6 @@ class ViewModel(QStandardItemModel):
         Used energy units.
     rate_units : str
         Used power units.
-    scroll_position : int
-        Store current scrollbar position.
-    expanded : set of {str}
-        Currently expanded items.
-    selected : list if VariableData
-        Currently selected items.
     _file_ref : ResultFileType
         A reference to source file.
 
@@ -119,18 +110,7 @@ class ViewModel(QStandardItemModel):
         self.units_system = "SI"
         self.energy_units = "J"
         self.rate_units = "W"
-        self.scroll_position = 0
-        self.expanded = set()
-        self.selected = []
         self._file_ref = file_ref
-
-    @classmethod
-    def models_from_file(cls, file: ResultsFileType) -> Dict[str, "ViewModel"]:
-        """ Process results file to create models. """
-        models = {}
-        for table_name in file.table_names:
-            models[table_name] = ViewModel(table_name, file)
-        return models
 
     @property
     def is_simple(self) -> bool:
@@ -292,7 +272,7 @@ class ViewModel(QStandardItemModel):
         similar = False
         if other_model is not None:
             if self is other_model:
-                similar = True
+                similar = False
             else:
                 count = self.count_rows()
                 diff = (count - other_model.count_rows()) / count
@@ -411,7 +391,6 @@ class ViewModel(QStandardItemModel):
         rate_units: str = "W",
     ) -> None:
         """  Create a model and set up its appearance. """
-        # make sure that model is empty
         if self.rowCount() > 0:
             self.clear()
 
@@ -435,26 +414,6 @@ class ViewModel(QStandardItemModel):
             self.append_tree_rows(header_df)
         else:
             self.append_rows(header_df)
-
-    def update(
-        self,
-        tree_node: Optional[str],
-        rate_to_energy: bool,
-        units_system: str,
-        energy_units: str,
-        rate_units: str,
-    ):
-        """ Update the model based on given settings. """
-        units_kwargs = dict(
-            rate_to_energy=rate_to_energy,
-            units_system=units_system,
-            energy_units=energy_units,
-            rate_units=rate_units,
-        )
-        if self.needs_rebuild(tree_node):
-            self.rebuild_model(tree_node, **units_kwargs)
-        elif self.needs_units_update(**units_kwargs):
-            self.update_proxy_units(**units_kwargs)
 
     def create_conversion_look_up_table(
         self,

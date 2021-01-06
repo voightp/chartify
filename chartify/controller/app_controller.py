@@ -156,17 +156,8 @@ class AppController:
         names = self.m.get_all_file_names()
         name = get_str_identifier(file.file_name, names)
         file.rename(name)
-
         self.m.storage.files[file.id_] = file
-
-        output_types = {
-            ParquetFile.TOTALS: OutputType.TOTALS,
-            ParquetFile.DIFF: OutputType.DIFFERENCE,
-        }
-        output_type = output_types.get(file.file_type, OutputType.STANDARD)
-        models = ViewModel.models_from_file(file)
-
-        self.v.add_treeview(file.id_, name, output_type, models)
+        self.v.add_file_widget(file)
 
     def on_file_rename_requested(self, id_: int, name: str) -> None:
         """ Update file name. """

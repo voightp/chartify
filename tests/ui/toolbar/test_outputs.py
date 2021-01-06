@@ -8,7 +8,7 @@ def test_output_types(qtbot, mw):
         mw.toolbar.totals_outputs_btn,
         mw.toolbar.diff_outputs_btn,
     ]
-    for i in range(mw.tab_stacked_widget.count()):
+    for i in range(mw.output_stacked_widget.count()):
         qtbot.mouseClick(buttons[i], Qt.LeftButton)
         assert mw.current_tab_widget is expected[i]
 

@@ -3,7 +3,7 @@ import ctypes
 import shutil
 from functools import partial
 from pathlib import Path
-from typing import Optional, Tuple, List, Dict, Union, Set
+from typing import Optional, Tuple, List, Union, Set
 
 import pandas as pd
 from PySide2.QtCore import QSize, Qt, QCoreApplication, Signal, QPoint, QTimer, QModelIndex
@@ -29,13 +29,14 @@ from PySide2.QtWidgets import (
 )
 from esofile_reader.convertor import all_rate_or_energy
 from esofile_reader.df.level_names import *
-from esofile_reader.pqt.parquet_storage import ParquetStorage
+from esofile_reader.pqt.parquet_storage import ParquetStorage, ParquetFile
 
 from chartify.settings import Settings, OutputType
 from chartify.ui.buttons import MenuButton
 from chartify.ui.dialogs import ConfirmationDialog, SingleInputDialog, DoubleInputDialog
 from chartify.ui.drop_frame import DropFrame
 from chartify.ui.progress_widget import ProgressContainer
+from chartify.ui.stacked_widget import StackedWidget
 from chartify.ui.tab_widget import TabWidget
 from chartify.ui.toolbar import Toolbar
 from chartify.ui.treeview import TreeView, ViewMask, ViewType
@@ -160,9 +161,9 @@ class MainWindow(QMainWindow):
             self.left_main_layout.addWidget(self.view_wgt)
 
         # ~~~~ Left hand Tab widget  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.tab_stacked_widget = QStackedWidget(self)
-        self.tab_stacked_widget.setMinimumWidth(400)
-        self.view_layout.addWidget(self.tab_stacked_widget)
+        self.output_stacked_widget = QStackedWidget(self)
+        self.output_stacked_widget.setMinimumWidth(400)
+        self.view_layout.addWidget(self.output_stacked_widget)
 
         self.drop_button = QToolButton()
         self.drop_button.setObjectName("dropButton")
@@ -183,11 +184,11 @@ class MainWindow(QMainWindow):
         self.totals_tab_wgt = TabWidget(self.view_wgt, self.totals_button)
         self.diff_tab_wgt = TabWidget(self.view_wgt, self.diff_button)
 
-        self.tab_stacked_widget.addWidget(self.standard_tab_wgt)
-        self.tab_stacked_widget.addWidget(self.totals_tab_wgt)
-        self.tab_stacked_widget.addWidget(self.diff_tab_wgt)
+        self.output_stacked_widget.addWidget(self.standard_tab_wgt)
+        self.output_stacked_widget.addWidget(self.totals_tab_wgt)
+        self.output_stacked_widget.addWidget(self.diff_tab_wgt)
 
-        self.tab_stacked_widget.setCurrentIndex(Settings.OUTPUTS_ENUM)
+        self.output_stacked_widget.setCurrentIndex(Settings.OUTPUTS_ENUM)
 
         # ~~~~ Left hand Tab Tools  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.view_tools = QFrame(self.view_wgt)
@@ -359,12 +360,17 @@ class MainWindow(QMainWindow):
     @property
     def current_tab_widget(self) -> TabWidget:
         """ Currently displayed tab widget. """
-        return self.tab_stacked_widget.currentWidget()
+        return self.output_stacked_widget.currentWidget()
+
+    @property
+    def current_file_widget(self) -> StackedWidget:
+        """ Currently chozen file stacked widget. """
+        return self.current_tab_widget.currentWidget()
 
     @property
     def current_view(self) -> TreeView:
         """ Currently selected outputs file. """
-        return self.current_tab_widget.currentWidget()
+        return self.current_file_widget.currentWidget()
 
     @property
     def current_model(self) -> ViewModel:
@@ -389,6 +395,9 @@ class MainWindow(QMainWindow):
             Settings.RATE_UNITS = self.toolbar.rate_btn.data()
             Settings.UNITS_SYSTEM = self.toolbar.units_system_button.data()
             Settings.RATE_TO_ENERGY = self.toolbar.rate_energy_btn.isChecked()
+            Settings.OUTPUTS_ENUM = self.toolbar.outputs_button_group.id
+            Settings.SHOW_SOURCE_UNITS = self.toolbar.source_units_toggle.isChecked()
+
             # TODO enable once main window polished
             # Settings.save_settings_to_json()
             event.accept()
@@ -509,13 +518,13 @@ class MainWindow(QMainWindow):
         Settings.MIRRORED = not Settings.MIRRORED
         Settings.SPLIT = self.central_splitter.sizes()
 
-    def get_all_treeviews(self) -> List[TreeView]:
-        """ Gather all tree views based on toolbar settings. """
+    def get_all_file_widgets(self) -> List[StackedWidget]:
+        """ Gather all file stack widgets based on toolbar settings. """
         if self.toolbar.all_files_toggle.isChecked():
-            treeviews = self.current_tab_widget.get_all_children()
+            file_widgets = self.current_tab_widget.get_all_children()
         else:
-            treeviews = [self.current_view]
-        return treeviews
+            file_widgets = [self.current_file_widget]
+        return file_widgets
 
     def filter_models(self, view_models: List[ViewModel]) -> List[ViewModel]:
         """ Return models of the same type (SIMPLE, TREE) as the current one. """
@@ -524,15 +533,14 @@ class MainWindow(QMainWindow):
     def get_all_models(self) -> List[ViewModel]:
         """ Gather models based on toolbar settings. """
         models = []
-        if self.toolbar.all_tables_toggle.isChecked():
-            for treeview in self.get_all_treeviews():
-                models.extend(self.filter_models(treeview.all_view_models))
-        else:
-            table_name = self.current_view.current_table_name
-            with contextlib.suppress(KeyError):
-                for treeview in self.get_all_treeviews():
-                    models.extend(self.filter_models([treeview.models[table_name]]))
-        return models
+        for file_widget in self.get_all_file_widgets():
+            if self.toolbar.all_tables_toggle.isChecked():
+                models.extend(file_widget.all_view_models)
+            else:
+                table_name = self.current_file_widget.current_table_name
+                with contextlib.suppress(KeyError):
+                    models.append(file_widget.get_view_model(table_name))
+        return self.filter_models(models)
 
     def get_all_other_models(self) -> List[ViewModel]:
         """ Gather models based on toolbar settings. """
@@ -540,19 +548,8 @@ class MainWindow(QMainWindow):
         models.remove(self.current_model)
         return models
 
-    def update_model(self, treeview: TreeView) -> None:
-        """ Force update current model. """
-        with ViewMask(
-            treeview,
-            old_model=treeview.source_model,
-            filter_tuple=self.get_filter_tuple(),
-            show_source_units=self.show_source_units(),
-        ) as mask:
-            mask.update_table(self.tree_act.isChecked(), **self.toolbar.current_units)
-        self.update_table_actions()
-
     def on_tree_node_changed(self, treeview: TreeView) -> None:
-        self.update_model(treeview)
+        self.update_treeview(treeview)
 
     def on_item_double_clicked(
         self,
@@ -623,23 +620,29 @@ class MainWindow(QMainWindow):
     def on_mean_action_triggered(self):
         self.on_aggregation_requested("mean")
 
-    def add_treeview(
-        self, id_: int, name: str, output_type: OutputType, models: Dict[str, ViewModel]
-    ):
-        """ Add processed data into tab widget corresponding to file type. """
-        output_types = {
-            OutputType.STANDARD: self.standard_tab_wgt,
-            OutputType.TOTALS: self.totals_tab_wgt,
-            OutputType.DIFFERENCE: self.diff_tab_wgt,
+    def add_file_widget(self, file: ParquetFile):
+        """ Add processed file to tab widget corresponding to data type. """
+        tab_widgets_switch = {
+            ParquetFile.TOTALS: self.totals_tab_wgt,
+            ParquetFile.DIFF: self.diff_tab_wgt,
         }
-        tab_widget = output_types[output_type]
+        output_type_switch = {
+            ParquetFile.TOTALS: OutputType.TOTALS,
+            ParquetFile.DIFF: OutputType.DIFFERENCE,
+        }
 
-        view = TreeView(id_, models, output_type)
-        view.selectionCleared.connect(self.on_selection_cleared)
-        view.selectionPopulated.connect(self.on_selection_populated)
-        view.treeNodeChanged.connect(self.on_tree_node_changed)
-        view.itemDoubleClicked.connect(self.on_item_double_clicked)
-        tab_widget.addTab(view, name)
+        tab_widget = tab_widgets_switch.get(file.file_type, self.standard_tab_wgt)
+        output_type = output_type_switch.get(file.file_type, OutputType.STANDARD)
+        file_widget = StackedWidget(tab_widget)
+        for name in file.table_names:
+            model = ViewModel(name, file)
+            view = TreeView(model, output_type)
+            view.selectionCleared.connect(self.on_selection_cleared)
+            view.selectionPopulated.connect(self.on_selection_populated)
+            view.treeNodeChanged.connect(self.on_tree_node_changed)
+            view.itemDoubleClicked.connect(self.on_item_double_clicked)
+            file_widget.addWidget(view)
+        tab_widget.addTab(file_widget, file.file_name)
 
     def expand_all(self):
         """ Expand all tree view items. """
@@ -728,72 +731,36 @@ class MainWindow(QMainWindow):
             proxy_units=self.units_line_edit.text(),
         )
 
-    def on_stacked_widget_change_requested(self, index: int) -> None:
+    def on_output_type_change_requested(self, index: int) -> None:
         """ Show tab widget corresponding to the given radio button. """
-        Settings.OUTPUTS_ENUM = index
-        self.tab_stacked_widget.setCurrentIndex(index)
-        if self.current_view is not None and self.current_model is None:
-            self.handle_tab_change(self.current_view)
-        self.update_toolbar_actions()
-
-    def handle_tab_change(
-        self, treeview: TreeView, previous_treeview: Optional[TreeView] = None
-    ) -> None:
-        if (
-            previous_treeview is not None
-            and previous_treeview.current_table_name in treeview.table_names
-        ):
-            table_name = previous_treeview.current_table_name
+        self.output_stacked_widget.setCurrentIndex(index)
+        if self.current_tab_widget.is_empty():
+            self.enable_actions_for_empty_layout()
         else:
-            if treeview.current_table_name:
-                table_name = treeview.current_table_name
-            else:
-                table_name = treeview.table_names[0]
-        with ViewMask(
-            treeview,
-            ref_treeview=previous_treeview,
-            filter_tuple=self.get_filter_tuple(),
-            show_source_units=self.show_source_units(),
-        ) as mask:
-            mask.set_table(table_name, self.tree_act.isChecked(), **self.toolbar.current_units)
+            self.enable_actions_for_file_widget(self.current_file_widget)
+            self.update_treeview(self.current_view)
 
-    def update_view_actions(self):
-        if self.current_view is None:
-            self.toolbar.rate_energy_btn.setEnabled(True)
-            self.toolbar.update_table_buttons(table_names=[], selected="")
-        else:
-            self.toolbar.update_table_buttons(
-                table_names=self.current_view.table_names, selected=self.current_model.name
-            )
+    def enable_actions_for_empty_layout(self):
+        self.close_all_act.setEnabled(False)
 
-    def update_file_actions(self):
-        if self.current_tab_widget.count() > 0:
-            self.close_all_act.setEnabled(True)
-        else:
-            self.close_all_act.setEnabled(False)
+        self.toolbar.enable_rate_to_energy(True)
+        self.toolbar.update_table_buttons(table_indexes={}, selected="")
 
-    def update_table_actions(self):
-        """ Update toolbar actions to match current table. """
-        if self.current_view is None:
-            self.tree_act.setEnabled(True)
-            self.expand_all_act.setEnabled(True)
-            self.collapse_all_act.setEnabled(True)
-            self.toolbar.enable_rate_to_energy(True)
-        else:
-            allow_tree = not self.current_model.is_simple
-            self.tree_act.setEnabled(allow_tree)
-            self.expand_all_act.setEnabled(allow_tree)
-            self.collapse_all_act.setEnabled(allow_tree)
-            self.toolbar.enable_rate_to_energy(self.current_model.allow_rate_to_energy)
+        self.tree_act.setEnabled(True)
+        self.expand_all_act.setEnabled(True)
+        self.collapse_all_act.setEnabled(True)
+        self.toolbar.enable_rate_to_energy(True)
 
-    def update_selection_actions(self):
+        self.remove_variables_act.setEnabled(False)
+        self.sum_act.setEnabled(False)
+        self.mean_act.setEnabled(False)
+
+    def enable_selection_actions(self, view_variables: List[VariableData]):
         """  Update toolbar actions to match current selection. """
-        if self.current_view is not None and (
-            variables := self.current_view.get_selected_variable_data()
-        ):
+        if view_variables:
             self.remove_variables_act.setEnabled(True)
-            if len(variables) > 1:
-                units = [var.units for var in variables]
+            if len(view_variables) > 1:
+                units = [var.units for var in view_variables]
                 if len(set(units)) == 1 or (
                     all_rate_or_energy(units) and self.current_model.allow_rate_to_energy
                 ):
@@ -807,45 +774,56 @@ class MainWindow(QMainWindow):
             self.sum_act.setEnabled(False)
             self.mean_act.setEnabled(False)
 
-    def update_toolbar_actions(self):
-        self.update_file_actions()
-        self.update_table_actions()
-        self.update_view_actions()
-        self.update_selection_actions()
+    def enable_actions_for_view(self, view: TreeView) -> None:
+        allow_tree = not view.source_model.is_simple
+        self.tree_act.setEnabled(allow_tree)
+        self.expand_all_act.setEnabled(allow_tree)
+        self.collapse_all_act.setEnabled(allow_tree)
+        self.toolbar.enable_rate_to_energy(view.source_model.allow_rate_to_energy)
+        self.enable_selection_actions(view.selected_variable_data)
+
+    def enable_actions_for_file_widget(self, file_widget: StackedWidget) -> None:
+        self.close_all_act.setEnabled(True)
+        self.toolbar.update_table_buttons(
+            file_widget.name_indexes, file_widget.current_table_name
+        )
+        self.enable_actions_for_view(file_widget.current_treeview)
 
     def on_tab_changed(self, tab_widget: TabWidget, previous_index: int, index: int) -> None:
         if tab_widget is self.current_tab_widget:
             if index == -1:
-                Settings.CURRENT_FILE_ID = None
+                self.enable_actions_for_empty_layout()
             else:
-                current_treeview = tab_widget.widget(index)
-                previous_treeview = tab_widget.widget(previous_index)
-                Settings.CURRENT_FILE_ID = current_treeview.id_
-                self.handle_tab_change(current_treeview, previous_treeview)
-            self.update_toolbar_actions()
+                file_widget = tab_widget.widget(index)
+                previous_file_widget = tab_widget.widget(previous_index)
 
-    def on_table_change_requested(self, table_name: str):
+                if previous_file_widget is None:
+                    ref_treeview = None
+                else:
+                    ref_treeview = previous_file_widget.current_treeview
+                next_treeview = file_widget.get_next_treeview(previous_file_widget)
+
+                if next_treeview is not file_widget.current_treeview:
+                    file_widget.set_treeview(next_treeview)
+                self.enable_actions_for_file_widget(file_widget)
+                self.update_treeview(next_treeview, ref_treeview)
+
+    def on_table_change_requested(self, index: int):
         """ Change table on a current model. """
-        Settings.TABLE_NAME = table_name
-        with ViewMask(
-            self.current_view,
-            old_model=self.current_view.source_model,
-            filter_tuple=self.get_filter_tuple(),
-            show_source_units=self.show_source_units(),
-        ) as mask:
-            tree = self.tree_act.isChecked()
-            mask.set_table(table_name, tree, **self.toolbar.current_units)
-        self.update_table_actions()
-        self.update_selection_actions()
+        next_treeview = self.current_file_widget.widget(index)
+        ref_treeview = self.current_file_widget.currentWidget()
+        self.enable_actions_for_view(next_treeview)
+        self.current_file_widget.set_treeview(next_treeview)
+        self.update_treeview(next_treeview, ref_treeview)
 
-    def on_selection_populated(self, variables: List[VariableData]):
+    def on_selection_populated(self, view_variables: List[VariableData]):
         """ Store current selection in main app. """
-        self.update_selection_actions()
-        self.selectionChanged.emit(variables)
+        self.enable_selection_actions(view_variables)
+        self.selectionChanged.emit(view_variables)
 
     def on_selection_cleared(self):
         """ Handle behaviour when no variables are selected. """
-        self.update_selection_actions()
+        self.enable_selection_actions([])
         self.selectionChanged.emit([])
 
     def get_all_tab_names(self):
@@ -866,7 +844,7 @@ class MainWindow(QMainWindow):
             self.fileRenameRequested.emit(id_, new_name)
 
     def on_tab_close_requested(self, tab_widget: TabWidget, tab_index: int):
-        treeview = tab_widget.widget(tab_index)
+        treeview = tab_widget.widget(tab_index).current_treeview
         name = tab_widget.tabText(tab_index)
         res = self.confirm_delete_file(name)
         if res:
@@ -884,14 +862,11 @@ class MainWindow(QMainWindow):
             tab_widget.tabRenameRequested.connect(self.on_tab_bar_double_clicked)
 
     def on_source_units_toggled(self, checked: bool):
-        Settings.SHOW_SOURCE_UNITS = checked
-        if self.current_view:
+        if not self.current_tab_widget.is_empty():
             self.current_view.hide_section(UNITS_LEVEL, not checked)
 
-    def on_units_changed(
-        self, energy_units: str, rate_units: str, units_system: str, rate_to_energy: bool
-    ) -> None:
-        if self.current_view:
+    def on_units_changed(self) -> None:
+        if not self.current_tab_widget.is_empty():
             self.current_view.update_units(**self.toolbar.current_units)
 
     def on_custom_units_toggled(self) -> None:
@@ -905,23 +880,28 @@ class MainWindow(QMainWindow):
     def connect_toolbar_signals(self):
         # ~~~~ Toolbar Signals ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.toolbar.tableChangeRequested.connect(self.on_table_change_requested)
-        self.toolbar.tabWidgetChangeRequested.connect(self.on_stacked_widget_change_requested)
+        self.toolbar.outputTypeChangeRequested.connect(self.on_output_type_change_requested)
         self.toolbar.customUnitsToggled.connect(self.on_custom_units_toggled)
         self.toolbar.unitsChanged.connect(self.on_units_changed)
         self.toolbar.source_units_toggle.stateChanged.connect(self.on_source_units_toggled)
+
+    def update_treeview(self, treeview: TreeView, ref_treeview: TreeView = None) -> None:
+        with ViewMask(
+            treeview=treeview,
+            ref_treeview=ref_treeview,
+            is_tree=self.tree_act.isChecked(),
+            units=self.toolbar.current_units,
+            filter_tuple=self.get_filter_tuple(),
+            show_source_units=self.show_source_units(),
+        ) as mask:
+            mask.update_treeview(treeview)
 
     def on_tree_act_checked(self, checked: bool):
         """ Update view when view type is changed. """
         self.collapse_all_act.setEnabled(checked)
         self.expand_all_act.setEnabled(checked)
         if self.current_view is not None:
-            with ViewMask(
-                self.current_view,
-                old_model=self.current_view.source_model,
-                filter_tuple=self.get_filter_tuple(),
-                show_source_units=self.show_source_units(),
-            ) as mask:
-                mask.update_table(self.tree_act.isChecked(), **self.toolbar.current_units)
+            self.update_treeview(self.current_view)
 
     def on_text_edited(self):
         """ Delay firing a text edited event. """

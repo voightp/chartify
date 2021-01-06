@@ -25,10 +25,10 @@ class Toolbar(QFrame):
 
     """
 
-    tabWidgetChangeRequested = Signal(int)
-    tableChangeRequested = Signal(str)
+    outputTypeChangeRequested = Signal(int)
+    tableChangeRequested = Signal(int)
     customUnitsToggled = Signal()
-    unitsChanged = Signal(str, str, str, bool)
+    unitsChanged = Signal()
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -85,7 +85,9 @@ class Toolbar(QFrame):
         self.layout.addWidget(self.outputs_group)
 
         # ~~~~ Tables group ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.table_buttons = []
+        self.table_buttons_group = QButtonGroup(self)
+        self.table_buttons_group.idClicked.connect(self.on_table_button_clicked)
+
         self.table_group = QGroupBox("Tables", self)
         self.table_group.setObjectName("tablesGroup")
         table_buttons_layout = QGridLayout(self.table_group)
@@ -169,7 +171,7 @@ class Toolbar(QFrame):
         self.layout.addWidget(self.units_group)
         self.layout.addStretch()
 
-        self.rate_energy_btn.toggled.connect(self.request_units_update)
+        self.rate_energy_btn.toggled.connect(self.on_rate_to_energy_changed)
         self.energy_btn.menu().triggered.connect(self.on_energy_units_changed)
         self.rate_btn.menu().triggered.connect(self.on_power_units_changed)
         self.units_system_button.menu().triggered.connect(self.on_units_system_changed)
@@ -192,19 +194,10 @@ class Toolbar(QFrame):
             group.layout().removeWidget(wgt)
             wgt.deleteLater()
 
-    def populate_group(self, group, widgets, hide_disabled=False, n_cols=2):
+    def populate_group(self, group, widgets, n_cols=2):
         """ Populate given group with given widgets. """
         # remove all children of the interface
         self.clear_group(group)
-        if hide_disabled:
-            enabled = []
-            for wgt in widgets:
-                if not wgt.isEnabled():
-                    wgt.hide()
-                else:
-                    wgt.show()
-                    enabled.append(wgt)
-            widgets = enabled
         n_rows = (len(widgets) if len(widgets) % 2 == 0 else len(widgets) + 1) // n_cols
         ixs = [(x, y) for x in range(n_rows) for y in range(n_cols)]
         for btn, ix in zip(widgets, ixs):
@@ -268,19 +261,19 @@ class Toolbar(QFrame):
         else:
             self.rate_energy_btn.setEnabled(False)
 
-    def update_table_buttons(self, table_names: List[str], selected: str):
+    def update_table_buttons(self, table_indexes: Dict[str, int], selected: str):
         """ Populate table group with current table names. """
-        self.table_buttons.clear()
-        for table in table_names:
+        for button in self.table_buttons_group.buttons():
+            self.table_buttons_group.removeButton(button)
+
+        for table, index in table_indexes.items():
             btn = QToolButton(self.table_group)
             btn.setText(table)
             btn.setCheckable(True)
-            btn.setAutoExclusive(True)
-            btn.clicked.connect(self.on_table_button_clicked)
             if table == selected:
                 btn.setChecked(True)
-            self.table_buttons.append(btn)
-        self.populate_group(self.table_group, self.table_buttons)
+            self.table_buttons_group.addButton(btn, index)
+        self.populate_group(self.table_group, self.table_buttons_group.buttons())
 
     def custom_units_toggled(self, checked: bool) -> None:
         """ Update units settings when custom units toggled. """
@@ -312,7 +305,7 @@ class Toolbar(QFrame):
         self.rate_energy_btn.setEnabled(checked)
 
         self.customUnitsToggled.emit()
-        self.unitsChanged.emit(energy, power, units_system, self.rate_energy_btn.isChecked())
+        self.unitsChanged.emit()
 
     def filter_energy_power_units(self, units_system: str):
         """ Handle displaying allowed units for given units system. """
@@ -326,35 +319,29 @@ class Toolbar(QFrame):
         self.energy_btn.filter_visible_actions(en_acts)
         self.rate_btn.filter_visible_actions(pw_acts)
 
-    def on_table_button_clicked(self):
+    def on_table_button_clicked(self, index: int):
         """ Request view update when interval changes. """
-        table_name = next(btn.text() for btn in self.table_buttons if btn.isChecked())
-        self.tableChangeRequested.emit(table_name)
+        self.tableChangeRequested.emit(index)
 
     def on_outputs_toggle_toggled(self, index: int):
         """ Request tab widget display corresponding to toggle button. """
-        self.tabWidgetChangeRequested.emit(index)
-
-    def request_units_update(self):
-        self.unitsChanged.emit(
-            self.energy_btn.defaultAction().data(),
-            self.rate_btn.defaultAction().data(),
-            self.units_system_button.defaultAction().data(),
-            self.rate_energy_btn.isChecked(),
-        )
+        self.outputTypeChangeRequested.emit(index)
 
     def on_energy_units_changed(self, act: QAction):
         if act.data() != self.energy_btn.data():
             self.energy_btn.setDefaultAction(act)
-            self.request_units_update()
+            self.unitsChanged.emit()
 
     def on_power_units_changed(self, act: QAction):
         if act.data() != self.rate_btn.data():
             self.rate_btn.setDefaultAction(act)
-            self.request_units_update()
+            self.unitsChanged.emit()
 
     def on_units_system_changed(self, act: QAction):
         if act.data() != self.units_system_button.data():
             self.units_system_button.setDefaultAction(act)
             self.filter_energy_power_units(act.data())
-            self.request_units_update()
+            self.unitsChanged.emit()
+
+    def on_rate_to_energy_changed(self):
+        self.unitsChanged.emit()
