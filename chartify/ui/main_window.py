@@ -889,12 +889,14 @@ class MainWindow(QMainWindow):
         with ViewMask(
             treeview=treeview,
             ref_treeview=ref_treeview,
-            is_tree=self.tree_act.isChecked(),
-            units=self.toolbar.current_units,
             filter_tuple=self.get_filter_tuple(),
             show_source_units=self.show_source_units(),
         ) as mask:
-            mask.update_treeview(treeview)
+            mask.update_treeview(
+                treeview,
+                is_tree=self.tree_act.isChecked(),
+                units_kwargs=self.toolbar.current_units,
+            )
 
     def on_tree_act_checked(self, checked: bool):
         """ Update view when view type is changed. """

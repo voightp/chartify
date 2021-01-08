@@ -1,6 +1,5 @@
-import contextlib
 from enum import Enum
-from typing import Dict, List, Set, Tuple, Any, Optional, Union
+from typing import Dict, List, Set, Tuple, Optional, Union
 
 from PySide2.QtCore import (
     QMimeData,
@@ -23,7 +22,6 @@ from chartify.ui.treeview_model import (
     PROXY_UNITS_LEVEL,
     convert_variable_data_to_variable,
 )
-from chartify.ui.widget_functions import SignalBlocker
 from chartify.utils.utils import (
     FilterTuple,
     VariableData,
@@ -45,10 +43,10 @@ class TreeView(QTreeView):
 
     Attributes
     ----------
-    id_ : int
-        An id identifier of the base file.
-    models : dict of {str : ModelView}
-        Available view models.
+    output_type : OutputType
+        An output type of given file.
+    model : ModelView
+        Linked View Model.
 
     Signals
     -------
@@ -70,10 +68,8 @@ class TreeView(QTreeView):
     itemDoubleClicked = Signal(QTreeView, int, QModelIndex, VariableData)
     treeNodeChanged = Signal(QTreeView)
 
-    def __init__(self, id_: int, models: Dict[str, ViewModel], output_type: OutputType):
+    def __init__(self, model: ViewModel, output_type: OutputType):
         super().__init__()
-        self.id_ = id_
-        self.models = models
         self.output_type = output_type
 
         self.setRootIsDecorated(True)
@@ -97,23 +93,21 @@ class TreeView(QTreeView):
         proxy_model.setSortCaseSensitivity(Qt.CaseInsensitive)
         proxy_model.setRecursiveFilteringEnabled(True)
         proxy_model.setDynamicSortFilter(False)
+        proxy_model.setSourceModel(model)
         self.setModel(proxy_model)
 
-        # hold ui attributes
-        self.indicator = (0, Qt.AscendingOrder)
-
-        self.verticalScrollBar().valueChanged.connect(self.on_slider_moved)
         self.pressed.connect(self.on_pressed)
         self.doubleClicked.connect(self.on_double_clicked)
 
         self.header().setStretchLastSection(False)
         self.header().setFirstSectionMovable(True)
         self.header().sectionMoved.connect(self.on_section_moved)
-        self.header().sortIndicatorChanged.connect(self.on_sort_order_changed)
 
-        self.expanded.connect(self.on_item_expanded)
-        self.collapsed.connect(self.on_item_collapsed)
         self.entered.connect(self.on_item_entered)
+
+    @property
+    def id_(self) -> int:
+        return self.source_model._file_ref.id_
 
     @property
     def source_model(self) -> ViewModel:
@@ -151,16 +145,8 @@ class TreeView(QTreeView):
         return variables
 
     @property
-    def table_names(self) -> List[str]:
-        return list(self.models.keys())
-
-    @property
-    def current_table_name(self) -> str:
-        return self.source_model.name if self.source_model else None
-
-    @property
-    def all_view_models(self) -> List[ViewModel]:
-        return list(self.models.values())
+    def initialized(self):
+        return self.source_model.initialized
 
     def mousePressEvent(self, event: QEvent) -> None:
         """ Handle mouse events. """
@@ -183,6 +169,9 @@ class TreeView(QTreeView):
         drag.setPixmap(pix)
         drag.exec_(Qt.CopyAction)
 
+    def is_similar(self, other_treeview: "TreeView") -> bool:
+        return self.source_model.is_similar(other_treeview.source_model)
+
     def set_parent_items_spanned(self) -> None:
         """ Set parent row to be spanned over all columns. """
         for i in range(self.proxy_model.rowCount()):
@@ -202,6 +191,10 @@ class TreeView(QTreeView):
         """ Return sorted column data (by visual index). """
         dct_items = sorted(self.get_visual_column_mapping().items(), key=lambda x: x[1])
         return tuple([t[0] for t in dct_items])
+
+    def get_sort_indicator(self) -> Tuple[int, Qt.SortOrder]:
+        """ Get last sorted column and indicator. """
+        return self.proxy_model.sortColumn(), self.proxy_model.sortOrder()
 
     def get_visual_column_mapping(self) -> Dict[str, int]:
         """ Get a dictionary of section visual index pairs. """
@@ -223,12 +216,9 @@ class TreeView(QTreeView):
         if self.verticalScrollBar().maximum() < pos:
             self.verticalScrollBar().setMaximum(pos)
         self.verticalScrollBar().setValue(pos)
-        # stored value changes on user action, need to store manually
-        self.source_model.scroll_position = pos
 
-    def update_sort_order(self) -> None:
+    def update_sort_order(self, indicator_column: int, order: Qt.SortOrder) -> None:
         """ Set column_order for sort column. """
-        indicator_column, order = self.indicator
         self.proxy_model.sort(indicator_column, order)
         self.header().setSortIndicator(indicator_column, order)
 
@@ -286,6 +276,19 @@ class TreeView(QTreeView):
             self.header().setSectionResizeMode(interactive, QHeaderView.Interactive)
             self.header().resizeSection(interactive, widths["interactive"])
 
+    def get_expanded_labels(self) -> Set[str]:
+        """ Get currently expanded item labels. """
+        expanded = set()
+        if self.source_model.tree_node is not None:
+            for i in range(self.proxy_model.rowCount()):
+                index = self.proxy_model.index(i, 0)
+                if self.isExpanded(index):
+                    expanded.add(self.proxy_model.data(index))
+        return expanded
+
+    def get_scroll_position(self) -> int:
+        return self.verticalScrollBar().sliderPosition()
+
     def get_widths(self) -> Dict[str, int]:
         """ Get current column interactive and fixed widths. """
         widths = {}
@@ -304,70 +307,15 @@ class TreeView(QTreeView):
 
     def hide_section(self, data: str, hide: bool):
         """ Hide section of a given name. """
+        self.show_all_sections()
         self.header().setSectionHidden(self.source_model.get_logical_column_number(data), hide)
 
-    def update_viewport(
-        self, filter_tuple: FilterTuple, expanded: Set[str], scroll_position: int
-    ) -> None:
-        """ Show, expand items and scroll to previous position. """
-        if any(filter_tuple) and filter_tuple != self.proxy_model.filter_tuple:
-            self.filter_view(filter_tuple)
-        # filter expands all items so it's not required to use expanded set
-        elif expanded:
-            self.expand_items(expanded)
-
-        if scroll_position is not None:
-            # check explicitly to avoid skipping '0' position
-            self.update_scrollbar_position(scroll_position)
-
-    def set_appearance(
-        self, header: Tuple[str, ...], widths: Dict[str, int], show_source_units: bool = False,
-    ) -> None:
-        """ Update the model appearance to be consistent with last view. """
-        # handle custom units column visibility, need to show all
-        # as switching between simple and tree view may cause that
-        # another section will be hidden
-        self.show_all_sections()
-        self.hide_section(UNITS_LEVEL, not show_source_units)
-        # logical and visual indexes may differ so it's needed to update columns column_order
-        self.reorder_columns(header)
-        # update widths and column_order so columns appear consistently
-        self.set_header_resize_mode(widths)
-        # TODO handle sort column_order and scrollbar
-        self.update_sort_order()
-        # make sure that parent column spans full width
-        # and root is decorated for tree like structure
+    def set_span_and_decorate_root(self):
         if self.is_tree:
             self.set_parent_items_spanned()
             self.setRootIsDecorated(True)
         else:
             self.setRootIsDecorated(False)
-
-    def set_model(
-        self,
-        table_name: str,
-        tree_node: Optional[str],
-        rate_to_energy: bool,
-        units_system: str,
-        energy_units: str,
-        rate_units: str,
-    ) -> None:
-        """ Assign new model. """
-        model = self.models[table_name]
-        model.update(tree_node, rate_to_energy, units_system, energy_units, rate_units)
-        with SignalBlocker(self.verticalScrollBar()):
-            self.proxy_model.setSourceModel(model)
-
-    def change_model(self, table_name: str) -> None:
-        """ Set new model with current settings. """
-        self.set_model(
-            table_name,
-            tree_node=self.source_model.tree_node,
-            rate_to_energy=self.source_model.rate_to_energy,
-            units_system=self.source_model.units_system,
-            energy_units=self.source_model.energy_units,
-            rate_units=self.source_model.rate_units,
-        )
 
     def update_model(
         self,
@@ -378,32 +326,26 @@ class TreeView(QTreeView):
         rate_units: str,
     ) -> None:
         """ Update tree view model. """
-        self.source_model.update(
-            tree_node, rate_to_energy, units_system, energy_units, rate_units
-        )
+        units_kwargs = {
+            "rate_to_energy": rate_to_energy,
+            "units_system": units_system,
+            "energy_units": energy_units,
+            "rate_units": rate_units,
+        }
+        if self.source_model.needs_rebuild(tree_node):
+            self.source_model.rebuild_model(tree_node, **units_kwargs)
+            self.set_span_and_decorate_root()
+        elif self.source_model.needs_units_update(**units_kwargs):
+            self.update_proxy_units(**units_kwargs)
 
     def update_units(self, **kwargs) -> None:
         """ Update tree viw model. """
         self.source_model.update_proxy_units(**kwargs)
 
-    def on_item_expanded(self, proxy_index: QModelIndex):
-        if self.proxy_model.hasChildren(proxy_index):
-            name = self.proxy_model.data(proxy_index)
-            self.source_model.expanded.add(name)
-
-    def on_item_collapsed(self, proxy_index: QModelIndex):
-        with contextlib.suppress(KeyError):
-            name = self.proxy_model.data(proxy_index)
-            self.source_model.expanded.remove(name)
-
     def on_item_entered(self, proxy_index: QModelIndex) -> None:
         """ Set status tip for currently hovered item. """
         source_index = self.proxy_model.mapToSource(proxy_index)
         self.source_model.set_current_status_tip(source_index)
-
-    def on_sort_order_changed(self, log_ix: int, order: Qt.SortOrder) -> None:
-        """ Store current sorting column_order. """
-        self.indicator = (log_ix, order)
 
     def tree_node_changed(self, old_visual_ix: int, new_visual_ix: int) -> bool:
         """ Check if tree node column changed. """
@@ -415,10 +357,6 @@ class TreeView(QTreeView):
             self.treeNodeChanged.emit(self)
             # automatically sort first column based on last sort update
             self.header().setSortIndicator(0, self.proxy_model.sortOrder())
-
-    def on_slider_moved(self, val: int) -> None:
-        """ Handle moving view slider. """
-        self.source_model.scroll_position = val
 
     def on_double_clicked(self, proxy_index: QModelIndex):
         """ Handle view double click. """
@@ -439,7 +377,6 @@ class TreeView(QTreeView):
     def deselect_all_variables(self) -> None:
         """ Deselect all currently selected variables. """
         self.selectionModel().clearSelection()
-        self.source_model.selected = []
         self.selectionCleared.emit()
 
     def select_variables(self, variables: List[VariableData]) -> None:
@@ -448,7 +385,6 @@ class TreeView(QTreeView):
         if source_selection.indexes():
             self.select_model_items(source_selection)
             variable_data = self.get_selected_variable_data()
-            self.source_model.selected = variable_data
             self.selectionPopulated.emit(variable_data)
 
     def deselect_item(self, source_index: QModelIndex) -> None:
@@ -517,7 +453,6 @@ class TreeView(QTreeView):
             self.selectionPopulated.emit(variable_data)
         else:
             self.selectionCleared.emit()
-        self.source_model.selected = variable_data
 
     def get_current_column_data(self, column: str) -> List[str]:
         """ Get all item text for given column. """
@@ -561,139 +496,112 @@ def cache_properties(func):
     return wrapper
 
 
-class ViewMask:
-    _cached = {
-        OutputType.STANDARD: {
-            "widths": {
-                ViewType.SIMPLE: {"fixed": 60,},
-                ViewType.TREE: {"fixed": 60, "interactive": 200},
-            },
-            "header": {
-                ViewType.SIMPLE: ("key", "proxy_units", "units"),
-                ViewType.TREE: ("type", "key", "proxy_units", "units"),
-            },
-        },
-        OutputType.TOTALS: {
-            "widths": {
-                ViewType.SIMPLE: {"fixed": 60,},
-                ViewType.TREE: {"fixed": 60, "interactive": 200},
-            },
-            "header": {
-                ViewType.SIMPLE: ("key", "proxy_units", "units"),
-                ViewType.TREE: ("type", "key", "proxy_units", "units"),
-            },
-        },
-        OutputType.DIFFERENCE: {
-            "widths": {
-                ViewType.SIMPLE: {"fixed": 60,},
-                ViewType.TREE: {"fixed": 60, "interactive": 200},
-            },
-            "header": {
-                ViewType.SIMPLE: ("key", "proxy_units", "units"),
-                ViewType.TREE: ("type", "key", "proxy_units", "units"),
-            },
-        },
+class TreeViewAppearance:
+    def __init__(
+        self, treeview: TreeView,
+    ):
+        self.view_type = treeview.view_type
+        self.header = treeview.get_visual_column_data()
+        self.widths = treeview.get_widths()
+        self.selected = treeview.get_selected_variable_data()
+        self.scroll_position = treeview.get_scroll_position()
+        self.expanded = treeview.get_expanded_labels()
+        self.sort_indicator = treeview.get_sort_indicator()
+
+    def apply_to(self, treeview: TreeView) -> None:
+        treeview.reorder_columns(self.header)
+        treeview.set_header_resize_mode(self.widths)
+        # TODO handle sort column_order and scrollbar
+        # treeview.update_sort_order(*self.sort_indicator)
+        if self.expanded:
+            treeview.expand_items(self.expanded)
+        treeview.update_scrollbar_position(self.scroll_position)
+
+
+class CachedViewAppearance:
+    default_header = {
+        ViewType.SIMPLE: ("key", "proxy_units", "units"),
+        ViewType.TREE: ("type", "key", "proxy_units", "units"),
     }
+    default_widths = {
+        ViewType.SIMPLE: {"fixed": 60,},
+        ViewType.TREE: {"fixed": 60, "interactive": 200},
+    }
+    default_sort_order = {
+        ViewType.SIMPLE: (0, Qt.SortOrder.AscendingOrder),
+        ViewType.TREE: (0, Qt.SortOrder.AscendingOrder),
+    }
+
+    def cache_appearance(self, appearance: TreeViewAppearance):
+        self.default_header[appearance.view_type] = appearance.header
+        self.default_widths[appearance.view_type] = appearance.widths
+        self.default_sort_order[appearance.view_type] = appearance.sort_indicator
+
+    def apply_to(self, treeview: TreeView) -> None:
+        treeview.reorder_columns(self.default_header[treeview.view_type])
+        treeview.set_header_resize_mode(self.default_widths[treeview.view_type])
+        # treeview.update_sort_order(*self.default_sort_order[treeview.view_type])
+
+
+class ViewMask:
+    CACHED = {
+        OutputType.STANDARD: CachedViewAppearance(),
+        OutputType.TOTALS: CachedViewAppearance(),
+        OutputType.DIFFERENCE: CachedViewAppearance(),
+    }
+    DISABLED = False
 
     def __init__(
         self,
         treeview: TreeView,
-        ref_treeview: TreeView = None,
-        old_model: ViewModel = None,
+        ref_treeview: Optional[TreeView] = None,
         filter_tuple: FilterTuple = FilterTuple("", "", ""),
-        show_source_units: bool = False,
+        show_source_units: bool = True,
     ):
         self.treeview = treeview
+        self.appearance = TreeViewAppearance(treeview) if treeview.initialized else None
         self.ref_treeview = ref_treeview
-        self.old_model = old_model
+        self.ref_appearance = TreeViewAppearance(ref_treeview) if ref_treeview else None
         self.filter_tuple = filter_tuple
         self.show_source_units = show_source_units
 
     def __enter__(self):
-        view = self.ref_treeview if self.ref_treeview else self.treeview
-        if view.source_model is not None:
-            widths = view.get_widths()
-            header = view.get_visual_column_data()
-            self.set_cached_property(view, "widths", widths)
-            self.set_cached_property(view, "header", header)
+        if self.appearance is not None:
+            self.CACHED[self.treeview.output_type].cache_appearance(self.appearance)
+        if self.ref_treeview is not None:
+            self.CACHED[self.ref_treeview.output_type].cache_appearance(self.ref_appearance)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        if self.ref_treeview:
-            self.mask_with_another_view(self.treeview, self.ref_treeview)
-        elif self.old_model:
-            self.mask_with_previous_model(self.treeview, self.old_model)
-        else:
-            self.set_initial_appearance(self.treeview)
-
-    @classmethod
-    def get_cached_property(cls, treeview: TreeView, key: str) -> Any:
-        """ Retrieve given property, returns default if not yet cached."""
-        return cls._cached[treeview.output_type][key][treeview.view_type]
-
-    @classmethod
-    def set_cached_property(cls, treeview: TreeView, key: str, value: Any) -> None:
-        cls._cached[treeview.output_type][key][treeview.view_type] = value
-
-    @cache_properties
-    def set_initial_appearance(self, treeview: TreeView) -> None:
+        self.treeview.hide_section(UNITS_LEVEL, not self.show_source_units)
         if any(self.filter_tuple):
-            treeview.filter_view(self.filter_tuple)
-        widths = self.get_cached_property(treeview, "widths")
-        header = self.get_cached_property(treeview, "header")
-        treeview.set_appearance(header, widths, self.show_source_units)
+            self.treeview.filter_view(self.filter_tuple)
 
-    @cache_properties
-    def update_appearance(
-        self,
-        treeview: TreeView,
-        selected: List[VariableData],
-        expanded: Set[str],
-        scroll_position: int,
-    ):
-        widths = self.get_cached_property(treeview, "widths")
-        header = self.get_cached_property(treeview, "header")
-        treeview.update_viewport(self.filter_tuple, expanded, scroll_position)
-        treeview.set_appearance(header, widths, self.show_source_units)
-        if selected:
-            treeview.deselect_all_variables()
-            treeview.select_variables(selected)
-
-    def mask_with_another_view(self, treeview: TreeView, ref_treeview: TreeView,) -> None:
-        if treeview.source_model.is_similar(ref_treeview.source_model):
-            selected = ref_treeview.source_model.selected
-            expanded = ref_treeview.source_model.expanded
-            scroll_position = ref_treeview.source_model.scroll_position
+        if self.should_apply_cached():
+            self.CACHED[self.treeview.output_type].apply_to(self.treeview)
+        elif self.ref_appearance is not None and self.treeview.is_similar(self.ref_treeview):
+            self.ref_appearance.apply_to(self.treeview)
         else:
-            selected = treeview.source_model.selected
-            expanded = treeview.source_model.expanded
-            scroll_position = treeview.source_model.scroll_position
-        self.update_appearance(treeview, selected, expanded, scroll_position)
+            self.appearance.apply_to(self.treeview)
 
-    def mask_with_previous_model(self, treeview: TreeView, old_model: ViewModel,) -> None:
-        if treeview.source_model.is_similar(old_model):
-            selected = old_model.selected
-            expanded = old_model.expanded
-            scroll_position = old_model.scroll_position
-        else:
-            selected = treeview.source_model.selected
-            expanded = treeview.source_model.expanded
-            scroll_position = treeview.source_model.scroll_position
-        self.update_appearance(
-            treeview, selected, expanded, scroll_position,
+    def should_apply_cached(self) -> bool:
+        return (
+            self.DISABLED
+            or (self.ref_appearance is None and self.appearance is None)
+            or (
+                self.ref_appearance is not None
+                and not self.treeview.is_similar(self.ref_treeview)
+            )
         )
 
-    def set_table(self, table_name: str, tree: bool, **kwargs):
-        new_model = self.treeview.models[table_name]
-        if tree and not new_model.is_simple:
-            tree_node = self._cached[self.treeview.output_type]["header"][ViewType.TREE][0]
-        else:
-            tree_node = None
-        self.treeview.set_model(table_name, tree_node=tree_node, **kwargs)
+    def get_tree_node(self, treeview: TreeView) -> str:
+        return self.CACHED[treeview.output_type].default_header[treeview.view_type][0]
 
-    def update_table(self, tree: bool, **kwargs):
-        if tree and not self.treeview.source_model.is_simple:
-            tree_node = self.get_cached_property(self.treeview, "header")[0]
+    def update_treeview(
+        self, treeview: TreeView, is_tree: bool, units_kwargs: Dict[str, Union[str, bool]]
+    ) -> None:
+        if is_tree and not treeview.source_model.is_simple:
+            tree_node = self.get_tree_node(treeview)
         else:
             tree_node = None
-        self.treeview.update_model(tree_node=tree_node, **kwargs)
+        treeview.update_model(tree_node=tree_node, **units_kwargs)
