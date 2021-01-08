@@ -296,7 +296,7 @@ class ViewModel(QStandardItemModel):
 
     def append_tree_rows(self, header_df: pd.DataFrame) -> None:
         """ Add rows for a tree like view. """
-        grouped = header_df.groupby(by=[header_df.columns[0]])
+        grouped = header_df.groupby(by=[header_df.columns[0]], sort=False)
         for parent, df in grouped:
             if len(df.index) == 1:
                 self.append_rows(df)
@@ -409,7 +409,9 @@ class ViewModel(QStandardItemModel):
             energy_units=energy_units,
             rate_units=rate_units,
         )
-        self.set_column_header_item_data(header_df.columns.tolist())
+        column_labels = header_df.columns.tolist()
+        header_df = header_df.sort_values(by=column_labels, ascending=True)
+        self.set_column_header_item_data(column_labels)
         if self.tree_node:
             self.append_tree_rows(header_df)
         else:

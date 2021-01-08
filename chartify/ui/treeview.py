@@ -218,9 +218,8 @@ class TreeView(QTreeView):
         self.verticalScrollBar().setValue(pos)
 
     def update_sort_order(self, indicator_column: int, order: Qt.SortOrder) -> None:
-        """ Set column_order for sort column. """
-        self.proxy_model.sort(indicator_column, order)
-        self.header().setSortIndicator(indicator_column, order)
+        """ Sort by given column. """
+        self.sortByColumn(indicator_column, order)
 
     def scroll_to(self, variable_data: VariableData) -> None:
         """ Scroll to the given variable. """
@@ -512,7 +511,7 @@ class TreeViewAppearance:
         treeview.reorder_columns(self.header)
         treeview.set_header_resize_mode(self.widths)
         # TODO handle sort column_order and scrollbar
-        # treeview.update_sort_order(*self.sort_indicator)
+        treeview.update_sort_order(*self.sort_indicator)
         if self.expanded:
             treeview.expand_items(self.expanded)
         treeview.update_scrollbar_position(self.scroll_position)
@@ -528,8 +527,8 @@ class CachedViewAppearance:
         ViewType.TREE: {"fixed": 60, "interactive": 200},
     }
     default_sort_order = {
-        ViewType.SIMPLE: (0, Qt.SortOrder.AscendingOrder),
-        ViewType.TREE: (0, Qt.SortOrder.AscendingOrder),
+        ViewType.SIMPLE: (-1, Qt.SortOrder.AscendingOrder),
+        ViewType.TREE: (-1, Qt.SortOrder.AscendingOrder),
     }
 
     def cache_appearance(self, appearance: TreeViewAppearance):
@@ -540,7 +539,7 @@ class CachedViewAppearance:
     def apply_to(self, treeview: TreeView) -> None:
         treeview.reorder_columns(self.default_header[treeview.view_type])
         treeview.set_header_resize_mode(self.default_widths[treeview.view_type])
-        # treeview.update_sort_order(*self.default_sort_order[treeview.view_type])
+        treeview.update_sort_order(*self.default_sort_order[treeview.view_type])
 
 
 class ViewMask:
