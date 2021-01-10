@@ -936,7 +936,7 @@ class MainWindow(QMainWindow):
 
     def get_files_and_tables_text(self) -> str:
         """ Get information on function application based on current settings. """
-        table_name = self.current_view.current_table_name
+        table_name = self.current_file_widget.current_table_name
         file_name = self.current_tab_widget.name
         all_files = self.toolbar.all_files_toggle.isChecked()
         all_tables = self.toolbar.all_tables_toggle.isChecked()

@@ -510,11 +510,12 @@ class TreeViewAppearance:
     def apply_to(self, treeview: TreeView) -> None:
         treeview.reorder_columns(self.header)
         treeview.set_header_resize_mode(self.widths)
-        # TODO handle sort column_order and scrollbar
         treeview.update_sort_order(*self.sort_indicator)
         if self.expanded:
             treeview.expand_items(self.expanded)
         treeview.update_scrollbar_position(self.scroll_position)
+        if self.selected:
+            treeview.select_variables(self.selected)
 
 
 class CachedViewAppearance:

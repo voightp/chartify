@@ -68,3 +68,8 @@ class StackedWidget(QStackedWidget):
     def set_treeview(self, treeview: TreeView) -> None:
         index = self.indexOf(treeview)
         self.setCurrentIndex(index)
+
+    def set_treeview_by_name(self, name: str) -> None:
+        treeview = self.get_treeview(name)
+        index = self.indexOf(treeview)
+        self.setCurrentIndex(index)
