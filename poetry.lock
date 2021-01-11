@@ -434,6 +434,21 @@ checkqa-mypy = ["mypy (v0.761)"]
 testing = ["argcomplete", "hypothesis (>=3.56)", "mock", "nose", "requests", "xmlschema"]
 
 [[package]]
+name = "pytest-cov"
+version = "2.10.1"
+description = "Pytest plugin for measuring coverage."
+category = "dev"
+optional = false
+python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
+
+[package.dependencies]
+coverage = ">=4.4"
+pytest = ">=4.6"
+
+[package.extras]
+testing = ["fields", "hunter", "process-tests (2.0.2)", "six", "pytest-xdist", "virtualenv"]
+
+[[package]]
 name = "pytest-depends"
 version = "1.0.1"
 description = "Tests that depend on other tests"
@@ -597,7 +612,7 @@ python-versions = "*"
 [metadata]
 lock-version = "1.1"
 python-versions = "3.8"
-content-hash = "4fbd85f29286ea772e03109108c83b182aa2aceec10ec9f2604edbf655efdb1e"
+content-hash = "e9d0c0a59608614fe749e5e1143106ac173a5a0dc0f4d073133100829c5b2d2f"
 
 [metadata.files]
 appdirs = [
@@ -907,6 +922,10 @@ pyside2 = [
 pytest = [
     {file = "pytest-5.4.3-py3-none-any.whl", hash = "sha256:5c0db86b698e8f170ba4582a492248919255fcd4c79b1ee64ace34301fb589a1"},
     {file = "pytest-5.4.3.tar.gz", hash = "sha256:7979331bfcba207414f5e1263b5a0f8f521d0f457318836a7355531ed1a4c7d8"},
+]
+pytest-cov = [
+    {file = "pytest-cov-2.10.1.tar.gz", hash = "sha256:47bd0ce14056fdd79f93e1713f88fad7bdcc583dcd7783da86ef2f085a0bb88e"},
+    {file = "pytest_cov-2.10.1-py2.py3-none-any.whl", hash = "sha256:45ec2d5182f89a81fc3eb29e3d1ed3113b9e9a873bcddb2a71faaab066110191"},
 ]
 pytest-depends = [
     {file = "pytest-depends-1.0.1.tar.gz", hash = "sha256:90a28e2b87b75b18abd128c94015248544acac20e4392e9921e5a86f93319dfe"},
