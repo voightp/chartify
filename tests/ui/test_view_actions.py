@@ -3,7 +3,7 @@ from unittest.mock import patch
 import pytest
 from PySide2.QtCore import Qt
 
-from chartify.utils.utils import FilterTuple
+from chartify.ui.treeview_model import FilterTuple
 
 
 def test_expand_all_empty(qtbot, mw):

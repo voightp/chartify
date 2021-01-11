@@ -7,7 +7,6 @@ from esofile_reader.pqt.parquet_file import ParquetFile
 # noinspection PyUnresolvedReferences
 class FileWatcher(QThread):
     file_loaded = Signal(ParquetFile)
-    all_loaded = Signal(str)
 
     def __init__(self, file_queue):
         super().__init__()

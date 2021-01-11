@@ -1,16 +1,16 @@
 from chartify.ui.treeview import ViewMask, ViewType, CachedViewAppearance, OutputType
-from chartify.utils.utils import VariableData
+from chartify.ui.treeview_model import VV
 from tests.conftest import *
 from PySide2.QtCore import Qt
 
 VARIABLES = [
-    VariableData("BOILER", "Boiler Ancillary Electric Power", "W"),
-    VariableData("BOILER", "Boiler Gas Rate", "W"),
+    VV("BOILER", "Boiler Ancillary Electric Power", "W"),
+    VV("BOILER", "Boiler Gas Rate", "W"),
 ]
 
 SIMPLE_VARIABLES = [
-    VariableData("Boiler Gas Rate", None, "W"),
-    VariableData("Boiler Ancillary Electric Power", None, "W"),
+    VV("Boiler Gas Rate", None, "W"),
+    VV("Boiler Ancillary Electric Power", None, "W"),
 ]
 
 
@@ -117,7 +117,7 @@ def test_widths(qtbot, view, widths):
     ],
 )
 def test_selected(qtbot, view, selected):
-    assert set(selected) == set(view.get_selected_variable_data())
+    assert set(selected) == set(view.get_selected_view_variable())
 
 
 @pytest.mark.parametrize(

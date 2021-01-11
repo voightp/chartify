@@ -10,13 +10,13 @@ from esofile_reader.pqt.parquet_file import ParquetFile
 from chartify.controller.file_processing import load_file
 from chartify.controller.wv_controller import WVController
 from chartify.model.model import AppModel
-from chartify.settings import Settings, OutputType
+from chartify.settings import Settings
 from chartify.ui.main_window import MainWindow
-from chartify.ui.treeview_model import ViewModel
+from chartify.ui.treeview_model import ViewModel, VV
 from chartify.utils.process_utils import create_pool, kill_child_processes
 from chartify.utils.progress_logging import ProgressThread, UiLogger
 from chartify.utils.threads import FileWatcher, suspend_watcher
-from chartify.utils.utils import get_str_identifier, VariableData
+from chartify.utils.utils import get_str_identifier
 
 
 class AppController:
@@ -107,7 +107,7 @@ class AppController:
         self.progress_thread.status_changed.connect(self.v.progress_container.set_status)
         self.progress_thread.done.connect(self.v.progress_container.remove_file)
 
-    def on_selection_change(self, view_variables: List[VariableData]) -> None:
+    def on_selection_change(self, view_variables: List[VV]) -> None:
         """ Handle selection update. """
         out_str = [" | ".join([v for v in var if v is not None]) for var in view_variables]
         if out_str:
@@ -170,16 +170,13 @@ class AppController:
             self.ids.remove(id_)
 
     def on_variable_rename_requested(
-        self,
-        models: List[ViewModel],
-        old_variable_data: VariableData,
-        new_variable_data: VariableData,
+        self, models: List[ViewModel], old_view_variable: VV, new_view_variable: VV,
     ) -> None:
         for model in models:
-            model.update_variable_if_exists(old_variable_data, new_variable_data)
+            model.update_variable_if_exists(old_view_variable, new_view_variable)
 
     def on_variable_remove_requested(
-        self, models: List[ViewModel], view_variables: List[VariableData],
+        self, models: List[ViewModel], view_variables: List[VV],
     ):
         for model in models:
             model.delete_variables(view_variables)
@@ -188,7 +185,7 @@ class AppController:
         self,
         models: List[ViewModel],
         func: str,
-        view_variables: List[VariableData],
+        view_variables: List[VV],
         new_key: str,
         new_type: Optional[str],
     ):

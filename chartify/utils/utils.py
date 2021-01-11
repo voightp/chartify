@@ -1,12 +1,8 @@
 import os
-from collections import namedtuple
 from random import randint
 
 import pandas as pd
 from esofile_reader.processing.totals import AVERAGED_UNITS
-
-VariableData = namedtuple("VariableData", "key type units")
-FilterTuple = namedtuple("FilterTuple", ["key", "type", "proxy_units"])
 
 
 def install_fonts(pth, database):

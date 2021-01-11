@@ -8,8 +8,7 @@ from esofile_reader.df.level_names import UNITS_LEVEL
 
 from chartify.settings import OutputType
 from chartify.ui.treeview import TreeView, ViewType, ViewMask
-from chartify.ui.treeview_model import FilterModel, ViewModel
-from chartify.utils.utils import VariableData, FilterTuple
+from chartify.ui.treeview_model import FilterModel, ViewModel, VV, FilterTuple
 from tests.conftest import ESO_FILE_EXCEL_PATH
 
 default_units = dict(energy_units="J", rate_units="W", units_system="SI", rate_to_energy=False)
@@ -229,29 +228,14 @@ def test_on_section_moved_rebuild(qtbot, hourly: TreeView):
 @pytest.mark.parametrize(
     "tree_view,test_data, test_row, parent_row",
     [
-        (
-            pytest.lazy_fixture("hourly"),
-            VariableData("BOILER", "Boiler Gas Rate", "W"),
-            1,
-            None,
-        ),
-        (pytest.lazy_fixture("daily"), VariableData("BOILER", "Boiler Gas Rate", "W"), 1, None),
-        (
-            pytest.lazy_fixture("hourly_simple"),
-            VariableData("Boiler Gas Rate", None, "W"),
-            1,
-            None,
-        ),
-        (
-            pytest.lazy_fixture("daily_simple"),
-            VariableData("Boiler Gas Rate", None, "W"),
-            1,
-            None,
-        ),
+        (pytest.lazy_fixture("hourly"), VV("BOILER", "Boiler Gas Rate", "W"), 1, None,),
+        (pytest.lazy_fixture("daily"), VV("BOILER", "Boiler Gas Rate", "W"), 1, None),
+        (pytest.lazy_fixture("hourly_simple"), VV("Boiler Gas Rate", None, "W"), 1, None,),
+        (pytest.lazy_fixture("daily_simple"), VV("Boiler Gas Rate", None, "W"), 1, None,),
     ],
 )
 def test_on_double_clicked(qtbot, tree_view: TreeView, test_data, test_row, parent_row):
-    def cb(treeview, row, parent, variable_data):
+    def cb(treeview, row, parent, view_variable):
         test_parent_index = (
             treeview.source_model.index(parent_row, 0)
             if parent_row is not None
@@ -260,7 +244,7 @@ def test_on_double_clicked(qtbot, tree_view: TreeView, test_data, test_row, pare
         assert row == test_row
         assert treeview is tree_view
         assert parent == test_parent_index
-        assert variable_data == test_data
+        assert view_variable == test_data
         return True
 
     point = tree_view.visualRect(tree_view.model().index(1, 0)).center()
@@ -275,11 +259,11 @@ def test_on_double_clicked(qtbot, tree_view: TreeView, test_data, test_row, pare
 def test_on_double_clicked_child(qtbot, hourly: TreeView):
     hourly.expandAll()
 
-    def cb(treeview, row, parent, variable_data):
+    def cb(treeview, row, parent, view_variable):
         assert row == 0
         assert treeview is hourly
         assert parent == treeview.source_model.index(7, 0)
-        assert variable_data == VariableData(
+        assert view_variable == VV(
             "BLOCK1:ZONEA FAN COIL UNIT COOLING COIL", "Cooling Coil Sensible Cooling Rate", "W"
         )
         return True
@@ -321,20 +305,20 @@ def test_select_all_children_expanded_parent(qtbot, hourly: TreeView):
     qtbot.mouseDClick(hourly.viewport(), Qt.LeftButton, pos=point)
     assert hourly.isExpanded(index)
 
-    def test_data(variable_data):
+    def test_data(view_variable):
         dt = [
-            VariableData(
+            VV(
                 "BLOCK1:ZONEA FAN COIL UNIT COOLING COIL",
                 "Cooling Coil Sensible Cooling Rate",
                 "W",
             ),
-            VariableData(
+            VV(
                 "BLOCK1:ZONEB FAN COIL UNIT COOLING COIL",
                 "Cooling Coil Sensible Cooling Rate",
                 "W",
             ),
         ]
-        return dt == variable_data
+        return dt == view_variable
 
     with qtbot.wait_signal(hourly.selectionPopulated, check_params_cb=test_data):
         qtbot.mouseClick(hourly.viewport(), Qt.LeftButton, pos=point)
@@ -343,14 +327,14 @@ def test_select_all_children_expanded_parent(qtbot, hourly: TreeView):
 @pytest.mark.parametrize(
     "tree_view,test_data",
     [
-        (pytest.lazy_fixture("hourly"), VariableData("BOILER", "Boiler Gas Rate", "W")),
-        (pytest.lazy_fixture("daily"), VariableData("BOILER", "Boiler Gas Rate", "W")),
-        (pytest.lazy_fixture("hourly_simple"), VariableData("Boiler Gas Rate", None, "W")),
-        (pytest.lazy_fixture("daily_simple"), VariableData("Boiler Gas Rate", None, "W")),
+        (pytest.lazy_fixture("hourly"), VV("BOILER", "Boiler Gas Rate", "W")),
+        (pytest.lazy_fixture("daily"), VV("BOILER", "Boiler Gas Rate", "W")),
+        (pytest.lazy_fixture("hourly_simple"), VV("Boiler Gas Rate", None, "W")),
+        (pytest.lazy_fixture("daily_simple"), VV("Boiler Gas Rate", None, "W")),
     ],
 )
 def test_on_pressed(qtbot, tree_view: TreeView, test_data):
-    def variable_data(vd):
+    def view_variable(vd):
         return vd == [test_data]
 
     index = tree_view.model().index(1, 0)
@@ -358,14 +342,14 @@ def test_on_pressed(qtbot, tree_view: TreeView, test_data):
     # need to move mouse to hover over view
     qtbot.mouseMove(tree_view.viewport(), pos=point)
     signals = [tree_view.pressed, tree_view.selectionPopulated]
-    callbacks = [None, variable_data]
+    callbacks = [None, view_variable]
     with qtbot.wait_signals(signals, check_params_cbs=callbacks):
         # need to click first as single double click would emit only pressed signal
         qtbot.mousePress(tree_view.viewport(), Qt.LeftButton, pos=point)
 
 
 def test_on_pressed_collapsed_parent(qtbot, hourly: TreeView):
-    def variable_data1(index):
+    def view_variable1(index):
         data = hourly.model().data(index)
         return data == "Cooling Coil Sensible Cooling Rate"
 
@@ -374,7 +358,7 @@ def test_on_pressed_collapsed_parent(qtbot, hourly: TreeView):
     # need to move mouse to hover over view
     qtbot.mouseMove(hourly.viewport(), pos=press_point)
     signals = [hourly.pressed, hourly.selectionCleared]
-    callbacks = [variable_data1, None]
+    callbacks = [view_variable1, None]
     with qtbot.wait_signals(signals, check_params_cbs=callbacks):
         # need to click first as single double click would emit only pressed signal
         qtbot.mousePress(hourly.viewport(), Qt.LeftButton, pos=press_point)
@@ -454,7 +438,7 @@ def test_update_units_proxy_tree_node(hourly: TreeView):
 
 
 def test_scroll_to(qtbot, hourly: TreeView):
-    v = VariableData("BLOCK1:ZONEA", "Zone Infiltration Air Change Rate", "ach")
+    v = VV("BLOCK1:ZONEA", "Zone Infiltration Air Change Rate", "ach")
     with qtbot.wait_signal(hourly.verticalScrollBar().valueChanged):
         hourly.scroll_to(v)
     assert hourly.verticalScrollBar().value() == 28
@@ -466,15 +450,15 @@ def test_scroll_to(qtbot, hourly: TreeView):
         (
             pytest.lazy_fixture("hourly"),
             [
-                VariableData("BOILER", "Boiler Gas Rate", "W"),
-                VariableData("BOILER", "Boiler Ancillary Electric Power", "W"),
+                VV("BOILER", "Boiler Gas Rate", "W"),
+                VV("BOILER", "Boiler Ancillary Electric Power", "W"),
             ],
         ),
         (
             pytest.lazy_fixture("hourly_simple"),
             [
-                VariableData("Boiler Gas Rate", None, "W"),
-                VariableData("Boiler Ancillary Electric Power", None, "W"),
+                VV("Boiler Gas Rate", None, "W"),
+                VV("Boiler Ancillary Electric Power", None, "W"),
             ],
         ),
     ],
@@ -492,22 +476,22 @@ def test_deselect_variables(qtbot, tree_view: TreeView, test_data):
         (
             pytest.lazy_fixture("hourly"),
             [
-                VariableData("BOILER", "Boiler Ancillary Electric Power", "W"),
-                VariableData("BOILER", "Boiler Gas Rate", "W"),
+                VV("BOILER", "Boiler Ancillary Electric Power", "W"),
+                VV("BOILER", "Boiler Gas Rate", "W"),
             ],
         ),
         (
             pytest.lazy_fixture("hourly_simple"),
             [
-                VariableData("Boiler Ancillary Electric Power", None, "W"),
-                VariableData("Boiler Gas Rate", None, "W"),
+                VV("Boiler Ancillary Electric Power", None, "W"),
+                VV("Boiler Gas Rate", None, "W"),
             ],
         ),
     ],
 )
 def test_select_variables(qtbot, tree_view: TreeView, test_data):
-    def cb(variable_data):
-        return set(test_data) == set(variable_data)
+    def cb(view_variable):
+        return set(test_data) == set(view_variable)
 
     with qtbot.wait_signal(tree_view.selectionPopulated, check_params_cb=cb):
         tree_view.select_variables(test_data)
@@ -527,9 +511,9 @@ def test_filter_view(qtbot, daily: TreeView):
     assert daily.isExpanded(index1)
     assert daily.isExpanded(index2)
 
-    vd0 = VariableData("BLOCK1:ZONEA", "Zone Mean Air Temperature", "C")
-    vd1 = VariableData("BLOCK1:ZONEA", "Zone Mean Radiant Temperature", "C")
-    vd2 = VariableData("BLOCK1:ZONEA", "Zone Operative Temperature", "C")
+    vd0 = VV("BLOCK1:ZONEA", "Zone Mean Air Temperature", "C")
+    vd1 = VV("BLOCK1:ZONEA", "Zone Mean Radiant Temperature", "C")
+    vd2 = VV("BLOCK1:ZONEA", "Zone Operative Temperature", "C")
 
     parent0 = daily.proxy_model.mapToSource(index0)
     parent1 = daily.proxy_model.mapToSource(index1)
@@ -539,9 +523,9 @@ def test_filter_view(qtbot, daily: TreeView):
     row1 = daily.proxy_model.mapToSource(index1.child(0, 0)).row()
     row2 = daily.proxy_model.mapToSource(index2.child(0, 0)).row()
 
-    assert daily.source_model.get_row_variable_data(row0, parent0) == vd0
-    assert daily.source_model.get_row_variable_data(row1, parent1) == vd1
-    assert daily.source_model.get_row_variable_data(row2, parent2) == vd2
+    assert daily.source_model.get_row_view_variable(row0, parent0) == vd0
+    assert daily.source_model.get_row_view_variable(row1, parent1) == vd1
+    assert daily.source_model.get_row_view_variable(row2, parent2) == vd2
 
     child_index_invalid = daily.model().index(1, 0, index0)
     assert child_index_invalid == QModelIndex()

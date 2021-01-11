@@ -20,11 +20,9 @@ from chartify.ui.treeview_model import (
     ViewModel,
     FilterModel,
     PROXY_UNITS_LEVEL,
-    convert_variable_data_to_variable,
-)
-from chartify.utils.utils import (
+    convert_view_variable_to_variable,
+    VV,
     FilterTuple,
-    VariableData,
 )
 
 
@@ -65,7 +63,7 @@ class TreeView(QTreeView):
 
     selectionCleared = Signal()
     selectionPopulated = Signal(list)
-    itemDoubleClicked = Signal(QTreeView, int, QModelIndex, VariableData)
+    itemDoubleClicked = Signal(QTreeView, int, QModelIndex, VV)
     treeNodeChanged = Signal(QTreeView)
 
     def __init__(self, model: ViewModel, output_type: OutputType):
@@ -133,14 +131,14 @@ class TreeView(QTreeView):
             return True
 
     @property
-    def selected_variable_data(self) -> List[VariableData]:
-        return self.get_selected_variable_data()
+    def selected_view_variable(self) -> List[VV]:
+        return self.get_selected_view_variable()
 
     @property
     def selected_variables(self) -> List[Union[Variable, SimpleVariable]]:
         variables = []
-        for variable_data in self.selected_variable_data:
-            variable = convert_variable_data_to_variable(variable_data, self.current_table_name)
+        for view_variable in self.selected_view_variable:
+            variable = convert_view_variable_to_variable(view_variable, self.current_table_name)
             variables.append(variable)
         return variables
 
@@ -221,9 +219,9 @@ class TreeView(QTreeView):
         """ Sort by given column. """
         self.sortByColumn(indicator_column, order)
 
-    def scroll_to(self, variable_data: VariableData) -> None:
+    def scroll_to(self, view_variable: VV) -> None:
         """ Scroll to the given variable. """
-        proxy_selection = self.proxy_model.find_matching_proxy_selection([variable_data])
+        proxy_selection = self.proxy_model.find_matching_proxy_selection([view_variable])
         if proxy_selection:
             self.scrollTo(proxy_selection.indexes()[0])
 
@@ -363,8 +361,8 @@ class TreeView(QTreeView):
         if not self.source_model.hasChildren(source_index):
             row_number = source_index.row()
             parent = source_index.parent()
-            variable_data = self.source_model.get_row_variable_data(row_number, parent)
-            self.itemDoubleClicked.emit(self, row_number, parent, variable_data)
+            view_variable = self.source_model.get_row_view_variable(row_number, parent)
+            self.itemDoubleClicked.emit(self, row_number, parent, view_variable)
 
     def select_all_children(self, source_index: QModelIndex) -> None:
         """ Select all children of the parent row. """
@@ -378,13 +376,13 @@ class TreeView(QTreeView):
         self.selectionModel().clearSelection()
         self.selectionCleared.emit()
 
-    def select_variables(self, variables: List[VariableData]) -> None:
+    def select_variables(self, variables: List[VV]) -> None:
         """ Select rows with containing given variable data. """
         source_selection = self.source_model.get_matching_selection(variables)
         if source_selection.indexes():
             self.select_model_items(source_selection)
-            variable_data = self.get_selected_variable_data()
-            self.selectionPopulated.emit(variable_data)
+            view_variable = self.get_selected_view_variable()
+            self.selectionPopulated.emit(view_variable)
 
     def deselect_item(self, source_index: QModelIndex) -> None:
         """ Deselect an item programmatically. """
@@ -410,19 +408,19 @@ class TreeView(QTreeView):
         parent_proxy_index = self.proxy_model.mapFromSource(parent_source_index)
         return self.isExpanded(parent_proxy_index) and not is_any_child_selected
 
-    def get_selected_variable_data(self) -> List[VariableData]:
+    def get_selected_view_variable(self) -> List[VV]:
         """ Get currently selected variable data. """
         proxy_row_indexes = self.selectionModel().selectedRows()
         source_row_indexes = self.proxy_model.map_to_source(proxy_row_indexes)
-        variable_data = []
+        view_variable = []
         for source_index in source_row_indexes:
             row_number = source_index.row()
             if not self.source_model.hasChildren(source_index):
-                row_variable_data = self.source_model.get_row_variable_data(
+                row_view_variable = self.source_model.get_row_view_variable(
                     row_number, source_index.parent()
                 )
-                variable_data.append(row_variable_data)
-        return variable_data
+                view_variable.append(row_view_variable)
+        return view_variable
 
     def update_parent_selection(self, source_row_indexes: List[QModelIndex]) -> None:
         """
@@ -447,9 +445,9 @@ class TreeView(QTreeView):
         proxy_row_indexes = self.selectionModel().selectedRows()
         source_row_indexes = self.proxy_model.map_to_source(proxy_row_indexes)
         self.update_parent_selection(source_row_indexes)
-        variable_data = self.get_selected_variable_data()
-        if variable_data:
-            self.selectionPopulated.emit(variable_data)
+        view_variable = self.get_selected_view_variable()
+        if view_variable:
+            self.selectionPopulated.emit(view_variable)
         else:
             self.selectionCleared.emit()
 
@@ -458,41 +456,23 @@ class TreeView(QTreeView):
         return self.source_model.get_column_data(column)
 
     def update_variable(
-        self, row: int, parent_index: QModelIndex, new_variable_data: VariableData
+        self, row: int, parent_index: QModelIndex, new_view_variable: VV
     ) -> None:
         """ Update text of the variable identified by row and index. """
-        self.source_model.update_variable(row, parent_index, new_variable_data)
-        self.select_variables([new_variable_data])
-        self.scroll_to(new_variable_data)
+        self.source_model.update_variable(row, parent_index, new_view_variable)
+        self.select_variables([new_view_variable])
+        self.scroll_to(new_view_variable)
 
     def aggregate_variables(
-        self,
-        view_variables: List[VariableData],
-        func: str,
-        new_key: str,
-        new_type: Optional[str] = None,
+        self, view_variables: List[VV], func: str, new_key: str, new_type: Optional[str] = None,
     ) -> None:
         """ Update text of the variable identified by row and index. """
-        new_variable_data = self.source_model.aggregate_variables(
+        new_view_variable = self.source_model.aggregate_variables(
             view_variables, func, new_key, new_type
         )
         self.deselect_all_variables()
-        self.select_variables([new_variable_data])
-        self.scroll_to(new_variable_data)
-
-
-def cache_properties(func):
-    def wrapper(*args, **kwargs):
-        res = func(*args, **kwargs)
-        self = args[0]
-        treeview = args[1]
-        widths = treeview.get_widths()
-        header = treeview.get_visual_column_data()
-        self.set_cached_property(treeview, "widths", widths)
-        self.set_cached_property(treeview, "header", header)
-        return res
-
-    return wrapper
+        self.select_variables([new_view_variable])
+        self.scroll_to(new_view_variable)
 
 
 class TreeViewAppearance:
@@ -502,7 +482,7 @@ class TreeViewAppearance:
         self.view_type = treeview.view_type
         self.header = treeview.get_visual_column_data()
         self.widths = treeview.get_widths()
-        self.selected = treeview.get_selected_variable_data()
+        self.selected = treeview.get_selected_view_variable()
         self.scroll_position = treeview.get_scroll_position()
         self.expanded = treeview.get_expanded_labels()
         self.sort_indicator = treeview.get_sort_indicator()

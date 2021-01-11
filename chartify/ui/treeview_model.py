@@ -1,4 +1,5 @@
 import contextlib
+from collections import namedtuple
 from typing import Dict, Optional, List, Set
 
 import pandas as pd
@@ -23,32 +24,32 @@ from esofile_reader.exceptions import CannotAggregateVariables
 from esofile_reader.results_processing.table_formatter import TableFormatter
 from esofile_reader.typehints import ResultsFileType, Variable, SimpleVariable, VariableType
 
-from chartify.utils.utils import VariableData, FilterTuple
-
 PROXY_UNITS_LEVEL = "proxy_units"
 
+ViewVariable = namedtuple("VV", "key type units")
+FilterTuple = namedtuple("FilterTuple", ["key", "type", "proxy_units"])
+VV = ViewVariable
 
-def stringify_view_variable(view_variable: VariableData) -> str:
+
+def stringify_view_variable(view_variable: VV) -> str:
     return " | ".join([v for v in view_variable if v is not None])
 
 
-def convert_variable_data_to_variable(
-    variable_data: VariableData, table_name: str
-) -> VariableType:
+def convert_view_variable_to_variable(view_variable: VV, table_name: str) -> VariableType:
     return (
-        SimpleVariable(table=table_name, key=variable_data.key, units=variable_data.units)
-        if variable_data.type is None
+        SimpleVariable(table=table_name, key=view_variable.key, units=view_variable.units)
+        if view_variable.type is None
         else Variable(
             table=table_name,
-            key=variable_data.key,
-            type=variable_data.type,
-            units=variable_data.units,
+            key=view_variable.key,
+            type=view_variable.type,
+            units=view_variable.units,
         )
     )
 
 
-def convert_variable_to_view_variable(variable: VariableType) -> VariableData:
-    return VariableData(
+def convert_variable_to_view_variable(variable: VariableType) -> VV:
+    return VV(
         key=variable.key,
         type=variable.type if isinstance(variable, Variable) else None,
         units=variable.units,
@@ -56,12 +57,12 @@ def convert_variable_to_view_variable(variable: VariableType) -> VariableData:
 
 
 def convert_view_variables_to_variables(
-    view_variables: List[VariableData], table_name: str
+    view_variables: List[VV], table_name: str
 ) -> List[VariableType]:
-    return [convert_variable_data_to_variable(v, table_name) for v in view_variables]
+    return [convert_view_variable_to_variable(v, table_name) for v in view_variables]
 
 
-def is_variable_attr_identical(view_variables: List[VariableData], attr: str) -> bool:
+def is_variable_attr_identical(view_variables: List[VV], attr: str) -> bool:
     """ Check if all variables use the same attribute text. """
     first_attr = view_variables[0].__getattribute__(attr)
     return all(map(lambda x: x.__getattribute__(attr) == first_attr, view_variables))
@@ -195,12 +196,12 @@ class ViewModel(QStandardItemModel):
         column_mapping = self.get_logical_column_mapping()
         return {k: row_display_data[v] for k, v in column_mapping.items()}
 
-    def get_row_variable_data(
+    def get_row_view_variable(
         self, row_number: int, parent_index: Optional[QModelIndex] = None
-    ) -> VariableData:
+    ) -> VV:
         """ Get row data as eso file Variable or SimpleVariable. """
         row_data_mapping = self.get_row_display_data_mapping(row_number, parent_index)
-        return VariableData(
+        return VV(
             key=row_data_mapping[KEY_LEVEL],
             type=None if self.is_simple else row_data_mapping[TYPE_LEVEL],
             units=row_data_mapping[UNITS_LEVEL],
@@ -221,9 +222,7 @@ class ViewModel(QStandardItemModel):
         data = self.get_logical_column_data()
         return {k: data.index(k) for k in data}
 
-    def get_parent_text_from_variables(
-        self, variables: List[VariableData]
-    ) -> Optional[Set[str]]:
+    def get_parent_text_from_variables(self, variables: List[VV]) -> Optional[Set[str]]:
         """ Extract parent part of variable from given list. """
         if self.tree_node and self.tree_node != PROXY_UNITS_LEVEL:
             return {v.__getattribute__(self.tree_node) for v in variables}
@@ -232,7 +231,7 @@ class ViewModel(QStandardItemModel):
         """ Check if the row is a parent row. """
         return self.item(row_number, 0).hasChildren()
 
-    def get_matching_selection(self, variables: List[VariableData]) -> QItemSelection:
+    def get_matching_selection(self, variables: List[VV]) -> QItemSelection:
         """ Find selection matching given list of variables. """
 
         # TODO use native functions to find selection
@@ -246,7 +245,7 @@ class ViewModel(QStandardItemModel):
                 return parent_text in variables_parent_text
 
         def variable_matches():
-            return row_variable_data in variables
+            return row_view_variable in variables
 
         # this is used to quickly check if parent matches given list
         # if the parent does not match, any of children cannot match
@@ -258,11 +257,11 @@ class ViewModel(QStandardItemModel):
             index = self.index(i, 0)
             if self.is_tree_node_row(i) and tree_node_matches():
                 for j in range(self.rowCount(index)):
-                    row_variable_data = self.get_row_variable_data(j, index)
+                    row_view_variable = self.get_row_view_variable(j, index)
                     if variable_matches():
                         selection.append(QItemSelectionRange(self.index(j, 0, index)))
             else:
-                row_variable_data = self.get_row_variable_data(i)
+                row_view_variable = self.get_row_view_variable(i)
                 if variable_matches():
                     selection.append(QItemSelectionRange(index))
         return selection
@@ -529,27 +528,27 @@ class ViewModel(QStandardItemModel):
             item.setStatusTip(status_tip)
 
     def variable_tree_node_text_changed(
-        self, new_variable_data: VariableData, old_variable_data: [VariableData]
+        self, new_view_variable: VV, old_view_variable: [VV]
     ) -> bool:
         """ Check if text of the 'tree' columns has changed. """
-        name = new_variable_data.__getattribute__(self.tree_node)
-        old_name = old_variable_data.__getattribute__(self.tree_node)
+        name = new_view_variable.__getattribute__(self.tree_node)
+        old_name = old_view_variable.__getattribute__(self.tree_node)
         return name != old_name
 
     def _delete_row(self, row: int, parent_index: Optional[QModelIndex]) -> None:
         """ Delete given row from model. """
         self.removeRow(row, parent_index)
 
-    def get_row_text(self, variable_data: VariableData) -> List[str]:
+    def get_row_text(self, view_variable: VV) -> List[str]:
         """ Get variable data attributes ordered following column order. """
         proxy_units = self.create_proxy_units_column(
-            pd.Series([variable_data.units]),
+            pd.Series([view_variable.units]),
             rate_to_energy=self.rate_to_energy,
             units_system=self.units_system,
             energy_units=self.energy_units,
             rate_units=self.rate_units,
         ).iloc[0]
-        unordered_items = {**variable_data._asdict(), PROXY_UNITS_LEVEL: proxy_units}
+        unordered_items = {**view_variable._asdict(), PROXY_UNITS_LEVEL: proxy_units}
         if self.is_simple:
             unordered_items.pop(TYPE_LEVEL)
         row = [""] * len(unordered_items)
@@ -557,9 +556,9 @@ class ViewModel(QStandardItemModel):
             row[index] = unordered_items[column]
         return row
 
-    def _append_row(self, variable_data: VariableData) -> None:
+    def _append_row(self, view_variable: VV) -> None:
         """ Add row to the model. """
-        row_text = self.get_row_text(variable_data)
+        row_text = self.get_row_text(view_variable)
         if self.tree_node is not None:
             tree_items = self.findItems(row_text[0], flags=Qt.MatchExactly, column=0)
             if tree_items:
@@ -571,48 +570,42 @@ class ViewModel(QStandardItemModel):
         else:
             self.appendRow([QStandardItem(text) for text in row_text])
 
-    def _update_row(
-        self, variable_data: VariableData, row: int, parent_index: QModelIndex,
-    ) -> None:
+    def _update_row(self, view_variable: VV, row: int, parent_index: QModelIndex,) -> None:
         """ Set text on the given row. """
-        row_text = self.get_row_text(variable_data)
+        row_text = self.get_row_text(view_variable)
         if parent_index.isValid():
             row_text[0] = ""
         for i, text in enumerate(row_text):
             item = self.itemFromIndex(self.index(row, i, parent_index))
             item.setText(text)
 
-    def update_variable(
-        self, row: int, parent_index: QModelIndex, variable_data: VariableData
-    ) -> None:
+    def update_variable(self, row: int, parent_index: QModelIndex, view_variable: VV) -> None:
         """ Update row identified by row and parent index. """
-        old_variable_data = self.get_row_variable_data(row, parent_index)
-        old_variable = convert_variable_data_to_variable(old_variable_data, self.name)
+        old_view_variable = self.get_row_view_variable(row, parent_index)
+        old_variable = convert_view_variable_to_variable(old_view_variable, self.name)
         _, new_variable = self._file_ref.rename_variable(
-            old_variable, variable_data.key, variable_data.type
+            old_variable, view_variable.key, view_variable.type
         )
 
-        new_variable_data = convert_variable_to_view_variable(new_variable)
+        new_view_variable = convert_variable_to_view_variable(new_variable)
         if self.tree_node is not None and self.variable_tree_node_text_changed(
-            new_variable_data, old_variable_data
+            new_view_variable, old_view_variable
         ):
             self._delete_row(row, parent_index)
-            self._append_row(new_variable_data)
+            self._append_row(new_view_variable)
         else:
-            self._update_row(new_variable_data, row, parent_index)
+            self._update_row(new_view_variable, row, parent_index)
 
-    def update_variable_if_exists(
-        self, variable_data: VariableData, new_variable_data: VariableData,
-    ) -> None:
-        """ Update row identified by VariableData. """
-        indexes = self.get_matching_selection([variable_data]).indexes()
+    def update_variable_if_exists(self, view_variable: VV, new_view_variable: VV,) -> None:
+        """ Update row identified by VV. """
+        indexes = self.get_matching_selection([view_variable]).indexes()
         if indexes:
             index = indexes[0]
             row = index.row()
             parent = index.parent()
-            self.update_variable(row, parent, new_variable_data)
+            self.update_variable(row, parent, new_view_variable)
 
-    def delete_variables(self, view_variables: List[VariableData]) -> None:
+    def delete_variables(self, view_variables: List[VV]) -> None:
         """ Delete given variables. """
         self._file_ref.remove_variables(
             convert_view_variables_to_variables(view_variables, self.name)
@@ -626,12 +619,8 @@ class ViewModel(QStandardItemModel):
                 self.removeRow(parent.row())
 
     def aggregate_variables(
-        self,
-        view_variables: List[VariableData],
-        func: str,
-        new_key: str,
-        new_type: Optional[str] = None,
-    ) -> VariableData:
+        self, view_variables: List[VV], func: str, new_key: str, new_type: Optional[str] = None,
+    ) -> VV:
         """ Aggregate given variables with given function. """
         variables = convert_view_variables_to_variables(view_variables, self.name)
         with contextlib.suppress(CannotAggregateVariables):
@@ -642,7 +631,7 @@ class ViewModel(QStandardItemModel):
 
     def get_results(
         self,
-        view_variables: List[VariableData],
+        view_variables: List[VV],
         units_system: str,
         rate_units: str,
         energy_units: str,
@@ -669,7 +658,7 @@ class ViewModel(QStandardItemModel):
     def variable_exists(self, view_variable: VariableType) -> bool:
         """ Check if given variable exists in reference model and view. """
         ui_check = bool(self.get_matching_selection([view_variable]).indexes())
-        variable = convert_variable_data_to_variable(view_variable, self.name)
+        variable = convert_view_variable_to_variable(view_variable, self.name)
         file_check = self._file_ref.search_tree.variable_exists(variable)
         if ui_check is file_check:
             return ui_check
@@ -700,7 +689,7 @@ class FilterModel(QSortFilterProxyModel):
         self._filter_tuple = filter_tuple
         self.invalidateFilter()
 
-    def data_at_proxy_index(self, proxy_index: QModelIndex) -> VariableData:
+    def data_at_proxy_index(self, proxy_index: QModelIndex) -> VV:
         """ Get item data from source model. """
         return self.item_at_proxy_index(proxy_index).data(Qt.UserRole)
 
@@ -737,7 +726,7 @@ class FilterModel(QSortFilterProxyModel):
             return self.filter_matches_row(row_data_mapping)
         return False
 
-    def find_matching_proxy_selection(self, variables: List[VariableData]) -> QItemSelection:
+    def find_matching_proxy_selection(self, variables: List[VV]) -> QItemSelection:
         """ Check if output variables are available in a new model. """
         source_selection = self.sourceModel().get_matching_selection(variables)
         return self.mapSelectionFromSource(source_selection)

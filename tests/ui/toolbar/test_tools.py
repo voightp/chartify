@@ -4,7 +4,7 @@ from unittest.mock import patch
 import pytest
 from PySide2.QtCore import Qt
 
-from chartify.utils.utils import VariableData
+from chartify.ui.treeview_model import VV
 
 
 @pytest.fixture(scope="function")
@@ -33,12 +33,12 @@ def test_confirm_rename_file(mw, confirmed: int, expected: Optional[str]):
 
 class TestRemoveVariable:
     VARIABLES = [
-        VariableData("HW LOOP SUPPLY PUMP", "Pump Electric Power", "W"),
-        VariableData("CHW LOOP SUPPLY PUMP", "Pump Electric Power", "W"),
+        VV("HW LOOP SUPPLY PUMP", "Pump Electric Power", "W"),
+        VV("CHW LOOP SUPPLY PUMP", "Pump Electric Power", "W"),
     ]
     SIMPLE_VARIABLES = [
-        VariableData("Boiler Gas Rate", None, "W"),
-        VariableData("Gas:Facility", None, "J"),
+        VV("Boiler Gas Rate", None, "W"),
+        VV("Gas:Facility", None, "J"),
     ]
 
     def test_confirm_remove_variables(self, qtbot, mw_esofile1):
@@ -57,7 +57,7 @@ class TestRemoveVariable:
     def test_remove_variable(self, qtbot, mw_esofile1):
         exist = mw_esofile1.current_view.source_model.variables_exist(self.VARIABLES)
         assert not any(exist)
-        assert not mw_esofile1.current_view.get_selected_variable_data()
+        assert not mw_esofile1.current_view.get_selected_view_variable()
 
     def test_confirm_remove_variables_simple(self, qtbot, mw_combined_file):
         mw_combined_file.current_view.select_variables(self.SIMPLE_VARIABLES)
@@ -77,11 +77,11 @@ class TestRemoveVariable:
             self.SIMPLE_VARIABLES
         )
         assert not any(exist)
-        assert not mw_combined_file.current_view.get_selected_variable_data()
+        assert not mw_combined_file.current_view.get_selected_view_variable()
 
 
 class TestRenameSimpleVariable:
-    NEW_SIMPLE_VARIABLE = VariableData("foo", None, "J")
+    NEW_SIMPLE_VARIABLE = VV("foo", None, "J")
 
     def test_confirm_rename_variable_simple(self, qtbot, mw_excel_file):
         with patch("chartify.ui.main_window.SingleInputDialog") as dialog:
@@ -105,7 +105,7 @@ class TestRenameSimpleVariable:
     @pytest.mark.depends(on="test_confirm_rename_variable_simple")
     def test_rename_simple_variable(self, qtbot, mw_excel_file):
         mw_excel_file.current_view.select_variables([self.NEW_SIMPLE_VARIABLE])
-        assert mw_excel_file.current_view.get_selected_variable_data() == [
+        assert mw_excel_file.current_view.get_selected_view_variable() == [
             self.NEW_SIMPLE_VARIABLE
         ]
         assert mw_excel_file.current_model.variable_exists(self.NEW_SIMPLE_VARIABLE)
@@ -119,7 +119,7 @@ class TestRenameSimpleVariable:
 
 
 class TestRenameVariable:
-    NEW_VARIABLE = VariableData("foo", "bar", "kgWater/kgDryAir")
+    NEW_VARIABLE = VV("foo", "bar", "kgWater/kgDryAir")
 
     @pytest.fixture(autouse=True)
     def mw_excel_file_hourly(self, mw_excel_file, qtbot):
@@ -178,16 +178,16 @@ class TestAggregate:
         [
             (
                 [
-                    VariableData("BOILER", "Boiler Ancillary Electric Power", "W"),
-                    VariableData("BOILER", "Boiler Gas Rate", "W"),
+                    VV("BOILER", "Boiler Ancillary Electric Power", "W"),
+                    VV("BOILER", "Boiler Gas Rate", "W"),
                 ],
                 "BOILER - mean",
                 "Custom Type",
             ),
             (
                 [
-                    VariableData("BLOCK1:ZONEA", "Lights Total Heating Rate", "W"),
-                    VariableData("BLOCK1:ZONEB", "Lights Total Heating Rate", "W"),
+                    VV("BLOCK1:ZONEA", "Lights Total Heating Rate", "W"),
+                    VV("BLOCK1:ZONEB", "Lights Total Heating Rate", "W"),
                 ],
                 "Custom Key - mean",
                 "Lights Total Heating Rate",
@@ -214,7 +214,7 @@ class TestAggregate:
 
     @pytest.mark.depends(on="test_confirm_aggregate_variables")
     def test_aggregate_variables(self, qtbot, mw_esofile1):
-        variables = [VariableData("foo", "bar", "W"), VariableData("foo (1)", "bar", "W")]
+        variables = [VV("foo", "bar", "W"), VV("foo (1)", "bar", "W")]
         mw_esofile1.current_view.select_variables(variables)
         df = mw_esofile1.fetch_results()
         assert df.shape == (4392, 2)
@@ -226,17 +226,11 @@ class TestAggregateSimple:
         "variables, text",
         [
             (
-                [
-                    VariableData("BLOCK2:ZONE1", None, ""),
-                    VariableData("BLOCK3:ZONE1", None, ""),
-                ],
+                [VV("BLOCK2:ZONE1", None, ""), VV("BLOCK3:ZONE1", None, ""),],
                 "Custom Key - sum",
             ),
             (
-                [
-                    VariableData("BLOCK1:ZONE1", None, "J"),
-                    VariableData("BLOCK1:ZONE1", None, "W"),
-                ],
+                [VV("BLOCK1:ZONE1", None, "J"), VV("BLOCK1:ZONE1", None, "W"),],
                 "BLOCK1:ZONE1 - sum",
             ),
         ],
@@ -258,7 +252,7 @@ class TestAggregateSimple:
 
     @pytest.mark.depends(on="test_confirm_aggregate_variables_simple")
     def test_aggregate_variables_simple(self, qtbot, mw_excel_file):
-        variables = [VariableData("foo", None, "J"), VariableData("foo", None, "")]
+        variables = [VV("foo", None, "J"), VV("foo", None, "")]
         mw_excel_file.current_view.select_variables(variables)
         df = mw_excel_file.fetch_results()
         assert df.shape == (365, 2)
@@ -267,12 +261,12 @@ class TestAggregateSimple:
 
 class TestAllFilesTables:
     VARIABLES = [
-        VariableData("HW LOOP SUPPLY PUMP", "Pump Electric Power", "W"),
-        VariableData("CHW LOOP SUPPLY PUMP", "Pump Electric Power", "W"),
+        VV("HW LOOP SUPPLY PUMP", "Pump Electric Power", "W"),
+        VV("CHW LOOP SUPPLY PUMP", "Pump Electric Power", "W"),
     ]
     SIMPLE_VARIABLES = [
-        VariableData("Boiler Gas Rate", None, "W"),
-        VariableData("Gas:Facility", None, "J"),
+        VV("Boiler Gas Rate", None, "W"),
+        VV("Gas:Facility", None, "J"),
     ]
 
     def test_confirm_remove_variables(self, qtbot, mw_esofile1):

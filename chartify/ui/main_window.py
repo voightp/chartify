@@ -44,10 +44,11 @@ from chartify.ui.treeview_model import (
     ViewModel,
     is_variable_attr_identical,
     stringify_view_variable,
+    VV,
+    FilterTuple,
 )
 from chartify.utils.css_theme import Palette, CssParser
 from chartify.utils.icon_painter import Pixmap, draw_filled_circle_icon
-from chartify.utils.utils import VariableData, FilterTuple
 
 
 # noinspection PyPep8Naming,PyUnresolvedReferences
@@ -62,7 +63,7 @@ class MainWindow(QMainWindow):
     tabChanged = Signal(int)
     treeNodeUpdated = Signal(str)
     selectionChanged = Signal(list)
-    variableRenameRequested = Signal(list, VariableData, VariableData)
+    variableRenameRequested = Signal(list, VV, VV)
     variableRemoveRequested = Signal(list, list)
     aggregationRequested = Signal(list, str, list, str, str)
     fileProcessingRequested = Signal(list)
@@ -556,15 +557,15 @@ class MainWindow(QMainWindow):
         treeview: TreeView,
         row: int,
         parent_index: Optional[QModelIndex],
-        old_variable_data: VariableData,
+        old_view_variable: VV,
     ) -> None:
-        old_key = old_variable_data.key
+        old_key = old_view_variable.key
         key_blocker = set(treeview.get_current_column_data(KEY_LEVEL))
         key_blocker.remove(old_key)
         if treeview.source_model.is_simple:
             res = self.confirm_rename_simple_variable(old_key, key_blocker)
         else:
-            old_type = old_variable_data.type
+            old_type = old_view_variable.type
             type_blocker = set(treeview.get_current_column_data(TYPE_LEVEL))
             type_blocker.remove(old_type)
             res = self.confirm_rename_variable(old_key, old_type, key_blocker, type_blocker)
@@ -572,14 +573,14 @@ class MainWindow(QMainWindow):
         if res is not None:
             key = res if treeview.view_type is ViewType.SIMPLE else res[0]
             type_ = None if treeview.view_type is ViewType.SIMPLE else res[1]
-            units = old_variable_data.units
-            new_variable_data = VariableData(key=key, type=type_, units=units)
-            treeview.update_variable(row, parent_index, new_variable_data)
+            units = old_view_variable.units
+            new_view_variable = VV(key=key, type=type_, units=units)
+            treeview.update_variable(row, parent_index, new_view_variable)
             if models := self.get_all_other_models():
-                self.variableRenameRequested.emit(models, old_variable_data, new_variable_data)
+                self.variableRenameRequested.emit(models, old_view_variable, new_view_variable)
 
     def on_remove_variables_triggered(self):
-        if selected := self.current_view.get_selected_variable_data():
+        if selected := self.current_view.get_selected_view_variable():
             if self.confirm_remove_variables(selected):
                 self.current_model.delete_variables(selected)
                 self.on_selection_cleared()
@@ -587,7 +588,7 @@ class MainWindow(QMainWindow):
                     self.variableRemoveRequested.emit(models, selected)
 
     def on_aggregation_requested(self, func: str) -> None:
-        if view_variables := self.current_view.get_selected_variable_data():
+        if view_variables := self.current_view.get_selected_view_variable():
             if self.current_view.view_type is ViewType.SIMPLE:
                 res = self.confirm_aggregate_simple_variables(view_variables, func)
             else:
@@ -605,7 +606,7 @@ class MainWindow(QMainWindow):
                     )
 
     def fetch_results(self) -> pd.DataFrame:
-        if view_variables := self.current_view.get_selected_variable_data():
+        if view_variables := self.current_view.get_selected_view_variable():
             models = self.get_all_models()
             frames = []
             for model in models:
@@ -755,7 +756,7 @@ class MainWindow(QMainWindow):
         self.sum_act.setEnabled(False)
         self.mean_act.setEnabled(False)
 
-    def enable_selection_actions(self, view_variables: List[VariableData]):
+    def enable_selection_actions(self, view_variables: List[VV]):
         """  Update toolbar actions to match current selection. """
         if view_variables:
             self.remove_variables_act.setEnabled(True)
@@ -780,7 +781,7 @@ class MainWindow(QMainWindow):
         self.expand_all_act.setEnabled(allow_tree)
         self.collapse_all_act.setEnabled(allow_tree)
         self.toolbar.enable_rate_to_energy(view.source_model.allow_rate_to_energy)
-        self.enable_selection_actions(view.selected_variable_data)
+        self.enable_selection_actions(view.selected_view_variable)
 
     def enable_actions_for_file_widget(self, file_widget: StackedWidget) -> None:
         self.close_all_act.setEnabled(True)
@@ -819,7 +820,7 @@ class MainWindow(QMainWindow):
         self.current_file_widget.set_treeview(next_treeview)
         self.update_treeview(next_treeview, ref_treeview)
 
-    def on_selection_populated(self, view_variables: List[VariableData]):
+    def on_selection_populated(self, view_variables: List[VV]):
         """ Store current selection in main app. """
         self.enable_selection_actions(view_variables)
         self.selectionChanged.emit(view_variables)
@@ -953,7 +954,7 @@ class MainWindow(QMainWindow):
             text = f"table '{table_name}', file '{file_name}'"
         return text
 
-    def confirm_remove_variables(self, view_variables: List[VariableData],) -> bool:
+    def confirm_remove_variables(self, view_variables: List[VV],) -> bool:
         """ Remove selected variables. """
         title = f"Delete following variables from {self.get_files_and_tables_text()}: "
         inf_text = "\n".join([stringify_view_variable(var) for var in view_variables])
@@ -987,7 +988,7 @@ class MainWindow(QMainWindow):
             return dialog.input1_text, dialog.input2_text
 
     def confirm_aggregate_simple_variables(
-        self, view_variables: List[VariableData], func_name: str
+        self, view_variables: List[VV], func_name: str
     ) -> Optional[str]:
         if is_variable_attr_identical(view_variables, KEY_LEVEL):
             key = f"{view_variables[0].key} - {func_name}"
@@ -1003,7 +1004,7 @@ class MainWindow(QMainWindow):
             return dialog.input1_text
 
     def confirm_aggregate_variables(
-        self, view_variables: List[VariableData], func_name: str
+        self, view_variables: List[VV], func_name: str
     ) -> Optional[Tuple[str, str]]:
         """ Aggregate variables using given function. """
         if is_variable_attr_identical(view_variables, KEY_LEVEL):

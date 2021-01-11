@@ -27,11 +27,12 @@ omit  =
     venv\*
     .venv\*
     tests\*
-    *__init__.py
+    *\__init__.py
 
 [paths]
 source =
     ./chartify/
+    *\__init__.py
 
 [html]
 directory = htmlcov

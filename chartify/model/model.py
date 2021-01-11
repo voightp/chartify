@@ -2,7 +2,6 @@ from pathlib import Path
 from typing import List, Union
 from zipfile import ZipFile
 
-import pandas as pd
 from PySide2.QtCore import QObject
 from esofile_reader.pqt.parquet_file import ParquetFile
 from esofile_reader.pqt.parquet_storage import ParquetStorage
@@ -35,14 +34,6 @@ class AppModel(QObject):
         self.path = None
 
     @property
-    def current_file(self) -> ParquetFile:
-        return self.get_file(Settings.CURRENT_FILE_ID)
-
-    @property
-    def current_table(self) -> pd.DataFrame:
-        return self.current_file.get_header_df(Settings.TABLE_NAME)
-
-    @property
     def workdir(self):
         return self.storage.workdir
 
@@ -66,7 +57,6 @@ class AppModel(QObject):
 
     def get_all_files(self) -> List[ParquetFile]:
         """ Get all files of currently used type. """
-        # TODO apply some filtering based on file type
         files = []
         for id_, file in self.storage.files.items():
             files.append(file)

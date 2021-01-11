@@ -66,14 +66,6 @@ class StackedWidget(QStackedWidget):
                 name = self.table_names[0]
         return self.get_treeview(name)
 
-    def includes_table(self, name: str):
-        return name in self.table_names
-
     def set_treeview(self, treeview: TreeView) -> None:
-        index = self.indexOf(treeview)
-        self.setCurrentIndex(index)
-
-    def set_treeview_by_name(self, name: str) -> None:
-        treeview = self.get_treeview(name)
         index = self.indexOf(treeview)
         self.setCurrentIndex(index)
