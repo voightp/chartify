@@ -1,12 +1,13 @@
 from tests.conftest import *
 
 
-def test_load_standard_file(mw):
-    mw.on_file_processing_requested([ESO_FILE1_PATH])
+def test_load_standard_file(qtbot, mw, controller):
+    with qtbot.wait_signal(controller.watcher.file_loaded, timeout=5000):
+        controller.on_sync_file_processing_requested([ESO_FILE1_PATH])
     assert mw.standard_tab_wgt.count() == 1
 
 
-def test_progress_signals(mw, controller, qtbot):
+def test_progress_signals(qtbot, mw, controller):
     with qtbot.wait_signals(
         signals=[
             controller.progress_thread.file_added,
@@ -19,9 +20,9 @@ def test_progress_signals(mw, controller, qtbot):
         ],
         timeout=5000,
     ):
-        mw.load_files_from_paths([ESO_FILE1_PATH])
+        controller.on_sync_file_processing_requested([ESO_FILE1_PATH])
 
 
-def test_progress_signals_fail(mw, controller, qtbot):
-    with qtbot.wait_signal(controller.progress_thread.failed):
-        mw.load_files_from_paths([ESO_FILE_INCOMPLETE])
+def test_progress_signals_fail(qtbot, mw, controller):
+    with qtbot.wait_signal(controller.progress_thread.failed, timeout=5000):
+        controller.on_sync_file_processing_requested([ESO_FILE_INCOMPLETE])
