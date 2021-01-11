@@ -10,7 +10,7 @@ from chartify.utils.utils import VariableData
 @pytest.fixture(scope="function")
 def mw_esofile1(mw_esofile, qtbot):
     mw_esofile.standard_tab_wgt.setCurrentIndex(1)
-    qtbot.mouseClick(mw_esofile.toolbar.table_buttons[0], Qt.LeftButton)
+    qtbot.mouseClick(mw_esofile.toolbar.get_table_button_by_name("hourly"), Qt.LeftButton)
     return mw_esofile
 
 
@@ -50,7 +50,7 @@ class TestRemoveVariable:
             dialog.assert_called_once_with(
                 mw_esofile1,
                 "Delete following variables from table 'hourly', file 'eplusout1': ",
-                det_text="HW LOOP SUPPLY PUMP | Pump Electric Power | W\nCHW LOOP SUPPLY PUMP | Pump Electric Power | W",
+                det_text="CHW LOOP SUPPLY PUMP | Pump Electric Power | W\nHW LOOP SUPPLY PUMP | Pump Electric Power | W",
             )
 
     @pytest.mark.depends(on="test_confirm_remove_variables")
@@ -123,7 +123,9 @@ class TestRenameVariable:
 
     @pytest.fixture(autouse=True)
     def mw_excel_file_hourly(self, mw_excel_file, qtbot):
-        qtbot.mouseClick(mw_excel_file.toolbar.table_buttons[6], Qt.LeftButton)
+        qtbot.mouseClick(
+            mw_excel_file.toolbar.get_table_button_by_name("hourly"), Qt.LeftButton
+        )
         return mw_excel_file
 
     def test_confirm_rename_variable(self, qtbot, mw_excel_file_hourly):
@@ -284,7 +286,7 @@ class TestAllFilesTables:
             dialog.assert_called_once_with(
                 mw_esofile1,
                 f"Delete following variables from {mw_esofile1.get_files_and_tables_text()}: ",
-                det_text="HW LOOP SUPPLY PUMP | Pump Electric Power | W\nCHW LOOP SUPPLY PUMP | Pump Electric Power | W",
+                det_text="CHW LOOP SUPPLY PUMP | Pump Electric Power | W\nHW LOOP SUPPLY PUMP | Pump Electric Power | W",
             )
 
     @pytest.mark.depends(on="test_confirm_remove_variables")

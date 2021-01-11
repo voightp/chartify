@@ -39,6 +39,10 @@ class StackedWidget(QStackedWidget):
             name_index_pairs[name] = i
         return name_index_pairs
 
+    @property
+    def file_id(self) -> int:
+        return self.widget(0).id_
+
     def get_all_children(self) -> List[QWidget]:
         return [self.widget(i) for i in range(self.count())]
 

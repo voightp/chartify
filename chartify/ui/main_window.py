@@ -395,7 +395,7 @@ class MainWindow(QMainWindow):
             Settings.RATE_UNITS = self.toolbar.rate_btn.data()
             Settings.UNITS_SYSTEM = self.toolbar.units_system_button.data()
             Settings.RATE_TO_ENERGY = self.toolbar.rate_energy_btn.isChecked()
-            Settings.OUTPUTS_ENUM = self.toolbar.outputs_button_group.id
+            Settings.OUTPUTS_ENUM = self.toolbar.outputs_button_group.checkedId()
             Settings.SHOW_SOURCE_UNITS = self.toolbar.source_units_toggle.isChecked()
 
             # TODO enable once main window polished
@@ -808,9 +808,12 @@ class MainWindow(QMainWindow):
                 self.enable_actions_for_file_widget(file_widget)
                 self.update_treeview(next_treeview, ref_treeview)
 
-    def on_table_change_requested(self, index: int):
+    def on_table_change_requested(self, index_or_name: Union[int, str]):
         """ Change table on a current model. """
-        next_treeview = self.current_file_widget.widget(index)
+        if isinstance(index_or_name, int):
+            next_treeview = self.current_file_widget.widget(index_or_name)
+        else:
+            next_treeview = self.current_file_widget.get_treeview(index_or_name)
         ref_treeview = self.current_file_widget.currentWidget()
         self.enable_actions_for_view(next_treeview)
         self.current_file_widget.set_treeview(next_treeview)
@@ -839,7 +842,7 @@ class MainWindow(QMainWindow):
         names.remove(name)
         new_name = self.confirm_rename_file(name, names)
         if new_name is not None:
-            id_ = tab_widget.widget(tab_index).id_
+            id_ = tab_widget.widget(tab_index).file_id
             tab_widget.setTabText(tab_index, new_name)
             self.fileRenameRequested.emit(id_, new_name)
 
@@ -912,7 +915,7 @@ class MainWindow(QMainWindow):
     def on_filter_timeout(self):
         """ Apply a filter when the filter text is edited. """
         filter_tuple = self.get_filter_tuple()
-        if self.current_view is not None:
+        if not self.current_tab_widget.is_empty():
             self.current_view.filter_view(filter_tuple)
 
     def connect_view_tools_signals(self):

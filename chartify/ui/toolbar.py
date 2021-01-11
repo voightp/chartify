@@ -1,4 +1,4 @@
-from typing import List, Dict, Union
+from typing import Dict, Union
 
 from PySide2.QtCore import Qt, Signal
 from PySide2.QtWidgets import (
@@ -274,6 +274,18 @@ class Toolbar(QFrame):
                 btn.setChecked(True)
             self.table_buttons_group.addButton(btn, index)
         self.populate_group(self.table_group, self.table_buttons_group.buttons())
+
+    def get_table_button_by_name(self, name: str) -> QToolButton:
+        """ Find table button with given name. """
+        button_names = []
+        for btn in self.table_buttons_group.buttons():
+            if btn.text() == name:
+                return btn
+            button_names.append(btn.text())
+        else:
+            raise KeyError(
+                f"Cannot find button '{name}'. Available buttons are: {button_names}"
+            )
 
     def custom_units_toggled(self, checked: bool) -> None:
         """ Update units settings when custom units toggled. """

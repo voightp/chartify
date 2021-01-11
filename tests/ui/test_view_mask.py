@@ -1,8 +1,7 @@
-from copy import deepcopy
-
-from chartify.ui.treeview import ViewMask
+from chartify.ui.treeview import ViewMask, ViewType, CachedViewAppearance, OutputType
 from chartify.utils.utils import VariableData
 from tests.conftest import *
+from PySide2.QtCore import Qt
 
 VARIABLES = [
     VariableData("BOILER", "Boiler Ancillary Electric Power", "W"),
@@ -17,9 +16,22 @@ SIMPLE_VARIABLES = [
 
 @pytest.fixture(autouse=True)
 def reset_cached():
-    cached = deepcopy(ViewMask._cached)
+    default_header = {
+        ViewType.SIMPLE: ("key", "proxy_units", "units"),
+        ViewType.TREE: ("type", "key", "proxy_units", "units"),
+    }
+    default_widths = {
+        ViewType.SIMPLE: {"fixed": 60,},
+        ViewType.TREE: {"fixed": 60, "interactive": 200},
+    }
+    default_sort_order = {
+        ViewType.SIMPLE: (-1, Qt.SortOrder.AscendingOrder),
+        ViewType.TREE: (-1, Qt.SortOrder.AscendingOrder),
+    }
     yield
-    ViewMask._cached = cached
+    CachedViewAppearance.default_header = default_header
+    CachedViewAppearance.default_widths = default_widths
+    CachedViewAppearance.default_sort_order = default_sort_order
 
 
 @pytest.fixture
@@ -119,33 +131,7 @@ def test_selected(qtbot, view, selected):
     ],
 )
 def test_scroll_position(qtbot, view, pos):
-    assert pos == view.source_model.scroll_position
-
-
-@pytest.mark.parametrize(
-    "view, expanded",
-    [
-        (
-            pytest.lazy_fixture("modified_treeview"),
-            {
-                "BLOCK1:ZONEA",
-                "BLOCK1:ZONEA FAN COIL UNIT COOLING COIL",
-                "BLOCK1:ZONEB",
-                "BLOCK1:ZONEB FAN COIL UNIT COOLING COIL",
-                "BOILER",
-                "CHILLER",
-                "Environment",
-                "Meter",
-            },
-        ),
-        (pytest.lazy_fixture("modified_view"), set(),),
-        (pytest.lazy_fixture("modified_simpleview"), set(),),
-        (pytest.lazy_fixture("initial_treeview"), set(),),
-        (pytest.lazy_fixture("initial_simpleview"), set(),),
-    ],
-)
-def test_expanded(qtbot, view, expanded):
-    assert expanded == view.source_model.expanded
+    assert pos == view.get_scroll_position()
 
 
 @pytest.mark.parametrize(

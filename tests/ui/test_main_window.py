@@ -187,7 +187,7 @@ def test_on_color_scheme_changed(qtbot, mw):
 
 
 def test_empty_current_view(mw):
-    assert mw.current_view is None
+    assert mw.current_file_widget is None
 
 
 def test_tab_widgets(mw):
@@ -205,11 +205,17 @@ def test_get_all_models(all_files, all_tables, n_models, mw_esofile):
 
 
 @pytest.mark.parametrize(
-    "table_n, all_tables, n_models", [(0, True, 4), (0, False, 1), (4, True, 5), (4, False, 1)],
+    "table, all_tables, n_models",
+    [
+        ("hourly-simple", True, 4),
+        ("hourly-simple", False, 1),
+        ("hourly", True, 5),
+        ("hourly", False, 1),
+    ],
 )
-def test_get_all_models_filter_applied(qtbot, table_n, all_tables, n_models, mw_combined_file):
+def test_get_all_models_filter_applied(qtbot, table, all_tables, n_models, mw_combined_file):
     mw_combined_file.toolbar.all_tables_toggle.setChecked(all_tables)
-    qtbot.mouseClick(mw_combined_file.toolbar.table_buttons[table_n], Qt.LeftButton)
+    qtbot.mouseClick(mw_combined_file.toolbar.get_table_button_by_name(table), Qt.LeftButton)
     assert n_models == len(mw_combined_file.get_all_models())
 
 

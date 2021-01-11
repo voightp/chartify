@@ -281,7 +281,7 @@ class TreeView(QTreeView):
         if self.source_model.tree_node is not None:
             for i in range(self.proxy_model.rowCount()):
                 index = self.proxy_model.index(i, 0)
-                if self.isExpanded(index):
+                if self.proxy_model.hasChildren(index) and self.isExpanded(index):
                     expanded.add(self.proxy_model.data(index))
         return expanded
 

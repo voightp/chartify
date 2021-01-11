@@ -107,6 +107,8 @@ class Settings:
             settings = json.load(f)
             for k, v in settings.items():
                 if k not in cls._attribute_dict():
+                    print(cls.OUTPUTS_ENUM)
+                    print(cls._attribute_dict())
                     raise AttributeError(f"Unexpected attribute: '{k}'.")
                 setattr(cls, k, v)
 

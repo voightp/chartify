@@ -30,11 +30,9 @@ def test_change_custom_units_to_default_rate_to_energy_checked(qtbot, mw):
 
 
 def test_check_energy_btn_update(qtbot, mw):
-    def cb(energy, rate, system, rate_to_energy):
-        return energy == "Wh"
-
-    with qtbot.wait_signal(mw.toolbar.unitsChanged, check_params_cb=cb):
+    with qtbot.wait_signal(mw.toolbar.unitsChanged):
         mw.toolbar.energy_btn.menu().actions()[0].trigger()
+    assert mw.toolbar.current_units["energy_units"] == "Wh"
 
 
 def test_check_energy_btn_view(qtbot, mw_combined_file):
@@ -44,39 +42,33 @@ def test_check_energy_btn_view(qtbot, mw_combined_file):
 
 
 def test_check_rate_btn_update(qtbot, mw):
-    def cb(energy, rate, system, rate_to_energy):
-        return rate == "W"
-
-    with qtbot.wait_signal(mw.toolbar.unitsChanged, check_params_cb=cb):
+    with qtbot.wait_signal(mw.toolbar.unitsChanged):
         mw.toolbar.rate_btn.menu().actions()[0].trigger()
+    assert "W" == mw.toolbar.current_units["rate_units"]
 
 
 def test_check_rate_btn_view(qtbot, mw_combined_file):
     mw_combined_file.toolbar.rate_btn.menu().actions()[0].trigger()
-    units = mw_combined_file.current_model.data(mw_combined_file.current_model.index(10, 2))
+    units = mw_combined_file.current_model.data(mw_combined_file.current_model.index(0, 2))
     assert "W" == units
 
 
 def test_check_units_system_btn_update(qtbot, mw):
-    def cb(energy, rate, system, rate_to_energy):
-        return system == "IP"
-
-    with qtbot.wait_signal(mw.toolbar.unitsChanged, check_params_cb=cb):
+    with qtbot.wait_signal(mw.toolbar.unitsChanged):
         mw.toolbar.units_system_button.menu().actions()[1].trigger()
+    assert mw.toolbar.current_units["units_system"] == "IP"
 
 
 def test_check_units_system_btn_view(qtbot, mw_combined_file):
     mw_combined_file.toolbar.units_system_button.menu().actions()[1].trigger()
-    units = mw_combined_file.current_model.data(mw_combined_file.current_model.index(0, 2))
+    units = mw_combined_file.current_model.data(mw_combined_file.current_model.index(22, 2))
     assert "F" == units
 
 
 def test_check_rate_to_energy_btn_update(qtbot, mw):
-    def cb(energy, rate, system, rate_to_energy):
-        return rate_to_energy is True
-
-    with qtbot.wait_signal(mw.toolbar.unitsChanged, check_params_cb=cb):
+    with qtbot.wait_signal(mw.toolbar.unitsChanged):
         qtbot.mouseClick(mw.toolbar.rate_energy_btn, Qt.LeftButton)
+    assert mw.toolbar.current_units["rate_to_energy"] is True
 
 
 def test_check_rate_to_energy_btn_view(qtbot, mw_combined_file):
@@ -105,5 +97,7 @@ def test_rate_to_energy_when_rate_to_energy_not_allowed(qtbot, mw_combined_file)
 def test_custom_units_toggle_when_rate_to_energy_not_allowed(qtbot, mw_combined_file):
     mw_combined_file.toolbar.rate_energy_btn.setChecked(True)
     with qtbot.wait_signal(mw_combined_file.toolbar.tableChangeRequested):
-        qtbot.mouseClick(mw_combined_file.toolbar.table_buttons[8], Qt.LeftButton)
+        qtbot.mouseClick(
+            mw_combined_file.toolbar.get_table_button_by_name("monthly-no-ndays"), Qt.LeftButton
+        )
     assert not mw_combined_file.toolbar.rate_energy_btn.isEnabled()

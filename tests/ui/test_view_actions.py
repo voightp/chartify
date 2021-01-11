@@ -16,7 +16,7 @@ def test_expand_all_empty(qtbot, mw):
 def test_expand_all(qtbot, mw_esofile):
     mw_esofile.on_table_change_requested("daily")
     qtbot.mouseClick(mw_esofile.expand_all_btn, Qt.LeftButton)
-    assert len(mw_esofile.current_view.source_model.expanded) == 4
+    assert len(mw_esofile.current_view.get_expanded_labels()) == 4
 
 
 def test_collapse_all_empty(qtbot, mw):
@@ -30,7 +30,7 @@ def test_collapse_all(qtbot, mw_esofile):
     mw_esofile.on_table_change_requested("daily")
     qtbot.mouseClick(mw_esofile.expand_all_btn, Qt.LeftButton)
     qtbot.mouseClick(mw_esofile.collapse_all_btn, Qt.LeftButton)
-    assert len(mw_esofile.current_view.source_model.expanded) == 0
+    assert len(mw_esofile.current_view.get_expanded_labels()) == 0
 
 
 def test_on_text_edited(qtbot, mw_esofile):
