@@ -13,13 +13,13 @@ class TabWidget(QTabWidget):
     """ Tab widget which displays information button when empty. """
 
     closeTabRequested = Signal(QTabWidget, int)
-    currentTabChanged = Signal(QTabWidget, int, int)
+    currentTabChanged = Signal(QTabWidget, QWidget, QWidget)
     tabRenameRequested = Signal(QTabWidget, int)
 
     def __init__(self, parent, button: QToolButton):
         super().__init__(parent)
         self.tab_wgt_button = button
-        self._previous_index = -1
+        self._previous_widget = None
 
         layout = QHBoxLayout(self)
         layout.addWidget(self.tab_wgt_button)
@@ -49,16 +49,17 @@ class TabWidget(QTabWidget):
     def on_current_changed(self, index: int) -> None:
         if index == -1:
             self.tab_wgt_button.setVisible(True)
-        elif self._previous_index == -1:
+        elif self._previous_widget is None:
             self.tab_wgt_button.setVisible(False)
-        self.currentTabChanged.emit(self, self._previous_index, index)
-        self._previous_index = index
+        current_widget = self.widget(index)
+        if current_widget is not self._previous_widget:
+            self.currentTabChanged.emit(self, self._previous_widget, current_widget)
+            self._previous_widget = current_widget
 
-    def set_next_tab(self):
-        if self.count() == 1:
-            next_index = -1
-        elif self.currentIndex() == 0:
-            next_index = 1
-        else:
-            next_index = self.currentIndex() - 1
-        self.setCurrentIndex(next_index)
+    def set_next_tab_before_delete(self, tab_index: int) -> None:
+        if self.currentIndex() == tab_index:
+            if tab_index == 0:
+                next_index = tab_index + 1
+            else:
+                next_index = tab_index - 1
+            self.setCurrentIndex(next_index)

@@ -15,10 +15,6 @@ class StackedWidget(QStackedWidget):
         return self.currentWidget()
 
     @property
-    def current_view_model(self) -> ViewModel:
-        return self.currentWidget().source_model
-
-    @property
     def current_table_name(self) -> str:
         return self.currentWidget().source_model.name
 
@@ -60,10 +56,7 @@ class StackedWidget(QStackedWidget):
         ):
             name = previous_file_widget.current_table_name
         else:
-            if self.current_treeview is not None:
-                name = self.current_table_name
-            else:
-                name = self.table_names[0]
+            name = self.current_table_name
         return self.get_treeview(name)
 
     def set_treeview(self, treeview: TreeView) -> None:

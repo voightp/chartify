@@ -790,14 +790,16 @@ class MainWindow(QMainWindow):
         )
         self.enable_actions_for_view(file_widget.current_treeview)
 
-    def on_tab_changed(self, tab_widget: TabWidget, previous_index: int, index: int) -> None:
+    def on_tab_changed(
+        self,
+        tab_widget: TabWidget,
+        previous_file_widget: StackedWidget,
+        file_widget: StackedWidget,
+    ) -> None:
         if tab_widget is self.current_tab_widget:
-            if index == -1:
+            if file_widget is None:
                 self.enable_actions_for_empty_layout()
             else:
-                file_widget = tab_widget.widget(index)
-                previous_file_widget = tab_widget.widget(previous_index)
-
                 if previous_file_widget is None:
                     ref_treeview = None
                 else:
@@ -850,13 +852,12 @@ class MainWindow(QMainWindow):
     def on_tab_close_requested(self, tab_widget: TabWidget, tab_index: int):
         treeview = tab_widget.widget(tab_index).current_treeview
         name = tab_widget.tabText(tab_index)
-        res = self.confirm_delete_file(name)
-        if res:
+        if self.confirm_delete_file(name):
             if treeview is self.current_view:
-                self.current_tab_widget.set_next_tab()
+                self.current_tab_widget.set_next_tab_before_delete(tab_index)
             tab_widget.removeTab(tab_index)
-            self.fileRemoveRequested.emit(treeview.id_)
             treeview.deleteLater()
+            self.fileRemoveRequested.emit(treeview.id_)
 
     def connect_tab_widget_signals(self):
         # ~~~~ Tab Signals ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
