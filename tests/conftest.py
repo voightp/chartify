@@ -103,10 +103,11 @@ def totals_file(session_totals_file):
 
 
 @pytest.fixture(scope="class")
-def parquet_eso_file_storage(eso_file_all_intervals, eso_file1, totals_file):
+def parquet_eso_file_storage(eso_file_all_intervals, eso_file1, eso_file2, totals_file):
     storage = ParquetStorage()
     storage.store_file(eso_file_all_intervals)
     storage.store_file(eso_file1)
+    storage.store_file(eso_file2)
     storage.store_file(totals_file)
     yield storage
     del storage
@@ -176,27 +177,27 @@ def controller(app_setup):
 
 @pytest.fixture(scope="function")
 def mw_esofile(mw, controller, model, parquet_eso_file_storage, qtbot):
-    mw.storage = parquet_eso_file_storage
     for file in parquet_eso_file_storage.files.values():
         controller.on_file_loaded(file)
         controller.ids.append(file.id_)
+    model.storage = parquet_eso_file_storage
     return mw
 
 
 @pytest.fixture(scope="function")
-def mw_excel_file(mw, controller, parquet_excel_file_storage, qtbot):
-    mw.storage = parquet_excel_file_storage
+def mw_excel_file(mw, controller, model, parquet_excel_file_storage, qtbot):
     for file in parquet_excel_file_storage.files.values():
         controller.on_file_loaded(file)
         controller.ids.append(file.id_)
     mw.on_table_change_requested("daily")
+    model.storage = parquet_excel_file_storage
     return mw
 
 
 @pytest.fixture(scope="function")
 def mw_combined_file(mw, controller, parquet_combined_file_storage, qtbot):
-    mw.storage = parquet_excel_file_storage
     for file in parquet_combined_file_storage.files.values():
         controller.on_file_loaded(file)
         controller.ids.append(file.id_)
+    model.storage = parquet_combined_file_storage
     return mw

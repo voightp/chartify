@@ -165,8 +165,8 @@ class AppController:
 
     def on_file_remove_requested(self, id_: int) -> None:
         """ Delete file from the database. """
-        self.m.delete_file(id_)
         with self.lock:
+            self.m.delete_file(id_)
             self.ids.remove(id_)
 
     def on_variable_rename_requested(

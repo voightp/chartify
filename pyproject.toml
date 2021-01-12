@@ -8,7 +8,7 @@ license = "Proprietary"
 [tool.poetry.dependencies]
 python = "3.8"
 PySide2 = "^5.15.0"
-esofile-reader = {path = "../esofile-reader", develop = true}
+esofile-reader = { path = "../esofile-reader", develop = true }
 psutil = "^5.7.0"
 loky = "^2.8.0"
 SQLAlchemy = "^1.3.20"
@@ -50,5 +50,11 @@ exclude = '''
    | blib2to3
     )/
     '''
+
+[tool.pytest.ini_options]
+qt_api = "pyside2"
+testpaths = [
+    "tests"
+]
 
 

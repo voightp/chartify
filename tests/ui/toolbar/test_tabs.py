@@ -1,3 +1,4 @@
+import pytest
 from PySide2.QtCore import Qt
 
 from chartify.settings import Settings
@@ -38,3 +39,13 @@ def test_on_tab_changed_empty_view(qtbot, mw_esofile):
     assert mw_esofile.toolbar.rate_energy_btn.isEnabled()
     assert len(mw_esofile.toolbar.table_buttons_group.buttons()) == 0
     assert mw_esofile.toolbar.table_group.layout().isEmpty()
+
+
+@pytest.mark.parametrize(
+    "current_index, delete_index, next_tab_index",
+    [(0, 0, 1), (1, 1, 0), (2, 2, 1), (0, 1, 0), (2, 0, 2)],
+)
+def test_set_next_tab(mw_esofile, current_index, delete_index, next_tab_index):
+    mw_esofile.current_tab_widget.setCurrentIndex(current_index)
+    mw_esofile.current_tab_widget.set_next_tab_before_delete(delete_index)
+    assert mw_esofile.current_tab_widget.currentIndex() == next_tab_index

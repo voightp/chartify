@@ -196,7 +196,7 @@ def test_tab_widgets(mw):
 
 @pytest.mark.parametrize(
     "all_files, all_tables, n_models",
-    [(True, True, 10), (False, True, 6), (True, False, 1), (False, False, 1)],
+    [(True, True, 14), (False, True, 6), (True, False, 1), (False, False, 1)],
 )
 def test_get_all_models(all_files, all_tables, n_models, mw_esofile):
     mw_esofile.toolbar.all_files_toggle.setChecked(all_files)
@@ -266,7 +266,7 @@ class TestRenameFile:
                 title="Enter a new file name.",
                 input1_name="Name",
                 input1_text="eplusout_all_intervals",
-                input1_blocker={"eplusout1", "eplusout1 - totals"},
+                input1_blocker={"eplusout1", "eplusout2", "eplusout1 - totals"},
             )
 
     @pytest.mark.depends(on="test_confirm_rename_file")
@@ -275,9 +275,17 @@ class TestRenameFile:
         assert mw_esofile.current_model._file_ref.file_name == "foo"
 
 
-def test_remove_file(mw_esofile, model):
-    with patch("chartify.ui.main_window.ConfirmationDialog") as dialog:
-        instance = dialog.return_value
-        instance.exec_.return_value = 1
-        mw_esofile.standard_tab_wgt.closeTabRequested.emit(mw_esofile.standard_tab_wgt, 1)
-    assert 1 not in model.storage.files
+class TestRemoveFile:
+    def test_remove_current_file(self, mw_esofile, model):
+        with patch("chartify.ui.main_window.ConfirmationDialog") as dialog:
+            instance = dialog.return_value
+            instance.exec_.return_value = 1
+            mw_esofile.standard_tab_wgt.closeTabRequested.emit(mw_esofile.standard_tab_wgt, 0)
+        assert 0 not in model.storage.files
+
+    def test_remove_other_file(self, mw_esofile, model):
+        with patch("chartify.ui.main_window.ConfirmationDialog") as dialog:
+            instance = dialog.return_value
+            instance.exec_.return_value = 1
+            mw_esofile.standard_tab_wgt.closeTabRequested.emit(mw_esofile.standard_tab_wgt, 1)
+        assert 1 not in model.storage.files

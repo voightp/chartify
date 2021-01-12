@@ -27,20 +27,6 @@ def suspend_watcher(main_window, thread: FileWatcher) -> None:
     main_window.watcher.start()
 
 
-class IterWorker(QRunnable):
-    def __init__(self, func, lst, *args, **kwargs):
-        super().__init__()
-        self.func = func
-        self.lst = lst
-        self.args = args
-        self.kwargs = kwargs
-
-    def run(self):
-        # TODO catch fetch exceptions, emit signal to handle results
-        for i in self.lst:
-            self.func(i, *self.args, **self.kwargs)
-
-
 class Worker(QRunnable):
     def __init__(self, func, *args, callback=None, **kwargs):
         super().__init__()
