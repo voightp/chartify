@@ -10,6 +10,7 @@ from chartify.ui.dialogs import (
     BaseTwoButtonDialog,
     SingleInputDialog,
     DoubleInputDialog,
+    ConfirmationDialog,
 )
 from chartify.utils.icon_painter import Pixmap
 from tests.conftest import ROOT
@@ -57,7 +58,7 @@ class TestBaseTwoButtonDialog:
 
     def test_dialog_reject(self, qtbot, dialog: BaseTwoButtonDialog):
         def click_button():
-            qtbot.mouseClick(dialog.button_box.reject_btn, Qt.LeftButton)
+            qtbot.mouseClick(dialog.reject_btn, Qt.LeftButton)
 
         QTimer().singleShot(100, click_button)
         assert dialog.exec_() == 0
@@ -67,7 +68,7 @@ class TestSingleInputDialog:
     @pytest.fixture
     def dialog(self, qtbot):
         dialog = SingleInputDialog(
-            None, "Test title", "Some variable", "Some variable text", ["a", "b", "c"]
+            None, "Test title", "Some variable", "Some variable text", {"a", "b", "c"}
         )
         qtbot.add_widget(dialog)
         return dialog
@@ -108,7 +109,7 @@ class TestDoubleInputDialog:
             input1_text="Some variable text",
             input2_name="Some key",
             input2_text="Some key text",
-            input2_blocker=["a", "b", "c"],
+            input2_blocker={"a", "b", "c"},
         )
         qtbot.add_widget(dialog)
         return dialog
@@ -154,3 +155,17 @@ class TestDoubleInputDialog:
             dialog.input2.clear()
             qtbot.keyClicks(dialog.input1, " ")
         assert not dialog.ok_btn.isEnabled()
+
+
+class TestConfirmationDialog:
+    @pytest.fixture
+    def dialog(self, qtbot):
+        dialog = ConfirmationDialog(
+            None, "Test title", "Some information text", "Some detailed text"
+        )
+        qtbot.add_widget(dialog)
+        return dialog
+
+    def test_dialog_init(self, dialog: SingleInputDialog):
+        assert dialog.content_layout.itemAt(0).widget().text() == "Some information text"
+        assert dialog.content_layout.itemAt(1).widget().toPlainText() == "Some detailed text"
