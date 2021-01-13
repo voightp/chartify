@@ -657,16 +657,19 @@ class ViewModel(QStandardItemModel):
 
     def variable_exists(self, view_variable: VariableType) -> bool:
         """ Check if given variable exists in reference model and view. """
-        ui_check = bool(self.get_matching_selection([view_variable]).indexes())
         variable = convert_view_variable_to_variable(view_variable, self.name)
         file_check = self._file_ref.search_tree.variable_exists(variable)
-        if ui_check is file_check:
-            return ui_check
+        if self.initialized:
+            ui_check = bool(self.get_matching_selection([view_variable]).indexes())
+            if ui_check is file_check:
+                return ui_check
+            else:
+                raise FileModelMismatch(
+                    f"Variable '{variable}' is included in {'view model' if ui_check else 'file'}"
+                    f" but not in  {'file' if ui_check else 'view model'}."
+                )
         else:
-            raise FileModelMismatch(
-                f"Variable '{variable}' is included in {'view model' if ui_check else 'file'}"
-                f" but not in  {'file' if ui_check else 'view model'}."
-            )
+            return file_check
 
     def variables_exist(self, view_variables: List[VariableType]) -> List[bool]:
         """ Check if given variables exists in reference model and view. """

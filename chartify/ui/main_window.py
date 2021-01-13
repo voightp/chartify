@@ -411,7 +411,7 @@ class MainWindow(QMainWindow):
             if not self.current_tab_widget.is_empty():
                 self.current_view.deselect_all_variables()
         elif event.key() == Qt.Key_Delete:
-            if self.hasFocus() and self.current_view and self.current_model:
+            if self.hasFocus() and not self.current_tab_widget.is_empty():
                 self.remove_variables_act.trigger()
 
     def create_scheme_actions(self) -> Tuple[List[QAction], QAction]:
@@ -758,6 +758,9 @@ class MainWindow(QMainWindow):
 
     def enable_selection_actions(self, view_variables: List[VV]):
         """  Update toolbar actions to match current selection. """
+        self.remove_variables_act.setEnabled(False)
+        self.sum_act.setEnabled(False)
+        self.mean_act.setEnabled(False)
         if view_variables:
             self.remove_variables_act.setEnabled(True)
             if len(view_variables) > 1:
@@ -767,13 +770,6 @@ class MainWindow(QMainWindow):
                 ):
                     self.sum_act.setEnabled(True)
                     self.mean_act.setEnabled(True)
-            else:
-                self.sum_act.setEnabled(False)
-                self.mean_act.setEnabled(False)
-        else:
-            self.remove_variables_act.setEnabled(False)
-            self.sum_act.setEnabled(False)
-            self.mean_act.setEnabled(False)
 
     def enable_actions_for_view(self, view: TreeView) -> None:
         allow_tree = not view.source_model.is_simple
