@@ -1,4 +1,3 @@
-from typing import Optional
 from unittest.mock import patch
 
 import pytest
@@ -12,23 +11,6 @@ def mw_esofile1(mw_esofile, qtbot):
     mw_esofile.standard_tab_wgt.setCurrentIndex(1)
     qtbot.mouseClick(mw_esofile.toolbar.get_table_button_by_name("hourly"), Qt.LeftButton)
     return mw_esofile
-
-
-@pytest.mark.parametrize("confirmed,expected", [(0, None), (1, "test")])
-def test_confirm_rename_file(mw, confirmed: int, expected: Optional[str]):
-    with patch("chartify.ui.main_window.SingleInputDialog") as dialog:
-        instance = dialog.return_value
-        instance.exec_.return_value = confirmed
-        instance.input1_text = "test"
-        out = mw.confirm_rename_file("test", ["foo", "bar"])
-        dialog.assert_called_once_with(
-            mw,
-            title="Enter a new file name.",
-            input1_name="Name",
-            input1_text="test",
-            input1_blocker=["foo", "bar"],
-        )
-        assert out == expected
 
 
 class TestRemoveVariable:
@@ -260,31 +242,99 @@ class TestAggregateSimple:
 
 
 class TestAllFilesTables:
-    VARIABLES = [
-        VV("HW LOOP SUPPLY PUMP", "Pump Electric Power", "W"),
-        VV("CHW LOOP SUPPLY PUMP", "Pump Electric Power", "W"),
-    ]
-    SIMPLE_VARIABLES = [
-        VV("Boiler Gas Rate", None, "W"),
-        VV("Gas:Facility", None, "J"),
-    ]
+    @pytest.fixture(autouse=True)
+    def mw_esofile_all(self, mw_esofile):
+        mw_esofile.toolbar.all_files_toggle.setChecked(True)
+        mw_esofile.toolbar.all_tables_toggle.setChecked(True)
+        mw_esofile.standard_tab_wgt.setCurrentIndex(1)
+        return mw_esofile
 
-    def test_confirm_remove_variables(self, qtbot, mw_esofile1):
-        mw_esofile1.toolbar.all_files_toggle.setChecked(True)
-        mw_esofile1.toolbar.all_tables_toggle.setChecked(True)
-        mw_esofile1.current_view.select_variables(self.VARIABLES)
+    class TestModels:
+        @pytest.mark.parametrize(
+            "all_files, all_tables, n_models",
+            [(True, True, 14), (False, True, 6), (True, False, 1), (False, False, 1)],
+        )
+        def test_get_all_models(self, all_files, all_tables, n_models, mw_esofile):
+            mw_esofile.toolbar.all_files_toggle.setChecked(all_files)
+            mw_esofile.toolbar.all_tables_toggle.setChecked(all_tables)
+            assert n_models == len(mw_esofile.get_all_models())
+
+        @pytest.mark.parametrize(
+            "table, all_tables, n_models",
+            [
+                ("hourly-simple", True, 4),
+                ("hourly-simple", False, 1),
+                ("hourly", True, 5),
+                ("hourly", False, 1),
+            ],
+        )
+        def test_get_all_models_filter_applied(
+            self, qtbot, table, all_tables, n_models, mw_combined_file
+        ):
+            mw_combined_file.toolbar.all_tables_toggle.setChecked(all_tables)
+            qtbot.mouseClick(
+                mw_combined_file.toolbar.get_table_button_by_name(table), Qt.LeftButton
+            )
+            assert n_models == len(mw_combined_file.get_all_models())
+
+        def test_all_other_models(self, mw_combined_file):
+            assert mw_combined_file.current_model not in mw_combined_file.get_all_other_models()
+
+    @pytest.mark.parametrize(
+        "all_files, all_tables, expected_text",
+        [
+            (False, False, "table 'timestep', file 'eplusout_all_intervals'"),
+            (True, False, "table 'timestep', all files"),
+            (False, True, "all tables, file 'eplusout_all_intervals'"),
+            (True, True, "all files and all tables"),
+        ],
+    )
+    def test_get_all_files_and_tables(
+        self, mw_esofile_all, all_files, all_tables, expected_text
+    ):
+        mw_esofile_all.toolbar.all_files_toggle.setChecked(all_files)
+        mw_esofile_all.toolbar.all_tables_toggle.setChecked(all_tables)
+        assert mw_esofile_all.get_files_and_tables_text() == expected_text
+
+    def test_remove_variables(self, qtbot, mw_esofile_all):
+        variables = [
+            VV("BLOCK1:ZONEA", "Zone Mean Air Temperature", "C"),
+            VV("BLOCK1:ZONEB", "Zone Mean Air Temperature", "C"),
+        ]
+        mw_esofile_all.current_view.select_variables(variables)
         with patch("chartify.ui.main_window.ConfirmationDialog") as dialog:
             instance = dialog.return_value
             instance.exec_.return_value = True
-            qtbot.mouseClick(mw_esofile1.toolbar.remove_btn, Qt.LeftButton)
-            dialog.assert_called_once_with(
-                mw_esofile1,
-                f"Delete following variables from {mw_esofile1.get_files_and_tables_text()}: ",
-                det_text="CHW LOOP SUPPLY PUMP | Pump Electric Power | W\nHW LOOP SUPPLY PUMP | Pump Electric Power | W",
-            )
+            qtbot.mouseClick(mw_esofile_all.toolbar.remove_btn, Qt.LeftButton)
+            for model in mw_esofile_all.get_all_models():
+                assert not any(model.variables_exist(variables))
 
-    @pytest.mark.depends(on="test_confirm_remove_variables")
-    def test_remove_variable(self, qtbot, mw_combined_file):
-        models = mw_combined_file.get_all_models()
-        for model in models:
-            assert not any(model.variables_exist(self.VARIABLES))
+    def test_aggregate_variables(self, qtbot, mw_esofile_all):
+        variables = [
+            VV("BLOCK1:ZONEA", "Zone Mean Radiant Temperature", "C"),
+            VV("BLOCK1:ZONEB", "Zone Mean Radiant Temperature", "C"),
+        ]
+        mw_esofile_all.current_view.select_variables(variables)
+        with patch("chartify.ui.main_window.DoubleInputDialog") as dialog:
+            instance = dialog.return_value
+            instance.input1_text = "aggregated"
+            instance.input2_text = "variable"
+            instance.exec_.return_value = True
+            qtbot.mouseClick(mw_esofile_all.toolbar.mean_btn, Qt.LeftButton)
+            for model in mw_esofile_all.get_all_models():
+                if any(model.variables_exist(variables)):
+                    assert model.variable_exists(VV("aggregated", "variable", "C"))
+
+    def test_rename_variable(self, qtbot, mw_esofile_all):
+        variable = VV("BLOCK1:ZONEA", "Zone Operative Temperature", "C")
+        new_variable = VV("foo", "bar", "c")
+        mw_esofile_all.current_view.select_variables([variable])
+        with patch("chartify.ui.main_window.DoubleInputDialog") as dialog:
+            instance = dialog.return_value
+            instance.input1_text = new_variable.key
+            instance.input2_text = new_variable.type
+            instance.exec_.return_value = True
+            qtbot.mouseClick(mw_esofile_all.toolbar.mean_btn, Qt.LeftButton)
+            for model in mw_esofile_all.get_all_models():
+                if model.variable_exists(variable):
+                    assert model.variable_exists(new_variable)

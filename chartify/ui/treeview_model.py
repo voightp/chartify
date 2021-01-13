@@ -535,7 +535,7 @@ class ViewModel(QStandardItemModel):
         old_name = old_view_variable.__getattribute__(self.tree_node)
         return name != old_name
 
-    def _delete_row(self, row: int, parent_index: Optional[QModelIndex]) -> None:
+    def delete_row_from_model(self, row: int, parent_index: Optional[QModelIndex]) -> None:
         """ Delete given row from model. """
         self.removeRow(row, parent_index)
 
@@ -556,7 +556,7 @@ class ViewModel(QStandardItemModel):
             row[index] = unordered_items[column]
         return row
 
-    def _append_row(self, view_variable: VV) -> None:
+    def add_row_to_model(self, view_variable: VV) -> None:
         """ Add row to the model. """
         row_text = self.get_row_text(view_variable)
         if self.tree_node is not None:
@@ -570,7 +570,7 @@ class ViewModel(QStandardItemModel):
         else:
             self.appendRow([QStandardItem(text) for text in row_text])
 
-    def _update_row(self, view_variable: VV, row: int, parent_index: QModelIndex,) -> None:
+    def update_row(self, view_variable: VV, row: int, parent_index: QModelIndex,) -> None:
         """ Set text on the given row. """
         row_text = self.get_row_text(view_variable)
         if parent_index.isValid():
@@ -579,6 +579,17 @@ class ViewModel(QStandardItemModel):
             item = self.itemFromIndex(self.index(row, i, parent_index))
             item.setText(text)
 
+    def update_variable_in_model(
+        self, old_view_variable: VV, new_view_variable: VV, row: int, parent_index: QModelIndex
+    ) -> None:
+        if self.tree_node is not None and self.variable_tree_node_text_changed(
+            new_view_variable, old_view_variable
+        ):
+            self.delete_row_from_model(row, parent_index)
+            self.add_row_to_model(new_view_variable)
+        else:
+            self.update_row(new_view_variable, row, parent_index)
+
     def update_variable(self, row: int, parent_index: QModelIndex, view_variable: VV) -> None:
         """ Update row identified by row and parent index. """
         old_view_variable = self.get_row_view_variable(row, parent_index)
@@ -586,15 +597,11 @@ class ViewModel(QStandardItemModel):
         _, new_variable = self._file_ref.rename_variable(
             old_variable, view_variable.key, view_variable.type
         )
-
-        new_view_variable = convert_variable_to_view_variable(new_variable)
-        if self.tree_node is not None and self.variable_tree_node_text_changed(
-            new_view_variable, old_view_variable
-        ):
-            self._delete_row(row, parent_index)
-            self._append_row(new_view_variable)
-        else:
-            self._update_row(new_view_variable, row, parent_index)
+        if self.initialized:
+            new_view_variable = convert_variable_to_view_variable(new_variable)
+            self.update_variable_in_model(
+                old_view_variable, new_view_variable, row, parent_index
+            )
 
     def update_variable_if_exists(self, view_variable: VV, new_view_variable: VV,) -> None:
         """ Update row identified by VV. """
@@ -605,28 +612,31 @@ class ViewModel(QStandardItemModel):
             parent = index.parent()
             self.update_variable(row, parent, new_view_variable)
 
-    def delete_variables(self, view_variables: List[VV]) -> None:
-        """ Delete given variables. """
-        self._file_ref.remove_variables(
-            convert_view_variables_to_variables(view_variables, self.name)
-        )
-
-        selection = self.get_matching_selection(view_variables)
-        for selection_range in selection:
+    def delete_rows_from_model(self, view_variables: List[VV]):
+        """ Delete given variables from model. """
+        for selection_range in self.get_matching_selection(view_variables):
             parent = selection_range.parent()
             self.removeRows(selection_range.top(), selection_range.height(), parent)
             if parent.isValid() and not self.hasChildren(parent):
                 self.removeRow(parent.row())
 
+    def delete_variables(self, view_variables: List[VV]) -> None:
+        """ Delete given variables. """
+        self._file_ref.remove_variables(
+            convert_view_variables_to_variables(view_variables, self.name)
+        )
+        if self.initialized:
+            self.delete_rows_from_model(view_variables)
+
     def aggregate_variables(
         self, view_variables: List[VV], func: str, new_key: str, new_type: Optional[str] = None,
     ) -> VV:
-        """ Aggregate given variables with given function. """
         variables = convert_view_variables_to_variables(view_variables, self.name)
         with contextlib.suppress(CannotAggregateVariables):
             _, variable = self._file_ref.aggregate_variables(variables, func, new_key, new_type)
             view_variable = convert_variable_to_view_variable(variable)
-            self._append_row(view_variable)
+            if self.initialized:
+                self.add_row_to_model(view_variable)
             return view_variable
 
     def get_results(
@@ -660,7 +670,8 @@ class ViewModel(QStandardItemModel):
         variable = convert_view_variable_to_variable(view_variable, self.name)
         file_check = self._file_ref.search_tree.variable_exists(variable)
         if self.initialized:
-            ui_check = bool(self.get_matching_selection([view_variable]).indexes())
+            selection = self.get_matching_selection([view_variable])
+            ui_check = bool(selection.indexes())
             if ui_check is file_check:
                 return ui_check
             else:
