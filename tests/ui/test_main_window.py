@@ -166,61 +166,63 @@ def test_init_main_window(qtbot, pretty_mw: MainWindow):
     assert [p for p in Path(Settings.APP_TEMP_DIR, "icons").iterdir() if p.suffix == ".png"]
 
 
-def test_mirror_layout(pretty_mw):
-    with patch("chartify.ui.main_window.Settings") as mock_settings:
-        mock_settings.MIRRORED = False
+class TestKeyEvents:
+    def test_delete_key_event_empty(self, qtbot, mw):
+        mw.setFocus()
+        with qtbot.assert_not_emitted(mw.remove_variables_act.triggered):
+            qtbot.keyClick(mw, Qt.Key_Delete)
+
+    def test_delete_key_event(self, qtbot, mw_esofile):
+        mw_esofile.setFocus()
+        with qtbot.wait_signal(mw_esofile.remove_variables_act.triggered):
+            qtbot.keyClick(mw_esofile, Qt.Key_Delete)
+
+    def test_escape_key_event_empty(self, qtbot, mw):
+        with patch("chartify.ui.main_window.TreeView.deselect_all_variables") as mock:
+            qtbot.keyClick(mw, Qt.Key_Escape)
+            mock.assert_not_called()
+
+    def test_escape_key_event(self, qtbot, mw_esofile):
+        with patch("chartify.ui.main_window.TreeView.deselect_all_variables") as mock:
+            qtbot.keyClick(mw_esofile, Qt.Key_Escape)
+            mock.assert_called_once()
+
+
+class TestMWLayout:
+    def test_mirror_layout(self, pretty_mw):
+        with patch("chartify.ui.main_window.Settings") as mock_settings:
+            mock_settings.MIRRORED = False
+            pretty_mw.mirror_layout()
+            assert pretty_mw.left_main_layout.itemAt(1).widget() == pretty_mw.toolbar
+            assert pretty_mw.left_main_layout.itemAt(0).widget() == pretty_mw.view_wgt
+            assert pretty_mw.central_splitter.widget(1) == pretty_mw.left_main_wgt
+            assert pretty_mw.central_splitter.widget(0) == pretty_mw.right_main_wgt
+            assert mock_settings.MIRRORED
+            assert pretty_mw.central_splitter.sizes() == [654, 540]
+
+    def test_initial_mirrored_layout(self, pretty_mw):
+        Settings.MIRRORED = True
+        mw = MainWindow()
+        mw.show()
         pretty_mw.mirror_layout()
         assert pretty_mw.left_main_layout.itemAt(1).widget() == pretty_mw.toolbar
         assert pretty_mw.left_main_layout.itemAt(0).widget() == pretty_mw.view_wgt
         assert pretty_mw.central_splitter.widget(1) == pretty_mw.left_main_wgt
         assert pretty_mw.central_splitter.widget(0) == pretty_mw.right_main_wgt
-        assert mock_settings.MIRRORED
         assert pretty_mw.central_splitter.sizes() == [654, 540]
 
+    def test_on_color_scheme_changed(self, qtbot, mw):
+        with patch("chartify.ui.main_window.Settings") as mock_settings:
+            with qtbot.wait_signal(mw.paletteUpdated):
+                mw.on_color_scheme_changed("monochrome")
+                assert mock_settings.PALETTE == mw.palettes["monochrome"]
+                assert mock_settings.PALETTE_NAME == "monochrome"
 
-def test_on_color_scheme_changed(qtbot, mw):
-    with patch("chartify.ui.main_window.Settings") as mock_settings:
-        with qtbot.wait_signal(mw.paletteUpdated):
-            mw.on_color_scheme_changed("monochrome")
-            assert mock_settings.PALETTE == mw.palettes["monochrome"]
-            assert mock_settings.PALETTE_NAME == "monochrome"
+    def test_empty_current_view(self, mw):
+        assert mw.current_file_widget is None
 
-
-def test_empty_current_view(mw):
-    assert mw.current_file_widget is None
-
-
-def test_tab_widgets(mw):
-    assert mw.tab_widgets == [mw.standard_tab_wgt, mw.totals_tab_wgt, mw.diff_tab_wgt]
-
-
-@pytest.mark.parametrize(
-    "all_files, all_tables, n_models",
-    [(True, True, 14), (False, True, 6), (True, False, 1), (False, False, 1)],
-)
-def test_get_all_models(all_files, all_tables, n_models, mw_esofile):
-    mw_esofile.toolbar.all_files_toggle.setChecked(all_files)
-    mw_esofile.toolbar.all_tables_toggle.setChecked(all_tables)
-    assert n_models == len(mw_esofile.get_all_models())
-
-
-@pytest.mark.parametrize(
-    "table, all_tables, n_models",
-    [
-        ("hourly-simple", True, 4),
-        ("hourly-simple", False, 1),
-        ("hourly", True, 5),
-        ("hourly", False, 1),
-    ],
-)
-def test_get_all_models_filter_applied(qtbot, table, all_tables, n_models, mw_combined_file):
-    mw_combined_file.toolbar.all_tables_toggle.setChecked(all_tables)
-    qtbot.mouseClick(mw_combined_file.toolbar.get_table_button_by_name(table), Qt.LeftButton)
-    assert n_models == len(mw_combined_file.get_all_models())
-
-
-def test_all_other_models(mw_combined_file):
-    assert mw_combined_file.current_model not in mw_combined_file.get_all_other_models()
+    def test_tab_widgets(self, mw):
+        assert mw.tab_widgets == [mw.standard_tab_wgt, mw.totals_tab_wgt, mw.diff_tab_wgt]
 
 
 class TestSaveLoad:
