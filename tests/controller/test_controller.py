@@ -16,9 +16,9 @@ class TestLoadFiles:
             )
         assert mw.standard_tab_wgt.count() == 3
 
-    def test_load_standard_files_sync(self, qtbot, mw, controller):
+    def test_load_standard_files_synchronously(self, qtbot, mw, controller):
         with qtbot.wait_signals(
-            [controller.watcher.file_loaded, controller.watcher.file_loaded], timeout=10000
+            [controller.watcher.file_loaded, controller.watcher.file_loaded], timeout=5000
         ):
             controller.on_sync_file_processing_requested([ESO_FILE1_PATH, ESO_FILE2_PATH])
         assert mw.standard_tab_wgt.count() == 2
@@ -39,9 +39,9 @@ class TestLoadFiles:
             controller.on_file_processing_requested([ESO_FILE1_PATH])
 
     def test_progress_signals_fail(self, qtbot, controller):
-        with qtbot.wait_signal(controller.progress_thread.failed, timeout=10000):
+        with qtbot.wait_signal(controller.progress_thread.failed, timeout=5000):
             controller.on_file_processing_requested([ESO_FILE_INCOMPLETE])
 
     def test_load_unsupported_file(self, qtbot, controller):
-        with qtbot.wait_signal(controller.progress_thread.failed, timeout=10000):
+        with qtbot.wait_signal(controller.progress_thread.failed, timeout=5000):
             controller.on_sync_file_processing_requested([Path("foo.bar")])

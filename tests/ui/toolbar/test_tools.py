@@ -32,7 +32,7 @@ class TestRemoveVariable:
             dialog.assert_called_once_with(
                 mw_esofile1,
                 "Delete following variables from table 'hourly', file 'eplusout1': ",
-                det_text="CHW LOOP SUPPLY PUMP | Pump Electric Power | W\nHW LOOP SUPPLY PUMP | Pump Electric Power | W",
+                det_text="HW LOOP SUPPLY PUMP | Pump Electric Power | W\nCHW LOOP SUPPLY PUMP | Pump Electric Power | W",
             )
 
     @pytest.mark.depends(on="test_confirm_remove_variables")
@@ -242,8 +242,14 @@ class TestAggregateSimple:
 
 
 class TestAllFilesTables:
-    @pytest.fixture(autouse=True)
+    @pytest.fixture
     def mw_esofile_all(self, mw_esofile):
+        mw_esofile.toolbar.all_files_toggle.setChecked(True)
+        mw_esofile.toolbar.all_tables_toggle.setChecked(True)
+        return mw_esofile
+
+    @pytest.fixture
+    def mw_esofile1_all(self, mw_esofile):
         mw_esofile.toolbar.all_files_toggle.setChecked(True)
         mw_esofile.toolbar.all_tables_toggle.setChecked(True)
         mw_esofile.standard_tab_wgt.setCurrentIndex(1)
@@ -296,45 +302,48 @@ class TestAllFilesTables:
         mw_esofile_all.toolbar.all_tables_toggle.setChecked(all_tables)
         assert mw_esofile_all.get_files_and_tables_text() == expected_text
 
-    def test_remove_variables(self, qtbot, mw_esofile_all):
+    def test_remove_variables(self, qtbot, mw_esofile1_all):
         variables = [
             VV("BLOCK1:ZONEA", "Zone Mean Air Temperature", "C"),
             VV("BLOCK1:ZONEB", "Zone Mean Air Temperature", "C"),
         ]
-        mw_esofile_all.current_view.select_variables(variables)
+        mw_esofile1_all.current_view.select_variables(variables)
         with patch("chartify.ui.main_window.ConfirmationDialog") as dialog:
             instance = dialog.return_value
             instance.exec_.return_value = True
-            qtbot.mouseClick(mw_esofile_all.toolbar.remove_btn, Qt.LeftButton)
-            for model in mw_esofile_all.get_all_models():
+            qtbot.mouseClick(mw_esofile1_all.toolbar.remove_btn, Qt.LeftButton)
+            for model in mw_esofile1_all.get_all_models():
                 assert not any(model.variables_exist(variables))
 
-    def test_aggregate_variables(self, qtbot, mw_esofile_all):
+    def test_aggregate_variables(self, qtbot, mw_esofile1_all):
         variables = [
             VV("BLOCK1:ZONEA", "Zone Mean Radiant Temperature", "C"),
             VV("BLOCK1:ZONEB", "Zone Mean Radiant Temperature", "C"),
         ]
-        mw_esofile_all.current_view.select_variables(variables)
+        mw_esofile1_all.current_view.select_variables(variables)
         with patch("chartify.ui.main_window.DoubleInputDialog") as dialog:
             instance = dialog.return_value
             instance.input1_text = "aggregated"
             instance.input2_text = "variable"
             instance.exec_.return_value = True
-            qtbot.mouseClick(mw_esofile_all.toolbar.mean_btn, Qt.LeftButton)
-            for model in mw_esofile_all.get_all_models():
+            qtbot.mouseClick(mw_esofile1_all.toolbar.mean_btn, Qt.LeftButton)
+            for model in mw_esofile1_all.get_all_models():
                 if any(model.variables_exist(variables)):
                     assert model.variable_exists(VV("aggregated", "variable", "C"))
 
-    def test_rename_variable(self, qtbot, mw_esofile_all):
+    def test_rename_variable(self, qtbot, mw_esofile1_all):
         variable = VV("BLOCK1:ZONEA", "Zone Operative Temperature", "C")
         new_variable = VV("foo", "bar", "c")
-        mw_esofile_all.current_view.select_variables([variable])
+        mw_esofile1_all.current_view.select_variables([variable])
         with patch("chartify.ui.main_window.DoubleInputDialog") as dialog:
             instance = dialog.return_value
+            instance.exec_.return_value = 1
             instance.input1_text = new_variable.key
             instance.input2_text = new_variable.type
-            instance.exec_.return_value = True
-            qtbot.mouseClick(mw_esofile_all.toolbar.mean_btn, Qt.LeftButton)
-            for model in mw_esofile_all.get_all_models():
-                if model.variable_exists(variable):
-                    assert model.variable_exists(new_variable)
+            selection = mw_esofile1_all.current_model.get_matching_selection([variable])
+            index = selection.indexes()[0]
+            point = mw_esofile1_all.current_view.visualRect(index).center()
+            # need to move mouse to hover over view
+            qtbot.mouseMove(mw_esofile1_all.current_view.viewport(), pos=point)
+            qtbot.mouseClick(mw_esofile1_all.current_view.viewport(), Qt.LeftButton, pos=point)
+            qtbot.mouseDClick(mw_esofile1_all.current_view.viewport(), Qt.LeftButton, pos=point)

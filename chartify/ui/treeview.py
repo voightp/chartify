@@ -187,22 +187,22 @@ class TreeView(QTreeView):
 
     def get_visual_column_data(self) -> Tuple[str, ...]:
         """ Return sorted column data (by visual index). """
-        dct_items = sorted(self.get_visual_column_mapping().items(), key=lambda x: x[1])
+        dct_items = sorted(self.get_visual_column_indexes().items(), key=lambda x: x[1])
         return tuple([t[0] for t in dct_items])
 
     def get_sort_indicator(self) -> Tuple[int, Qt.SortOrder]:
         """ Get last sorted column and indicator. """
         return self.proxy_model.sortColumn(), self.proxy_model.sortOrder()
 
-    def get_visual_column_mapping(self) -> Dict[str, int]:
+    def get_visual_column_indexes(self) -> Dict[str, int]:
         """ Get a dictionary of section visual index pairs. """
-        logical_mapping = self.source_model.get_logical_column_mapping()
+        logical_mapping = self.source_model.get_logical_column_indexes()
         return {k: self.header().visualIndex(i) for k, i in logical_mapping.items()}
 
     def reorder_columns(self, column_order: Tuple[str, ...]):
         """ Reset column positions to match last visual appearance. """
         for i, name in enumerate(column_order):
-            vis_indexes = self.get_visual_column_mapping()
+            vis_indexes = self.get_visual_column_indexes()
             j = vis_indexes[name]
             if i != j:
                 self.header().moveSection(j, i)
@@ -253,8 +253,8 @@ class TreeView(QTreeView):
             stretch = self.source_model.get_logical_column_number(KEY_LEVEL)
             self.header().setSectionResizeMode(stretch, QHeaderView.Stretch)
         else:
-            log_ixs = self.source_model.get_logical_column_mapping()
-            vis_ixs = self.get_visual_column_mapping()
+            log_ixs = self.source_model.get_logical_column_indexes()
+            vis_ixs = self.get_visual_column_indexes()
 
             # units column width is always fixed
             fixed = log_ixs[PROXY_UNITS_LEVEL]

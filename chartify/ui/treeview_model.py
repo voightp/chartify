@@ -1,6 +1,6 @@
 import contextlib
 from collections import namedtuple
-from typing import Dict, Optional, List, Set
+from typing import Dict, Optional, List, Set, Tuple
 
 import pandas as pd
 from PySide2.QtCore import (
@@ -66,6 +66,15 @@ def is_variable_attr_identical(view_variables: List[VV], attr: str) -> bool:
     """ Check if all variables use the same attribute text. """
     first_attr = view_variables[0].__getattribute__(attr)
     return all(map(lambda x: x.__getattribute__(attr) == first_attr, view_variables))
+
+
+def order_view_variable_by_header(view_variable: VV, column_data: List[str]) -> List[str]:
+    """ Transform view variable to list sorted by column order. """
+    return [
+        view_variable.__getattribute__(name)
+        for name in column_data
+        if name != PROXY_UNITS_LEVEL
+    ]
 
 
 class FileModelMismatch(Exception):
@@ -193,8 +202,8 @@ class ViewModel(QStandardItemModel):
     ) -> Dict[str, str]:
         """ Get item text as column data : text dictionary. """
         row_display_data = self.get_row_display_data(row_number, parent_index=parent_index)
-        column_mapping = self.get_logical_column_mapping()
-        return {k: row_display_data[v] for k, v in column_mapping.items()}
+        column_indexes = self.get_logical_column_indexes()
+        return {k: row_display_data[v] for k, v in column_indexes.items()}
 
     def get_row_view_variable(
         self, row_number: int, parent_index: Optional[QModelIndex] = None
@@ -217,10 +226,10 @@ class ViewModel(QStandardItemModel):
         """ Get a logical index of a given section title. """
         return self.get_logical_column_data().index(data)
 
-    def get_logical_column_mapping(self) -> Dict[str, int]:
-        """ Return logical positions of header labels. """
+    def get_logical_column_indexes(self) -> Dict[str, int]:
+        """ Return logical positions of header labels, ordered by values. """
         data = self.get_logical_column_data()
-        return {k: data.index(k) for k in data}
+        return dict(sorted({k: data.index(k) for k in data}.items(), key=lambda x: x[0]))
 
     def get_parent_text_from_variables(self, variables: List[VV]) -> Optional[Set[str]]:
         """ Extract parent part of variable from given list. """
@@ -231,39 +240,48 @@ class ViewModel(QStandardItemModel):
         """ Check if the row is a parent row. """
         return self.item(row_number, 0).hasChildren()
 
-    def get_matching_selection(self, variables: List[VV]) -> QItemSelection:
-        """ Find selection matching given list of variables. """
+    def find_check_columns(self) -> Tuple[str, List[str]]:
+        column_data = self.get_logical_column_data()
+        if column_data[0] == PROXY_UNITS_LEVEL:
+            first_check_column = column_data[1]
+            second_check_columns = column_data[2:]
+        else:
+            first_check_column = column_data[0]
+            second_check_columns = [c for c in column_data[1:] if c != PROXY_UNITS_LEVEL]
+        return first_check_column, second_check_columns
 
-        # TODO use native functions to find selection
-
-        def tree_node_matches():
-            if self.tree_node == PROXY_UNITS_LEVEL:
-                # proxy units are not stored in variable data
-                return True
-            else:
-                parent_text = self.get_display_data_at_index(index)
-                return parent_text in variables_parent_text
-
-        def variable_matches():
-            return row_view_variable in variables
-
-        # this is used to quickly check if parent matches given list
-        # if the parent does not match, any of children cannot match
-        # and all the children can be therefore skipped
-        variables_parent_text = self.get_parent_text_from_variables(variables)
-
+    def get_matching_selection(self, view_variables: List[VV]) -> QItemSelection:
+        first_check_column, second_check_columns = self.find_check_columns()
+        column_indexes = self.get_logical_column_indexes()
+        first_check_column_number = column_indexes[first_check_column]
+        second_check_column_numbers = [column_indexes[name] for name in second_check_columns]
+        column_data = self.get_logical_column_data()
         selection = QItemSelection()
-        for i in range(self.rowCount()):
-            index = self.index(i, 0)
-            if self.is_tree_node_row(i) and tree_node_matches():
-                for j in range(self.rowCount(index)):
-                    row_view_variable = self.get_row_view_variable(j, index)
-                    if variable_matches():
-                        selection.append(QItemSelectionRange(self.index(j, 0, index)))
+        for view_variable in view_variables:
+            ordered = order_view_variable_by_header(view_variable, column_data)
+            first_check = ordered[0]
+            second_check = ordered[1:]
+            if self.tree_node == PROXY_UNITS_LEVEL:
+                items = [self.item(i, 0) for i in range(self.rowCount())]
             else:
-                row_view_variable = self.get_row_view_variable(i)
-                if variable_matches():
-                    selection.append(QItemSelectionRange(index))
+                items = self.findItems(first_check, column=first_check_column_number)
+
+            for item in items:
+                index = self.indexFromItem(item)
+                if self.hasChildren(index):
+                    for i in range(item.rowCount()):
+                        child_items = [item.child(i, j) for j in second_check_column_numbers]
+                        child_text = [child_item.text() for child_item in child_items]
+                        if child_text == second_check:
+                            child_index = self.indexFromItem(child_items[0])
+                            selection.append(QItemSelectionRange(child_index))
+                else:
+                    text = [
+                        self.data(self.index(index.row(), j))
+                        for j in second_check_column_numbers
+                    ]
+                    if text == second_check:
+                        selection.append(QItemSelectionRange(index))
         return selection
 
     def is_similar(self, other_model: Optional["ViewModel"], rows_diff: float = 0.05):
@@ -307,10 +325,10 @@ class ViewModel(QStandardItemModel):
 
     def create_status_tip_from_row(self, row_display_data: List[str]) -> str:
         """ Create status tip string from row text. """
-        column_mapping = self.get_logical_column_mapping()
-        key = row_display_data[column_mapping[KEY_LEVEL]]
-        type_ = row_display_data[column_mapping[TYPE_LEVEL]] if not self.is_simple else None
-        proxy_units = row_display_data[column_mapping[PROXY_UNITS_LEVEL]]
+        column_indexes = self.get_logical_column_indexes()
+        key = row_display_data[column_indexes[KEY_LEVEL]]
+        type_ = row_display_data[column_indexes[TYPE_LEVEL]] if not self.is_simple else None
+        proxy_units = row_display_data[column_indexes[PROXY_UNITS_LEVEL]]
         if type_ is None:
             status_tip = f"{key} | {proxy_units}"
         else:
@@ -552,7 +570,7 @@ class ViewModel(QStandardItemModel):
         if self.is_simple:
             unordered_items.pop(TYPE_LEVEL)
         row = [""] * len(unordered_items)
-        for column, index in self.get_logical_column_mapping().items():
+        for column, index in self.get_logical_column_indexes().items():
             row[index] = unordered_items[column]
         return row
 
@@ -580,8 +598,13 @@ class ViewModel(QStandardItemModel):
             item.setText(text)
 
     def update_variable_in_model(
-        self, old_view_variable: VV, new_view_variable: VV, row: int, parent_index: QModelIndex
+        self,
+        old_view_variable: VV,
+        new_variable: VariableType,
+        row: int,
+        parent_index: QModelIndex,
     ) -> None:
+        new_view_variable = convert_variable_to_view_variable(new_variable)
         if self.tree_node is not None and self.variable_tree_node_text_changed(
             new_view_variable, old_view_variable
         ):
@@ -590,27 +613,35 @@ class ViewModel(QStandardItemModel):
         else:
             self.update_row(new_view_variable, row, parent_index)
 
+    def update_variable_in_file(
+        self, old_view_variable: VV, new_key: str, new_type: Optional[str]
+    ) -> VariableType:
+        old_variable = convert_view_variable_to_variable(old_view_variable, self.name)
+        res = self._file_ref.rename_variable(old_variable, new_key, new_type)
+        if res is not None:
+            return res[1]
+
     def update_variable(self, row: int, parent_index: QModelIndex, view_variable: VV) -> None:
         """ Update row identified by row and parent index. """
         old_view_variable = self.get_row_view_variable(row, parent_index)
-        old_variable = convert_view_variable_to_variable(old_view_variable, self.name)
-        _, new_variable = self._file_ref.rename_variable(
-            old_variable, view_variable.key, view_variable.type
+        new_variable = self.update_variable_in_file(
+            old_view_variable, view_variable.key, view_variable.type
         )
-        if self.initialized:
-            new_view_variable = convert_variable_to_view_variable(new_variable)
-            self.update_variable_in_model(
-                old_view_variable, new_view_variable, row, parent_index
-            )
+        if new_variable:
+            self.update_variable_in_model(old_view_variable, new_variable, row, parent_index)
 
-    def update_variable_if_exists(self, view_variable: VV, new_view_variable: VV,) -> None:
+    def update_variable_if_exists(self, old_view_variable: VV, view_variable: VV,) -> None:
         """ Update row identified by VV. """
-        indexes = self.get_matching_selection([view_variable]).indexes()
-        if indexes:
-            index = indexes[0]
-            row = index.row()
-            parent = index.parent()
-            self.update_variable(row, parent, new_view_variable)
+        old_variable = convert_view_variable_to_variable(old_view_variable, self.name)
+        if self._file_ref.search_tree.variable_exists(old_variable):
+            new_variable = self.update_variable_in_file(
+                old_view_variable, view_variable.key, view_variable.type
+            )
+            if self.initialized and new_variable:
+                indexes = self.get_matching_selection([view_variable]).indexes()
+                row = indexes[0].row()
+                parent = indexes[0].parent()
+                self.update_variable_in_model(old_view_variable, new_variable, row, parent)
 
     def delete_rows_from_model(self, view_variables: List[VV]):
         """ Delete given variables from model. """

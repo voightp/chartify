@@ -1,3 +1,4 @@
+import tempfile
 from pathlib import Path
 from unittest.mock import patch
 
@@ -200,16 +201,19 @@ class TestMWLayout:
             assert mock_settings.MIRRORED
             assert pretty_mw.central_splitter.sizes() == [654, 540]
 
-    def test_initial_mirrored_layout(self, pretty_mw):
-        Settings.MIRRORED = True
-        mw = MainWindow()
-        mw.show()
-        pretty_mw.mirror_layout()
-        assert pretty_mw.left_main_layout.itemAt(1).widget() == pretty_mw.toolbar
-        assert pretty_mw.left_main_layout.itemAt(0).widget() == pretty_mw.view_wgt
-        assert pretty_mw.central_splitter.widget(1) == pretty_mw.left_main_wgt
-        assert pretty_mw.central_splitter.widget(0) == pretty_mw.right_main_wgt
-        assert pretty_mw.central_splitter.sizes() == [654, 540]
+    def test_initial_mirrored_layout(self, qtbot, test_tempdir):
+        with tempfile.TemporaryDirectory(prefix="chartify", dir=test_tempdir) as fix_dir:
+            Settings.APP_TEMP_DIR = Path(fix_dir)
+            Settings.load_settings_from_json()
+            with patch("chartify.ui.main_window.Settings.MIRRORED") as mock:
+                mock.return_value = True
+                mw = MainWindow()
+                qtbot.add_widget(mw)
+                mw.show()
+                assert mw.left_main_layout.itemAt(1).widget() == mw.toolbar
+                assert mw.left_main_layout.itemAt(0).widget() == mw.view_wgt
+                assert mw.central_splitter.widget(1) == mw.left_main_wgt
+                assert mw.central_splitter.widget(0) == mw.right_main_wgt
 
     def test_on_color_scheme_changed(self, qtbot, mw):
         with patch("chartify.ui.main_window.Settings") as mock_settings:

@@ -381,7 +381,7 @@ def test_get_visual_data(hourly: TreeView):
 
 
 def test_get_visual_ixs(hourly: TreeView):
-    assert hourly.get_visual_column_mapping() == {
+    assert hourly.get_visual_column_indexes() == {
         "type": 0,
         "key": 1,
         "proxy_units": 2,
