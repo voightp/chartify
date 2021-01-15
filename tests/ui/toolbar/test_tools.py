@@ -53,7 +53,7 @@ class TestRemoveVariable:
                 det_text="Boiler Gas Rate | W\nGas:Facility | J",
             )
 
-    @pytest.mark.depends(on="test_confirm_remove_variables")
+    @pytest.mark.depends(on="test_confirm_remove_variables_simple")
     def test_remove_variable_simple(self, qtbot, mw_combined_file):
         exist = mw_combined_file.current_view.source_model.variables_exist(
             self.SIMPLE_VARIABLES

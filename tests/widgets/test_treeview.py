@@ -9,9 +9,12 @@ from esofile_reader.df.level_names import UNITS_LEVEL
 from chartify.settings import OutputType
 from chartify.ui.treeview import TreeView, ViewType, ViewMask
 from chartify.ui.treeview_model import FilterModel, ViewModel, VV, FilterTuple
-from tests.conftest import ESO_FILE_EXCEL_PATH
+from tests.conftest import ESO_FILE_EXCEL_PATH, EXCEL_FILE_PATH
+from tests.ui.test_view_mask import reset_cached
 
 default_units = dict(energy_units="J", rate_units="W", units_system="SI", rate_to_energy=False)
+
+reset_cached = reset_cached
 
 
 @pytest.fixture(scope="session")
@@ -19,10 +22,22 @@ def session_treeview_test_file():
     return GenericFile.from_excel(ESO_FILE_EXCEL_PATH)
 
 
+@pytest.fixture(scope="session")
+def session_treeview_small_file():
+    return GenericFile.from_excel(EXCEL_FILE_PATH, sheet_names=["full-template-daily"])
+
+
 @pytest.fixture(scope="function")
 def treeview_test_file(session_treeview_test_file):
     copied_file = copy(session_treeview_test_file)
     copied_file.id_ = 0  # mock id attribute
+    return copied_file
+
+
+@pytest.fixture(scope="function")
+def treeview_small_file(session_treeview_small_file):
+    copied_file = copy(session_treeview_small_file)
+    copied_file.id_ = 1  # mock id attribute
     return copied_file
 
 
@@ -48,8 +63,23 @@ def hourly(qtbot, treeview_test_file):
 
 
 @pytest.fixture(scope="function")
+def daily_not_initialized(qtbot, treeview_test_file):
+    model = ViewModel("daily", treeview_test_file)
+    treeview = TreeView(model, OutputType.STANDARD)
+    treeview.setFixedWidth(419)
+    qtbot.addWidget(treeview)
+    treeview.show()
+    return treeview
+
+
+@pytest.fixture(scope="function")
 def daily(qtbot, treeview_test_file):
     return _setup_treeview(qtbot, treeview_test_file, "daily")
+
+
+@pytest.fixture(scope="function")
+def small_daily(qtbot, treeview_small_file):
+    return _setup_treeview(qtbot, treeview_small_file, "daily")
 
 
 @pytest.fixture(scope="function")
@@ -130,6 +160,41 @@ def test_first_column_spanned(hourly: TreeView):
                 assert not hourly.isFirstColumnSpanned(j, index)
         else:
             assert not hourly.isFirstColumnSpanned(i, hourly.rootIndex())
+
+
+@pytest.mark.parametrize(
+    "column, expected",
+    [
+        (
+            "type",
+            [
+                "Site Diffuse Solar Radiation Rate per Area",
+                "Zone Mean Air Humidity Ratio",
+                "Zone Mean Air Temperature",
+                "Zone People Occupant Count",
+                "Zone People Occupant Count",
+                "Zone People Occupant Count",
+                "Zone People Occupant Count",
+            ],
+        ),
+        (
+            "key",
+            [
+                "Environment",
+                "BLOCK1:ZONE1",
+                "BLOCK1:ZONE1",
+                "BLOCK1:ZONE1",
+                "BLOCK2:ZONE1",
+                "BLOCK3:ZONE1",
+                "BLOCK4:ZONE1",
+            ],
+        ),
+        ("units", ["W/m2", "kgWater/kgDryAir", "C", "", "", "", ""]),
+        ("proxy_units", ["W/m2", "kgWater/kgDryAir", "C", "-", "-", "-", "-"]),
+    ],
+)
+def test_column_data_from_model(qtbot, small_daily, column, expected):
+    assert expected == small_daily.source_model.get_column_data_from_model(column)
 
 
 def test_initial_view_appearance_hidden_source(hourly: TreeView):
@@ -565,3 +630,13 @@ def test_needs_units_update(tree_view, rate, energy, system, rate_to_energy, upd
         rate, energy, system, rate_to_energy
     )
     assert needs_update is update
+
+
+def test_proxy_units_tree_column_update(qtbot, small_daily):
+    # TODO proxy units update coverage
+    units = dict(energy_units="kWh", rate_units="kW", units_system="IP", rate_to_energy=True)
+    small_daily.header().moveSection(2, 0)
+    with ViewMask(small_daily) as mask:
+        mask.update_treeview(small_daily, is_tree=True, units_kwargs=units)
+    expected = ["-", "-", "-", "-", "F", "kWh/m2", "kgWater/kgDryAir"]
+    assert expected == small_daily.source_model.get_column_data_from_model("proxy_units")

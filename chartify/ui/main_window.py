@@ -560,13 +560,13 @@ class MainWindow(QMainWindow):
         old_view_variable: VV,
     ) -> None:
         old_key = old_view_variable.key
-        key_blocker = set(treeview.get_current_column_data(KEY_LEVEL))
+        key_blocker = set(treeview.get_items_text_for_column(KEY_LEVEL))
         key_blocker.remove(old_key)
         if treeview.source_model.is_simple:
             res = self.confirm_rename_simple_variable(old_key, key_blocker)
         else:
             old_type = old_view_variable.type
-            type_blocker = set(treeview.get_current_column_data(TYPE_LEVEL))
+            type_blocker = set(treeview.get_items_text_for_column(TYPE_LEVEL))
             type_blocker.remove(old_type)
             res = self.confirm_rename_variable(old_key, old_type, key_blocker, type_blocker)
 

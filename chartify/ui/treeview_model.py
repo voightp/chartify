@@ -140,7 +140,22 @@ class ViewModel(QStandardItemModel):
 
     def get_column_data(self, column: str) -> List[str]:
         """ Get all column items. """
-        return self.header_df.loc[:, column]
+        return self.header_df.loc[:, column].tolist()
+
+    def get_column_data_from_model(self, column: str) -> List[str]:
+        """ Get all column items. """
+        n = self.get_logical_column_number(column)
+        column_data = []
+        for i in range(self.rowCount()):
+            parent_index = self.index(i, 0)
+            if self.hasChildren(parent_index):
+                for j in range(self.rowCount(parent_index)):
+                    child_index = self.index(j, n, parent_index)
+                    column_data.append(self.get_display_data_at_index(child_index))
+            else:
+                index = parent_index if n == 0 else self.index(i, n)
+                column_data.append(self.get_display_data_at_index(index))
+        return column_data
 
     def count_rows(self) -> int:
         """ Calculate total number of rows (including child rows). """
@@ -381,7 +396,8 @@ class ViewModel(QStandardItemModel):
         if self.tree_node:
             # tree column needs to be first
             new_columns = header_df.columns.tolist()
-            new_columns.insert(0, new_columns.pop(new_columns.index(self.tree_node)))
+            item = new_columns.pop(new_columns.index(self.tree_node))
+            new_columns.insert(0, item)
             header_df = header_df.loc[:, new_columns]
         return header_df
 

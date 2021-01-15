@@ -3,24 +3,21 @@ from concurrent.futures import ProcessPoolExecutor
 from tests.conftest import *
 
 
-@pytest.fixture(scope="function", autouse=True)
-def override_pool_executor(qtbot, mw, controller):
-    controller.pool = ProcessPoolExecutor()  # reusable executor crashes
-
-
 class TestLoadFiles:
+    @pytest.fixture(scope="function", autouse=True)
+    def override_pool_controller(self, qtbot, mw, controller):
+        controller.pool = ProcessPoolExecutor()  # reusable executor crashes
+
     def test_load_standard_files(self, qtbot, mw, controller):
         with qtbot.wait_signals([controller.watcher.file_loaded] * 3, timeout=10000):
-            controller.on_file_processing_requested(
-                [ESO_FILE1_PATH, ESO_FILE2_PATH, EXCEL_FILE_PATH]
-            )
+            mw.load_files_from_paths([ESO_FILE1_PATH, ESO_FILE2_PATH, EXCEL_FILE_PATH])
         assert mw.standard_tab_wgt.count() == 3
 
     def test_load_standard_files_synchronously(self, qtbot, mw, controller):
         with qtbot.wait_signals(
             [controller.watcher.file_loaded, controller.watcher.file_loaded], timeout=5000
         ):
-            controller.on_sync_file_processing_requested([ESO_FILE1_PATH, ESO_FILE2_PATH])
+            mw.load_files_from_paths_synchronously([ESO_FILE1_PATH, ESO_FILE2_PATH])
         assert mw.standard_tab_wgt.count() == 2
 
     def test_progress_signals(self, qtbot, mw, controller):
@@ -36,12 +33,12 @@ class TestLoadFiles:
             ],
             timeout=10000,
         ):
-            controller.on_file_processing_requested([ESO_FILE1_PATH])
+            mw.load_files_from_paths([ESO_FILE1_PATH])
 
-    def test_progress_signals_fail(self, qtbot, controller):
-        with qtbot.wait_signal(controller.progress_thread.failed, timeout=5000):
-            controller.on_file_processing_requested([ESO_FILE_INCOMPLETE])
+    def test_progress_signals_fail(self, qtbot, mw, controller):
+        with qtbot.wait_signal(controller.progress_thread.failed, timeout=10000):
+            mw.load_files_from_paths([ESO_FILE_INCOMPLETE])
 
-    def test_load_unsupported_file(self, qtbot, controller):
-        with qtbot.wait_signal(controller.progress_thread.failed, timeout=5000):
-            controller.on_sync_file_processing_requested([Path("foo.bar")])
+    def test_load_unsupported_file(self, qtbot, mw, controller):
+        with qtbot.wait_signal(controller.progress_thread.failed, timeout=10000):
+            mw.load_files_from_paths([Path("foo.bar")])

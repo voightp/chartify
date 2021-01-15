@@ -451,7 +451,7 @@ class TreeView(QTreeView):
         else:
             self.selectionCleared.emit()
 
-    def get_current_column_data(self, column: str) -> List[str]:
+    def get_items_text_for_column(self, column: str) -> List[str]:
         """ Get all item text for given column. """
         return self.source_model.get_column_data(column)
 

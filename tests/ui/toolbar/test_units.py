@@ -94,10 +94,35 @@ def test_rate_to_energy_when_rate_to_energy_not_allowed(qtbot, mw_combined_file)
     assert not mw_combined_file.toolbar.rate_energy_btn.isEnabled()
 
 
-def test_custom_units_toggle_when_rate_to_energy_not_allowed(qtbot, mw_combined_file):
+def test_rate_to_energy_not_allowed_on_table_change(qtbot, mw_combined_file):
     mw_combined_file.toolbar.rate_energy_btn.setChecked(True)
     with qtbot.wait_signal(mw_combined_file.toolbar.tableChangeRequested):
         qtbot.mouseClick(
             mw_combined_file.toolbar.get_table_button_by_name("monthly-no-ndays"), Qt.LeftButton
         )
     assert not mw_combined_file.toolbar.rate_energy_btn.isEnabled()
+
+
+def test_custom_units_toggle_when_rate_to_energy_not_allowed(qtbot, mw_combined_file):
+    mw_combined_file.toolbar.custom_units_toggle.setChecked(False)
+    with qtbot.wait_signal(mw_combined_file.toolbar.tableChangeRequested):
+        qtbot.mouseClick(
+            mw_combined_file.toolbar.get_table_button_by_name("monthly-no-ndays"), Qt.LeftButton
+        )
+    mw_combined_file.toolbar.custom_units_toggle.setChecked(True)
+    assert not mw_combined_file.toolbar.rate_energy_btn.isEnabled()
+
+
+def test_custom_units_toggle_when_(qtbot, mw_combined_file):
+    mw_combined_file.toolbar.rate_energy_btn.setChecked(True)
+    with qtbot.wait_signal(mw_combined_file.toolbar.tableChangeRequested):
+        qtbot.mouseClick(
+            mw_combined_file.toolbar.get_table_button_by_name("monthly-no-ndays"), Qt.LeftButton
+        )
+    assert not mw_combined_file.toolbar.rate_energy_btn.isEnabled()
+
+
+def test_show_source_units(qtbot, mw_combined_file):
+    mw_combined_file.toolbar.source_units_toggle.setChecked(True)
+    source_units_column = mw_combined_file.current_model.get_logical_column_number("units")
+    assert not mw_combined_file.current_view.header().isSectionHidden(source_units_column)

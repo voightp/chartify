@@ -184,9 +184,8 @@ class TestKeyEvents:
             mock.assert_not_called()
 
     def test_escape_key_event(self, qtbot, mw_esofile):
-        with patch("chartify.ui.main_window.TreeView.deselect_all_variables") as mock:
+        with qtbot.wait_signal(mw_esofile.current_view.selectionCleared):
             qtbot.keyClick(mw_esofile, Qt.Key_Escape)
-            mock.assert_called_once()
 
 
 class TestMWLayout:
