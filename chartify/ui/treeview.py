@@ -495,6 +495,7 @@ class TreeViewAppearance:
             treeview.expand_items(self.expanded)
         treeview.update_scrollbar_position(self.scroll_position)
         if self.selected:
+            treeview.deselect_all_variables()
             treeview.select_variables(self.selected)
 
 
