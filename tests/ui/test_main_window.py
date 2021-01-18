@@ -170,27 +170,6 @@ class TestMainWindowInit:
         assert [p for p in Path(Settings.APP_TEMP_DIR, "icons").iterdir() if p.suffix == ".png"]
 
 
-class TestKeyEvents:
-    def test_delete_key_event_empty(self, qtbot, mw):
-        mw.setFocus()
-        with qtbot.assert_not_emitted(mw.remove_variables_act.triggered):
-            qtbot.keyClick(mw, Qt.Key_Delete)
-
-    def test_delete_key_event(self, qtbot, mw_esofile):
-        mw_esofile.setFocus()
-        with qtbot.wait_signal(mw_esofile.remove_variables_act.triggered):
-            qtbot.keyClick(mw_esofile, Qt.Key_Delete)
-
-    def test_escape_key_event_empty(self, qtbot, mw):
-        with patch("chartify.ui.main_window.TreeView.deselect_all_variables") as mock:
-            qtbot.keyClick(mw, Qt.Key_Escape)
-            mock.assert_not_called()
-
-    def test_escape_key_event(self, qtbot, mw_esofile):
-        with qtbot.wait_signal(mw_esofile.current_view.selectionCleared):
-            qtbot.keyClick(mw_esofile, Qt.Key_Escape)
-
-
 class TestMWLayout:
     def test_mirror_layout(self, pretty_mw):
         with patch("chartify.ui.main_window.Settings") as mock_settings:
@@ -297,3 +276,24 @@ class TestRemoveFile:
             instance.exec_.return_value = 1
             mw_esofile.standard_tab_wgt.closeTabRequested.emit(mw_esofile.standard_tab_wgt, 1)
         assert 1 not in model.storage.files
+
+
+class TestKeyEvents:
+    def test_delete_key_event_empty(self, qtbot, mw):
+        mw.setFocus()
+        with qtbot.assert_not_emitted(mw.remove_variables_act.triggered):
+            qtbot.keyClick(mw, Qt.Key_Delete)
+
+    def test_delete_key_event(self, qtbot, mw_esofile):
+        mw_esofile.setFocus()
+        with qtbot.wait_signal(mw_esofile.remove_variables_act.triggered):
+            qtbot.keyClick(mw_esofile, Qt.Key_Delete)
+
+    def test_escape_key_event_empty(self, qtbot, mw):
+        with patch("chartify.ui.main_window.TreeView.deselect_all_variables") as mock:
+            qtbot.keyClick(mw, Qt.Key_Escape)
+            mock.assert_not_called()
+
+    def test_escape_key_event(self, qtbot, mw_esofile):
+        with qtbot.wait_signal(mw_esofile.current_view.selectionCleared):
+            qtbot.keyClick(mw_esofile, Qt.Key_Escape)

@@ -1,11 +1,13 @@
 import pathlib
 import tempfile
+from concurrent.futures import ProcessPoolExecutor
 from copy import copy
 from pathlib import Path
 from unittest import mock
+from unittest.mock import Mock
 
 import pytest
-from PySide2.QtWidgets import QAction
+from PySide2.QtWidgets import QWidget
 from esofile_reader import GenericFile
 from esofile_reader.pqt.parquet_storage import ParquetStorage
 
@@ -149,12 +151,14 @@ def app_setup(qtbot, test_tempdir):
         Settings.APP_TEMP_DIR = Path(fix_dir)
         Settings.load_settings_from_json()
         with mock.patch("chartify.ui.main_window.MainWindow.load_css_and_icons"):
-            with mock.patch("chartify.ui.main_window.MainWindow.create_scheme_actions") as func:
-                func.return_value = ([QAction()], QAction())
+            with mock.patch("chartify.ui.main_window.QWebEngineView") as wgt:
+                wgt.return_value = QWidget()
                 main_window = MainWindow()
                 model = AppModel()
-                wv_controller = WVController(model, main_window.web_view)
+                wv_controller = Mock()
+                # wv_controller = WVController(model, main_window.web_view)
                 controller = AppController(model, main_window, wv_controller)
+                controller.pool = ProcessPoolExecutor()  # reusable executor crashes
                 qtbot.add_widget(main_window)
                 main_window.show()
                 yield model, main_window, controller

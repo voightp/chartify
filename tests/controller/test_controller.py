@@ -1,13 +1,9 @@
-from concurrent.futures import ProcessPoolExecutor
+from pathlib import Path
 
-from tests.conftest import *
+from tests.conftest import ESO_FILE_INCOMPLETE, ESO_FILE1_PATH, ESO_FILE2_PATH, EXCEL_FILE_PATH
 
 
 class TestLoadFiles:
-    @pytest.fixture(scope="function", autouse=True)
-    def override_pool_controller(self, qtbot, mw, controller):
-        controller.pool = ProcessPoolExecutor()  # reusable executor crashes
-
     def test_load_standard_files(self, qtbot, mw, controller):
         with qtbot.wait_signals([controller.watcher.file_loaded] * 3, timeout=10000):
             mw.load_files_from_paths([ESO_FILE1_PATH, ESO_FILE2_PATH, EXCEL_FILE_PATH])
