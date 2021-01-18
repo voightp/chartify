@@ -168,7 +168,7 @@ class CssParser:
     @classmethod
     def parse_line(cls, line: str, color_key: str, rgb: Tuple[int, int, int]) -> str:
         """ Get a color string or tuple. """
-        pattern = f"(.*){color_key}\s?#?(\d\d)?;?"
+        pattern = rf"(.*){color_key}\s?#?(\d\d)?;?"
         prop, opacity = re.findall(pattern, line)[0]
         rgb = rgb if not opacity else (*rgb, perc_to_float(opacity))
         return f"{prop}{string_rgb(rgb)};\n"
@@ -176,7 +176,7 @@ class CssParser:
     @classmethod
     def parse_url(cls, line: str, color_key: str) -> Tuple[str, str, Optional[float]]:
         """ Parse a line with an url. """
-        pattern = f"(.*)URL\((.*?)\)\s?#{color_key}\s?#?(\d\d)?;"
+        pattern = rf"(.*)URL\((.*?)\)\s?#{color_key}\s?#?(\d\d)?;"
         try:
             tup = re.findall(pattern, line)
             prop, url, opacity = tup[0]
