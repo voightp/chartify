@@ -1,6 +1,6 @@
 import contextlib
 from collections import namedtuple
-from typing import Dict, Optional, List, Set, Tuple
+from typing import Dict, Optional, List
 
 import pandas as pd
 from PySide2.QtCore import (
@@ -199,10 +199,9 @@ class ViewModel(QStandardItemModel):
         return data
 
     def get_row_display_data(
-        self, row_number: int, parent_index: Optional[QModelIndex] = None
+        self, row_number: int, parent_index: Optional[QModelIndex] = QModelIndex()
     ) -> List[str]:
         """ Get item text as column name : text dictionary. """
-        parent_index = parent_index if parent_index else QModelIndex()
         display_data = []
         for i in range(self.columnCount()):
             index = self.index(row_number, i, parent_index)
@@ -246,57 +245,51 @@ class ViewModel(QStandardItemModel):
         data = self.get_logical_column_data()
         return dict(sorted({k: data.index(k) for k in data}.items(), key=lambda x: x[0]))
 
-    def get_parent_text_from_variables(self, variables: List[VV]) -> Optional[Set[str]]:
-        """ Extract parent part of variable from given list. """
-        if self.tree_node and self.tree_node != PROXY_UNITS_LEVEL:
-            return {v.__getattribute__(self.tree_node) for v in variables}
-
-    def is_tree_node_row(self, row_number: int) -> bool:
-        """ Check if the row is a parent row. """
-        return self.item(row_number, 0).hasChildren()
-
-    def find_check_columns(self) -> Tuple[str, List[str]]:
+    def find_selection(self, ordered_variable: List[str]) -> QItemSelectionRange:
         column_data = self.get_logical_column_data()
-        if column_data[0] == PROXY_UNITS_LEVEL:
-            first_check_column = column_data[1]
-            second_check_columns = column_data[2:]
-        else:
-            first_check_column = column_data[0]
-            second_check_columns = [c for c in column_data[1:] if c != PROXY_UNITS_LEVEL]
-        return first_check_column, second_check_columns
+        column_data.remove(PROXY_UNITS_LEVEL)
+        column_indexes = self.get_logical_column_indexes()
+        first_check_column = column_indexes[column_data[0]]
+        second_check_columns = [column_indexes[c] for c in column_data[1:]]
+        items = self.findItems(ordered_variable[0], column=first_check_column)
+        for item in items:
+            index = self.indexFromItem(item)
+            if self.hasChildren(index):
+                for i in range(item.rowCount()):
+                    child_items = [item.child(i, j) for j in second_check_columns]
+                    child_text = [child_item.text() for child_item in child_items]
+                    if child_text == ordered_variable[1:]:
+                        child_index = self.indexFromItem(child_items[0])
+                        return QItemSelectionRange(child_index)
+            else:
+                text = [self.data(self.index(index.row(), j)) for j in second_check_columns]
+                if text == ordered_variable[1:]:
+                    return QItemSelectionRange(index)
+
+    def find_selection_for_proxy_units(
+        self, ordered_variable: List[str]
+    ) -> QItemSelectionRange:
+        for i in range(self.rowCount()):
+            index = self.index(i, 0)
+            if self.hasChildren(index):
+                for j in range(self.rowCount(index)):
+                    if self.get_row_display_data(j, index)[1:] == ordered_variable:
+                        return QItemSelectionRange(self.index(j, 0, index))
+            else:
+                if self.get_row_display_data(i)[1:] == ordered_variable:
+                    return QItemSelectionRange(index)
 
     def get_matching_selection(self, view_variables: List[VV]) -> QItemSelection:
-        first_check_column, second_check_columns = self.find_check_columns()
-        column_indexes = self.get_logical_column_indexes()
-        first_check_column_number = column_indexes[first_check_column]
-        second_check_column_numbers = [column_indexes[name] for name in second_check_columns]
-        column_data = self.get_logical_column_data()
         selection = QItemSelection()
+        column_data = self.get_logical_column_data()
         for view_variable in view_variables:
-            ordered = order_view_variable_by_header(view_variable, column_data)
-            first_check = ordered[0]
-            second_check = ordered[1:]
+            ordered_variable = order_view_variable_by_header(view_variable, column_data)
             if self.tree_node == PROXY_UNITS_LEVEL:
-                items = [self.item(i, 0) for i in range(self.rowCount())]
+                selection_range = self.find_selection_for_proxy_units(ordered_variable)
             else:
-                items = self.findItems(first_check, column=first_check_column_number)
-
-            for item in items:
-                index = self.indexFromItem(item)
-                if self.hasChildren(index):
-                    for i in range(item.rowCount()):
-                        child_items = [item.child(i, j) for j in second_check_column_numbers]
-                        child_text = [child_item.text() for child_item in child_items]
-                        if child_text == second_check:
-                            child_index = self.indexFromItem(child_items[0])
-                            selection.append(QItemSelectionRange(child_index))
-                else:
-                    text = [
-                        self.data(self.index(index.row(), j))
-                        for j in second_check_column_numbers
-                    ]
-                    if text == second_check:
-                        selection.append(QItemSelectionRange(index))
+                selection_range = self.find_selection(ordered_variable)
+            if selection_range is not None:
+                selection.append(selection_range)
         return selection
 
     def is_similar(self, other_model: Optional["ViewModel"], rows_diff: float = 0.05):
@@ -484,25 +477,33 @@ class ViewModel(QStandardItemModel):
 
     def update_proxy_units_parent_column(self, conversion_look_up: Dict[str, str]):
         """ Update proxy units parent column accordingly to conversion look up. """
+        proxy_units_column_number = self.get_logical_column_number(PROXY_UNITS_LEVEL)
+        source_units_column_number = self.get_logical_column_number(UNITS_LEVEL)
         for i in range(self.rowCount()):
-            if self.is_tree_node_row(row_number=i):
+            if self.item(i, 0).hasChildren():
                 self.update_proxy_units_parent_item(i, conversion_look_up)
             else:
-                self.update_proxy_units_item(i, 0, conversion_look_up, QModelIndex())
+                self.update_proxy_units_item(
+                    row=i,
+                    proxy_units_column=proxy_units_column_number,
+                    source_units_column=source_units_column_number,
+                    conversion_look_up=conversion_look_up,
+                    parent_index=QModelIndex(),
+                )
 
     def update_proxy_units_item(
         self,
         row: int,
-        proxy_column: int,
-        source_column: int,
+        proxy_units_column: int,
+        source_units_column: int,
         conversion_look_up: Dict[str, str],
         parent_index: QModelIndex,
     ) -> None:
         """ Update proxy units item accordingly to conversion pairs and source units. """
         source_units = self.get_display_data_at_index(
-            self.index(row, source_column, parent_index)
+            self.index(row, source_units_column, parent_index)
         )
-        proxy_units_item = self.itemFromIndex(self.index(row, proxy_column, parent_index))
+        proxy_units_item = self.itemFromIndex(self.index(row, proxy_units_column, parent_index))
         proxy_units = conversion_look_up.get(source_units, source_units)
         proxy_units_item.setData(proxy_units, Qt.DisplayRole)
 
@@ -515,19 +516,19 @@ class ViewModel(QStandardItemModel):
             if self.hasChildren(index):
                 for j in range(self.rowCount(index)):
                     self.update_proxy_units_item(
-                        j,
-                        proxy_units_column_number,
-                        source_units_column_number,
-                        conversion_look_up,
-                        index,
+                        row=j,
+                        proxy_units_column=proxy_units_column_number,
+                        source_units_column=source_units_column_number,
+                        conversion_look_up=conversion_look_up,
+                        parent_index=index,
                     )
             else:
                 self.update_proxy_units_item(
-                    i,
-                    proxy_units_column_number,
-                    source_units_column_number,
-                    conversion_look_up,
-                    QModelIndex(),
+                    row=i,
+                    proxy_units_column=proxy_units_column_number,
+                    source_units_column=source_units_column_number,
+                    conversion_look_up=conversion_look_up,
+                    parent_index=QModelIndex(),
                 )
 
     def update_proxy_units(
@@ -574,7 +575,7 @@ class ViewModel(QStandardItemModel):
         self.removeRow(row, parent_index)
 
     def get_row_text(self, view_variable: VV) -> List[str]:
-        """ Get variable data attributes ordered following column order. """
+        """ Get variable data attributes following column order. """
         proxy_units = self.create_proxy_units_column(
             pd.Series([view_variable.units]),
             rate_to_energy=self.rate_to_energy,

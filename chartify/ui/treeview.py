@@ -333,7 +333,7 @@ class TreeView(QTreeView):
             self.source_model.rebuild_model(tree_node, **units_kwargs)
             self.set_span_and_decorate_root()
         elif self.source_model.needs_units_update(**units_kwargs):
-            self.update_proxy_units(**units_kwargs)
+            self.source_model.update_proxy_units(**units_kwargs)
 
     def update_units(self, **kwargs) -> None:
         """ Update tree viw model. """

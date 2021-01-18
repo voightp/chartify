@@ -83,6 +83,14 @@ def small_daily(qtbot, treeview_small_file):
 
 
 @pytest.fixture(scope="function")
+def proxy_units_tree(qtbot, small_daily):
+    small_daily.header().moveSection(2, 0)
+    with ViewMask(small_daily) as mask:
+        mask.update_treeview(small_daily, is_tree=True, units_kwargs=default_units)
+    return small_daily
+
+
+@pytest.fixture(scope="function")
 def hourly_simple(qtbot, treeview_test_file):
     return _setup_treeview(qtbot, treeview_test_file, "hourly-simple")
 
@@ -552,10 +560,18 @@ def test_deselect_variables(qtbot, tree_view: TreeView, test_data):
                 VV("Boiler Gas Rate", None, "W"),
             ],
         ),
+        (
+            pytest.lazy_fixture("proxy_units_tree"),
+            [
+                VV("BLOCK1:ZONE1", "Zone People Occupant Count", ""),
+                VV("BLOCK1:ZONE1", "Zone Mean Air Temperature", "C"),
+            ],
+        ),
     ],
 )
 def test_select_variables(qtbot, tree_view: TreeView, test_data):
     def cb(view_variable):
+        print(view_variable)
         return set(test_data) == set(view_variable)
 
     with qtbot.wait_signal(tree_view.selectionPopulated, check_params_cb=cb):
@@ -632,11 +648,9 @@ def test_needs_units_update(tree_view, rate, energy, system, rate_to_energy, upd
     assert needs_update is update
 
 
-def test_proxy_units_tree_column_update(qtbot, small_daily):
-    # TODO proxy units update coverage
+def test_proxy_units_tree_column_update(qtbot, proxy_units_tree):
     units = dict(energy_units="kWh", rate_units="kW", units_system="IP", rate_to_energy=True)
-    small_daily.header().moveSection(2, 0)
-    with ViewMask(small_daily) as mask:
-        mask.update_treeview(small_daily, is_tree=True, units_kwargs=units)
+    with ViewMask(proxy_units_tree) as mask:
+        mask.update_treeview(proxy_units_tree, is_tree=True, units_kwargs=units)
     expected = ["-", "-", "-", "-", "F", "kWh/m2", "kgWater/kgDryAir"]
-    assert expected == small_daily.source_model.get_column_data_from_model("proxy_units")
+    assert expected == proxy_units_tree.source_model.get_column_data_from_model("proxy_units")
