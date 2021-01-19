@@ -156,11 +156,9 @@ class TreeView(QTreeView):
 
     def startDrag(self, drop_actions: Qt.DropActions):
         """ Create custom drag event. """
-        # default implementation:
-        # https://code.qt.io/cgit/qt/qtbase.git/tree/src/widgets/itemviews/qabstractitemview.cpp#n3588
         mime_dt = QMimeData()
         mime_dt.setText("HELLO FROM CHARTIFY")
-        pix = QPixmap("./icons/input.png")
+        pix = QPixmap("./resources/icons/input.png")
 
         drag = QDrag(self)
         drag.setMimeData(mime_dt)
@@ -230,11 +228,8 @@ class TreeView(QTreeView):
         for i in range(self.proxy_model.rowCount()):
             ix = self.proxy_model.index(i, 0)
             if self.proxy_model.hasChildren(ix):
-                data = self.proxy_model.data(ix)
-                if data in expanded_set:
+                if self.proxy_model.data(ix) in expanded_set:
                     self.expand(ix)
-                else:
-                    self.collapse(ix)
 
     def set_header_resize_mode(self, widths: Dict[str, int]) -> None:
         """ Define resizing behaviour. """
