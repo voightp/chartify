@@ -153,6 +153,34 @@ class TestRenameVariable:
         )
         assert df.shape == (8760, 1)
 
+    @pytest.mark.depends(on="test_confirm_rename_variable")
+    def test_rename_child_variable(self, qtbot, mw_excel_file_hourly):
+        with patch("chartify.ui.main_window.DoubleInputDialog") as dialog:
+            mw_excel_file_hourly.expand_all()
+            instance = dialog.return_value
+            instance.exec_.return_value = 1
+            instance.input1_text = "foo"
+            instance.input2_text = "Zone People Occupant Count"
+
+            selection = mw_excel_file_hourly.current_model.get_matching_selection(
+                [VV("BLOCK1:ZONE1", "Zone People Occupant Count", "")]
+            )
+            index = selection.indexes()[0]
+            proxy_index = mw_excel_file_hourly.current_view.proxy_model.mapFromSource(index)
+
+            with qtbot.wait_signal(mw_excel_file_hourly.current_view.itemDoubleClicked):
+                point = mw_excel_file_hourly.current_view.visualRect(proxy_index).center()
+
+                qtbot.mouseMove(mw_excel_file_hourly.current_view.viewport(), pos=point)
+                qtbot.mouseClick(
+                    mw_excel_file_hourly.current_view.viewport(), Qt.LeftButton, pos=point
+                )
+                qtbot.mouseDClick(
+                    mw_excel_file_hourly.current_view.viewport(), Qt.LeftButton, pos=point
+                )
+                updated_item_index = mw_excel_file_hourly.current_model.sibling(0, 1, index)
+            assert mw_excel_file_hourly.current_model.data(updated_item_index) == "foo"
+
 
 class TestAggregate:
     @pytest.mark.parametrize(
