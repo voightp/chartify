@@ -158,13 +158,11 @@ def test_model_rows(qtbot, tree_view: TreeView, row_count, source_row_count, tot
 
 
 def test_first_column_spanned(hourly: TreeView):
-    proxy_model = hourly.model()
-    for i in range(proxy_model.rowCount()):
-        index = proxy_model.index(i, 0)
-        item = proxy_model.item_at_proxy_index(index)
-        if item.hasChildren():
+    for i in range(hourly.source_model.rowCount()):
+        index = hourly.source_model.index(i, 0)
+        if hourly.source_model.hasChildren(index):
             assert hourly.isFirstColumnSpanned(i, hourly.rootIndex())
-            for j in range(item.rowCount()):
+            for j in range(hourly.source_model.rowCount(index)):
                 assert not hourly.isFirstColumnSpanned(j, index)
         else:
             assert not hourly.isFirstColumnSpanned(i, hourly.rootIndex())
@@ -246,11 +244,9 @@ def test_build_plain_view(qtbot, hourly: TreeView):
 
 def test_first_column_not_spanned(hourly: TreeView):
     hourly.update_model(tree_node=None, **default_units)
-    proxy_model = hourly.model()
-    for i in range(proxy_model.rowCount()):
-        index = proxy_model.index(i, 0)
-        item = proxy_model.item_at_proxy_index(index)
-        if item.hasChildren():
+    for i in range(hourly.source_model.rowCount()):
+        index = hourly.source_model.index(i, 0)
+        if hourly.source_model.hasChildren(index):
             assert False, "Plain model should not have any child items!"
         else:
             assert not hourly.isFirstColumnSpanned(i, hourly.rootIndex())
@@ -612,6 +608,11 @@ def test_filter_view(qtbot, daily: TreeView):
     assert child_index_invalid == QModelIndex()
 
 
+def test_filter_view_plain_rows(qtbot, daily: TreeView):
+    daily.filter_view(FilterTuple(key="BOILER", type="", proxy_units=""))
+    assert daily.model().rowCount() == 2
+
+
 @pytest.mark.parametrize(
     "tree_view, tree_node, rebuild",
     [
@@ -654,3 +655,100 @@ def test_proxy_units_tree_column_update(qtbot, proxy_units_tree):
         mask.update_treeview(proxy_units_tree, is_tree=True, units_kwargs=units)
     expected = ["-", "-", "-", "-", "F", "kWh/m2", "kgWater/kgDryAir"]
     assert expected == proxy_units_tree.source_model.get_column_data_from_model("proxy_units")
+
+
+class TestModelUpdates:
+    @pytest.fixture(scope="function")
+    def model(self, daily):
+        return daily.source_model
+
+    @pytest.mark.parametrize(
+        "old_variable, new_variable, exists",
+        [
+            (VV("BOILER", "Boiler Gas Rate", "W"), VV("foo", "bar", "W"), True),
+            (
+                VV("BLOCK1:ZONEA", "Zone Mean Air Temperature", "C"),
+                VV("foo", "Zone Mean Air Temperature", "C"),
+                True,
+            ),
+            (
+                VV("BLOCK1:ZONEA", "Zone Mean Air Temperature", "C"),
+                VV("foo", "bar", "C"),
+                True,
+            ),
+            (VV("foo", "bar", "baz"), VV("foo", "bar", "baz"), False),
+        ],
+    )
+    def test_update_variable_if_exists(self, qtbot, model, old_variable, new_variable, exists):
+        model.update_variable_if_exists(old_variable, new_variable)
+        assert model.variable_exists(new_variable) is exists
+
+    @pytest.mark.parametrize(
+        "variable",
+        [
+            VV("BOILER", "Boiler Gas Rate", "W"),
+            VV("BLOCK1:ZONEA", "Zone Mean Air Temperature", "C"),
+            VV("foo", "Zone Mean Air Temperature", "C"),
+            VV("foo", "bar", "baz"),
+        ],
+    )
+    def test_delete_variables(self, qtbot, model, variable):
+        model.delete_variables([variable])
+        assert not model.variable_exists(variable)
+
+    @pytest.mark.parametrize(
+        "variables, new_variable, exists",
+        [
+            (
+                [VV("BOILER", "Boiler Gas Rate", "W"), VV("foo", "bar", "baz")],
+                VV("foo", "bar", "baz"),
+                False,
+            ),
+            (
+                [
+                    VV("BLOCK1:ZONEA", "Zone Mean Air Temperature", "C"),
+                    VV("BLOCK1:ZONEB", "Zone Mean Air Temperature", "C"),
+                ],
+                VV("foo", "bar", "C"),
+                True,
+            ),
+        ],
+    )
+    def test_aggregate_variables(self, qtbot, model, variables, new_variable, exists):
+        model.aggregate_variables(variables, "mean", new_variable.key, new_variable.type)
+        assert model.variable_exists(new_variable) is exists
+
+    @pytest.mark.parametrize(
+        "variables, exist",
+        [
+            ([VV("BOILER", "Boiler Gas Rate", "W"), VV("foo", "bar", "baz")], True),
+            ([VV("BLOCK1:ZONEA", "Zone Mean Air Temperature", "C")], True),
+            ([VV("foo", "Zone Mean Air Temperature", "C")], False),
+        ],
+    )
+    def test_get_results(self, qtbot, model, variables, exist):
+        results = model.get_results(variables, "SI", "W", "J", False)
+        assert (results is not None) is exist
+
+    @pytest.mark.parametrize(
+        "variable, exists",
+        [
+            (VV("BOILER", "Boiler Gas Rate", "W"), True),
+            (VV("BLOCK1:ZONEA", "Zone Mean Air Temperature", "C"), True),
+            (VV("foo", "Zone Mean Air Temperature", "C"), False),
+            (VV("foo", "bar", "baz"), False),
+        ],
+    )
+    def test_variable_exists(self, model, variable, exists):
+        assert model.variable_exists(variable) is exists
+
+    @pytest.mark.parametrize(
+        "variables, exist",
+        [
+            ([VV("BOILER", "Boiler Gas Rate", "W"), VV("foo", "bar", "baz")], [True, False]),
+            ([VV("BLOCK1:ZONEA", "Zone Mean Air Temperature", "C")], [True]),
+            ([VV("foo", "Zone Mean Air Temperature", "C")], [False]),
+        ],
+    )
+    def test_variables_exist(self, model, variables, exist):
+        assert model.variables_exist(variables) == exist

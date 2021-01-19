@@ -18,6 +18,14 @@ def test_on_tab_changed_same_table_available(qtbot, mw_esofile):
     assert mw_esofile.current_model.name == "daily"
 
 
+def test_on_tab_changed_filter(qtbot, mw_esofile):
+    qtbot.stop()
+    qtbot.keyClicks(mw_esofile.key_line_edit, "CHILLER")
+    qtbot.mouseClick(mw_esofile.toolbar.get_table_button_by_name("daily"), Qt.LeftButton)
+    mw_esofile.standard_tab_wgt.setCurrentIndex(2)
+    assert mw_esofile.current_view.proxy_model.rowCount() == 4
+
+
 def test_on_tab_changed_same_table_not_available_first_change(qtbot, mw_esofile, eso_file2):
     mw_esofile.standard_tab_wgt.setCurrentIndex(1)
     assert mw_esofile.current_model.name == "hourly"

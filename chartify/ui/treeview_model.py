@@ -655,7 +655,7 @@ class ViewModel(QStandardItemModel):
                 old_view_variable, view_variable.key, view_variable.type
             )
             if self.initialized and new_variable:
-                indexes = self.get_matching_selection([view_variable]).indexes()
+                indexes = self.get_matching_selection([old_view_variable]).indexes()
                 row = indexes[0].row()
                 parent = indexes[0].parent()
                 self.update_variable_in_model(old_view_variable, new_variable, row, parent)
@@ -750,15 +750,6 @@ class FilterModel(QSortFilterProxyModel):
     def filter_tuple(self, filter_tuple: FilterTuple) -> None:
         self._filter_tuple = filter_tuple
         self.invalidateFilter()
-
-    def data_at_proxy_index(self, proxy_index: QModelIndex) -> VV:
-        """ Get item data from source model. """
-        return self.item_at_proxy_index(proxy_index).data(Qt.UserRole)
-
-    def item_at_proxy_index(self, proxy_index: QModelIndex) -> QStandardItem:
-        """ Get item from source model. """
-        source_index = self.mapToSource(proxy_index)
-        return self.sourceModel().itemFromIndex(source_index)
 
     def map_to_source(self, indexes: List[QModelIndex]) -> List[QModelIndex]:
         """ Map a list of indexes to the source model. """
