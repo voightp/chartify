@@ -365,7 +365,7 @@ class MainWindow(QMainWindow):
 
     @property
     def current_file_widget(self) -> StackedWidget:
-        """ Currently chozen file stacked widget. """
+        """ Currently chosen file stacked widget. """
         return self.current_tab_widget.currentWidget()
 
     @property
@@ -375,11 +375,27 @@ class MainWindow(QMainWindow):
 
     @property
     def current_model(self) -> ViewModel:
+        """ Currently selected source model."""
         return self.current_view.source_model
 
     @property
     def tab_widgets(self) -> List[TabWidget]:
+        """ All available tab widgets. """
         return [self.standard_tab_wgt, self.totals_tab_wgt, self.diff_tab_wgt]
+
+    def update_settings(self):
+        """ Save settings into class attributes. """
+        Settings.SIZE = (self.width(), self.height())
+        Settings.POSITION = (self.x(), self.y())
+        Settings.SPLIT = self.central_splitter.sizes()
+        Settings.ALL_FILES = self.toolbar.all_files_toggle.isChecked()
+        Settings.ALL_TABLES = self.toolbar.all_tables_toggle.isChecked()
+        Settings.ENERGY_UNITS = self.toolbar.energy_btn.data()
+        Settings.RATE_UNITS = self.toolbar.rate_btn.data()
+        Settings.UNITS_SYSTEM = self.toolbar.units_system_button.data()
+        Settings.RATE_TO_ENERGY = self.toolbar.rate_energy_btn.isChecked()
+        Settings.OUTPUTS_ENUM = self.toolbar.outputs_button_group.checkedId()
+        Settings.SHOW_SOURCE_UNITS = self.toolbar.source_units_toggle.isChecked()
 
     def closeEvent(self, event):
         """ Shutdown all the background stuff. """
@@ -387,18 +403,7 @@ class MainWindow(QMainWindow):
         # and close app programmatically
         self.appCloseRequested.emit()
         if self._CLOSE_FLAG:
-            Settings.SIZE = (self.width(), self.height())
-            Settings.POSITION = (self.x(), self.y())
-            Settings.SPLIT = self.central_splitter.sizes()
-            Settings.ALL_FILES = self.toolbar.all_files_toggle.isChecked()
-            Settings.ALL_TABLES = self.toolbar.all_tables_toggle.isChecked()
-            Settings.ENERGY_UNITS = self.toolbar.energy_btn.data()
-            Settings.RATE_UNITS = self.toolbar.rate_btn.data()
-            Settings.UNITS_SYSTEM = self.toolbar.units_system_button.data()
-            Settings.RATE_TO_ENERGY = self.toolbar.rate_energy_btn.isChecked()
-            Settings.OUTPUTS_ENUM = self.toolbar.outputs_button_group.checkedId()
-            Settings.SHOW_SOURCE_UNITS = self.toolbar.source_units_toggle.isChecked()
-
+            self.update_settings()
             # TODO enable once main window polished
             # Settings.save_settings_to_json()
             event.accept()
@@ -550,6 +555,7 @@ class MainWindow(QMainWindow):
         return models
 
     def on_tree_node_changed(self, treeview: TreeView) -> None:
+        """ Update current view on tree node column change. """
         self.update_treeview(treeview)
 
     def on_item_double_clicked(
@@ -559,6 +565,7 @@ class MainWindow(QMainWindow):
         parent_index: Optional[QModelIndex],
         old_view_variable: VV,
     ) -> None:
+        """ Update variable name on view double click event. """
         old_key = old_view_variable.key
         key_blocker = set(treeview.get_items_text_for_column(KEY_LEVEL))
         key_blocker.remove(old_key)
@@ -580,6 +587,7 @@ class MainWindow(QMainWindow):
                 self.variableRenameRequested.emit(models, old_view_variable, new_view_variable)
 
     def on_remove_variables_triggered(self):
+        """ Handle remove variable action trigger event. """
         if selected := self.current_view.get_selected_view_variable():
             if self.confirm_remove_variables(selected):
                 self.current_model.delete_variables(selected)
@@ -588,6 +596,7 @@ class MainWindow(QMainWindow):
                     self.variableRemoveRequested.emit(models, selected)
 
     def on_aggregation_requested(self, func: str) -> None:
+        """ Handle variable aggregation action trigger event. """
         if view_variables := self.current_view.get_selected_view_variable():
             if self.current_view.view_type is ViewType.SIMPLE:
                 res = self.confirm_aggregate_simple_variables(view_variables, func)
@@ -606,6 +615,7 @@ class MainWindow(QMainWindow):
                     )
 
     def fetch_results(self) -> pd.DataFrame:
+        """ Retrieve results for currently selected variables. """
         if view_variables := self.current_view.get_selected_view_variable():
             models = self.get_all_models()
             frames = []
@@ -616,9 +626,11 @@ class MainWindow(QMainWindow):
             return pd.concat(frames, axis=1, sort=False)
 
     def on_sum_action_triggered(self):
+        """ Handle sum action trigger. """
         self.on_aggregation_requested("sum")
 
     def on_mean_action_triggered(self):
+        """ Handle avg action trigger. """
         self.on_aggregation_requested("mean")
 
     def add_file_widget(self, file: ParquetFile):
@@ -656,6 +668,7 @@ class MainWindow(QMainWindow):
             self.current_view.collapseAll()
 
     def save_storage_to_fs(self) -> Optional[Path]:
+        """ Get file path of the """
         path, _ = QFileDialog.getSaveFileName(
             parent=self,
             caption="Save project",
@@ -668,12 +681,12 @@ class MainWindow(QMainWindow):
             return path
 
     def load_files_from_paths_synchronously(self, paths: List[Union[str, Path]]):
-        """ Load results from given paths.  """
+        """ Load results from given paths synchronously.  """
         Settings.LOAD_PATH = Path(paths[0]).parent
         self.syncFileProcessingRequested.emit(paths)
 
     def load_files_from_paths(self, paths: List[Path]):
-        """ Load results from given paths.  """
+        """ Load results from given paths using multiprocessing.  """
         Settings.LOAD_PATH = paths[0].parent
         self.fileProcessingRequested.emit(paths)
 
@@ -742,6 +755,7 @@ class MainWindow(QMainWindow):
             self.update_treeview(self.current_view)
 
     def enable_actions_for_empty_layout(self):
+        """ Enable or disable actions as it suits for an empty layout. """
         self.close_all_act.setEnabled(False)
 
         self.toolbar.enable_rate_to_energy(True)
@@ -772,6 +786,7 @@ class MainWindow(QMainWindow):
                     self.mean_act.setEnabled(True)
 
     def enable_actions_for_view(self, view: TreeView) -> None:
+        """ Enable or disable actions related to given view. """
         allow_tree = not view.source_model.is_simple
         self.tree_act.setEnabled(allow_tree)
         self.expand_all_act.setEnabled(allow_tree)
@@ -780,6 +795,7 @@ class MainWindow(QMainWindow):
         self.enable_selection_actions(view.selected_view_variable)
 
     def enable_actions_for_file_widget(self, file_widget: StackedWidget) -> None:
+        """ Enable or disable actions related to given file. """
         self.close_all_act.setEnabled(True)
         self.toolbar.update_table_buttons(
             file_widget.name_indexes, file_widget.current_table_name
@@ -792,6 +808,7 @@ class MainWindow(QMainWindow):
         previous_file_widget: StackedWidget,
         file_widget: StackedWidget,
     ) -> None:
+        """ Handle ui tab change. """
         if tab_widget is self.current_tab_widget:
             if file_widget is None:
                 self.enable_actions_for_empty_layout()
@@ -808,7 +825,7 @@ class MainWindow(QMainWindow):
                 self.update_treeview(next_treeview, ref_treeview)
 
     def on_table_change_requested(self, index_or_name: Union[int, str]):
-        """ Change table on a current model. """
+        """ Change table on a current file widget. """
         if isinstance(index_or_name, int):
             next_treeview = self.current_file_widget.widget(index_or_name)
         else:
@@ -819,16 +836,17 @@ class MainWindow(QMainWindow):
         self.update_treeview(next_treeview, ref_treeview)
 
     def on_selection_populated(self, view_variables: List[VV]):
-        """ Store current selection in main app. """
+        """ Update ui actions related to given selection. """
         self.enable_selection_actions(view_variables)
         self.selectionChanged.emit(view_variables)
 
     def on_selection_cleared(self):
-        """ Handle behaviour when no variables are selected. """
+        """ Update ui actions after clearing selection. """
         self.enable_selection_actions([])
         self.selectionChanged.emit([])
 
     def get_all_tab_names(self):
+        """ Fetch all tab names from all tab widgets. """
         names = []
         for tab_widget in self.tab_widgets:
             for i in range(tab_widget.count()):
@@ -836,16 +854,18 @@ class MainWindow(QMainWindow):
         return names
 
     def on_tab_bar_double_clicked(self, tab_widget: TabWidget, tab_index: int):
+        """ Rename file associated with given tab. """
         name = tab_widget.tabText(tab_index)
         names = set(self.get_all_tab_names())
         names.remove(name)
         new_name = self.confirm_rename_file(name, names)
-        if new_name is not None:
+        if new_name is not None and new_name != name:
             id_ = tab_widget.widget(tab_index).file_id
             tab_widget.setTabText(tab_index, new_name)
             self.fileRenameRequested.emit(id_, new_name)
 
     def on_tab_close_requested(self, tab_widget: TabWidget, tab_index: int):
+        """ Delete file associated with given tab. """
         treeview = tab_widget.widget(tab_index).current_treeview
         name = tab_widget.tabText(tab_index)
         if self.confirm_delete_file(name):
@@ -856,30 +876,31 @@ class MainWindow(QMainWindow):
             self.fileRemoveRequested.emit(treeview.id_)
 
     def connect_tab_widget_signals(self):
-        # ~~~~ Tab Signals ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """ Connect signals emitted by tab widgets. """
         for tab_widget in self.tab_widgets:
             tab_widget.closeTabRequested.connect(self.on_tab_close_requested)
             tab_widget.currentTabChanged.connect(self.on_tab_changed)
             tab_widget.tabRenameRequested.connect(self.on_tab_bar_double_clicked)
 
     def on_source_units_toggled(self, checked: bool):
+        """ Hide or show source units column as requested. """
         if not self.current_tab_widget.is_empty():
             self.current_view.hide_section(UNITS_LEVEL, not checked)
 
     def on_units_changed(self) -> None:
+        """ Update units on current view to correspond with toolbar settings. """
         if not self.current_tab_widget.is_empty():
             self.current_view.update_units(**self.toolbar.current_units)
 
     def on_custom_units_toggled(self) -> None:
-        # model could have been changed prior to custom units toggle
-        # so rate to energy conversion may not be applicable
+        """ Update rate to energy button state on custom units toggle. """
         if self.current_tab_widget.is_empty() or self.current_view.allow_rate_to_energy:
             self.toolbar.enable_rate_to_energy(True)
         else:
             self.toolbar.rate_energy_btn.setEnabled(False)
 
     def connect_toolbar_signals(self):
-        # ~~~~ Toolbar Signals ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """ Connect signals emitted by toolbar buttons. """
         self.toolbar.tableChangeRequested.connect(self.on_table_change_requested)
         self.toolbar.outputTypeChangeRequested.connect(self.on_output_type_change_requested)
         self.toolbar.customUnitsToggled.connect(self.on_custom_units_toggled)
@@ -900,7 +921,7 @@ class MainWindow(QMainWindow):
             )
 
     def on_tree_act_checked(self, checked: bool):
-        """ Update view when view type is changed. """
+        """ Update view when view type changes. """
         self.collapse_all_act.setEnabled(checked)
         self.expand_all_act.setEnabled(checked)
         if self.current_view is not None:
@@ -917,14 +938,14 @@ class MainWindow(QMainWindow):
             self.current_view.filter_view(filter_tuple)
 
     def connect_view_tools_signals(self):
-        # ~~~~ Filter actions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        """ Connect signals emitted by filtering buttons. """
         self.type_line_edit.textEdited.connect(self.on_text_edited)
         self.key_line_edit.textEdited.connect(self.on_text_edited)
         self.units_line_edit.textEdited.connect(self.on_text_edited)
         self.timer.timeout.connect(self.on_filter_timeout)
 
     def confirm_rename_file(self, name: str, other_names: Set[str]) -> Optional[str]:
-        """ Rename file on a tab identified by the given index. """
+        """ Execute a dialog requesting new file name. """
         dialog = SingleInputDialog(
             self,
             title="Enter a new file name.",
@@ -936,7 +957,7 @@ class MainWindow(QMainWindow):
             return dialog.input1_text
 
     def get_files_and_tables_text(self) -> str:
-        """ Get information on function application based on current settings. """
+        """ Get text to to inform which tables and files will be modified. . """
         table_name = self.current_file_widget.current_table_name
         file_name = self.current_tab_widget.name
         all_files = self.toolbar.all_files_toggle.isChecked()
@@ -952,13 +973,14 @@ class MainWindow(QMainWindow):
         return text
 
     def confirm_remove_variables(self, view_variables: List[VV],) -> bool:
-        """ Remove selected variables. """
+        """ Confirm removing of selected variables. """
         title = f"Delete following variables from {self.get_files_and_tables_text()}: "
         inf_text = "\n".join([stringify_view_variable(var) for var in view_variables])
         dialog = ConfirmationDialog(self, title, det_text=inf_text)
         return dialog.exec_() == 1
 
     def confirm_rename_simple_variable(self, key: str, blocker: Set[str]) -> Optional[str]:
+        """ Confirm rename of given simple variable. """
         title = f"Rename variable for {self.get_files_and_tables_text()}:"
         dialog = SingleInputDialog(
             self, title=title, input1_name="Key", input1_text=key, input1_blocker=blocker,
@@ -969,7 +991,7 @@ class MainWindow(QMainWindow):
     def confirm_rename_variable(
         self, key: str, type_: str, key_blocker: Set[str], type_blocker: Set[str]
     ) -> Optional[Tuple[str, str]]:
-        """ Rename given variable. """
+        """ Confirm rename of given variable. """
         title = f"Rename variable for {self.get_files_and_tables_text()}:"
         dialog = DoubleInputDialog(
             self,
@@ -987,6 +1009,7 @@ class MainWindow(QMainWindow):
     def confirm_aggregate_simple_variables(
         self, view_variables: List[VV], func_name: str
     ) -> Optional[str]:
+        """ Confirm aggregation of given simple variables. """
         if is_variable_attr_identical(view_variables, KEY_LEVEL):
             key = f"{view_variables[0].key} - {func_name}"
         else:
@@ -1003,7 +1026,7 @@ class MainWindow(QMainWindow):
     def confirm_aggregate_variables(
         self, view_variables: List[VV], func_name: str
     ) -> Optional[Tuple[str, str]]:
-        """ Aggregate variables using given function. """
+        """ Confirm aggregation of given variables. """
         if is_variable_attr_identical(view_variables, KEY_LEVEL):
             key = f"{view_variables[0].key} - {func_name}"
         else:
@@ -1030,6 +1053,6 @@ class MainWindow(QMainWindow):
             return dialog.input1_text, dialog.input2_text
 
     def confirm_delete_file(self, name: str):
-        """ Confirm delete file. . """
+        """ Confirm delete file. """
         dialog = ConfirmationDialog(self, f"Delete file {name}?")
         return dialog.exec_() == 1
