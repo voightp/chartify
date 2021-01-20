@@ -27,7 +27,6 @@ from esofile_reader.typehints import ResultsFileType, Variable, SimpleVariable, 
 PROXY_UNITS_LEVEL = "proxy_units"
 
 ViewVariable = namedtuple("VV", "key type units")
-FilterTuple = namedtuple("FilterTuple", ["key", "type", "proxy_units"])
 VV = ViewVariable
 
 
@@ -734,50 +733,67 @@ class ViewModel(QStandardItemModel):
         """ Check if given variables exists in reference model and view. """
         return [self.variable_exists(v) for v in view_variables]
 
+    def check_row(self, row: int, parent: QModelIndex, filter_dict: Dict[int, str]) -> bool:
+        """ Check if row matches given filter condition. """
+        for column, text in filter_dict.items():
+            if text not in self.data(self.index(row, column, parent)).lower():
+                return False
+        return True
+
 
 class FilterModel(QSortFilterProxyModel):
-    """ Proxy model to be used with 'SimpleModel' model. """
+    """ Proxy model to be used with 'ViewModel' model. """
 
     def __init__(self):
         super().__init__()
-        self._filter_tuple = FilterTuple(key="", type="", proxy_units="")
+        self.child_filter_dict = {}
+        self._filter_dict = {}
+        self._last_parent_ok = True
 
     @property
-    def filter_tuple(self) -> FilterTuple:
-        return self._filter_tuple
+    def filter_dict(self) -> Dict[int, str]:
+        return self._filter_dict
 
-    @filter_tuple.setter
-    def filter_tuple(self, filter_tuple: FilterTuple) -> None:
-        self._filter_tuple = filter_tuple
+    @filter_dict.setter
+    def filter_dict(self, filter_dict: Dict[int, str]) -> None:
+        self._filter_dict = filter_dict
+        self.child_filter_dict = {k: v for k, v in filter_dict.items() if k > 0}
         self.invalidateFilter()
+
+    def count_all_rows(self) -> int:
+        """ Row count excluding parent rows. """
+        n = 0
+        for i in range(self.rowCount()):
+            index = self.index(i, 0)
+            if self.hasChildren(index):
+                n += self.rowCount(index)
+            else:
+                n += 1
+        return n
 
     def map_to_source(self, indexes: List[QModelIndex]) -> List[QModelIndex]:
         """ Map a list of indexes to the source model. """
         return [self.mapToSource(ix) for ix in indexes]
 
-    def filter_matches_row(self, row_data_mapping: Dict) -> bool:
-        """ Check if current filter tuple matches row display data. """
-        row_data_to_filter = {k: v for k, v in row_data_mapping.items() if k != UNITS_LEVEL}
-        for field_name, item_text in row_data_to_filter.items():
-            filter_text = self.filter_tuple.__getattribute__(field_name)
-            filter_text = filter_text.strip()
-            if filter_text:
-                if filter_text.lower() not in item_text.lower():
-                    return False
-        return True
-
-    def filterAcceptsRow(self, source_row_number: int, source_parent: QModelIndex) -> bool:
+    def filterAcceptsRow(self, source_row: int, source_parent: QModelIndex) -> bool:
         """ Set up filtering rules for the model. """
-        if not any(self.filter_tuple):
+        if not self.filter_dict:
             return True
-        # first item can be either parent for 'tree' structure or a normal item
-        # parent rows can be excluded as valid items are displayed due to recursive filter
-        if source_parent.isValid():
-            row_data_mapping = self.sourceModel().get_row_display_data_mapping(
-                source_row_number, source_parent
+        index = self.sourceModel().index(source_row, 0, parent=source_parent)
+        if self.sourceModel().hasChildren(index):
+            return False
+        elif source_parent.isValid():
+            if 0 in self.filter_dict:
+                parent_ok = (
+                    self.filter_dict[0] in self.sourceModel().data(source_parent).lower()
+                )
+            else:
+                parent_ok = True
+            return parent_ok and self.sourceModel().check_row(
+                source_row, source_parent, self.child_filter_dict
             )
-            return self.filter_matches_row(row_data_mapping)
-        return False
+        else:
+            return self.sourceModel().check_row(source_row, source_parent, self.filter_dict)
 
     def find_matching_proxy_selection(self, variables: List[VV]) -> QItemSelection:
         """ Check if output variables are available in a new model. """

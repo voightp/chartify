@@ -8,7 +8,7 @@ from esofile_reader.df.level_names import UNITS_LEVEL
 
 from chartify.settings import OutputType
 from chartify.ui.treeview import TreeView, ViewType, ViewMask
-from chartify.ui.treeview_model import FilterModel, ViewModel, VV, FilterTuple
+from chartify.ui.treeview_model import FilterModel, ViewModel, VV
 from tests.conftest import ESO_FILE_EXCEL_PATH, EXCEL_FILE_PATH
 from tests.ui.test_view_mask import reset_cached
 
@@ -123,7 +123,7 @@ def test_init_hourly(hourly: TreeView):
 
     assert hourly.proxy_model.sortCaseSensitivity() == Qt.CaseInsensitive
     assert hourly.proxy_model.isRecursiveFilteringEnabled()
-    assert not hourly.proxy_model.dynamicSortFilter()
+    assert hourly.proxy_model.dynamicSortFilter()
 
 
 @pytest.mark.parametrize(
@@ -574,43 +574,42 @@ def test_select_variables(qtbot, tree_view: TreeView, test_data):
         tree_view.select_variables(test_data)
 
 
-def test_filter_view(qtbot, daily: TreeView):
-    daily.filter_view(FilterTuple(key="block1:zonea", type="temperature", proxy_units=""))
-
-    assert daily.model().rowCount() == 3
-    assert daily.model().sourceModel().rowCount() == 49
-
-    index0 = daily.model().index(0, 0)
-    index1 = daily.model().index(1, 0)
-    index2 = daily.model().index(2, 0)
-
-    assert daily.isExpanded(index0)
-    assert daily.isExpanded(index1)
-    assert daily.isExpanded(index2)
-
-    vd0 = VV("BLOCK1:ZONEA", "Zone Mean Air Temperature", "C")
-    vd1 = VV("BLOCK1:ZONEA", "Zone Mean Radiant Temperature", "C")
-    vd2 = VV("BLOCK1:ZONEA", "Zone Operative Temperature", "C")
-
-    parent0 = daily.proxy_model.mapToSource(index0)
-    parent1 = daily.proxy_model.mapToSource(index1)
-    parent2 = daily.proxy_model.mapToSource(index2)
-
-    row0 = daily.proxy_model.mapToSource(index0.child(0, 0)).row()
-    row1 = daily.proxy_model.mapToSource(index1.child(0, 0)).row()
-    row2 = daily.proxy_model.mapToSource(index2.child(0, 0)).row()
-
-    assert daily.source_model.get_row_view_variable(row0, parent0) == vd0
-    assert daily.source_model.get_row_view_variable(row1, parent1) == vd1
-    assert daily.source_model.get_row_view_variable(row2, parent2) == vd2
-
-    child_index_invalid = daily.model().index(1, 0, index0)
-    assert child_index_invalid == QModelIndex()
+@pytest.mark.parametrize(
+    "filter_dict, n_rows",
+    [
+        ({}, 77),
+        ({"type": "boiler"}, 2),
+        ({"key": "chiller"}, 4),
+        ({"key": "block1:zonea"}, 27),
+        ({"units": "kg"}, 1),
+        ({"type": "gas rate", "key": "boiler"}, 1),
+        ({"type": "gas rate", "key": "boiler", "proxy_units": "w"}, 1),
+        ({"type": "gas rate", "key": "boiler", "proxy_units": "foo"}, 0),
+        ({"type": "cooling coil total cooling rate"}, 2),
+        ({"type": "cooling"}, 11),
+        ({"type": "cooling coil total cooling rate", "key": "boiler", "proxy_units": "foo"}, 0),
+    ],
+)
+def test_filter_view(qtbot, daily: TreeView, filter_dict, n_rows):
+    daily.filter_view(filter_dict)
+    assert daily.model().count_all_rows() == n_rows
 
 
-def test_filter_view_plain_rows(qtbot, daily: TreeView):
-    daily.filter_view(FilterTuple(key="BOILER", type="", proxy_units=""))
-    assert daily.model().rowCount() == 2
+@pytest.mark.parametrize(
+    "filter_dict, n_rows",
+    [
+        ({}, 49),
+        ({"key": "boiler"}, 2),
+        ({"type": "chiller"}, 49),
+        ({"key": "block1:zonea"}, 0),
+        ({"units": "kg"}, 1),
+        ({"type": "gas rate", "key": "boiler"}, 2),
+        ({"key": "boiler", "proxy_units": "w"}, 2),
+    ],
+)
+def test_filter_simple_view(qtbot, daily_simple: TreeView, filter_dict, n_rows):
+    daily_simple.filter_view(filter_dict)
+    assert daily_simple.model().count_all_rows() == n_rows
 
 
 @pytest.mark.parametrize(

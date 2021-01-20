@@ -3,7 +3,7 @@ import ctypes
 import shutil
 from functools import partial
 from pathlib import Path
-from typing import Optional, Tuple, List, Union, Set
+from typing import Optional, Tuple, List, Union, Set, Dict
 
 import pandas as pd
 from PySide2.QtCore import QSize, Qt, QCoreApplication, Signal, QPoint, QTimer, QModelIndex
@@ -45,7 +45,7 @@ from chartify.ui.treeview_model import (
     is_variable_attr_identical,
     stringify_view_variable,
     VV,
-    FilterTuple,
+    PROXY_UNITS_LEVEL,
 )
 from chartify.utils.css_theme import Palette, CssParser
 from chartify.utils.icon_painter import Pixmap, draw_filled_circle_icon
@@ -737,13 +737,17 @@ class MainWindow(QMainWindow):
         """ Check if source units should be visible. """
         return self.toolbar.source_units_toggle.isChecked()
 
-    def get_filter_tuple(self):
-        """ Retrieve filter inputs from ui. """
-        return FilterTuple(
-            key=self.key_line_edit.text(),
-            type=self.type_line_edit.text(),
-            proxy_units=self.units_line_edit.text(),
+    def get_filter_dict(self) -> Dict[str, str]:
+        """ Retrieve filter inputs from ui, text uses lower. """
+        pairs = zip(
+            [KEY_LEVEL, TYPE_LEVEL, PROXY_UNITS_LEVEL],
+            [
+                self.key_line_edit.text(),
+                self.type_line_edit.text(),
+                self.units_line_edit.text(),
+            ],
         )
+        return {key: text.lower() for key, text in pairs if text.strip()}
 
     def on_output_type_change_requested(self, index: int) -> None:
         """ Show tab widget corresponding to the given radio button. """
@@ -911,7 +915,7 @@ class MainWindow(QMainWindow):
         with ViewMask(
             treeview=treeview,
             ref_treeview=ref_treeview,
-            filter_tuple=self.get_filter_tuple(),
+            filter_dict=self.get_filter_dict(),
             show_source_units=self.show_source_units(),
         ) as mask:
             mask.update_treeview(
@@ -933,9 +937,8 @@ class MainWindow(QMainWindow):
 
     def on_filter_timeout(self):
         """ Apply a filter when the filter text is edited. """
-        filter_tuple = self.get_filter_tuple()
         if not self.current_tab_widget.is_empty():
-            self.current_view.filter_view(filter_tuple)
+            self.current_view.filter_view(self.get_filter_dict())
 
     def connect_view_tools_signals(self):
         """ Connect signals emitted by filtering buttons. """

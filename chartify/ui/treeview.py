@@ -22,7 +22,6 @@ from chartify.ui.treeview_model import (
     PROXY_UNITS_LEVEL,
     convert_view_variable_to_variable,
     VV,
-    FilterTuple,
 )
 
 
@@ -90,7 +89,7 @@ class TreeView(QTreeView):
         proxy_model = FilterModel()
         proxy_model.setSortCaseSensitivity(Qt.CaseInsensitive)
         proxy_model.setRecursiveFilteringEnabled(True)
-        proxy_model.setDynamicSortFilter(False)
+        proxy_model.setDynamicSortFilter(True)
         proxy_model.setSourceModel(model)
         self.setModel(proxy_model)
 
@@ -174,14 +173,15 @@ class TreeView(QTreeView):
             if self.proxy_model.hasChildren(self.proxy_model.index(i, 0)):
                 super().setFirstColumnSpanned(i, self.rootIndex(), True)
 
-    def filter_view(self, filter_tuple: FilterTuple) -> None:
+    def filter_view(self, filter_dict: Dict[str, str]) -> None:
         """ Filter the model using given filter tuple. """
-        self.proxy_model.filter_tuple = filter_tuple
+        indexes = self.source_model.get_logical_column_indexes()
+        if self.source_model.is_simple:
+            filter_dict.pop(TYPE_LEVEL, None)
+        self.proxy_model.filter_dict = {indexes[key]: text for key, text in filter_dict.items()}
         if self.is_tree:
-            # Expand all items when filter is applied
-            self.expandAll()
-            # it's required to reapply column span after each filter
-            self.set_parent_items_spanned()
+            self.expandAll()  # Expand all items when filter is applied
+            self.set_parent_items_spanned()  # needed to reapply after each filter
 
     def get_visual_column_data(self) -> Tuple[str, ...]:
         """ Return sorted column data (by visual index). """
@@ -531,14 +531,14 @@ class ViewMask:
         self,
         treeview: TreeView,
         ref_treeview: Optional[TreeView] = None,
-        filter_tuple: FilterTuple = FilterTuple("", "", ""),
+        filter_dict: Dict[str, str] = None,
         show_source_units: bool = True,
     ):
         self.treeview = treeview
         self.appearance = TreeViewAppearance(treeview) if treeview.initialized else None
         self.ref_treeview = ref_treeview
         self.ref_appearance = TreeViewAppearance(ref_treeview) if ref_treeview else None
-        self.filter_tuple = filter_tuple
+        self.filter_dict = filter_dict
         self.show_source_units = show_source_units
 
     def __enter__(self):
@@ -550,8 +550,8 @@ class ViewMask:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.treeview.hide_section(UNITS_LEVEL, not self.show_source_units)
-        if any(self.filter_tuple):
-            self.treeview.filter_view(self.filter_tuple)
+        if self.filter_dict:
+            self.treeview.filter_view(self.filter_dict)
 
         if self.should_apply_cached():
             self.CACHED[self.treeview.output_type].apply_to(self.treeview)

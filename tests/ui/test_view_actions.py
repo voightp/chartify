@@ -3,8 +3,6 @@ from unittest.mock import patch
 import pytest
 from PySide2.QtCore import Qt
 
-from chartify.ui.treeview_model import FilterTuple
-
 
 def test_expand_all_empty(qtbot, mw):
     try:
@@ -35,7 +33,9 @@ def test_collapse_all(qtbot, mw_esofile):
 
 def test_on_text_edited(qtbot, mw_esofile):
     def cb():
-        mock_view.filter_view.assert_called_once_with(FilterTuple("foo", "bar", "baz"))
+        mock_view.filter_view.assert_called_once_with(
+            {"key": "foo", "type": "bar", "proxy_units": "baz"}
+        )
         return True
 
     with patch("chartify.ui.main_window.MainWindow.current_view") as mock_view:
@@ -47,7 +47,7 @@ def test_on_text_edited(qtbot, mw_esofile):
     assert mw_esofile.key_line_edit.text() == "foo"
     assert mw_esofile.type_line_edit.text() == "bar"
     assert mw_esofile.units_line_edit.text() == "baz"
-    assert mw_esofile.get_filter_tuple() == FilterTuple("foo", "bar", "baz")
+    assert mw_esofile.get_filter_dict() == {"key": "foo", "type": "bar", "proxy_units": "baz"}
 
 
 def test_on_filter_timeout_empty(qtbot, mw):
