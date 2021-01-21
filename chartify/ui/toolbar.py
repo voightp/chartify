@@ -17,6 +17,7 @@ from PySide2.QtWidgets import (
 
 from chartify.settings import Settings, OutputType
 from chartify.ui.widgets.buttons import TitledButton, ToggleButton, LabeledButton
+from chartify.ui.widgets.widget_functions import clear_layout
 
 
 class Toolbar(QFrame):
@@ -192,18 +193,9 @@ class Toolbar(QFrame):
             "rate_to_energy": rate_to_energy,
         }
 
-    @staticmethod
-    def clear_group(group):
-        """ Delete all widgets from given group. """
-        for _ in range(group.layout().count()):
-            wgt = group.layout().itemAt(0).widget()
-            group.layout().removeWidget(wgt)
-            wgt.deleteLater()
-
     def populate_group(self, group, widgets, n_cols=2):
         """ Populate given group with given widgets. """
-        # remove all children of the interface
-        self.clear_group(group)
+        clear_layout(group.layout())
         n_rows = (len(widgets) if len(widgets) % 2 == 0 else len(widgets) + 1) // n_cols
         ixs = [(x, y) for x in range(n_rows) for y in range(n_cols)]
         for btn, ix in zip(widgets, ixs):

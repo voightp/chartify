@@ -8,11 +8,11 @@ from PySide2.QtWidgets import (
     QSizePolicy,
     QFrame,
     QSlider,
-    QDialog,
     QAbstractButton,
     QWidget,
 )
 
+from chartify.ui.widgets.dialogs import StatusDialog
 from chartify.ui.widgets.widget_functions import refresh_css
 
 
@@ -148,23 +148,18 @@ class StatusButton(QToolButton):
 
     def __init__(self, parent):
         super().__init__(parent)
-        self.status_dialog = QDialog(self)
-        self.status_dialog.setWindowFlag(Qt.FramelessWindowHint)
-        self._status_label = QLabel(self.status_dialog)
-        self._status_label.setObjectName("statusLabel")
+        self.status_dialog = StatusDialog(self)
+        self._status = ""
 
     @property
-    def text(self):
-        return self._status_label.text()
+    def status(self) -> str:
+        return self._status
 
-    @property
-    def status_label(self) -> QLabel:
-        return self._status_label
-
-    @status_label.setter
-    def status_label(self, label: str) -> None:
-        self._status_label.setText(label)
-        self._status_label.resize(self._status_label.sizeHint())
+    @status.setter
+    def status(self, status: str) -> None:
+        self._status = status
+        self.status_dialog.set_text(status)
+        self.status_dialog.resize(self.status_dialog.size())
 
     def enterEvent(self, event: QEvent):
         self.show_status()
@@ -175,7 +170,7 @@ class StatusButton(QToolButton):
     def show_status(self):
         """ Display status dialog. """
         p = self.mapToGlobal(QPoint(0, 0))
-        p.setY(p.y() - self.status_label.height() - 5)
+        p.setY(p.y() - self.status_dialog.height() - 5)
         self.status_dialog.move(p)
         self.status_dialog.setVisible(True)
 

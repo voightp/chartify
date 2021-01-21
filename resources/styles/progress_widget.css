@@ -58,14 +58,6 @@ ProgressWidget[failed=true] StatusButton {
     image: URL(remove_file.png) #ERROR_COLOR;
 }
 
-#statusLabel {
-    font-size: 11px;
-    background-color: SURFACE_COLOR;
-    border: 0px solid PRIMARY_COLOR;
-    padding: 0px;
-    margin: 5;
-}
-
 ProgressWidget[failed=true] QLabel {
     font-size: 11px;
     color: ERROR_COLOR;

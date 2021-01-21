@@ -1,5 +1,5 @@
 from PySide2.QtCore import QObject
-from PySide2.QtWidgets import QWidget
+from PySide2.QtWidgets import QWidget, QLayout
 
 
 class SignalBlocker:
@@ -46,3 +46,11 @@ def print_args(func):
         return func(*args, **kwargs)
 
     return wrapper
+
+
+def clear_layout(layout: QLayout) -> None:
+    """ Delete all widgets from given group. """
+    while not layout.isEmpty():
+        wgt = layout.itemAt(0).widget()
+        layout.removeWidget(wgt)
+        wgt.deleteLater()

@@ -237,9 +237,7 @@ class ProgressWidget(QFrame):
 
     def update_status(self) -> None:
         """ Update button tooltip. """
-        self.file_btn.status_label = (
-            f"File: {self.file_ref.file_path}" f"\nPhase: {self.file_ref.status}"
-        )
+        self.file_btn.status = f"File: {self.file_ref.file_path}\n{self.file_ref.status}"
 
     def update_label(self) -> None:
         """ Update widget label. """

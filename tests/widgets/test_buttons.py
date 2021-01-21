@@ -170,13 +170,13 @@ class TestStatusButton:
     def button(self, qtbot):
         button = StatusButton(None)
         button.move(100, 100)
-        button.status_label = "FOO BAR BAZ\nSomething something something Dark Side"
+        button.status = "FOO BAR BAZ\nSomething something something Dark Side"
         button.show()
         qtbot.add_widget(button)
         return button
 
     def test_button_init(self, qtbot, button: StatusButton):
-        assert button.text == "FOO BAR BAZ\nSomething something something Dark Side"
+        assert button.status == "FOO BAR BAZ\nSomething something something Dark Side"
         assert not button.status_dialog.isVisible()
 
     def test_button_show(self, qtbot, button: StatusButton):

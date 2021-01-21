@@ -127,7 +127,7 @@ def test_add_file_visible(container: ProgressContainer):
     assert widget.label
     assert widget.progress_bar.value() == 0
     assert widget.progress_bar.maximum() == 0
-    assert widget.file_btn.text == "File: C:/added/file/path.eso\nPhase: "
+    assert widget.file_btn.status == "File: C:/added/file/path.eso\n"
 
 
 def test_set_range_invisible_to_visible(container: ProgressContainer):
@@ -146,7 +146,7 @@ def test_set_range_invisible_to_visible(container: ProgressContainer):
     assert widget.label.text() == "file-1"
     assert widget.progress_bar.value() == 500
     assert widget.progress_bar.maximum() == 1000
-    assert widget.file_btn.text == "File: C:/dummy/path/file-1.eso\nPhase: "
+    assert widget.file_btn.status == "File: C:/dummy/path/file-1.eso\n"
 
 
 def test_update_progress(container: ProgressContainer):
@@ -163,7 +163,7 @@ def test_update_progress(container: ProgressContainer):
     assert widget.label.text() == "file-8"
     assert widget.progress_bar.value() == 99
     assert widget.progress_bar.maximum() == 100
-    assert widget.file_btn.text == "File: C:/dummy/path/file-8.eso\nPhase: "
+    assert widget.file_btn.status == "File: C:/dummy/path/file-8.eso\n"
 
 
 def test_update_progress_change_position(container: ProgressContainer):
@@ -180,7 +180,7 @@ def test_update_progress_change_position(container: ProgressContainer):
     assert widget.label.text() == "file-1"
     assert widget.progress_bar.value() == 99
     assert widget.progress_bar.maximum() == 100
-    assert widget.file_btn.text == "File: C:/dummy/path/file-1.eso\nPhase: "
+    assert widget.file_btn.status == "File: C:/dummy/path/file-1.eso\n"
 
 
 def test_update_status_visible(container: ProgressContainer):
@@ -190,7 +190,7 @@ def test_update_status_visible(container: ProgressContainer):
     widget = container.widgets[0]
 
     assert file.status == "testing status!"
-    assert widget.file_btn.text == f"File: C:/dummy/path/file-8.eso\nPhase: {test_status}"
+    assert widget.file_btn.status == f"File: C:/dummy/path/file-8.eso\n{test_status}"
 
 
 def test_update_status_invisible(container: ProgressContainer):
@@ -218,8 +218,8 @@ def test_set_failed(container: ProgressContainer):
     assert widget.progress_bar.value() == 999
     assert widget.progress_bar.maximum() == 999
     assert (
-        widget.file_btn.text == "File: C:/dummy/path/file-8.eso"
-        "\nPhase: Failed for some evil reason!"
+        widget.file_btn.status == "File: C:/dummy/path/file-8.eso"
+        "\nFailed for some evil reason!"
     )
     assert widget.property("failed")
 

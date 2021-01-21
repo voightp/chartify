@@ -13,3 +13,12 @@ QLabel#filterIcon {
     min-width: 20px;
     min-height: 20px;
 }
+
+
+QLabel#statusLabel {
+    font-size: 11px;
+    color: PRIMARY_TEXT_COLOR;
+    border: 0px solid PRIMARY_COLOR;
+    padding: 2px;
+    margin: 2px;
+}

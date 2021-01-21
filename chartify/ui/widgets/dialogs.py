@@ -1,4 +1,4 @@
-from typing import List, Optional, Set
+from typing import Optional, Set
 
 from PySide2.QtCore import Qt
 from PySide2.QtWidgets import (
@@ -162,3 +162,22 @@ class ConfirmationDialog(BaseTwoButtonDialog):
             area.setLineWrapMode(QTextEdit.NoWrap)
             area.setTextInteractionFlags(Qt.NoTextInteraction)
             self.content_layout.addWidget(area)
+
+
+class StatusDialog(QDialog):
+    def __init__(self, parent: QWidget, n_rows: int = 2):
+        super(StatusDialog, self).__init__(parent)
+        self.setWindowFlag(Qt.FramelessWindowHint)
+        self.layout = QVBoxLayout(self)
+        self.layout.setSpacing(0)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.labels = []
+        for i in range(n_rows):
+            label = QLabel(self)
+            label.setObjectName("statusLabel")
+            self.layout.addWidget(label)
+            self.labels.append(label)
+
+    def set_text(self, status: str):
+        for label, row in zip(self.labels, status.split(sep="\n")):
+            label.setText(row)
