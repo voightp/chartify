@@ -33,8 +33,10 @@ from esofile_reader.pqt.parquet_storage import ParquetStorage, ParquetFile
 
 from chartify.settings import Settings, OutputType
 from chartify.ui.buttons import MenuButton
+from chartify.ui.css_theme import Palette, CssParser
 from chartify.ui.dialogs import ConfirmationDialog, SingleInputDialog, DoubleInputDialog
 from chartify.ui.drop_frame import DropFrame
+from chartify.ui.icon_painter import Pixmap, draw_filled_circle_icon
 from chartify.ui.progress_widget import ProgressContainer
 from chartify.ui.stacked_widget import StackedWidget
 from chartify.ui.tab_widget import TabWidget
@@ -47,8 +49,6 @@ from chartify.ui.treeview_model import (
     VV,
     PROXY_UNITS_LEVEL,
 )
-from chartify.ui.css_theme import Palette, CssParser
-from chartify.ui.icon_painter import Pixmap, draw_filled_circle_icon
 
 
 # noinspection PyPep8Naming,PyUnresolvedReferences
@@ -95,6 +95,8 @@ class MainWindow(QMainWindow):
         self.mean_act = QAction("Mean", self)
         self.mean_act.setShortcut(QKeySequence("Ctrl+M"))
         self.mean_act.setEnabled(False)
+        self.rename_variable_act = QAction("Rename", self)
+        self.rename_variable_act.setEnabled(False)
         self.collapse_all_act = QAction("Collapse All", self)
         self.collapse_all_act.setShortcut(QKeySequence("Ctrl+Shift+E"))
         self.expand_all_act = QAction("Expand All", self)
@@ -114,6 +116,7 @@ class MainWindow(QMainWindow):
                 self.remove_variables_act,
                 self.sum_act,
                 self.mean_act,
+                self.rename_variable_act,
                 self.collapse_all_act,
                 self.expand_all_act,
                 self.tree_act,
@@ -147,6 +150,7 @@ class MainWindow(QMainWindow):
         self.toolbar.sum_btn.setDefaultAction(self.sum_act)
         self.toolbar.mean_btn.setDefaultAction(self.mean_act)
         self.toolbar.remove_btn.setDefaultAction(self.remove_variables_act)
+        self.toolbar.rename_btn.setDefaultAction(self.rename_variable_act)
         self.toolbar.sum_btn.setDefaultAction(self.sum_act)
         self.left_main_layout.addWidget(self.toolbar)
 
@@ -483,6 +487,11 @@ class MainWindow(QMainWindow):
         self.remove_variables_act.setIcon(icon)
 
         icon = QIcon()
+        icon.addPixmap(Pixmap(Path(r, "pen.png"), *c1), QIcon.Normal, QIcon.Off)
+        icon.addPixmap(Pixmap(Path(r, "pen.png"), *c1, a=0.5), QIcon.Disabled, QIcon.Off)
+        self.rename_variable_act.setIcon(icon)
+
+        icon = QIcon()
         icon.addPixmap(Pixmap(Path(r, "plain_view.png"), *c2), QIcon.Normal, QIcon.Off)
         icon.addPixmap(Pixmap(Path(r, "plain_view.png"), *c2, a=0.5), QIcon.Disabled, QIcon.Off)
         icon.addPixmap(Pixmap(Path(r, "tree_view.png"), *c2), QIcon.Normal, QIcon.On)
@@ -633,6 +642,17 @@ class MainWindow(QMainWindow):
         """ Handle avg action trigger. """
         self.on_aggregation_requested("mean")
 
+    def on_rename_action_triggered(self):
+        """ Handle rename action trigger. """
+        selected = self.current_view.get_selected_view_variable()
+        selection = self.current_model.get_matching_selection(selected)
+        self.on_item_double_clicked(
+            self.current_view,
+            selection.indexes()[0].row(),
+            selection.indexes()[0].parent(),
+            selected[0],
+        )
+
     def add_file_widget(self, file: ParquetFile):
         """ Add processed file to tab widget corresponding to data type. """
         tab_widgets_switch = {
@@ -730,6 +750,7 @@ class MainWindow(QMainWindow):
         self.collapse_all_act.triggered.connect(self.collapse_all)
         self.expand_all_act.triggered.connect(self.expand_all)
         self.remove_variables_act.triggered.connect(self.on_remove_variables_triggered)
+        self.rename_variable_act.triggered.connect(self.on_rename_action_triggered)
         self.sum_act.triggered.connect(self.on_sum_action_triggered)
         self.mean_act.triggered.connect(self.on_mean_action_triggered)
 
@@ -777,11 +798,14 @@ class MainWindow(QMainWindow):
     def enable_selection_actions(self, view_variables: List[VV]):
         """  Update toolbar actions to match current selection. """
         self.remove_variables_act.setEnabled(False)
+        self.rename_variable_act.setEnabled(False)
         self.sum_act.setEnabled(False)
         self.mean_act.setEnabled(False)
         if view_variables:
             self.remove_variables_act.setEnabled(True)
-            if len(view_variables) > 1:
+            if len(view_variables) == 1:
+                self.rename_variable_act.setEnabled(True)
+            elif len(view_variables) > 1:
                 units = [var.units for var in view_variables]
                 if len(set(units)) == 1 or (
                     all_rate_or_energy(units) and self.current_model.allow_rate_to_energy

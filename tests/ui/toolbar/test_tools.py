@@ -37,9 +37,7 @@ class TestRemoveVariable:
 
     @pytest.mark.depends(on="test_confirm_remove_variables")
     def test_remove_variable(self, qtbot, mw_esofile1):
-        exist = mw_esofile1.current_view.source_model.variables_exist(self.VARIABLES)
-        assert not any(exist)
-        assert not mw_esofile1.current_view.get_selected_view_variable()
+        assert not any(mw_esofile1.current_view.source_model.variables_exist(self.VARIABLES))
 
     def test_confirm_remove_variables_simple(self, qtbot, mw_combined_file):
         mw_combined_file.current_view.select_variables(self.SIMPLE_VARIABLES)
@@ -55,11 +53,9 @@ class TestRemoveVariable:
 
     @pytest.mark.depends(on="test_confirm_remove_variables_simple")
     def test_remove_variable_simple(self, qtbot, mw_combined_file):
-        exist = mw_combined_file.current_view.source_model.variables_exist(
-            self.SIMPLE_VARIABLES
+        assert not any(
+            mw_combined_file.current_view.source_model.variables_exist(self.SIMPLE_VARIABLES)
         )
-        assert not any(exist)
-        assert not mw_combined_file.current_view.get_selected_view_variable()
 
 
 class TestRenameSimpleVariable:
@@ -92,13 +88,6 @@ class TestRenameSimpleVariable:
         ]
         assert mw_excel_file.current_model.variable_exists(self.NEW_SIMPLE_VARIABLE)
 
-    @pytest.mark.depends(on="test_confirm_rename_variable_simple")
-    def test_rename_simple_variable_file(self, qtbot, mw_excel_file):
-        df = mw_excel_file.current_model.get_results(
-            [self.NEW_SIMPLE_VARIABLE], **mw_excel_file.toolbar.current_units
-        )
-        assert df.shape == (365, 1)
-
 
 class TestRenameVariable:
     NEW_VARIABLE = VV("foo", "bar", "kgWater/kgDryAir")
@@ -114,8 +103,8 @@ class TestRenameVariable:
         with patch("chartify.ui.main_window.DoubleInputDialog") as dialog:
             instance = dialog.return_value
             instance.exec_.return_value = 1
-            instance.input1_text = "foo"
-            instance.input2_text = "bar"
+            instance.input1_text = self.NEW_VARIABLE.key
+            instance.input2_text = self.NEW_VARIABLE.type
             point = mw_excel_file_hourly.current_view.visualRect(
                 mw_excel_file_hourly.current_view.model().index(1, 0)
             ).center()
@@ -143,15 +132,8 @@ class TestRenameVariable:
             )
 
     @pytest.mark.depends(on="test_confirm_rename_variable")
-    def test_rename_variable_ui(self, qtbot, mw_excel_file_hourly):
+    def test_rename_variable(self, qtbot, mw_excel_file_hourly):
         assert mw_excel_file_hourly.current_model.variable_exists(self.NEW_VARIABLE)
-
-    @pytest.mark.depends(on="test_confirm_rename_variable")
-    def test_rename_variable_file(self, qtbot, mw_excel_file_hourly):
-        df = mw_excel_file_hourly.current_model.get_results(
-            [self.NEW_VARIABLE], **mw_excel_file_hourly.toolbar.current_units
-        )
-        assert df.shape == (8760, 1)
 
     @pytest.mark.depends(on="test_confirm_rename_variable")
     def test_rename_child_variable(self, qtbot, mw_excel_file_hourly):
@@ -180,6 +162,19 @@ class TestRenameVariable:
                 )
                 updated_item_index = mw_excel_file_hourly.current_model.sibling(0, 1, index)
             assert mw_excel_file_hourly.current_model.data(updated_item_index) == "foo"
+
+    @pytest.mark.depends(on="test_confirm_rename_variable")
+    def test_rename_variable_btn(self, qtbot, mw_excel_file_hourly):
+        with patch("chartify.ui.main_window.DoubleInputDialog") as dialog:
+            instance = dialog.return_value
+            instance.exec_.return_value = 1
+            instance.input1_text = self.NEW_VARIABLE.key
+            instance.input2_text = self.NEW_VARIABLE.type
+            mw_excel_file_hourly.current_view.select_variables(
+                [VV("BLOCK1:ZONE1", "Zone Mean Air Temperature", "C")]
+            )
+            qtbot.mouseClick(mw_excel_file_hourly.toolbar.rename_btn, Qt.LeftButton)
+        assert mw_excel_file_hourly.current_model.variable_exists(VV("foo", "bar", "C"))
 
 
 class TestAggregate:

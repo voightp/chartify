@@ -120,6 +120,12 @@ class Toolbar(QFrame):
         self.remove_btn.setText("remove")
         tools_layout.addWidget(self.remove_btn, 1, 0)
 
+        self.rename_btn = QToolButton(self.tools_group)
+        self.rename_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
+        self.rename_btn.setIconSize(Settings.ICON_SMALL_SIZE)
+        self.rename_btn.setText("rename")
+        tools_layout.addWidget(self.rename_btn, 1, 1)
+
         self.all_files_toggle = ToggleButton(self)
         self.all_files_toggle.setText("All files")
         self.all_files_toggle.setChecked(Settings.ALL_FILES)
