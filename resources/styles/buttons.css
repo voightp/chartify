@@ -23,9 +23,9 @@ QToolButton:hover:checked {
 }
 
 QToolButton:disabled {
-    border-color: PRIMARY_COLOR #50;
+    border-color: PRIMARY_COLOR #80;
     background-color: transparent;
-    color: PRIMARY_COLOR #50;
+    color: PRIMARY_COLOR #80;
     border-style: dashed;
 }
 

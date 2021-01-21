@@ -471,45 +471,46 @@ class MainWindow(QMainWindow):
         self.diff_button.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
         self.diff_button.setIconSize(Settings.ICON_LARGE_SIZE)
 
+        enabled_off = (QIcon.Normal, QIcon.Off)
+        disabled_off = (QIcon.Disabled, QIcon.Off)
+        disabled_on = (QIcon.Disabled, QIcon.On)
+        disabled_a = 0.6
+
         icon = QIcon()
-        icon.addPixmap(Pixmap(Path(r, "sigma.png"), *c1), QIcon.Normal, QIcon.Off)
-        icon.addPixmap(Pixmap(Path(r, "sigma.png"), *c1, a=0.5), QIcon.Disabled, QIcon.Off)
+        icon.addPixmap(Pixmap(Path(r, "sigma.png"), *c1), *enabled_off)
+        icon.addPixmap(Pixmap(Path(r, "sigma.png"), *c1, a=disabled_a), *disabled_off)
         self.sum_act.setIcon(icon)
 
         icon = QIcon()
-        icon.addPixmap(Pixmap(Path(r, "mean.png"), *c1), QIcon.Normal, QIcon.Off)
-        icon.addPixmap(Pixmap(Path(r, "mean.png"), *c1, a=0.5), QIcon.Disabled, QIcon.Off)
+        icon.addPixmap(Pixmap(Path(r, "mean.png"), *c1), *enabled_off)
+        icon.addPixmap(Pixmap(Path(r, "mean.png"), *c1, a=disabled_a), *disabled_off)
         self.mean_act.setIcon(icon)
 
         icon = QIcon()
-        icon.addPixmap(Pixmap(Path(r, "remove.png"), *c1), QIcon.Normal, QIcon.Off)
-        icon.addPixmap(Pixmap(Path(r, "remove.png"), *c1, a=0.5), QIcon.Disabled, QIcon.Off)
+        icon.addPixmap(Pixmap(Path(r, "remove.png"), *c1), *enabled_off)
+        icon.addPixmap(Pixmap(Path(r, "remove.png"), *c1, a=disabled_a), *disabled_off)
         self.remove_variables_act.setIcon(icon)
 
         icon = QIcon()
-        icon.addPixmap(Pixmap(Path(r, "pen.png"), *c1), QIcon.Normal, QIcon.Off)
-        icon.addPixmap(Pixmap(Path(r, "pen.png"), *c1, a=0.5), QIcon.Disabled, QIcon.Off)
+        icon.addPixmap(Pixmap(Path(r, "pen.png"), *c1), *enabled_off)
+        icon.addPixmap(Pixmap(Path(r, "pen.png"), *c1, a=disabled_a), *disabled_off)
         self.rename_variable_act.setIcon(icon)
 
         icon = QIcon()
-        icon.addPixmap(Pixmap(Path(r, "plain_view.png"), *c2), QIcon.Normal, QIcon.Off)
-        icon.addPixmap(Pixmap(Path(r, "plain_view.png"), *c2, a=0.5), QIcon.Disabled, QIcon.Off)
-        icon.addPixmap(Pixmap(Path(r, "tree_view.png"), *c2), QIcon.Normal, QIcon.On)
-        icon.addPixmap(Pixmap(Path(r, "tree_view.png"), *c2, a=0.5), QIcon.Disabled, QIcon.On)
+        icon.addPixmap(Pixmap(Path(r, "plain_view.png"), *c2), *enabled_off)
+        icon.addPixmap(Pixmap(Path(r, "plain_view.png"), *c2, a=disabled_a), *disabled_off)
+        icon.addPixmap(Pixmap(Path(r, "tree_view.png"), *c2), *enabled_off)
+        icon.addPixmap(Pixmap(Path(r, "tree_view.png"), *c2, a=disabled_a), *disabled_on)
         self.tree_act.setIcon(icon)
 
         icon = QIcon()
-        icon.addPixmap(Pixmap(Path(r, "unfold_less.png"), *c2), QIcon.Normal, QIcon.Off)
-        icon.addPixmap(
-            Pixmap(Path(r, "unfold_less.png"), *c2, a=0.5), QIcon.Disabled, QIcon.Off
-        )
+        icon.addPixmap(Pixmap(Path(r, "unfold_less.png"), *c2), *enabled_off)
+        icon.addPixmap(Pixmap(Path(r, "unfold_less.png"), *c2, a=disabled_a), *disabled_off)
         self.collapse_all_act.setIcon(icon)
 
         icon = QIcon()
-        icon.addPixmap(Pixmap(Path(r, "unfold_more.png"), *c2), QIcon.Normal, QIcon.Off)
-        icon.addPixmap(
-            Pixmap(Path(r, "unfold_more.png"), *c2, a=0.5), QIcon.Disabled, QIcon.Off
-        )
+        icon.addPixmap(Pixmap(Path(r, "unfold_more.png"), *c2), *enabled_off)
+        icon.addPixmap(Pixmap(Path(r, "unfold_more.png"), *c2, a=disabled_a), *disabled_off)
         self.expand_all_act.setIcon(icon)
 
     def load_css_and_icons(self) -> None:
