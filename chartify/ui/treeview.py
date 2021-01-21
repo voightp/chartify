@@ -124,10 +124,7 @@ class TreeView(QTreeView):
 
     @property
     def allow_rate_to_energy(self) -> bool:
-        if self.source_model:
-            return self.source_model.allow_rate_to_energy
-        else:
-            return True
+        return self.source_model.allow_rate_to_energy
 
     @property
     def selected_view_variable(self) -> List[VV]:
