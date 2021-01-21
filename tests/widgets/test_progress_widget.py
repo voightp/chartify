@@ -1,7 +1,7 @@
 import pytest
 from PySide2.QtCore import Qt
 
-from chartify.ui.progress_widget import ProgressContainer
+from chartify.ui.widgets.progress_widget import ProgressContainer
 
 
 @pytest.fixture

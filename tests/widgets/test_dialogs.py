@@ -5,7 +5,7 @@ from PySide2.QtCore import Qt, QTimer
 from PySide2.QtGui import QIcon
 from PySide2.QtWidgets import QDialog, QDialogButtonBox
 
-from chartify.ui.dialogs import (
+from chartify.ui.widgets.dialogs import (
     TwoButtonBox,
     BaseTwoButtonDialog,
     SingleInputDialog,

@@ -1,5 +1,5 @@
-from chartify.ui.treeview import ViewMask, ViewType, CachedViewAppearance, OutputType
-from chartify.ui.treeview_model import VV
+from chartify.ui.widgets.treeview import ViewType, CachedViewAppearance
+from chartify.ui.widgets.treeview_model import VV
 from tests.conftest import *
 from PySide2.QtCore import Qt
 

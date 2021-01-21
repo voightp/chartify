@@ -32,17 +32,17 @@ from esofile_reader.df.level_names import *
 from esofile_reader.pqt.parquet_storage import ParquetStorage, ParquetFile
 
 from chartify.settings import Settings, OutputType
-from chartify.ui.buttons import MenuButton
+from chartify.ui.widgets.buttons import MenuButton
 from chartify.ui.css_theme import Palette, CssParser
-from chartify.ui.dialogs import ConfirmationDialog, SingleInputDialog, DoubleInputDialog
-from chartify.ui.drop_frame import DropFrame
+from chartify.ui.widgets.dialogs import ConfirmationDialog, SingleInputDialog, DoubleInputDialog
+from chartify.ui.widgets.drop_frame import DropFrame
 from chartify.ui.icon_painter import Pixmap, draw_filled_circle_icon
-from chartify.ui.progress_widget import ProgressContainer
-from chartify.ui.stacked_widget import StackedWidget
-from chartify.ui.tab_widget import TabWidget
+from chartify.ui.widgets.progress_widget import ProgressContainer
+from chartify.ui.widgets.stacked_widget import StackedWidget
+from chartify.ui.widgets.tab_widget import TabWidget
 from chartify.ui.toolbar import Toolbar
-from chartify.ui.treeview import TreeView, ViewMask, ViewType
-from chartify.ui.treeview_model import (
+from chartify.ui.widgets.treeview import TreeView, ViewMask, ViewType
+from chartify.ui.widgets.treeview_model import (
     ViewModel,
     is_variable_attr_identical,
     stringify_view_variable,

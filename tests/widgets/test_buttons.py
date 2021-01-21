@@ -5,7 +5,7 @@ from PySide2.QtCore import QPoint, Qt
 from PySide2.QtGui import QIcon
 from PySide2.QtWidgets import QAction, QMenu
 
-from chartify.ui.buttons import (
+from chartify.ui.widgets.buttons import (
     StatusButton,
     TitledButton,
     ToggleButton,

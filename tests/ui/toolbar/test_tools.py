@@ -3,7 +3,7 @@ from unittest.mock import patch
 import pytest
 from PySide2.QtCore import Qt
 
-from chartify.ui.treeview_model import VV
+from chartify.ui.widgets.treeview_model import VV
 
 
 @pytest.fixture(scope="function")

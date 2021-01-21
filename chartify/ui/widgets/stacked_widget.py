@@ -2,8 +2,8 @@ from typing import List, Dict
 
 from PySide2.QtWidgets import QStackedWidget, QWidget
 
-from chartify.ui.treeview import TreeView
-from chartify.ui.treeview_model import ViewModel
+from chartify.ui.widgets.treeview import TreeView
+from chartify.ui.widgets.treeview_model import ViewModel
 
 
 class StackedWidget(QStackedWidget):

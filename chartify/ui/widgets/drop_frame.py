@@ -5,7 +5,7 @@ from PySide2.QtCore import Signal, QUrl
 from PySide2.QtGui import QDragEnterEvent, QDragLeaveEvent, QDropEvent
 from PySide2.QtWidgets import QFrame, QWidget
 
-from chartify.ui.widget_functions import refresh_css
+from chartify.ui.widgets.widget_functions import refresh_css
 
 
 class DropFrame(QFrame):

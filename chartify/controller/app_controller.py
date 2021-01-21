@@ -12,7 +12,7 @@ from chartify.controller.wv_controller import WVController
 from chartify.model.model import AppModel
 from chartify.settings import Settings
 from chartify.ui.main_window import MainWindow
-from chartify.ui.treeview_model import ViewModel, VV
+from chartify.ui.widgets.treeview_model import ViewModel, VV
 from chartify.controller.process_utils import create_pool, kill_child_processes
 from chartify.controller.progress_logging import ProgressThread, UiLogger
 from chartify.controller.threads import FileWatcher, suspend_watcher

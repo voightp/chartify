@@ -16,7 +16,7 @@ from esofile_reader.df.level_names import *
 from esofile_reader.typehints import Variable, SimpleVariable
 
 from chartify.settings import OutputType
-from chartify.ui.treeview_model import (
+from chartify.ui.widgets.treeview_model import (
     ViewModel,
     FilterModel,
     PROXY_UNITS_LEVEL,

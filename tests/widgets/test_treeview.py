@@ -7,8 +7,8 @@ from esofile_reader import GenericFile
 from esofile_reader.df.level_names import UNITS_LEVEL
 
 from chartify.settings import OutputType
-from chartify.ui.treeview import TreeView, ViewType, ViewMask
-from chartify.ui.treeview_model import FilterModel, ViewModel, VV
+from chartify.ui.widgets.treeview import TreeView, ViewType, ViewMask
+from chartify.ui.widgets.treeview_model import FilterModel, ViewModel, VV
 from tests.conftest import ESO_FILE_EXCEL_PATH, EXCEL_FILE_PATH
 from tests.ui.test_view_mask import reset_cached
 

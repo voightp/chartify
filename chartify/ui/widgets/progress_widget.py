@@ -13,8 +13,8 @@ from PySide2.QtWidgets import (
     QHBoxLayout,
 )
 
-from chartify.ui.buttons import StatusButton
-from chartify.ui.widget_functions import refresh_css
+from chartify.ui.widgets.buttons import StatusButton
+from chartify.ui.widgets.widget_functions import refresh_css
 
 
 class ProgressFile:

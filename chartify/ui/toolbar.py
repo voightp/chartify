@@ -16,7 +16,7 @@ from PySide2.QtWidgets import (
 )
 
 from chartify.settings import Settings, OutputType
-from chartify.ui.buttons import TitledButton, ToggleButton, LabeledButton
+from chartify.ui.widgets.buttons import TitledButton, ToggleButton, LabeledButton
 
 
 class Toolbar(QFrame):
