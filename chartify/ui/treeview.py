@@ -424,9 +424,7 @@ class TreeView(QTreeView):
         """
         for source_index in source_row_indexes:
             if self.source_model.hasChildren(source_index):
-                # select all the children if the item is expanded
-                # and none of its children has been already selected
-                if self.can_select_all_children(source_index, source_row_indexes):
+                if self.isExpanded(self.proxy_model.mapFromSource(source_index)):
                     self.select_all_children(source_index)
                 # deselect all the parent nodes as these should not be
                 # included in output variable data
