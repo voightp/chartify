@@ -1,4 +1,5 @@
 import pathlib
+import shutil
 import tempfile
 from concurrent.futures import ProcessPoolExecutor
 from copy import copy
@@ -30,8 +31,14 @@ ESO_FILE_EXCEL_PATH = Path(TEST_FILES, "eplusout.xlsx")
 
 @pytest.fixture(scope="session")
 def test_tempdir():
-    with tempfile.TemporaryDirectory(dir=ROOT) as tempdir:
-        yield tempdir
+    path = Path(ROOT, "temp")
+    if path.exists():
+        shutil.rmtree(path)
+    path.mkdir()
+    try:
+        yield path
+    finally:
+        shutil.rmtree(path, ignore_errors=True)
 
 
 @pytest.fixture(scope="session")

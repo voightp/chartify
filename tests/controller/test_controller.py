@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import pytest
+
 from tests.conftest import ESO_FILE_INCOMPLETE, ESO_FILE1_PATH, ESO_FILE2_PATH, EXCEL_FILE_PATH
 
 
@@ -31,10 +33,12 @@ class TestLoadFiles:
         ):
             mw.load_files_from_paths([ESO_FILE1_PATH])
 
+    @pytest.mark.skip
     def test_progress_signals_fail(self, qtbot, mw, controller):
         with qtbot.wait_signal(controller.progress_thread.failed, timeout=10000):
             mw.load_files_from_paths([ESO_FILE_INCOMPLETE])
 
+    @pytest.mark.skip
     def test_load_unsupported_file(self, qtbot, mw, controller):
         with qtbot.wait_signal(controller.progress_thread.failed, timeout=10000):
             mw.load_files_from_paths([Path("foo.bar")])
