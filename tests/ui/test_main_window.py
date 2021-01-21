@@ -124,6 +124,7 @@ class TestMainWindowInit:
             mw.remove_variables_act,
             mw.sum_act,
             mw.mean_act,
+            mw.rename_variable_act,
             mw.collapse_all_act,
             mw.expand_all_act,
             mw.tree_act,
