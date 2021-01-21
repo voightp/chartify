@@ -11,7 +11,7 @@ from chartify.ui.buttons import (
     ToggleButton,
     MenuButton,
 )
-from chartify.utils.icon_painter import Pixmap
+from chartify.ui.icon_painter import Pixmap
 from tests.conftest import ROOT
 
 

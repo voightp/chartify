@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from chartify.utils.css_theme import (
+from chartify.ui.css_theme import (
     parse_color,
     Palette,
     CssParser,

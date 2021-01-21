@@ -13,7 +13,7 @@ from chartify.charts.chart_settings import generate_grid_item, color_generator
 from chartify.charts.trace import Trace1D, TraceData
 from chartify.model.model import AppModel
 from chartify.settings import Settings
-from chartify.utils.threads import Worker
+from chartify.controller.threads import Worker
 from chartify.utils.tiny_profiler import profile
 from chartify.utils.utils import int_generator, calculate_totals, printdict
 

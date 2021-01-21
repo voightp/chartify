@@ -12,7 +12,7 @@ from chartify.ui.dialogs import (
     DoubleInputDialog,
     ConfirmationDialog,
 )
-from chartify.utils.icon_painter import Pixmap
+from chartify.ui.icon_painter import Pixmap
 from tests.conftest import ROOT
 
 

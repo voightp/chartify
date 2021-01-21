@@ -1,7 +1,7 @@
 from esofile_reader.processing.eplus import *
 
-from chartify.utils.css_theme import parse_color
-from chartify.utils.icon_painter import combine_colors
+from chartify.ui.css_theme import parse_color
+from chartify.ui.icon_painter import combine_colors
 
 
 def get_pie_trace_appearance(priorities, colors, background_color):

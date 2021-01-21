@@ -1,6 +1,5 @@
 import contextlib
 import traceback
-import uuid
 from multiprocessing import Lock
 from pathlib import Path
 from typing import List
@@ -10,7 +9,7 @@ from esofile_reader.exceptions import IncompleteFile, BlankLineError, InvalidLin
 from esofile_reader.pqt.parquet_file import ParquetFile, ParquetFrame
 from esofile_reader.typehints import ResultsFileType
 
-from chartify.utils.progress_logging import UiLogger
+from chartify.controller.progress_logging import UiLogger
 
 
 def store_file(

@@ -3,7 +3,7 @@ from pathlib import Path
 from PySide2.QtCore import QSize, Qt
 from PySide2.QtGui import QColor, QFont
 
-from chartify.utils.icon_painter import (
+from chartify.ui.icon_painter import (
     Pixmap,
     text_to_pixmap,
     draw_filled_circle_icon,

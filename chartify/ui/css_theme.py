@@ -4,7 +4,7 @@ import traceback
 from pathlib import Path
 from typing import Tuple, Dict, Union, Iterable, Optional, List
 
-from chartify.utils.icon_painter import Pixmap
+from chartify.ui.icon_painter import Pixmap
 
 
 class InvalidRangeError(Exception):

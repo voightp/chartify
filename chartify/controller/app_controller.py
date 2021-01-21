@@ -13,9 +13,9 @@ from chartify.model.model import AppModel
 from chartify.settings import Settings
 from chartify.ui.main_window import MainWindow
 from chartify.ui.treeview_model import ViewModel, VV
-from chartify.utils.process_utils import create_pool, kill_child_processes
-from chartify.utils.progress_logging import ProgressThread, UiLogger
-from chartify.utils.threads import FileWatcher, suspend_watcher
+from chartify.controller.process_utils import create_pool, kill_child_processes
+from chartify.controller.progress_logging import ProgressThread, UiLogger
+from chartify.controller.threads import FileWatcher, suspend_watcher
 from chartify.utils.utils import get_str_identifier
 
 

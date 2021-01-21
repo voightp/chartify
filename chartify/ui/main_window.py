@@ -47,8 +47,8 @@ from chartify.ui.treeview_model import (
     VV,
     PROXY_UNITS_LEVEL,
 )
-from chartify.utils.css_theme import Palette, CssParser
-from chartify.utils.icon_painter import Pixmap, draw_filled_circle_icon
+from chartify.ui.css_theme import Palette, CssParser
+from chartify.ui.icon_painter import Pixmap, draw_filled_circle_icon
 
 
 # noinspection PyPep8Naming,PyUnresolvedReferences
