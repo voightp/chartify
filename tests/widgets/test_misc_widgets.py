@@ -134,7 +134,6 @@ class TestDropFrame:
         )
 
         def cb(a):
-            print(a)
             return a == paths
 
         with qtbot.wait_signal(drop_frame.fileDropped, check_params_cb=cb):

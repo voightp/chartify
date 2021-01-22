@@ -414,6 +414,7 @@ class ViewModel(QStandardItemModel):
         units_system: str = "SI",
         energy_units: str = "J",
         rate_units: str = "W",
+        sort_order: Optional[List[str]] = None,
     ) -> None:
         """  Create a model and set up its appearance. """
         if self.rowCount() > 0:
@@ -434,9 +435,10 @@ class ViewModel(QStandardItemModel):
             energy_units=energy_units,
             rate_units=rate_units,
         )
-        column_labels = header_df.columns.tolist()
-        header_df = header_df.sort_values(by=column_labels, ascending=True)
-        self.set_column_header_item_data(column_labels)
+        if sort_order is None:
+            sort_order = header_df.columns.tolist()
+        header_df = header_df.sort_values(by=list(sort_order), ascending=True)
+        self.set_column_header_item_data(header_df.columns.tolist())
         if self.tree_node:
             self.append_tree_rows(header_df)
         else:

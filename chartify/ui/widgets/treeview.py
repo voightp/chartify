@@ -185,9 +185,14 @@ class TreeView(QTreeView):
         dct_items = sorted(self.get_visual_column_indexes().items(), key=lambda x: x[1])
         return tuple([t[0] for t in dct_items])
 
-    def get_sort_indicator(self) -> Tuple[int, Qt.SortOrder]:
+    def get_sort_order(self) -> Tuple[Optional[str], Qt.SortOrder]:
         """ Get last sorted column and indicator. """
-        return self.proxy_model.sortColumn(), self.proxy_model.sortOrder()
+        if self.proxy_model.sortColumn() != -1:
+            column = self.header().sortIndicatorSection()
+            data = self.source_model.get_logical_column_data()[column]
+        else:
+            data = None
+        return data, self.header().sortIndicatorOrder()
 
     def get_visual_column_indexes(self) -> Dict[str, int]:
         """ Get a dictionary of section visual index pairs. """
@@ -210,9 +215,11 @@ class TreeView(QTreeView):
             self.verticalScrollBar().setMaximum(pos)
         self.verticalScrollBar().setValue(pos)
 
-    def update_sort_order(self, indicator_column: int, order: Qt.SortOrder) -> None:
+    def set_sort_order(self, column_name: Optional[str], order: Qt.SortOrder) -> None:
         """ Sort by given column. """
-        self.sortByColumn(indicator_column, order)
+        if column_name is not None:
+            column = self.source_model.get_logical_column_number(column_name)
+            self.header().setSortIndicator(column, order)
 
     def scroll_to(self, view_variable: VV) -> None:
         """ Scroll to the given variable. """
@@ -313,6 +320,7 @@ class TreeView(QTreeView):
         units_system: str,
         energy_units: str,
         rate_units: str,
+        sort_order: Optional[List[str]] = None,
     ) -> None:
         """ Update tree view model. """
         units_kwargs = {
@@ -322,7 +330,7 @@ class TreeView(QTreeView):
             "rate_units": rate_units,
         }
         if self.source_model.needs_rebuild(tree_node):
-            self.source_model.rebuild_model(tree_node, **units_kwargs)
+            self.source_model.rebuild_model(tree_node, sort_order=sort_order, **units_kwargs)
             self.set_span_and_decorate_root()
         elif self.source_model.needs_units_update(**units_kwargs):
             self.source_model.update_proxy_units(**units_kwargs)
@@ -389,16 +397,6 @@ class TreeView(QTreeView):
         self.selectionModel().select(
             proxy_selection, QItemSelectionModel.Select | QItemSelectionModel.Rows
         )
-
-    def can_select_all_children(
-        self, parent_source_index: QModelIndex, selected_source_indexes: List[QModelIndex]
-    ) -> bool:
-        """ Check if all child items should be selected on parent click. """
-        is_any_child_selected = any(
-            map(lambda x: x.parent() == parent_source_index, selected_source_indexes)
-        )
-        parent_proxy_index = self.proxy_model.mapFromSource(parent_source_index)
-        return self.isExpanded(parent_proxy_index) and not is_any_child_selected
 
     def get_selected_view_variable(self) -> List[VV]:
         """ Get currently selected variable data. """
@@ -475,12 +473,12 @@ class TreeViewAppearance:
         self.selected = treeview.get_selected_view_variable()
         self.scroll_position = treeview.get_scroll_position()
         self.expanded = treeview.get_expanded_labels()
-        self.sort_indicator = treeview.get_sort_indicator()
+        self.sort_indicator = treeview.get_sort_order()
 
     def apply_to(self, treeview: TreeView) -> None:
         treeview.reorder_columns(self.header)
         treeview.set_header_resize_mode(self.widths)
-        treeview.update_sort_order(*self.sort_indicator)
+        treeview.set_sort_order(*self.sort_indicator)
         if self.expanded:
             treeview.expand_items(self.expanded)
         treeview.update_scrollbar_position(self.scroll_position)
@@ -499,8 +497,8 @@ class CachedViewAppearance:
         ViewType.TREE: {"fixed": 60, "interactive": 200},
     }
     default_sort_order = {
-        ViewType.SIMPLE: (-1, Qt.SortOrder.AscendingOrder),
-        ViewType.TREE: (-1, Qt.SortOrder.AscendingOrder),
+        ViewType.SIMPLE: (None, Qt.DescendingOrder),
+        ViewType.TREE: (None, Qt.DescendingOrder),
     }
 
     def cache_appearance(self, appearance: TreeViewAppearance):
@@ -511,7 +509,7 @@ class CachedViewAppearance:
     def apply_to(self, treeview: TreeView) -> None:
         treeview.reorder_columns(self.default_header[treeview.view_type])
         treeview.set_header_resize_mode(self.default_widths[treeview.view_type])
-        treeview.update_sort_order(*self.default_sort_order[treeview.view_type])
+        treeview.set_sort_order(*self.default_sort_order[treeview.view_type])
 
 
 class ViewMask:
@@ -565,14 +563,15 @@ class ViewMask:
             )
         )
 
-    def get_tree_node(self, treeview: TreeView) -> str:
-        return self.CACHED[treeview.output_type].default_header[treeview.view_type][0]
+    def get_header(self, treeview: TreeView) -> Tuple[str, ...]:
+        return self.CACHED[treeview.output_type].default_header[treeview.view_type]
 
     def update_treeview(
         self, treeview: TreeView, is_tree: bool, units_kwargs: Dict[str, Union[str, bool]]
     ) -> None:
+        header = list(self.get_header(treeview))
         if is_tree and not treeview.source_model.is_simple:
-            tree_node = self.get_tree_node(treeview)
+            tree_node = header[0]
         else:
             tree_node = None
-        treeview.update_model(tree_node=tree_node, **units_kwargs)
+        treeview.update_model(tree_node=tree_node, sort_order=header, **units_kwargs)

@@ -25,8 +25,8 @@ def reset_cached():
         ViewType.TREE: {"fixed": 60, "interactive": 200},
     }
     default_sort_order = {
-        ViewType.SIMPLE: (-1, Qt.SortOrder.AscendingOrder),
-        ViewType.TREE: (-1, Qt.SortOrder.AscendingOrder),
+        ViewType.SIMPLE: (None, Qt.SortOrder.DescendingOrder),
+        ViewType.TREE: (None, Qt.SortOrder.DescendingOrder),
     }
     yield
     CachedViewAppearance.default_header = default_header

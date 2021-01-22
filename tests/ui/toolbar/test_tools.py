@@ -59,7 +59,7 @@ class TestRemoveVariable:
 
 
 class TestRenameSimpleVariable:
-    NEW_SIMPLE_VARIABLE = VV("foo", None, "J")
+    NEW_SIMPLE_VARIABLE = VV("foo", None, "W")
 
     def test_confirm_rename_variable_simple(self, qtbot, mw_excel_file):
         with patch("chartify.ui.main_window.SingleInputDialog") as dialog:
@@ -83,9 +83,6 @@ class TestRenameSimpleVariable:
     @pytest.mark.depends(on="test_confirm_rename_variable_simple")
     def test_rename_simple_variable(self, qtbot, mw_excel_file):
         mw_excel_file.current_view.select_variables([self.NEW_SIMPLE_VARIABLE])
-        assert mw_excel_file.current_view.get_selected_view_variable() == [
-            self.NEW_SIMPLE_VARIABLE
-        ]
         assert mw_excel_file.current_model.variable_exists(self.NEW_SIMPLE_VARIABLE)
 
 

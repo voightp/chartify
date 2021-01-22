@@ -215,8 +215,6 @@ def test_initial_view_appearance_hidden_source(hourly: TreeView):
     assert hourly.header().sectionResizeMode(2) == QHeaderView.Fixed
     assert hourly.header().sectionResizeMode(3) == QHeaderView.Fixed
 
-    assert hourly.header().sortIndicatorOrder() == Qt.AscendingOrder
-
 
 def test_initial_view_appearance_simple_hidden_source(daily_simple: TreeView):
     assert daily_simple.header().sectionSize(0) == 340
@@ -227,8 +225,6 @@ def test_initial_view_appearance_simple_hidden_source(daily_simple: TreeView):
     assert daily_simple.header().sectionResizeMode(0) == QHeaderView.Stretch
     assert daily_simple.header().sectionResizeMode(1) == QHeaderView.Fixed
     assert daily_simple.header().sectionResizeMode(2) == QHeaderView.Fixed
-
-    assert daily_simple.header().sortIndicatorOrder() == Qt.AscendingOrder
 
 
 def test_build_plain_view(qtbot, hourly: TreeView):
@@ -277,7 +273,6 @@ def test_on_tree_node_changed_build_tree(qtbot, hourly: TreeView):
     with qtbot.wait_signal(hourly.treeNodeChanged, timeout=1000):
         hourly.header().moveSection(2, 0)
         assert hourly.get_visual_column_data() == ("proxy_units", "type", "key", "units")
-        assert hourly.header().sortIndicatorOrder() == Qt.AscendingOrder
 
 
 def test_on_tree_node_changed_dont_build_tree(qtbot, hourly: TreeView):
@@ -567,7 +562,6 @@ def test_deselect_variables(qtbot, tree_view: TreeView, test_data):
 )
 def test_select_variables(qtbot, tree_view: TreeView, test_data):
     def cb(view_variable):
-        print(view_variable)
         return set(test_data) == set(view_variable)
 
     with qtbot.wait_signal(tree_view.selectionPopulated, check_params_cb=cb):
