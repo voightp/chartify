@@ -1,3 +1,4 @@
+import time
 from pathlib import Path
 
 import pytest
@@ -5,14 +6,17 @@ from PySide2.QtCore import Qt, QTimer
 from PySide2.QtGui import QIcon
 from PySide2.QtWidgets import QDialog, QDialogButtonBox
 
+from chartify.ui.icon_painter import Pixmap
 from chartify.ui.widgets.dialogs import (
     TwoButtonBox,
     BaseTwoButtonDialog,
     SingleInputDialog,
     DoubleInputDialog,
     ConfirmationDialog,
+    ProgressDialog,
+    InfiniteProgressDialog,
+    QWidget,
 )
-from chartify.ui.icon_painter import Pixmap
 from tests.conftest import ROOT
 
 
@@ -169,3 +173,45 @@ class TestConfirmationDialog:
     def test_dialog_init(self, dialog: SingleInputDialog):
         assert dialog.content_layout.itemAt(0).widget().text() == "Some information text"
         assert dialog.content_layout.itemAt(1).widget().toPlainText() == "Some detailed text"
+
+
+class TestProgressDialog:
+    @pytest.fixture
+    def progress_dialog(self, qtbot):
+        widget = QWidget()
+        with ProgressDialog(
+            widget, "test", 10, cancel="Cancel", modality=Qt.ApplicationModal, delay=100
+        ) as dialog:
+            qtbot.add_widget(widget)
+            widget.show()
+            yield dialog
+
+    def test_init_progress_dialog(self, qtbot, progress_dialog):
+        assert progress_dialog.labelText() == "test"
+        assert progress_dialog.maximum() == 10
+        assert progress_dialog.minimum() == 0
+        assert progress_dialog.minimumDuration() == 100
+
+    def test_progress_dialog_progress(self, qtbot, progress_dialog):
+        for i in range(11):
+            progress_dialog.increment_progress()
+            time.sleep(0.1)
+        assert progress_dialog.isHidden()
+
+
+class TestInfinitiveProgressDialog:
+    @pytest.fixture
+    def progress_dialog(self, qtbot):
+        widget = QWidget()
+        with InfiniteProgressDialog(
+            widget, "test", cancel="Cancel", modality=Qt.ApplicationModal, delay=100
+        ) as dialog:
+            qtbot.add_widget(widget)
+            widget.show()
+            yield dialog
+
+    def test_init_progress_dialog(self, qtbot, progress_dialog):
+        assert progress_dialog.labelText() == "test"
+        assert progress_dialog.maximum() == 0
+        assert progress_dialog.minimum() == 0
+        assert progress_dialog.minimumDuration() == 100

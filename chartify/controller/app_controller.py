@@ -16,7 +16,7 @@ from chartify.controller.wv_controller import WVController
 from chartify.model.model import AppModel
 from chartify.settings import Settings
 from chartify.ui.main_window import MainWindow
-from chartify.ui.widgets.dialogs import ProgressDialog
+from chartify.ui.widgets.dialogs import ProgressDialog, InfiniteProgressDialog
 from chartify.ui.widgets.treeview_model import ViewModel, VV
 from chartify.utils.utils import get_str_identifier
 

@@ -185,7 +185,15 @@ class StatusDialog(QDialog):
 
 
 class ProgressDialog(QProgressDialog):
-    def __init__(self, parent: QWidget, label: str, maximum: int, cancel: Optional[str] = None):
+    def __init__(
+        self,
+        parent: QWidget,
+        label: str,
+        maximum: int,
+        cancel: Optional[str] = None,
+        modality: Qt.WindowModality = Qt.ApplicationModal,
+        delay: int = 0,
+    ):
         super().__init__(
             parent=parent,
             labelText=label,
@@ -194,9 +202,9 @@ class ProgressDialog(QProgressDialog):
             cancelButtonText=cancel,
             flags=Qt.FramelessWindowHint,
         )
-        self.setMinimumDuration(0)
-        self.setWindowModality(Qt.ApplicationModal)
-        self.setValue(0)
+        self.setMinimumDuration(delay)
+        self.setWindowModality(modality)
+        self.setValue(-1)
 
     def increment_progress(self):
         self.setValue(self.value() + 1)
@@ -206,4 +214,33 @@ class ProgressDialog(QProgressDialog):
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.setValue(self.maximum())
+        self.reset()
+
+
+class InfiniteProgressDialog(QProgressDialog):
+    def __init__(
+        self,
+        parent: QWidget,
+        label: str,
+        cancel: Optional[str] = None,
+        modality: Qt.WindowModality = Qt.ApplicationModal,
+        delay: int = 0,
+    ):
+        super().__init__(
+            parent=parent,
+            labelText=label,
+            minimum=0,
+            maximum=0,
+            cancelButtonText=cancel,
+            flags=Qt.FramelessWindowHint,
+        )
+        self.setMinimumDuration(delay)
+        self.setWindowModality(modality)
+        self.setValue(self.minimum())
+        self.raise_()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
         self.reset()
