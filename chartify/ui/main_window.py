@@ -26,21 +26,22 @@ from PySide2.QtWidgets import (
     QSpacerItem,
     QVBoxLayout,
     QStackedWidget,
+    QDialog,
 )
 from esofile_reader.convertor import all_rate_or_energy
 from esofile_reader.df.level_names import *
 from esofile_reader.pqt.parquet_storage import ParquetStorage, ParquetFile
 
 from chartify.settings import Settings, OutputType
-from chartify.ui.widgets.buttons import MenuButton
 from chartify.ui.css_theme import Palette, CssParser
+from chartify.ui.icon_painter import Pixmap, draw_filled_circle_icon
+from chartify.ui.toolbar import Toolbar
+from chartify.ui.widgets.buttons import MenuButton
 from chartify.ui.widgets.dialogs import ConfirmationDialog, SingleInputDialog, DoubleInputDialog
 from chartify.ui.widgets.drop_frame import DropFrame
-from chartify.ui.icon_painter import Pixmap, draw_filled_circle_icon
 from chartify.ui.widgets.progress_widget import ProgressContainer
 from chartify.ui.widgets.stacked_widget import StackedWidget
 from chartify.ui.widgets.tab_widget import TabWidget
-from chartify.ui.toolbar import Toolbar
 from chartify.ui.widgets.treeview import TreeView, ViewMask, ViewType
 from chartify.ui.widgets.treeview_model import (
     ViewModel,
@@ -289,6 +290,14 @@ class MainWindow(QMainWindow):
 
         self.progress_container = ProgressContainer(self.status_bar)
         self.status_bar.addWidget(self.progress_container)
+
+        # ~~~~ Blocking progress dialog ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.blocking_progress_dialog = QDialog(self)
+        layout = QHBoxLayout(self.blocking_progress_dialog)
+        self.blocking_progress_container = ProgressContainer(
+            self.blocking_progress_dialog, vertical=True
+        )
+        layout.addWidget(self.blocking_progress_container)
 
         # ~~~~ Palettes ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.palettes = Palette.parse_palettes(Settings.PALETTE_PATH)

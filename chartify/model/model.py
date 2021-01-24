@@ -1,6 +1,5 @@
 from pathlib import Path
 from typing import List, Union
-from zipfile import ZipFile
 
 from PySide2.QtCore import QObject
 from esofile_reader.pqt.parquet_file import ParquetFile
@@ -8,7 +7,6 @@ from esofile_reader.pqt.parquet_storage import ParquetStorage
 
 from chartify.charts.chart import Chart
 from chartify.charts.trace import Trace1D, Trace2D, TraceData
-from chartify.controller.file_processing import UiLogger
 from chartify.settings import Settings
 
 
@@ -37,11 +35,9 @@ class AppModel(QObject):
     def workdir(self):
         return self.storage.workdir
 
-    def save_to_zip(self, path: Path, logger: UiLogger) -> None:
-        with ZipFile(path, mode="w") as zf:
-            self.m.save_to_zip()
-            for pqf in self.m.files.values():
-                pqf.save_file_to_zip(zf, self.workdir, logger)
+    @property
+    def files(self):
+        return self.storage.files
 
     def get_file(self, id_: int) -> ParquetFile:
         """ Get 'DatabaseFile for the given id. """

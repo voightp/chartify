@@ -1,21 +1,23 @@
 import os
 import shutil
-from multiprocessing import Manager
+from multiprocessing import Manager, Lock
 from pathlib import Path
 from typing import List, Optional
+from zipfile import ZipFile
 
 from PySide2.QtCore import QThreadPool
 from esofile_reader.pqt.parquet_file import ParquetFile
 
 from chartify.controller.file_processing import load_file
+from chartify.controller.process_utils import create_pool, kill_child_processes
+from chartify.controller.progress_logging import ProgressThread
+from chartify.controller.threads import FileWatcher
 from chartify.controller.wv_controller import WVController
 from chartify.model.model import AppModel
 from chartify.settings import Settings
 from chartify.ui.main_window import MainWindow
+from chartify.ui.widgets.dialogs import ProgressDialog
 from chartify.ui.widgets.treeview_model import ViewModel, VV
-from chartify.controller.process_utils import create_pool, kill_child_processes
-from chartify.controller.progress_logging import ProgressThread, UiLogger
-from chartify.controller.threads import FileWatcher, suspend_watcher
 from chartify.utils.utils import get_str_identifier
 
 
@@ -45,18 +47,23 @@ class AppController:
 
         # ~~~~ Queues ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.manager = Manager()
-        self.lock = self.manager.Lock()
+        self.id_lock = self.manager.Lock()
         self.ids = self.manager.list([])
+        self.file_lock = Lock()
         self.progress_queue = self.manager.Queue()
+        self.blocking_progress_queue = self.manager.Queue()
         self.file_queue = self.manager.Queue()
 
         # ~~~~ Monitoring threads ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        self.watcher = FileWatcher(self.file_queue)
+        self.watcher = FileWatcher(self.file_queue, self.file_lock)
         self.watcher.file_loaded.connect(self.on_file_loaded)
         self.watcher.start()
 
         self.progress_thread = ProgressThread(self.progress_queue)
         self.progress_thread.start()
+
+        self.blocking_progress_thread = ProgressThread(self.blocking_progress_queue)
+        self.blocking_progress_thread.start()
 
         # ~~~~ Thread executor ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         self.thread_pool = QThreadPool()
@@ -74,6 +81,7 @@ class AppController:
 
         self.watcher.terminate()
         self.progress_thread.terminate()
+        self.blocking_progress_thread.terminate()
         self.manager.shutdown()
 
         kill_child_processes(os.getpid())
@@ -114,21 +122,23 @@ class AppController:
             print("Selected Variables:\n\t{}".format("\n\t".join(out_str)))
 
     def save_project(self, path: Path) -> None:
-        with suspend_watcher(self, self.watcher):
-            logger = UiLogger(path.stem, path, self.progress_queue)
-            with logger.log_task(f"save file {path.stem}"):
-                self.m.save_to_zip(path, logger)
+        maximum = self.m.storage.count_parquets()
+        with ProgressDialog(self.v, "Saving project...", maximum=maximum) as dialog:
+            with self.file_lock:
+                with ZipFile(path, mode="w") as zf:
+                    for pqf in self.m.files.values():
+                        pqf.save_file_to_zip(zf, self.m.workdir, dialog)
 
     def on_save(self) -> None:
         if not self.m.storage.path:
             self.on_save_as()
         else:
-            self.save_project(self.m.path)
+            self.save_project(self.m.storage.path)
 
     def on_save_as(self) -> None:
         path = self.v.save_storage_to_fs()
         if path:
-            self.m.path = path
+            self.m.storage.path = path
             self.save_project(path)
 
     def on_file_processing_requested(self, paths: List[Path]) -> None:
@@ -141,15 +151,38 @@ class AppController:
                 self.progress_queue,
                 self.file_queue,
                 self.ids,
-                self.lock,
+                self.id_lock,
+            )
+
+    def on_blocking_file_processing_requested(self, paths: List[Path]) -> None:
+        """ Load new files. """
+        for path in paths:
+            self.pool.submit(
+                load_file,
+                path,
+                self.m.workdir,
+                self.blocking_progress_queue,
+                self.file_queue,
+                self.ids,
+                self.id_lock,
             )
 
     def on_sync_file_processing_requested(self, paths: List[Path]) -> None:
-        """ Load new files. """
-        for path in paths:
-            load_file(
-                path, self.m.workdir, self.progress_queue, self.file_queue, self.ids, self.lock,
-            )
+        """ Load new files synchronously. """
+        maximum = len(paths)
+        with ProgressDialog(self.v, "Loading files...", maximum, "cancel",) as dialog:
+            for i, path in enumerate(paths):
+                if dialog.wasCanceled():
+                    break
+                load_file(
+                    path,
+                    self.m.workdir,
+                    self.progress_queue,
+                    self.file_queue,
+                    self.ids,
+                    self.id_lock,
+                )
+                dialog.setValue(i)
 
     def on_file_loaded(self, file: ParquetFile) -> None:
         """ Add results file into 'tab' widget. """
@@ -165,7 +198,7 @@ class AppController:
 
     def on_file_remove_requested(self, id_: int) -> None:
         """ Delete file from the database. """
-        with self.lock:
+        with self.id_lock:
             self.m.delete_file(id_)
             self.ids.remove(id_)
 

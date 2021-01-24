@@ -1,4 +1,4 @@
-from contextlib import contextmanager
+from contextlib import contextmanager, suppress
 from multiprocessing import Queue
 from pathlib import Path
 from typing import Union

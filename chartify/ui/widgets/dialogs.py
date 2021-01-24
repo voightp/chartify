@@ -11,6 +11,7 @@ from PySide2.QtWidgets import (
     QToolButton,
     QLineEdit,
     QTextEdit,
+    QProgressDialog,
 )
 
 
@@ -166,7 +167,7 @@ class ConfirmationDialog(BaseTwoButtonDialog):
 
 class StatusDialog(QDialog):
     def __init__(self, parent: QWidget, n_rows: int = 2):
-        super(StatusDialog, self).__init__(parent)
+        super().__init__(parent)
         self.setWindowFlag(Qt.FramelessWindowHint)
         self.layout = QVBoxLayout(self)
         self.layout.setSpacing(0)
@@ -181,3 +182,28 @@ class StatusDialog(QDialog):
     def set_text(self, status: str):
         for label, row in zip(self.labels, status.split(sep="\n")):
             label.setText(row)
+
+
+class ProgressDialog(QProgressDialog):
+    def __init__(self, parent: QWidget, label: str, maximum: int, cancel: Optional[str] = None):
+        super().__init__(
+            parent=parent,
+            labelText=label,
+            minimum=0,
+            maximum=maximum,
+            cancelButtonText=cancel,
+            flags=Qt.FramelessWindowHint,
+        )
+        self.setMinimumDuration(0)
+        self.setWindowModality(Qt.ApplicationModal)
+        self.setValue(0)
+
+    def increment_progress(self):
+        self.setValue(self.value() + 1)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.setValue(self.maximum())
+        self.reset()

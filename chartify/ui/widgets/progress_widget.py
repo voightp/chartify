@@ -290,10 +290,10 @@ class ProgressContainer(QWidget):
     MAX_VISIBLE_JOBS = 5
     OVERLAP = 3
 
-    def __init__(self, parent):
+    def __init__(self, parent: QWidget, vertical: bool = False):
         super().__init__(parent)
 
-        layout = QHBoxLayout(self)
+        layout = QVBoxLayout(self) if vertical else QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setAlignment(Qt.AlignLeft)
 
