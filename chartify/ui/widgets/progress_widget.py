@@ -158,7 +158,7 @@ class SummaryWidget(QFrame):
     def update_label(self, n: int) -> None:
         """ Update number of pending jobs. """
         if n >= 1:
-            self.label.setText(f"processing {n} files...")
+            self.label.setText(f"+ {n} files...")
         else:
             self.label.setText("")
 
@@ -316,35 +316,7 @@ class ProgressContainer(QWidget):
     @property
     def sorted_files(self) -> List[ProgressFile]:
         """ Sort widgets by value (descending order). """
-        all_files = list(self.files.values())
-        # remove already locked files
-        files = list(filter(lambda x: x not in self.locked, all_files))
-        # locked files take precedent
-        sorted_files = self.locked + sorted(files, key=lambda x: x.relative_value, reverse=True)
-        return sorted_files
-
-    @property
-    def visible_files(self) -> List[ProgressFile]:
-        """ Get currently visible files. """
-        return [wgt.file_ref for wgt in filter(lambda x: x.file_ref, self.widgets)]
-
-    def _get_visible_index(self, file: ProgressFile) -> Optional[int]:
-        """ Get visible index, returns 'None' if invalid. """
-        with contextlib.suppress(ValueError):
-            return self.visible_files.index(file)
-
-    def _position_changed(self, file: ProgressFile) -> bool:
-        """ Check if the current widget triggers repositioning. """
-        pos = self.sorted_files.index(file)
-        i = self._get_visible_index(file)
-
-        if i is None:
-            # file is in hidden section, however it can still being processed
-            # on machines with number of cpu greater than MAX_VISIBLE_JOBS
-            vals = [f.relative_value for f in self.visible_files if isinstance(f, ProgressFile)]
-            return any(map(lambda x: x < (file.relative_value + self.OVERLAP), vals))
-
-        return pos != i
+        return list(self.files.values())
 
     def _update_bar(self) -> None:
         """ Update progress widget order on the status bar. """
@@ -355,12 +327,6 @@ class ProgressContainer(QWidget):
             elif f != w.file_ref:
                 w.file_ref = f
 
-        # remove widget reference for previously visible files
-        hidden = self.sorted_files[self.MAX_VISIBLE_JOBS :]
-        for f in hidden:
-            if f.widget:
-                f.widget = None
-
         # show summary file if there's more files than maximum
         n = len(self.sorted_files)
         self.summary.setVisible(n > self.MAX_VISIBLE_JOBS)
@@ -369,8 +335,7 @@ class ProgressContainer(QWidget):
     def add_file(self, id_: str, label: str, file_path: str) -> None:
         """ Add progress file to the container. """
         self.files[id_] = ProgressFile(id_, label, file_path)
-        if len(self.files) <= self.MAX_VISIBLE_JOBS:
-            self._update_bar()
+        self._update_bar()
 
     def set_range(self, id_: str, value: int, max_value: int) -> None:
         """ Set up maximum progress value. """
@@ -378,16 +343,12 @@ class ProgressContainer(QWidget):
             f = self.files[id_]
             f.maximum = max_value
             f.value = value
-            if self._position_changed(f):
-                self._update_bar()
 
     def update_progress(self, id_: str, value: int) -> None:
         """ Update file progress. """
         with contextlib.suppress(KeyError):
             f = self.files[id_]
             f.value = value
-            if self._position_changed(f):
-                self._update_bar()
 
     def set_status(self, id_: str, message: str) -> None:
         """ Update file progress. """
@@ -400,25 +361,13 @@ class ProgressContainer(QWidget):
             f = self.files[id_]
             f.status = message
             f.failed = True
-            if f not in self.locked:
-                # let failed files be always visible
-                self.locked.append(f)
-                self._update_bar()
 
     def set_pending(self, id_: str) -> None:
         """ Set pending status on the given file. """
         with contextlib.suppress(KeyError):
-            f = self.files[id_]
-            f.set_pending()
-            if f not in self.locked:
-                # pending files become locked so their position does not change
-                # condition is in place to avoid multiple references when calling
-                # set_pending multiple times
-                self.locked.append(f)
+            self.files[id_].set_pending()
 
     def remove_file(self, id_: str) -> None:
         """ Remove file from the container. """
-        del_file = self.files.pop(id_)
-        with contextlib.suppress(ValueError):
-            self.locked.remove(del_file)
+        self.files.pop(id_)
         self._update_bar()
