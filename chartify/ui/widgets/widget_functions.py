@@ -1,5 +1,6 @@
 from PySide2.QtCore import QObject
-from PySide2.QtWidgets import QWidget, QLayout
+from PySide2.QtWidgets import QWidget, QLayout, QGridLayout
+from typing import List
 
 
 class SignalBlocker:
@@ -54,3 +55,11 @@ def clear_layout(layout: QLayout) -> None:
         wgt = layout.itemAt(0).widget()
         layout.removeWidget(wgt)
         wgt.deleteLater()
+
+
+def populate_layout(layout: QGridLayout, widgets: List[QWidget], n_cols: int = 2) -> None:
+    """ Populate given group with given widgets. """
+    n_rows = (len(widgets) if len(widgets) % 2 == 0 else len(widgets) + 1) // n_cols
+    ixs = [(x, y) for x in range(n_rows) for y in range(n_cols)]
+    for btn, ix in zip(widgets, ixs):
+        layout.addWidget(btn, *ix)

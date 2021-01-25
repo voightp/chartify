@@ -13,11 +13,12 @@ from PySide2.QtWidgets import (
     QActionGroup,
     QRadioButton,
     QButtonGroup,
+    QScrollArea,
+    QWidget,
 )
-
+from chartify.ui.widgets.widget_functions import clear_layout, populate_layout
 from chartify.settings import Settings, OutputType
 from chartify.ui.widgets.buttons import TitledButton, ToggleButton, LabeledButton
-from chartify.ui.widgets.widget_functions import clear_layout
 
 
 class Toolbar(QFrame):
@@ -91,10 +92,22 @@ class Toolbar(QFrame):
 
         self.table_group = QGroupBox("Tables", self)
         self.table_group.setObjectName("tablesGroup")
-        table_buttons_layout = QGridLayout(self.table_group)
+        self.table_area = QScrollArea(self.table_group)
+        self.table_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.table_area.setWidgetResizable(True)
+        self.table_widget = QFrame(self.table_area)
+
+        layout = QVBoxLayout(self.table_group)
+        layout.addWidget(self.table_area)
+        layout.setSpacing(0)
+        layout.setContentsMargins(0, 0, 0, 0)
+
+        table_buttons_layout = QGridLayout(self.table_widget)
         table_buttons_layout.setSpacing(0)
         table_buttons_layout.setContentsMargins(0, 0, 0, 0)
         table_buttons_layout.setAlignment(Qt.AlignTop)
+
+        self.table_area.setWidget(self.table_widget)
         self.layout.addWidget(self.table_group)
 
         # ~~~~ Tools group ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -193,14 +206,6 @@ class Toolbar(QFrame):
             "rate_to_energy": rate_to_energy,
         }
 
-    def populate_group(self, group, widgets, n_cols=2):
-        """ Populate given group with given widgets. """
-        clear_layout(group.layout())
-        n_rows = (len(widgets) if len(widgets) % 2 == 0 else len(widgets) + 1) // n_cols
-        ixs = [(x, y) for x in range(n_rows) for y in range(n_cols)]
-        for btn, ix in zip(widgets, ixs):
-            group.layout().addWidget(btn, *ix)
-
     def set_up_units(self):
         """ Set up units options. """
 
@@ -265,13 +270,16 @@ class Toolbar(QFrame):
             self.table_buttons_group.removeButton(button)
 
         for table, index in table_indexes.items():
-            btn = QToolButton(self.table_group)
+            btn = QToolButton(self.table_widget)
             btn.setText(table)
             btn.setCheckable(True)
             if table == selected:
                 btn.setChecked(True)
             self.table_buttons_group.addButton(btn, index)
-        self.populate_group(self.table_group, self.table_buttons_group.buttons())
+        clear_layout(self.table_widget.layout())
+        populate_layout(self.table_widget.layout(), self.table_buttons_group.buttons())
+        self.table_widget.setMinimumSize(0, 0)
+        self.table_widget.layout().setSizeConstraint(QGridLayout.SetMinimumSize)
 
     def get_table_button_by_name(self, name: str) -> QToolButton:
         """ Find table button with given name. """

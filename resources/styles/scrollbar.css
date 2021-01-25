@@ -1,15 +1,15 @@
 /* ~~~~~ SCROLLBAR ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
 QScrollBar:vertical {
-    background: SURFACE_COLOR;
-    width: 6px;
+    background-color: transparent;
+    width: 4px;
     margin: 0px;
     border: 0px solid transparent;
 }
 
 QScrollBar:horizontal {
-    background: SURFACE_COLOR;
-    height: 6px;
+    background-color: transparent;
+    height: 4px;
     margin: 0px;
 }
 
