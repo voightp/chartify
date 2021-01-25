@@ -16,7 +16,8 @@ from chartify.controller.wv_controller import WVController
 from chartify.model.model import AppModel
 from chartify.settings import Settings
 from chartify.ui.main_window import MainWindow
-from chartify.ui.widgets.dialogs import ProgressDialog, InfiniteProgressDialog
+from chartify.ui.widgets.dialogs import ProgressDialog
+from chartify.ui.widgets.tab_widget import TabWidget
 from chartify.ui.widgets.treeview_model import ViewModel, VV
 from chartify.utils.utils import get_str_identifier
 
@@ -101,7 +102,7 @@ class AppController:
         self.v.aggregationRequested.connect(self.on_aggregation_requested)
         self.v.fileRemoveRequested.connect(self.on_file_remove_requested)
         self.v.appCloseRequested.connect(self.tear_down)
-        self.v.close_all_act.triggered.connect(lambda x: print("IMPLEMENT"))
+        self.v.removeAllFilesRequested.connect(self.on_file_remove_all_files_requested)
         self.v.save_act.triggered.connect(self.on_save)
         self.v.save_as_act.triggered.connect(self.on_save_as)
 
@@ -202,17 +203,30 @@ class AppController:
             self.m.delete_file(id_)
             self.ids.remove(id_)
 
+    def on_file_remove_all_files_requested(self, tab_widget: TabWidget) -> None:
+        """ Delete files from the database. """
+        children = tab_widget.get_all_children()
+        with ProgressDialog(self.v, "Deleting files...", len(children), delay=100) as dialog:
+            for i in range(len(children)):
+                last_id = tab_widget.remove_last_tab()
+                self.on_file_remove_requested(last_id)
+                dialog.increment_progress()
+
     def on_variable_rename_requested(
         self, models: List[ViewModel], old_view_variable: VV, new_view_variable: VV,
     ) -> None:
-        for model in models:
-            model.update_variable_if_exists(old_view_variable, new_view_variable)
+        with ProgressDialog(self.v, "Renaming variable...", len(models), delay=100) as dialog:
+            for model in models:
+                model.update_variable_if_exists(old_view_variable, new_view_variable)
+                dialog.increment_progress()
 
     def on_variable_remove_requested(
         self, models: List[ViewModel], view_variables: List[VV],
     ):
-        for model in models:
-            model.delete_variables(view_variables)
+        with ProgressDialog(self.v, "Deleting variables...", len(models), delay=100) as dialog:
+            for model in models:
+                model.delete_variables(view_variables)
+                dialog.increment_progress()
 
     def on_aggregation_requested(
         self,
@@ -222,5 +236,9 @@ class AppController:
         new_key: str,
         new_type: Optional[str],
     ):
-        for model in models:
-            model.aggregate_variables(view_variables, func, new_key, new_type)
+        with ProgressDialog(
+            self.v, "Aggregating variables...", len(models), delay=100
+        ) as dialog:
+            for model in models:
+                model.aggregate_variables(view_variables, func, new_key, new_type)
+                dialog.increment_progress()

@@ -71,6 +71,7 @@ class MainWindow(QMainWindow):
     syncFileProcessingRequested = Signal(list)
     fileRenameRequested = Signal(int, str)
     fileRemoveRequested = Signal(int)
+    removeAllFilesRequested = Signal(TabWidget)
     appCloseRequested = Signal()
 
     _CLOSE_FLAG = False
@@ -763,6 +764,7 @@ class MainWindow(QMainWindow):
         self.rename_variable_act.triggered.connect(self.on_rename_action_triggered)
         self.sum_act.triggered.connect(self.on_sum_action_triggered)
         self.mean_act.triggered.connect(self.on_mean_action_triggered)
+        self.close_all_act.triggered.connect(self.on_close_all_requested)
 
     def show_source_units(self) -> bool:
         """ Check if source units should be visible. """
@@ -912,6 +914,11 @@ class MainWindow(QMainWindow):
             tab_widget.removeTab(tab_index)
             treeview.deleteLater()
             self.fileRemoveRequested.emit(treeview.id_)
+
+    def on_close_all_requested(self):
+        """ Handle close all action trigger. """
+        if self.confirm_delete_all_files():
+            self.removeAllFilesRequested.emit(self.current_tab_widget)
 
     def connect_tab_widget_signals(self):
         """ Connect signals emitted by tab widgets. """
@@ -1092,4 +1099,9 @@ class MainWindow(QMainWindow):
     def confirm_delete_file(self, name: str):
         """ Confirm delete file. """
         dialog = ConfirmationDialog(self, f"Delete file {name}?")
+        return dialog.exec_() == 1
+
+    def confirm_delete_all_files(self):
+        """ Confirm delete all files on current tab widget. """
+        dialog = ConfirmationDialog(self, "Delete all files?")
         return dialog.exec_() == 1

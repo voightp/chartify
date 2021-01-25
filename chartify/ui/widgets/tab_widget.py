@@ -63,3 +63,11 @@ class TabWidget(QTabWidget):
             else:
                 next_index = tab_index - 1
             self.setCurrentIndex(next_index)
+
+    def remove_last_tab(self) -> int:
+        last_index = self.count() - 1
+        stacked_widget = self.widget(last_index)
+        self.removeTab(last_index)
+        file_id = stacked_widget.file_id
+        stacked_widget.deleteLater()
+        return file_id

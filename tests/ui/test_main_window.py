@@ -279,6 +279,17 @@ class TestRemoveFile:
         assert 1 not in model.storage.files
 
 
+class TestRemoveAllFiles:
+    def test_remove_all_files(self, qtbot, mw_esofile, model):
+        with patch("chartify.ui.main_window.ConfirmationDialog") as dialog:
+            instance = dialog.return_value
+            instance.exec_.return_value = 1
+            mw_esofile.close_all_act.trigger()
+            ids = [ch.file_id for ch in mw_esofile.current_tab_widget.get_all_children()]
+        assert mw_esofile.standard_tab_wgt.is_empty()
+        assert not any([id_ in ids for id_ in model.storage.files.keys()])
+
+
 class TestKeyEvents:
     def test_delete_key_event_empty(self, qtbot, mw):
         mw.setFocus()
