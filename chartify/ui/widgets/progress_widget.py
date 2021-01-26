@@ -117,15 +117,6 @@ class ProgressFile:
         if widget:
             self._widget.update_all_attributes()
 
-    @property
-    def relative_value(self) -> float:
-        """ Get current progress value (as percentage). """
-        try:
-            val = self.value / self.maximum * 100
-        except ZeroDivisionError:
-            val = -1
-        return val
-
     def set_pending(self) -> None:
         """ Set infinite pending value. """
         self.maximum = 0
@@ -282,15 +273,10 @@ class ProgressContainer(QWidget):
         Widgets to visually represent file information.
     files : Dict of int, ProgressFile
         Holds file reference for all processed files.
-    locked : List of ProgressFile
-        Stores files with locked position.
 
     """
 
-    MAX_VISIBLE_JOBS = 5
-    OVERLAP = 3
-
-    def __init__(self, parent: QWidget, vertical: bool = False):
+    def __init__(self, parent: QWidget, vertical: bool = False, n_visible_widgets: int = 5):
         super().__init__(parent)
 
         layout = QVBoxLayout(self) if vertical else QHBoxLayout(self)
@@ -298,12 +284,13 @@ class ProgressContainer(QWidget):
         layout.setAlignment(Qt.AlignLeft)
 
         widgets = []
-        for i in range(self.MAX_VISIBLE_JOBS):
+        for i in range(n_visible_widgets):
             wgt = ProgressWidget(self)
             wgt.remove.connect(self.remove_file)
             widgets.append(wgt)
             self.layout().addWidget(wgt)
         self.widgets = widgets
+        self.n_visible_widgets = n_visible_widgets
 
         summary = SummaryWidget(self)
         summary.setVisible(False)
@@ -311,7 +298,6 @@ class ProgressContainer(QWidget):
         self.summary = summary
 
         self.files = {}
-        self.locked = []
 
     @property
     def sorted_files(self) -> List[ProgressFile]:
@@ -320,17 +306,19 @@ class ProgressContainer(QWidget):
 
     def _update_bar(self) -> None:
         """ Update progress widget order on the status bar. """
-        displayed = self.sorted_files[0 : self.MAX_VISIBLE_JOBS]
+        n_files = len(self.sorted_files)
+        show_summary = n_files > self.n_visible_widgets
+        n_visible_files = self.n_visible_widgets - 1 if show_summary else self.n_visible_widgets
+        displayed = self.sorted_files[0:n_visible_files]
         for f, w in zip_longest(displayed, self.widgets):
             if not f:
                 w.file_ref = None
             elif f != w.file_ref:
                 w.file_ref = f
-
-        # show summary file if there's more files than maximum
-        n = len(self.sorted_files)
-        self.summary.setVisible(n > self.MAX_VISIBLE_JOBS)
-        self.summary.update_label(n - self.MAX_VISIBLE_JOBS)
+        if show_summary:
+            self.sorted_files[n_visible_files].widget = None
+        self.summary.setVisible(show_summary)
+        self.summary.update_label(n_files - n_visible_files)
 
     def add_file(self, id_: str, label: str, file_path: str) -> None:
         """ Add progress file to the container. """
